@@ -1,0 +1,62 @@
+<?php
+
+namespace Modules\Cart\Http\Controllers\Api\V1;
+
+use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
+use Modules\Cart\Http\Resources\CartResource;
+use Modules\Cart\Services\CartService;
+
+class CartController extends Controller
+{
+    public function __construct(
+        protected CartService $cart,
+    ) {}
+
+    /**
+     * GET /api/v1/cart
+     */
+    public function show(): CartResource
+    {
+        return new CartResource($this->cart->current()->loadMissing('lines.purchasable.product'));
+    }
+
+    /**
+     * POST /api/v1/cart  { variant_id, quantity }
+     */
+    public function store(Request $request): CartResource
+    {
+        $data = $request->validate([
+            'variant_id' => ['required', 'integer'],
+            'quantity' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $cart = $this->cart->add($data['variant_id'], $data['quantity'] ?? 1);
+
+        return new CartResource($cart->loadMissing('lines.purchasable.product'));
+    }
+
+    /**
+     * PATCH /api/v1/cart/lines/{line}  { quantity }
+     */
+    public function updateLine(Request $request, int $line): CartResource
+    {
+        $data = $request->validate([
+            'quantity' => ['required', 'integer', 'min:1'],
+        ]);
+
+        $cart = $this->cart->updateLine($line, $data['quantity']);
+
+        return new CartResource($cart->loadMissing('lines.purchasable.product'));
+    }
+
+    /**
+     * DELETE /api/v1/cart/lines/{line}
+     */
+    public function destroyLine(int $line): CartResource
+    {
+        $cart = $this->cart->remove($line);
+
+        return new CartResource($cart->loadMissing('lines.purchasable.product'));
+    }
+}

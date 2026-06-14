@@ -1,0 +1,70 @@
+@import 'tailwindcss';
+
+@source '../views/**/*.blade.php';
+@source '../js/**/*.{js,vue}';
+@source '../../../modules/**/Resources/**/*.blade.php';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
+        'Segoe UI Symbol', 'Noto Color Emoji';
+}
+
+/* --- Minimal storefront skeleton (Phase 2). Restyle per brand later. --- */
+@layer components {
+    body { font-family: var(--font-sans); margin: 0; color: #111; }
+    main { max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+    .site-header {
+        display: flex; align-items: center; gap: 1rem;
+        padding: 1rem; border-bottom: 1px solid #eee;
+    }
+    .site-header .logo { font-weight: 700; text-decoration: none; color: #111; }
+    .site-header__search { flex: 1; }
+
+    .grid {
+        display: grid; gap: 1.25rem;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    }
+    .product-card__link { text-decoration: none; color: inherit; display: block; }
+    .product-card__media, .product-card__placeholder {
+        aspect-ratio: 3/4; background: #f4f4f4; border-radius: .5rem; overflow: hidden;
+    }
+    .product-card__media img { width: 100%; height: 100%; object-fit: cover; }
+    .product-card__name { font-size: .95rem; margin: .5rem 0 .25rem; }
+    .product-card__price { font-weight: 600; margin: 0; }
+
+    .product-detail { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; }
+    .product-detail__media img, .product-detail__placeholder {
+        width: 100%; border-radius: .5rem; background: #f4f4f4; aspect-ratio: 3/4;
+    }
+
+    .btn { padding: .6rem 1.1rem; border: 1px solid #111; background: #fff; border-radius: .4rem; cursor: pointer; }
+    .btn--primary { background: #111; color: #fff; }
+
+    .cart-drawer__overlay {
+        position: fixed; inset: 0; background: rgba(0,0,0,.4);
+        display: flex; justify-content: flex-end; z-index: 50;
+    }
+    .cart-drawer__panel {
+        width: 360px; max-width: 90vw; background: #fff; height: 100%;
+        padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;
+    }
+    .cart-drawer__head { display: flex; justify-content: space-between; align-items: center; }
+    .cart-line { display: flex; align-items: center; gap: .5rem; padding: .5rem 0; border-bottom: 1px solid #f0f0f0; }
+    .cart-line__name { flex: 1; }
+    .cart-line__qty { width: 3rem; }
+    .cart-drawer__foot { margin-top: auto; }
+    .cart-drawer__total { display: flex; justify-content: space-between; margin-bottom: .75rem; }
+
+    .search-autocomplete { position: relative; }
+    .search-autocomplete__input { width: 100%; padding: .5rem .75rem; border: 1px solid #ddd; border-radius: .4rem; }
+    .search-autocomplete__list {
+        position: absolute; left: 0; right: 0; background: #fff; border: 1px solid #eee;
+        list-style: none; margin: .25rem 0 0; padding: .25rem; border-radius: .4rem; z-index: 20;
+    }
+    .search-autocomplete__list a { display: block; padding: .4rem .5rem; text-decoration: none; color: #111; }
+
+    .collection__body { display: grid; grid-template-columns: 220px 1fr; gap: 1.5rem; }
+    .section-title { margin: 1.5rem 0 1rem; }
+    .empty { color: #777; }
+}

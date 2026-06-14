@@ -1,0 +1,7 @@
+{
+    "name": "Modave",
+    "slug": "modave",
+    "version": "1.0.0",
+    "author": "Lunar Shop",
+    "stack": "bootstrap5+jquery+swiper"
+}

@@ -3,22 +3,14 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Lunar\Admin\Support\Facades\LunarPanel;
 
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * Register any application services.
+     * The Lunar admin panel is registered by ModulesServiceProvider after all
+     * module providers have registered, so modules can contribute admin pages.
      */
     public function register(): void
-    {
-        LunarPanel::register();
-    }
-
-    /**
-     * Bootstrap any application services.
-     */
-    public function boot(): void
     {
         //
     }

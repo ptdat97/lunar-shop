@@ -22,3 +22,7 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+/public/media
+/public/themes
+/public/themes/modave/images
+/modave

@@ -1,14 +1,16 @@
 <?php
 
 use Lunar\Base\StandardMediaDefinitions;
+use Modules\Media\Definitions\FashionMediaDefinitions;
 
 return [
 
     'definitions' => [
         'asset' => StandardMediaDefinitions::class,
         'brand' => StandardMediaDefinitions::class,
-        'collection' => StandardMediaDefinitions::class,
-        'product' => StandardMediaDefinitions::class,
+        // Storefront-facing models get responsive + WebP conversions.
+        'collection' => FashionMediaDefinitions::class,
+        'product' => FashionMediaDefinitions::class,
         'product-option' => StandardMediaDefinitions::class,
         'product-option-value' => StandardMediaDefinitions::class,
     ],

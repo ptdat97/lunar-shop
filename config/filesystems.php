@@ -47,6 +47,17 @@ return [
             'report' => false,
         ],
 
+        // Storefront media: original images + resized conversions written
+        // directly under public/media (served at /media, no symlink needed).
+        'media' => [
+            'driver' => 'local',
+            'root' => public_path('media'),
+            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/media',
+            'visibility' => 'public',
+            'throw' => false,
+            'report' => false,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
