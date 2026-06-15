@@ -55,4 +55,54 @@ class CartService
     {
         CartSession::forget();
     }
+
+    /**
+     * Apply a coupon code to the cart (Lunar resolves the matching discount).
+     * Validates the code exists + is active/usable before applying; throws a
+     * ValidationException with a clear message otherwise.
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    public function applyCoupon(string $code): Cart
+    {
+        $code = strtoupper(trim($code));
+
+        $discount = \Lunar\Models\Discount::query()
+            ->whereRaw('UPPER(coupon) = ?', [$code])
+            ->active()
+            ->usable()
+            ->first();
+
+        if (! $discount) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'code' => 'This coupon code is invalid or has expired.',
+            ]);
+        }
+
+        $cart = $this->current();
+        $cart->update(['coupon_code' => $code]);
+        $cart = $this->current()->fresh()->calculate();
+
+        // The code is valid, but it may not apply to this cart's contents
+        // (e.g. minimum spend / product restrictions). Surface that clearly.
+        if (blank($cart->discountTotal) || $cart->discountTotal->value <= 0) {
+            $cart->update(['coupon_code' => null]);
+
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'code' => 'This coupon does not apply to the items in your cart.',
+            ]);
+        }
+
+        return $cart;
+    }
+
+    /**
+     * Remove the coupon from the cart.
+     */
+    public function removeCoupon(): Cart
+    {
+        $this->current()->update(['coupon_code' => null]);
+
+        return $this->current()->fresh()->calculate();
+    }
 }

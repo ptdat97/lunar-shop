@@ -9,6 +9,7 @@ export const cart = reactive({
     linesCount: 0,
     lines: [],
     totals: {},
+    couponCode: null,
     loading: false,
 });
 
@@ -17,6 +18,7 @@ function apply(data) {
     cart.linesCount = data.lines_count ?? 0;
     cart.lines = data.lines ?? [];
     cart.totals = data.totals ?? {};
+    cart.couponCode = data.coupon_code ?? null;
 }
 
 export async function fetchCart() {
@@ -38,6 +40,16 @@ export async function updateLine(lineId, quantity) {
 
 export async function removeLine(lineId) {
     const { data } = await window.axios.delete(`/api/v1/cart/lines/${lineId}`);
+    apply(data.data);
+}
+
+export async function applyCoupon(code) {
+    const { data } = await window.axios.post('/api/v1/cart/coupon', { code });
+    apply(data.data);
+}
+
+export async function removeCoupon() {
+    const { data } = await window.axios.delete('/api/v1/cart/coupon');
     apply(data.data);
 }
 

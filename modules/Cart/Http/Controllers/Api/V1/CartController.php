@@ -59,4 +59,26 @@ class CartController extends Controller
 
         return new CartResource($cart->loadMissing('lines.purchasable.product'));
     }
+
+    /**
+     * POST /api/v1/cart/coupon  { code }
+     */
+    public function applyCoupon(Request $request): CartResource
+    {
+        $data = $request->validate(['code' => ['required', 'string', 'max:255']]);
+
+        $cart = $this->cart->applyCoupon($data['code']);
+
+        return new CartResource($cart->loadMissing('lines.purchasable.product'));
+    }
+
+    /**
+     * DELETE /api/v1/cart/coupon
+     */
+    public function removeCoupon(): CartResource
+    {
+        $cart = $this->cart->removeCoupon();
+
+        return new CartResource($cart->loadMissing('lines.purchasable.product'));
+    }
 }
