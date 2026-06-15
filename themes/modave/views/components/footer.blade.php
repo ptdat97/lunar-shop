@@ -7,31 +7,31 @@
                             <div class="col-lg-4">
                                 <div class="footer-infor">
                                     <div class="footer-logo">
-                                        <a href="index.html">
-                                            <img src="/themes/modave/images/logo/logo.svg" alt="">
+                                        <a href="{{ route('storefront.home') }}">
+                                            <img src="{{ $theme->image('general.logo_footer') }}" alt="{{ config('app.name') }}">
                                         </a>
                                     </div>
                                     <div class="footer-address">
-                                        <p>549 Oak St.Crystal Lake, IL 60014</p>
-                                        <a href="contact.html" class="tf-btn-default fw-6">GET DIRECTION<i class="icon-arrowUpRight"></i></a>
+                                        <p>{{ $theme->get('contact.address') }}</p>
                                     </div>
                                     <ul class="footer-info">
-                                        <li>
-                                            <i class="icon-mail"></i>
-                                            <p>themesflat@gmail.com</p>
-                                        </li>
-                                        <li>
-                                            <i class="icon-phone"></i>
-                                            <p>315-666-6688</p>
-                                        </li>
+                                        @if ($email = $theme->get('contact.email'))
+                                            <li>
+                                                <i class="icon-mail"></i>
+                                                <p><a href="mailto:{{ $email }}">{{ $email }}</a></p>
+                                            </li>
+                                        @endif
+                                        @if ($phone = $theme->get('contact.phone'))
+                                            <li>
+                                                <i class="icon-phone"></i>
+                                                <p><a href="tel:{{ $phone }}">{{ $phone }}</a></p>
+                                            </li>
+                                        @endif
                                     </ul>
                                     <ul class="tf-social-icon">
-                                        <li><a href="#" class="social-facebook"><i class="icon icon-fb"></i></a></li>
-                                        <li><a href="#" class="social-twiter"><i class="icon icon-x"></i></a></li>
-                                        <li><a href="#" class="social-instagram"><i class="icon icon-instagram"></i></a></li>
-                                        <li><a href="#" class="social-tiktok"><i class="icon icon-tiktok"></i></a></li>
-                                        <li><a href="#" class="social-amazon"><i class="icon icon-amazon"></i></a></li>
-                                        <li><a href="#" class="social-pinterest"><i class="icon icon-pinterest"></i></a></li>
+                                        @foreach ($theme->get('social', []) as $social)
+                                            <li><a href="{{ $social['url'] ?? '#' }}" target="_blank"><i class="icon {{ $social['icon'] ?? '' }}"></i></a></li>
+                                        @endforeach
                                     </ul>
                                 </div>
                             </div>
@@ -47,7 +47,7 @@
                                     </div>
                                     <div class="tf-collapse-content">
                                         <div class="footer-newsletter">
-                                            <p class="text-caption-1">Sign up for our newsletter and get 10% off your first purchase</p>
+                                            <p class="text-caption-1">{{ $theme->get('newsletter.heading') }}</p>
                                             <form id="subscribe-form" action="#" class="form-newsletter subscribe-form" method="post" accept-charset="utf-8" data-mailchimp="true">
                                                 <div id="subscribe-content" class="subscribe-content">
                                                     <fieldset class="email">
@@ -83,7 +83,7 @@
                             <div class="col-12">
                                 <div class="footer-bottom-wrap">
                                     <div class="left">
-                                        <p class="text-caption-1">©2024 Modave. All Rights Reserved.</p>
+                                        <p class="text-caption-1">{{ $theme->get('copyright') }}</p>
                                         <div class="tf-cur justify-content-end">
                                             <div class="tf-currencies">
                                                 <select class="image-select center style-default type-currencies">
@@ -102,24 +102,9 @@
                                     <div class="tf-payment">
                                         <p class="text-caption-1">Payment:</p>
                                         <ul>
-                                            <li>
-                                                <img src="/themes/modave/images/payment/img-1.png" alt="">
-                                            </li>
-                                            <li>
-                                                <img src="/themes/modave/images/payment/img-2.png" alt="">
-                                            </li>
-                                            <li>
-                                                <img src="/themes/modave/images/payment/img-3.png" alt="">
-                                            </li>
-                                            <li>
-                                                <img src="/themes/modave/images/payment/img-4.png" alt="">
-                                            </li>
-                                            <li>
-                                                <img src="/themes/modave/images/payment/img-5.png" alt="">
-                                            </li>
-                                            <li>
-                                                <img src="/themes/modave/images/payment/img-6.png" alt="">
-                                            </li>
+                                            @foreach ($theme->get('payment', []) as $pay)
+                                                <li><img src="{{ $theme->url($pay) }}" alt="payment"></li>
+                                            @endforeach
                                         </ul>
                                     </div>
                                 </div>

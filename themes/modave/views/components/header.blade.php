@@ -4,23 +4,19 @@
                 <div class="row align-items-center">
                     <div class="col-xl-3 d-none d-xl-block">
                         <ul class="tf-social-icon style-fill">
-                            <li><a href="#" class="social-facebook"><i class="icon icon-fb"></i></a></li>
-                            <li><a href="#" class="social-twiter"><i class="icon icon-x"></i></a></li>
-                            <li><a href="#" class="social-instagram"><i class="icon icon-instagram"></i></a></li>
-                            <li><a href="#" class="social-tiktok"><i class="icon icon-tiktok"></i></a></li>
-                            <li><a href="#" class="social-amazon"><i class="icon icon-amazon"></i></a></li>
-                            <li><a href="#" class="social-pinterest"><i class="icon icon-pinterest"></i></a></li>
+                            @foreach ($theme->get('social', []) as $social)
+                                <li><a href="{{ $social['url'] ?? '#' }}" target="_blank"><i class="icon {{ $social['icon'] ?? '' }}"></i></a></li>
+                            @endforeach
                         </ul>
                     </div>
                     <div class="col-xl-6 col-12 text-center">
                         <div dir="ltr" class="swiper tf-sw-top_bar" data-preview="1" data-space="0" data-loop="true" data-speed="1000" data-auto-play="true" data-delay="2000">
                             <div class="swiper-wrapper">
-                                <div class="swiper-slide">
-                                    <p class="top-bar-text text-line-clamp-1 text-btn-uppercase fw-semibold letter-1">Free shipping on all orders over <span class="text-primary">$20.00</span></p>
-                                </div>
-                                <div class="swiper-slide">
-                                    <p class="top-bar-text text-line-clamp-1 text-btn-uppercase fw-semibold letter-1">Midseason Sale: 20% Off - Auto Applied at Checkout - Limited Time Only.</p>
-                                </div>
+                                @foreach ($theme->get('topbar', []) as $slide)
+                                    <div class="swiper-slide">
+                                        <p class="top-bar-text text-line-clamp-1 text-btn-uppercase fw-semibold letter-1">{{ $slide['text'] ?? '' }}</p>
+                                    </div>
+                                @endforeach
                             </div>
                         </div>
                     </div>
@@ -54,8 +50,8 @@
                         </a>
                     </div>
                     <div class="col-xl-3 col-md-4 col-6">
-                        <a href="index.html" class="logo-header">
-                            <img src="/themes/modave/images/logo/logo.svg" alt="logo" class="logo">
+                        <a href="{{ route('storefront.home') }}" class="logo-header">
+                            <img src="{{ $theme->image('general.logo') }}" alt="{{ config('app.name') }}" class="logo">
                         </a>
                     </div>
                     <div class="col-xl-6 d-none d-xl-block">
