@@ -63,6 +63,8 @@
                                 <div class="swiper-button-prev button-style-arrow thumbs-prev"></div>
                             </div>
                         </div>
+                        {{-- Drift zoom pane (where the magnified image renders on hover) --}}
+                        <div class="tf-zoom-main"></div>
                     </div>
                 </div>
 

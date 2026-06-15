@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
     <meta name="description" content="@yield('meta_description', config('app.name'))">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="auth-check" content="{{ auth()->check() ? '1' : '0' }}">
 
     {{-- Modave vendor styles (Bootstrap 5 + Swiper + animate) served from public --}}
     <link rel="stylesheet" href="/themes/modave/fonts/fonts.css">
