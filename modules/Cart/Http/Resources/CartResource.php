@@ -23,6 +23,7 @@ class CartResource extends JsonResource
                 'quantity' => $line->quantity,
                 'variant_id' => $line->purchasable_id,
                 'name' => $line->purchasable?->product?->translateAttribute('name'),
+                'slug' => $line->purchasable?->product?->defaultUrl?->slug,
                 'sku' => $line->purchasable?->sku,
                 'sub_total' => $line->subTotal?->formatted(),
             ])->values(),

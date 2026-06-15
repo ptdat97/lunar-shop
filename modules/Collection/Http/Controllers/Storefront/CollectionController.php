@@ -26,6 +26,7 @@ class CollectionController extends Controller
             $collection,
             page: max(1, (int) $request->input('page', 1)),
             perPage: 24,
+            sort: $request->input('sort'),
         );
 
         return view('theme::pages.collection', [

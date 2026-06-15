@@ -11,11 +11,15 @@ use Modules\SectionBuilder\Services\SectionRenderer;
 class SectionBuilderServiceProvider extends ServiceProvider
 {
     /**
-     * Register the section renderer as a shared singleton.
+     * Register the section renderer + admin resource.
      */
     public function register(): void
     {
         $this->app->singleton(SectionRenderer::class);
+
+        \Modules\Theme\Support\AdminPages::addResource(
+            \Modules\SectionBuilder\Filament\Resources\PageSectionResource::class,
+        );
     }
 
     /**

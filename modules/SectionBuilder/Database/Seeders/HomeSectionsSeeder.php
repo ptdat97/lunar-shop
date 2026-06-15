@@ -4,31 +4,33 @@ namespace Modules\SectionBuilder\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Modules\SectionBuilder\Models\PageSection;
+use Modules\SectionBuilder\Support\SectionSchemas;
 
 /**
- * Seeds the default Modave "home" page layout. Idempotent.
+ * Seeds the default Modave "home" page layout with the template's content as
+ * editable settings. Idempotent.
  */
 class HomeSectionsSeeder extends Seeder
 {
     public function run(): void
     {
-        $sections = [
-            ['type' => 'hero-slider', 'settings' => []],
-            ['type' => 'category-grid', 'settings' => ['heading' => 'Shop by categories', 'limit' => 6]],
-            ['type' => 'product-tabs', 'settings' => ['limit' => 8]],
-            ['type' => 'lookbook', 'settings' => []],
-            ['type' => 'testimonial', 'settings' => []],
-            ['type' => 'iconbox', 'settings' => []],
-            ['type' => 'instagram', 'settings' => []],
+        $order = [
+            'hero-slider',
+            'category-grid',
+            'product-tabs',
+            'lookbook',
+            'testimonial',
+            'iconbox',
+            'instagram',
         ];
 
-        foreach ($sections as $i => $section) {
+        foreach ($order as $i => $type) {
             PageSection::updateOrCreate(
-                ['page_handle' => 'home', 'type' => $section['type']],
+                ['page_handle' => 'home', 'type' => $type],
                 [
                     'sort' => $i,
                     'enabled' => true,
-                    'settings' => $section['settings'],
+                    'settings' => SectionSchemas::defaults($type),
                 ],
             );
         }

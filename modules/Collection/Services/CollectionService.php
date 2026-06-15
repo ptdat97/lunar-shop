@@ -18,13 +18,45 @@ class CollectionService
     }
 
     /**
-     * Published products in a collection, paginated.
+     * Published products in a collection, paginated + sorted.
      */
-    public function products(Collection $collection, int $page = 1, int $perPage = 24)
+    public function products(Collection $collection, int $page = 1, int $perPage = 24, ?string $sort = null)
     {
-        return $collection->products()
+        $query = $collection->products()
             ->where('status', 'published')
-            ->with(['variants', 'thumbnail', 'brand'])
-            ->paginate(perPage: $perPage, page: $page);
+            ->with(['variants', 'thumbnail', 'brand']);
+
+        // Lunar stores translatable name as JSONB; sort on the extracted value.
+        $nameExpr = 'JSON_UNQUOTE(JSON_EXTRACT(lunar_products.attribute_data, "$.name.value"))';
+
+        match ($sort) {
+            'a-z' => $query->orderByRaw("{$nameExpr} asc"),
+            'z-a' => $query->orderByRaw("{$nameExpr} desc"),
+            'price-low-high' => $this->applyPriceSort($query, 'asc'),
+            'price-high-low' => $this->applyPriceSort($query, 'desc'),
+            default => $query->latest('lunar_products.id'),
+        };
+
+        return $query->paginate(perPage: $perPage, page: $page)->withQueryString();
+    }
+
+    /**
+     * Order products by their lowest variant price, ascending/descending.
+     * Joins a per-product min-price subquery (Lunar tables use the lunar_ prefix).
+     */
+    protected function applyPriceSort($query, string $direction)
+    {
+        $minPrice = \Illuminate\Support\Facades\DB::table('lunar_product_variants as pv')
+            ->join('lunar_prices as pr', function ($join) {
+                $join->on('pr.priceable_id', '=', 'pv.id')
+                    ->where('pr.priceable_type', '=', 'product_variant');
+            })
+            ->selectRaw('pv.product_id, MIN(pr.price) as min_price')
+            ->groupBy('pv.product_id');
+
+        return $query
+            ->leftJoinSub($minPrice, 'product_prices', 'product_prices.product_id', '=', 'lunar_products.id')
+            ->orderBy('product_prices.min_price', $direction)
+            ->select('lunar_products.*');
     }
 }

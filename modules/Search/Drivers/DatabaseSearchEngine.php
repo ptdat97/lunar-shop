@@ -25,6 +25,12 @@ class DatabaseSearchEngine implements SearchEngine
 
         $this->applyTerm($builder, $query->term);
         $this->applyScope($builder, $query->scope);
+
+        // Facets are computed BEFORE option filters are applied (so counts
+        // reflect the term/scope, not the currently selected option).
+        $facetBase = clone $builder;
+
+        $this->applyFilters($builder, $query->filters);
         $this->applySort($builder, $query->sort);
 
         $total = (clone $builder)->count();
@@ -38,7 +44,7 @@ class DatabaseSearchEngine implements SearchEngine
             total: $total,
             page: $query->page,
             perPage: $query->perPage,
-            facets: [], // filters/facets land when filter UI is built (P2)
+            facets: $this->computeFacets($facetBase),
         );
     }
 
@@ -89,16 +95,104 @@ class DatabaseSearchEngine implements SearchEngine
             ->first();
 
         if ($collection) {
-            $builder->whereHas('collections', fn ($c) => $c->where('collections.id', $collection->id));
+            $builder->whereHas('collections', fn ($c) => $c->whereKey($collection->id));
         }
     }
 
     protected function applySort(Builder $builder, ?string $sort): void
     {
+        $nameExpr = 'JSON_UNQUOTE(JSON_EXTRACT(lunar_products.attribute_data, "$.name.value"))';
+
         match ($sort) {
-            'newest' => $builder->latest('id'),
-            'oldest' => $builder->oldest('id'),
-            default => $builder->latest('id'),
+            'newest' => $builder->latest('lunar_products.id'),
+            'oldest' => $builder->oldest('lunar_products.id'),
+            'a-z' => $builder->orderByRaw("{$nameExpr} asc"),
+            'z-a' => $builder->orderByRaw("{$nameExpr} desc"),
+            'price-low-high' => $this->applyPriceSort($builder, 'asc'),
+            'price-high-low' => $this->applyPriceSort($builder, 'desc'),
+            default => $builder->latest('lunar_products.id'),
         };
+    }
+
+    /**
+     * Order products by lowest variant price (joins a min-price subquery).
+     */
+    protected function applyPriceSort(Builder $builder, string $direction): void
+    {
+        $minPrice = \Illuminate\Support\Facades\DB::table('lunar_product_variants as pv')
+            ->join('lunar_prices as pr', function ($join) {
+                $join->on('pr.priceable_id', '=', 'pv.id')
+                    ->where('pr.priceable_type', '=', 'product_variant');
+            })
+            ->selectRaw('pv.product_id, MIN(pr.price) as min_price')
+            ->groupBy('pv.product_id');
+
+        $builder
+            ->leftJoinSub($minPrice, 'product_prices', 'product_prices.product_id', '=', 'lunar_products.id')
+            ->orderBy('product_prices.min_price', $direction)
+            ->select('lunar_products.*');
+    }
+
+    /**
+     * Filter by product option values (size/color). Filters arrive as
+     * ['size' => ['S','M'], 'color' => ['Black']].
+     *
+     * @param  array<string, mixed>  $filters
+     */
+    protected function applyFilters(Builder $builder, array $filters): void
+    {
+        foreach (['size' => 'Size', 'color' => 'Color'] as $key => $optionName) {
+            $values = array_filter((array) ($filters[$key] ?? []));
+
+            if (empty($values)) {
+                continue;
+            }
+
+            $builder->whereHas('variants.values', function ($q) use ($values, $optionName) {
+                // Scope to the right option (Size/Color) so values can't cross-match.
+                $q->whereHas('option', fn ($o) => $o->whereJsonContains('name->en', $optionName))
+                    ->where(function ($inner) use ($values) {
+                        foreach ($values as $v) {
+                            $inner->orWhereJsonContains('lunar_product_option_values.name->en', $v);
+                        }
+                    });
+            });
+        }
+    }
+
+    /**
+     * Build facet buckets (value => count) for size/color across the result set.
+     *
+     * @return array<string, array<int, array{value:string, count:int}>>
+     */
+    protected function computeFacets(Builder $base): array
+    {
+        $productIds = (clone $base)->pluck('lunar_products.id');
+
+        if ($productIds->isEmpty()) {
+            return ['size' => [], 'color' => []];
+        }
+
+        $rows = \Illuminate\Support\Facades\DB::table('lunar_product_option_values as ov')
+            ->join('lunar_product_option_value_product_variant as pivot', 'pivot.value_id', '=', 'ov.id')
+            ->join('lunar_product_variants as pv', 'pv.id', '=', 'pivot.variant_id')
+            ->join('lunar_product_options as o', 'o.id', '=', 'ov.product_option_id')
+            ->whereIn('pv.product_id', $productIds)
+            ->selectRaw('JSON_UNQUOTE(JSON_EXTRACT(o.name, "$.en")) as option_name')
+            ->selectRaw('JSON_UNQUOTE(JSON_EXTRACT(ov.name, "$.en")) as value')
+            ->selectRaw('COUNT(DISTINCT pv.product_id) as count')
+            ->groupBy('option_name', 'value')
+            ->get();
+
+        $facets = ['size' => [], 'color' => []];
+
+        foreach ($rows as $row) {
+            $key = strtolower($row->option_name);
+            if (isset($facets[$key])) {
+                $facets[$key][] = ['value' => $row->value, 'count' => (int) $row->count];
+            }
+        }
+
+        return $facets;
     }
 }

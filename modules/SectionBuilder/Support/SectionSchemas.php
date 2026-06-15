@@ -1,0 +1,148 @@
+<?php
+
+namespace Modules\SectionBuilder\Support;
+
+/**
+ * Default settings for each section type — taken from the Modave template so a
+ * freshly seeded page looks identical to the original design, but every value
+ * is now editable from the admin.
+ *
+ * Single source of truth used by both the seeder and the Filament form.
+ */
+class SectionSchemas
+{
+    /**
+     * @return array<string, mixed>  default settings for a section type
+     */
+    public static function defaults(string $type): array
+    {
+        return match ($type) {
+            'hero-slider' => [
+                'slides' => [
+                    [
+                        'image' => '/themes/modave/images/slider/slider-glamDwell.jpg',
+                        'title' => 'Fresh Fashion Finds',
+                        'subtitle' => 'Revitalize your style with our latest, exciting fashion selections.',
+                        'button_text' => 'Explore Collection',
+                        'button_url' => '/search',
+                    ],
+                    [
+                        'image' => '/themes/modave/images/slider/slider-glamDwell2.jpg',
+                        'title' => 'Luxury Outerwear',
+                        'subtitle' => 'Indulge in our luxurious outerwear for unmatched elegance and warmth.',
+                        'button_text' => 'Shop Sale',
+                        'button_url' => '/search',
+                    ],
+                    [
+                        'image' => '/themes/modave/images/slider/slider-glamDwell3.jpg',
+                        'title' => 'Timeless Elegance',
+                        'subtitle' => 'Discover pieces that blend classic style with modern comfort.',
+                        'button_text' => 'Shop Now',
+                        'button_url' => '/search',
+                    ],
+                ],
+            ],
+
+            'category-grid' => [
+                'heading' => 'Shop by categories',
+                'limit' => 6,
+            ],
+
+            'product-tabs' => [
+                'limit' => 8,
+                'tabs' => [
+                    ['id' => 'newArrivals', 'label' => 'New Arrivals'],
+                    ['id' => 'bestSeller', 'label' => 'Best Seller'],
+                    ['id' => 'onSale', 'label' => 'On Sale'],
+                ],
+            ],
+
+            'iconbox' => [
+                'items' => [
+                    ['icon' => 'icon-return', 'heading' => '14-Day Returns', 'text' => 'Risk-free shopping with easy returns.'],
+                    ['icon' => 'icon-shipping', 'heading' => 'Free Shipping', 'text' => 'No extra costs, just the price you see.'],
+                    ['icon' => 'icon-headset', 'heading' => '24/7 Support', 'text' => '24/7 support, always here just for you.'],
+                    ['icon' => 'icon-sealCheck', 'heading' => 'Member Discounts', 'text' => 'Special prices for our loyal customers.'],
+                ],
+            ],
+
+            'lookbook' => [
+                'slides' => [
+                    [
+                        'banner' => '/themes/modave/images/banner/banner-lookbook-3.jpg',
+                        'position' => 'position3',
+                        'pin_image' => '/themes/modave/images/gallery/lookbook-2.jpg',
+                        'pin_title' => 'Rattan bag with handle',
+                        'pin_price' => '$159.99',
+                        'pin_url' => '/search',
+                    ],
+                    [
+                        'banner' => '/themes/modave/images/banner/banner-lookbook-4.jpg',
+                        'position' => '',
+                        'pin_image' => '/themes/modave/images/gallery/lookbook-1.jpg',
+                        'pin_title' => 'Rattan bag with handle',
+                        'pin_price' => '$159.99',
+                        'pin_url' => '/search',
+                    ],
+                    [
+                        'banner' => '/themes/modave/images/banner/banner-lookbook-5.jpg',
+                        'position' => 'position5',
+                        'pin_image' => '/themes/modave/images/gallery/lookbook-3.jpg',
+                        'pin_title' => 'Rattan bag with handle',
+                        'pin_price' => '$159.99',
+                        'pin_url' => '/search',
+                    ],
+                ],
+            ],
+
+            'testimonial' => [
+                'heading' => 'Customer Say!',
+                'subheading' => 'Our customers adore our products, and we constantly aim to delight them.',
+                'items' => [
+                    [
+                        'image' => '/themes/modave/images/testimonial/tes-1.jpg',
+                        'rating' => 5,
+                        'text' => 'Fantastic shop! Great selection, fair prices, and friendly staff. Highly recommended. The quality of the products is exceptional, and the prices are very reasonable!',
+                        'author' => 'Sybil Sharp',
+                        'avatar' => '/themes/modave/images/avatar/user-4.jpg',
+                        'product_name' => 'Contrasting sheepskin sweatshirt',
+                        'product_price' => '$60.00',
+                    ],
+                    [
+                        'image' => '/themes/modave/images/testimonial/tes-2.jpg',
+                        'rating' => 5,
+                        'text' => 'Amazing quality and fast shipping. The team was super helpful with my questions. I will definitely shop here again!',
+                        'author' => 'Coyle Eric',
+                        'avatar' => '/themes/modave/images/avatar/user-5.jpg',
+                        'product_name' => 'Yarn-dyed striped sweater',
+                        'product_price' => '$45.00',
+                    ],
+                    [
+                        'image' => '/themes/modave/images/testimonial/tes-1.jpg',
+                        'rating' => 5,
+                        'text' => 'Beautiful pieces and excellent customer service. Everything arrived perfectly packaged. A wonderful shopping experience overall.',
+                        'author' => 'Sybil Sharp',
+                        'avatar' => '/themes/modave/images/avatar/user-4.jpg',
+                        'product_name' => 'Contrasting sheepskin sweatshirt',
+                        'product_price' => '$60.00',
+                    ],
+                ],
+            ],
+
+            'instagram' => [
+                'heading' => 'Shop Instagram',
+                'subheading' => 'Elevate your wardrobe with fresh finds today!',
+            ],
+
+            default => [],
+        };
+    }
+
+    /**
+     * Whether this section type pulls dynamic data from Lunar (vs pure settings).
+     */
+    public static function isDynamic(string $type): bool
+    {
+        return in_array($type, ['category-grid', 'product-tabs'], true);
+    }
+}

@@ -29,6 +29,7 @@ class ModulesServiceProvider extends ServiceProvider
         'Order',
         'CMS',
         'SectionBuilder',
+        'Menu',
         'Media',
         'Search',
         'Promotion',
@@ -58,9 +59,17 @@ class ModulesServiceProvider extends ServiceProvider
     protected function registerLunarPanel(): void
     {
         $pages = \Modules\Theme\Support\AdminPages::all();
+        $resources = \Modules\Theme\Support\AdminPages::resources();
 
-        \Lunar\Admin\Support\Facades\LunarPanel::panel(
-            fn ($panel) => $pages ? $panel->pages($pages) : $panel
-        )->register();
+        \Lunar\Admin\Support\Facades\LunarPanel::panel(function ($panel) use ($pages, $resources) {
+            if ($pages) {
+                $panel->pages($pages);
+            }
+            if ($resources) {
+                $panel->resources($resources);
+            }
+
+            return $panel;
+        })->register();
     }
 }

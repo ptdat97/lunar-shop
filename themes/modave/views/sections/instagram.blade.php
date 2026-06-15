@@ -1,8 +1,8 @@
         <section class="flat-spacing">
             <div class="container">
                 <div class="heading-section text-center wow fadeInUp">
-                    <h3 class="heading">Shop Instagram</h3>
-                    <p class="subheading text-secondary">Elevate your wardrobe with fresh finds today!</p>
+                    <h3 class="heading">{{ $settings['heading'] ?? 'Shop Instagram' }}</h3>
+                    <p class="subheading text-secondary">{{ $settings['subheading'] ?? 'Elevate your wardrobe with fresh finds today!' }}</p>
                 </div>
                 <div dir="ltr" class="swiper tf-sw-shop-gallery" data-preview="5" data-tablet="3" data-mobile="2" data-space-lg="10" data-space-md="10" data-space="8" data-pagination="2" data-pagination-md="3" data-pagination-lg="1">
                     <div class="swiper-wrapper">

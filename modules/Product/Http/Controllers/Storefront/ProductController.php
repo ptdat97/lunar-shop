@@ -23,6 +23,7 @@ class ProductController extends Controller
 
         return view('theme::pages.product', [
             'product' => $product,
+            'related' => $this->products->related($product),
         ]);
     }
 }

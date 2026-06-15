@@ -20,10 +20,9 @@
             <img class="lazyload img-hover" data-src="{{ $img }}" src="{{ $img }}" alt="{{ $name }}">
         </a>
         <div class="list-product-btn">
-            <a href="javascript:void(0);" class="box-icon wishlist btn-icon-action">
-                <span class="icon icon-heart"></span><span class="tooltip">Wishlist</span>
-            </a>
-            <a href="#quickView" data-bs-toggle="modal" class="box-icon quickview tf-btn-loading">
+            <span data-vue="wishlist-button" data-product="{{ $product->id }}"></span>
+            <a href="javascript:void(0);" class="box-icon quickview"
+               onclick="window.dispatchEvent(new CustomEvent('quickview:open', {detail:{slug:'{{ $slug }}'}}))">
                 <span class="icon icon-eye"></span><span class="tooltip">Quick View</span>
             </a>
         </div>

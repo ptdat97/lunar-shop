@@ -35,7 +35,7 @@ class SectionRenderer
      */
     public function render(string $pageHandle = 'home'): HtmlString
     {
-        $html = PageSection::forPage($pageHandle)->get()
+        $html = PageSection::forPageHandle($pageHandle)->get()
             ->map(fn (PageSection $section) => $this->renderSection($section))
             ->implode("\n");
 

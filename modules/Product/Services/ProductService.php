@@ -33,7 +33,26 @@ class ProductService
         return Product::query()
             ->where('status', 'published')
             ->whereHas('urls', fn ($u) => $u->where('slug', $slug))
-            ->with(['variants', 'thumbnail', 'brand', 'collections'])
+            ->with(['variants', 'thumbnail', 'brand', 'collections', 'media'])
             ->first();
+    }
+
+    /**
+     * Products related to the given one (same collections), excluding itself.
+     */
+    public function related(Product $product, int $limit = 8)
+    {
+        $collectionIds = $product->collections->pluck('id');
+
+        $query = Product::query()
+            ->where('status', 'published')
+            ->where('id', '!=', $product->id)
+            ->with(['variants', 'thumbnail', 'brand']);
+
+        if ($collectionIds->isNotEmpty()) {
+            $query->whereHas('collections', fn ($c) => $c->whereKey($collectionIds));
+        }
+
+        return $query->latest('id')->limit($limit)->get();
     }
 }

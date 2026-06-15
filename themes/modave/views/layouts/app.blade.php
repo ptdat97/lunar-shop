@@ -14,11 +14,13 @@
     <link rel="stylesheet" href="/themes/modave/css/swiper-bundle.min.css">
     <link rel="stylesheet" href="/themes/modave/css/animate.css">
     <link rel="stylesheet" type="text/css" href="/themes/modave/css/styles.css">
+    <link rel="stylesheet" type="text/css" href="/themes/modave/css/custom.css">
 
     {{-- Theme app JS (Vue islands + axios), built by Vite --}}
     @vite(['themes/modave/js/app.js'])
 
     <link rel="shortcut icon" href="/themes/modave/images/logo/favicon.png">
+    @stack('head')
 </head>
 
 <body class="preload-wrapper">
@@ -42,6 +44,9 @@
 
     @include('theme::components.modals')
 
+    {{-- Dynamic quick-view (listens for quickview:open events) --}}
+    <div data-vue="quick-view"></div>
+
     {{-- Modave vendor scripts (jQuery + Swiper + plugins) --}}
     <script src="/themes/modave/js/bootstrap.min.js"></script>
     <script src="/themes/modave/js/jquery.min.js"></script>
@@ -53,5 +58,8 @@
     <script src="/themes/modave/js/wow.min.js"></script>
     <script src="/themes/modave/js/multiple-modal.js"></script>
     <script src="/themes/modave/js/main.js"></script>
+
+    {{-- Page-specific scripts (e.g. product gallery zoom) --}}
+    @stack('scripts')
 </body>
 </html>
