@@ -13,4 +13,5 @@ Route::prefix('api/v1')->middleware('storefront')->group(function (): void {
     Route::delete('cart/lines/{line}', [CartController::class, 'destroyLine'])->name('api.v1.cart.lines.destroy');
     Route::post('cart/coupon', [CartController::class, 'applyCoupon'])->name('api.v1.cart.coupon.apply');
     Route::delete('cart/coupon', [CartController::class, 'removeCoupon'])->name('api.v1.cart.coupon.remove');
+    Route::get('cart/coupons', [CartController::class, 'availableCoupons'])->name('api.v1.cart.coupons');
 });

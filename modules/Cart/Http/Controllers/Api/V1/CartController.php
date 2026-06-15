@@ -2,8 +2,10 @@
 
 namespace Modules\Cart\Http\Controllers\Api\V1;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Lunar\Models\Discount;
 use Modules\Cart\Http\Resources\CartResource;
 use Modules\Cart\Services\CartService;
 
@@ -80,5 +82,24 @@ class CartController extends Controller
         $cart = $this->cart->removeCoupon();
 
         return new CartResource($cart->loadMissing('lines.purchasable.product'));
+    }
+
+    /**
+     * GET /api/v1/cart/coupons — active coupons the shopper can apply.
+     */
+    public function availableCoupons(): JsonResponse
+    {
+        $coupons = Discount::query()
+            ->whereNotNull('coupon')
+            ->active()
+            ->usable()
+            ->orderByDesc('priority')
+            ->get(['coupon', 'name'])
+            ->map(fn (Discount $d) => [
+                'code' => $d->coupon,
+                'name' => $d->name,
+            ]);
+
+        return response()->json(['data' => $coupons]);
     }
 }

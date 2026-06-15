@@ -36,6 +36,7 @@ class CartResource extends JsonResource
                 'tax_total' => $this->taxTotal?->formatted(),
                 'total' => $this->total?->formatted(),
             ],
+            'free_shipping' => $this->freeShippingInfo(),
         ];
     }
 
@@ -54,6 +55,31 @@ class CartResource extends JsonResource
         return $media->hasGeneratedConversion('small')
             ? $media->getUrl('small')
             : $media->getUrl();
+    }
+
+    /**
+     * Free-shipping progress info based on the configured threshold.
+     *
+     * @return array<string, mixed>|null  null when the threshold is disabled
+     */
+    protected function freeShippingInfo(): ?array
+    {
+        $threshold = (int) config('shipping.free_threshold', 0);
+
+        if ($threshold <= 0) {
+            return null;
+        }
+
+        $subTotal = $this->subTotal?->value ?? 0;
+        $remaining = max(0, $threshold - $subTotal);
+        $currency = $this->currency ?? \Lunar\Models\Currency::getDefault();
+
+        return [
+            'qualified' => $subTotal >= $threshold,
+            'threshold' => (new \Lunar\DataTypes\Price($threshold, $currency))->formatted(),
+            'remaining' => (new \Lunar\DataTypes\Price($remaining, $currency))->formatted(),
+            'progress' => $threshold > 0 ? min(100, (int) round($subTotal / $threshold * 100)) : 0,
+        ];
     }
 }
 

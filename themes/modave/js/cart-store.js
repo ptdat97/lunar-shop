@@ -10,6 +10,7 @@ export const cart = reactive({
     lines: [],
     totals: {},
     couponCode: null,
+    free_shipping: null,
     loading: false,
 });
 
@@ -19,6 +20,7 @@ function apply(data) {
     cart.lines = data.lines ?? [];
     cart.totals = data.totals ?? {};
     cart.couponCode = data.coupon_code ?? null;
+    cart.free_shipping = data.free_shipping ?? null;
 }
 
 export async function fetchCart() {

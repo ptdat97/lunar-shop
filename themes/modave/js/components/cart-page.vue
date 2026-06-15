@@ -5,8 +5,20 @@ import { cart, fetchCart, updateLine, removeLine, applyCoupon, removeCoupon } fr
 const couponInput = ref('');
 const couponError = ref('');
 const couponBusy = ref(false);
+const availableCoupons = ref([]);
 
-onMounted(fetchCart);
+onMounted(async () => {
+    await fetchCart();
+    try {
+        const { data } = await window.axios.get('/api/v1/cart/coupons');
+        availableCoupons.value = data.data ?? [];
+    } catch (e) { /* noop */ }
+});
+
+async function applyCode(code) {
+    couponInput.value = code;
+    await apply();
+}
 
 async function apply() {
     if (!couponInput.value.trim()) return;
@@ -87,15 +99,39 @@ async function clear() {
                 <div class="box-order bg-surface">
                     <h5 class="title">Order Summary</h5>
 
+                    <!-- Free shipping progress -->
+                    <div class="free-ship-bar mb_16" v-if="cart.free_shipping && cart.lines.length">
+                        <p class="text-button mb_8" v-if="cart.free_shipping.qualified">
+                            🎉 You’ve unlocked <strong>free shipping</strong>!
+                        </p>
+                        <p class="text-button mb_8" v-else>
+                            Add <strong>{{ cart.free_shipping.remaining }}</strong> more to get
+                            <strong>free shipping</strong>.
+                        </p>
+                        <div class="progress-track">
+                            <div class="progress-fill" :style="{ width: cart.free_shipping.progress + '%' }"></div>
+                        </div>
+                    </div>
+
                     <!-- Coupon -->
                     <div class="coupon-box mb_16" v-if="cart.lines.length">
                         <div v-if="cart.couponCode" class="d-flex justify-content-between align-items-center">
                             <span class="text-button">Coupon: <strong>{{ cart.couponCode }}</strong></span>
                             <button type="button" class="link text-button" @click="clear">Remove</button>
                         </div>
-                        <div v-else class="d-flex gap-2">
-                            <input type="text" v-model="couponInput" placeholder="Coupon code" class="flex-grow-1">
-                            <button type="button" class="tf-btn btn-outline" :disabled="couponBusy" @click="apply">Apply</button>
+                        <div v-else>
+                            <div class="d-flex gap-2">
+                                <input type="text" v-model="couponInput" placeholder="Coupon code" class="flex-grow-1">
+                                <button type="button" class="tf-btn btn-outline" :disabled="couponBusy" @click="apply">Apply</button>
+                            </div>
+                            <!-- Available coupons -->
+                            <div v-if="availableCoupons.length" class="available-coupons mt_8">
+                                <span class="text-secondary small">Available:</span>
+                                <button v-for="c in availableCoupons" :key="c.code" type="button"
+                                        class="coupon-chip" :title="c.name" @click="applyCode(c.code)">
+                                    {{ c.code }}
+                                </button>
+                            </div>
                         </div>
                         <p v-if="couponError" class="text-danger small mt_8">{{ couponError }}</p>
                     </div>
