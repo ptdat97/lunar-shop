@@ -49,6 +49,36 @@ class FileManager
     }
 
     /**
+     * Store a file from an absolute filesystem path (e.g. a theme/seed image)
+     * as a new Asset + attached Media item. Optional alt/title metadata.
+     *
+     * @param  array{alt?:string,title?:string,name?:string}  $meta
+     */
+    public function storeFromPath(string $path, ?string $folder = null, array $meta = []): Asset
+    {
+        $mime = mime_content_type($path) ?: null;
+        $name = $meta['name'] ?? pathinfo($path, PATHINFO_FILENAME);
+
+        $props = $this->properties($folder, $mime);
+        foreach (['alt', 'title'] as $key) {
+            if (! empty($meta[$key])) {
+                $props[$key] = $meta[$key];
+            }
+        }
+
+        $asset = Asset::create([]);
+
+        $asset->addMedia($path)
+            ->preservingOriginal()
+            ->usingFileName(\Illuminate\Support\Str::slug(pathinfo($path, PATHINFO_FILENAME)) . '.' . pathinfo($path, PATHINFO_EXTENSION))
+            ->usingName($name)
+            ->withCustomProperties($props)
+            ->toMediaCollection($this->collection());
+
+        return $asset->fresh();
+    }
+
+    /**
      * Replace the binary of an existing asset's media with a new upload.
      * The old media item is removed and a new one attached, keeping the same
      * Asset id — so picker references (which store the Asset id) stay valid.

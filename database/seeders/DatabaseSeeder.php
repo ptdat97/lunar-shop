@@ -6,6 +6,8 @@ use Illuminate\Database\Seeder;
 use Modules\Catalog\Database\Seeders\BaseDataSeeder;
 use Modules\Catalog\Database\Seeders\Demo50ProductsSeeder;
 use Modules\Catalog\Database\Seeders\DemoOptionsSeeder;
+use Modules\CMS\Database\Seeders\CmsDemoSeeder;
+use Modules\FileManager\Database\Seeders\MediaLibraryDemoSeeder;
 use Modules\Menu\Database\Seeders\FooterMenuSeeder;
 use Modules\Menu\Database\Seeders\HeaderMenuSeeder;
 use Modules\Promotion\Database\Seeders\DemoCouponSeeder;
@@ -20,13 +22,15 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            BaseDataSeeder::class,         // channel/currency/language/tax/type
-            Demo50ProductsSeeder::class,   // products + options + collections + media
-            DemoOptionsSeeder::class,      // ensure size/color assigned to base variants
-            DemoCouponSeeder::class,       // SAVE10 coupon
-            HeaderMenuSeeder::class,       // header menu (links to collections)
-            FooterMenuSeeder::class,       // footer columns
-            HomeSectionsSeeder::class,     // home page sections
+            BaseDataSeeder::class,            // channel/currency/language/tax/type
+            Demo50ProductsSeeder::class,      // products + options + collections + media
+            DemoOptionsSeeder::class,         // ensure size/color assigned to base variants
+            DemoCouponSeeder::class,          // SAVE10 coupon
+            HeaderMenuSeeder::class,          // header menu (links to collections)
+            FooterMenuSeeder::class,          // footer columns
+            HomeSectionsSeeder::class,        // home page sections
+            MediaLibraryDemoSeeder::class,    // media library assets (theme images)
+            CmsDemoSeeder::class,             // pages, banners, lookbooks, redirects
         ]);
     }
 }
