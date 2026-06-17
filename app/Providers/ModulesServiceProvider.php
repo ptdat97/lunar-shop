@@ -3,6 +3,9 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Lunar\Admin\Filament\Resources\ProductTypeResource as BaseProductTypeResource;
+use Lunar\Admin\LunarPanelManager;
+use Modules\Theme\Filament\Resources\ProductTypeResource;
 
 class ModulesServiceProvider extends ServiceProvider
 {
@@ -59,14 +62,25 @@ class ModulesServiceProvider extends ServiceProvider
     protected function registerLunarPanel(): void
     {
         $pages = \Modules\Theme\Support\AdminPages::all();
-        $resources = \Modules\Theme\Support\AdminPages::resources();
+        $extraResources = \Modules\Theme\Support\AdminPages::resources();
 
-        \Lunar\Admin\Support\Facades\LunarPanel::panel(function ($panel) use ($pages, $resources) {
+        \Lunar\Admin\Support\Facades\LunarPanel::panel(function ($panel) use ($pages, $extraResources) {
+            // Replace the default ProductTypeResource with our custom version
+            // so that Product Types appears as a standalone menu item (not nested under Products).
+            // Filament Panel::resources() merges, so we must use reflection to reset the array.
+            $replacement = collect(LunarPanelManager::getResources())
+                ->reject(fn ($r) => $r === BaseProductTypeResource::class)
+                ->push(ProductTypeResource::class)
+                ->merge($extraResources)
+                ->values()
+                ->toArray();
+
+            (function () use ($replacement) {
+                $this->resources = $replacement;
+            })->call($panel);
+
             if ($pages) {
                 $panel->pages($pages);
-            }
-            if ($resources) {
-                $panel->resources($resources);
             }
 
             return $panel;
