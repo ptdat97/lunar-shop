@@ -6,7 +6,9 @@ use Modules\Media\Definitions\FashionMediaDefinitions;
 return [
 
     'definitions' => [
-        'asset' => StandardMediaDefinitions::class,
+        // Media Library assets get the same responsive + WebP conversions as
+        // storefront imagery so picked files are ready for the front end.
+        'asset' => FashionMediaDefinitions::class,
         'brand' => StandardMediaDefinitions::class,
         // Storefront-facing models get responsive + WebP conversions.
         'collection' => FashionMediaDefinitions::class,

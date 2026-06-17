@@ -8,6 +8,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\CMS\Models\Lookbook;
+use Modules\FileManager\Filament\Forms\MediaPicker;
 
 class LookbookResource extends Resource
 {
@@ -43,11 +44,10 @@ class LookbookResource extends Resource
                     ->columns(2),
 
                 Forms\Components\Section::make('Cover Image')
+                    ->description('Pick from the Media Library.')
                     ->schema([
-                        Forms\Components\FileUpload::make('cover_image')
-                            ->image()
-                            ->directory('lookbooks')
-                            ->maxSize(2048),
+                        MediaPicker::make('cover_image', type: 'image')
+                            ->label('Cover image'),
                     ]),
 
                 Forms\Components\Section::make('Products')

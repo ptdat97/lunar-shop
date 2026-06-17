@@ -8,6 +8,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\CMS\Models\Banner;
+use Modules\FileManager\Filament\Forms\MediaPicker;
 
 class BannerResource extends Resource
 {
@@ -50,15 +51,12 @@ class BannerResource extends Resource
                     ->columns(2),
 
                 Forms\Components\Section::make('Images')
+                    ->description('Pick from the Media Library. Upload new files there first if needed.')
                     ->schema([
-                        Forms\Components\FileUpload::make('image')
-                            ->image()
-                            ->directory('banners')
-                            ->maxSize(2048),
-                        Forms\Components\FileUpload::make('mobile_image')
-                            ->image()
-                            ->directory('banners/mobile')
-                            ->maxSize(2048),
+                        MediaPicker::make('image', type: 'image')
+                            ->label('Image'),
+                        MediaPicker::make('mobile_image', type: 'image')
+                            ->label('Mobile image'),
                     ]),
             ]);
     }

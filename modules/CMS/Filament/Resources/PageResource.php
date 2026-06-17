@@ -8,6 +8,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Modules\CMS\Models\Page;
+use Modules\FileManager\Filament\Forms\MediaPicker;
 
 class PageResource extends Resource
 {
@@ -40,6 +41,13 @@ class PageResource extends Resource
                             ->default(false),
                     ])
                     ->columns(3),
+
+                Forms\Components\Section::make('Featured Image')
+                    ->description('Pick from the Media Library.')
+                    ->schema([
+                        MediaPicker::make('featured_image', type: 'image')
+                            ->label('Featured image'),
+                    ]),
 
                 Forms\Components\Section::make('Content')
                     ->schema([

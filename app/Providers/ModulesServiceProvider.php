@@ -34,6 +34,7 @@ class ModulesServiceProvider extends ServiceProvider
         'SectionBuilder',
         'Menu',
         'Media',
+        'FileManager',
         'Search',
         'Promotion',
         'Shipping',
