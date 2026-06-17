@@ -17,9 +17,8 @@ class CartService
      */
     public function current(): Cart
     {
-        $cart = CartSession::current() ?? CartSession::manager()->getCart();
-
-        return $cart->calculate();
+        // current() auto-creates because lunar.cart_session.auto_create = true.
+        return CartSession::current()->calculate();
     }
 
     /**
