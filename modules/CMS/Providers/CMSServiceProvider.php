@@ -11,7 +11,15 @@ class CMSServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Register CMS Filament resources into Lunar's admin panel.
+        // Must be in register() because ModulesServiceProvider collects
+        // resources in register() after all module providers have registered.
+        \Modules\Theme\Support\AdminPages::addResource(
+            \Modules\CMS\Filament\Resources\PageResource::class,
+            \Modules\CMS\Filament\Resources\BannerResource::class,
+            \Modules\CMS\Filament\Resources\LookbookResource::class,
+            \Modules\CMS\Filament\Resources\RedirectResource::class,
+        );
     }
 
     /**
