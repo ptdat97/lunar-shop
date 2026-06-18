@@ -4,7 +4,6 @@ namespace Modules\Media\Definitions;
 
 use Lunar\Base\StandardMediaDefinitions;
 use Modules\Media\Services\MediaSettings;
-use Spatie\Image\Enums\BorderType;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\MediaCollection;
@@ -23,15 +22,18 @@ class FashionMediaDefinitions extends StandardMediaDefinitions
     /**
      * The admin-facing `small` conversion (parent registers it model-level).
      * We override so its size also comes from MediaSettings.
+     *
+     * Uses Fit::Crop (not Fill): the source is scaled to cover the target box
+     * and cropped to the exact aspect ratio. Unlike Fill, a source smaller than
+     * the target is scaled up to fill the frame instead of being padded with a
+     * white canvas — so we never produce a tiny image floating on white.
      */
     public function registerMediaConversions(HasMedia $model, ?Media $media = null): void
     {
         $small = app(MediaSettings::class)->sizes()['small'];
 
         $model->addMediaConversion('small')
-            ->fit(Fit::Fill, $small['width'], $small['height'])
-            ->border(0, BorderType::Overlay, color: '#FFF')
-            ->background('#FFF')
+            ->fit(Fit::Crop, $small['width'], $small['height'])
             ->sharpen(10)
             ->keepOriginalImageFormat();
     }
@@ -49,18 +51,20 @@ class FashionMediaDefinitions extends StandardMediaDefinitions
             'webp' => ['width' => $sizes['large']['width'], 'height' => $sizes['large']['height'], 'format' => 'webp'],
         ];
 
+        // Fit::Crop scales the source to cover the target box and crops to the
+        // exact aspect ratio. A source smaller than the target is scaled up to
+        // fill the frame rather than padded with a white canvas, so we never
+        // get a small image floating in a large white background.
         $collection->registerMediaConversions(function (?Media $media) use ($model, $sizes, $standard, $extra) {
             foreach ($standard as $key) {
                 $model->addMediaConversion($key)
-                    ->fit(Fit::Fill, $sizes[$key]['width'], $sizes[$key]['height'])
-                    ->border(0, BorderType::Overlay, color: '#FFF')
-                    ->background('#FFF')
+                    ->fit(Fit::Crop, $sizes[$key]['width'], $sizes[$key]['height'])
                     ->keepOriginalImageFormat();
             }
 
             foreach ($extra as $key => $conv) {
                 $conversion = $model->addMediaConversion($key)
-                    ->fit(Fit::Fill, $conv['width'], $conv['height']);
+                    ->fit(Fit::Crop, $conv['width'], $conv['height']);
 
                 ($conv['format'] ?? null) === 'webp'
                     ? $conversion->format('webp')

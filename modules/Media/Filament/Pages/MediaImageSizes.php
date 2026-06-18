@@ -88,12 +88,7 @@ class MediaImageSizes extends Page implements HasForms
      */
     public function regenerate(): void
     {
-        \Illuminate\Support\Facades\Artisan::queue('media-library:regenerate', [
-            '--only-missing' => true,
-            '--force' => true,
-        ]);
-
-        $this->queuedNotification('Regeneration queued', 'Missing conversions');
+        $this->runRegenerate(['--only-missing' => true, '--force' => true], 'Missing conversions regenerated');
     }
 
     /**
@@ -102,32 +97,52 @@ class MediaImageSizes extends Page implements HasForms
      */
     public function forceRegenerate(): void
     {
-        \Illuminate\Support\Facades\Artisan::queue('media-library:regenerate', [
-            '--force' => true,
-        ]);
-
-        $this->queuedNotification('Force regeneration queued', 'All conversions');
+        $this->runRegenerate(['--force' => true], 'All conversions regenerated');
     }
 
     /**
-     * Notify that work was queued. Because regeneration runs on the queue
-     * (and each image is a further PerformConversionsJob), a running queue
-     * worker is required — warn if there is no driver to process it.
+     * Run media-library:regenerate inline (synchronously) so a button click
+     * does the work without needing a separate `php artisan queue:work`
+     * terminal. The Spatie command dispatches a PerformConversionsJob per
+     * media item, so we force the queue connection to "sync" for this call —
+     * those jobs then run in-process and finish before the request returns.
+     *
+     * @param  array<string, mixed>  $options
      */
-    protected function queuedNotification(string $title, string $what): void
+    protected function runRegenerate(array $options, string $title): void
     {
-        $needsWorker = config('queue.default') !== 'sync';
+        // Regenerating a large library runs many conversions in one request;
+        // lift PHP's execution time limit so it isn't killed mid-way. (Has no
+        // effect when PHP runs in safe mode or via some FPM configs, but is the
+        // standard guard for long-running synchronous work.)
+        @set_time_limit(0);
 
-        $notification = Notification::make()
-            ->title($title)
-            ->success();
+        // Force conversion jobs to run in-process regardless of the app's
+        // default queue driver, so nothing is left waiting for a worker.
+        $original = config('queue.default');
+        config(['queue.default' => 'sync']);
 
-        if ($needsWorker) {
-            $notification->body("{$what} are queued and will be processed by a background queue worker. Make sure a worker is running (e.g. `php artisan queue:work` or Horizon).");
-        } else {
-            $notification->body("{$what} are being regenerated now.");
+        try {
+            \Illuminate\Support\Facades\Artisan::call('media-library:regenerate', $options);
+            $output = trim(\Illuminate\Support\Facades\Artisan::output());
+        } catch (\Throwable $e) {
+            config(['queue.default' => $original]);
+
+            Notification::make()
+                ->title('Regeneration failed')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+
+            return;
         }
 
-        $notification->send();
+        config(['queue.default' => $original]);
+
+        Notification::make()
+            ->title($title)
+            ->body($output !== '' ? $output : 'Done. Existing images have been rebuilt with the current sizes.')
+            ->success()
+            ->send();
     }
 }
