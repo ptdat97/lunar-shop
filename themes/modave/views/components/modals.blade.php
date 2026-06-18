@@ -744,8 +744,106 @@
     <div class="modal fullRight fade modal-shopping-cart" id="shoppingCart">
         <div class="modal-dialog">
             <div class="modal-content">
-                {{-- Vue island: live mini-cart --}}
-                <div data-vue="cart-drawer"></div>
+                {{-- SSR markup (modave index.html); vanilla JS (enhance/cart.js) fills
+                     items / totals / threshold from /api/v1/cart and wires the tools. --}}
+                <div class="d-flex flex-column flex-grow-1 h-100" data-cart-drawer>
+                    <div class="header">
+                        <h5 class="title">Shopping Cart</h5>
+                        <span class="icon-close icon-close-popup" data-bs-dismiss="modal"></span>
+                    </div>
+                    <div class="wrap">
+                        {{-- Free-shipping threshold bar --}}
+                        <div class="tf-mini-cart-threshold" data-cart-threshold style="display:none">
+                            <div class="tf-progress-bar">
+                                <div class="value" style="width:0%" data-cart-progress>
+                                    <i class="icon icon-shipping"></i>
+                                </div>
+                            </div>
+                            <div class="text-caption-1" data-cart-threshold-text></div>
+                        </div>
+
+                        <div class="tf-mini-cart-wrap">
+                            <div class="tf-mini-cart-main">
+                                <div class="tf-mini-cart-sroll">
+                                    <p class="text-center mt_20" data-cart-empty>Your cart is empty.</p>
+                                    <div class="tf-mini-cart-items" data-cart-items></div>
+                                </div>
+                            </div>
+
+                            <div class="tf-mini-cart-bottom">
+                                <div class="tf-mini-cart-tool">
+                                    <div class="tf-mini-cart-tool-btn btn-add-note" data-cart-tool-btn="note">
+                                        <i class="icon icon-pencil"></i>
+                                        <div class="text-caption-1">Note</div>
+                                    </div>
+                                    <div class="tf-mini-cart-tool-btn btn-add-coupon" data-cart-tool-btn="coupon">
+                                        <i class="icon icon-coupon"></i>
+                                        <div class="text-caption-1">Coupon</div>
+                                    </div>
+                                </div>
+
+                                <div class="tf-mini-cart-bottom-wrap">
+                                    <div class="tf-cart-coupon-applied d-flex justify-content-between mb_12" data-cart-coupon-applied style="display:none">
+                                        <span class="text-caption-1">Coupon: <strong data-cart-coupon-code></strong></span>
+                                    </div>
+                                    <div class="tf-cart-totals-discounts">
+                                        <h5>Subtotal</h5>
+                                        <h5 class="tf-totals-total-value" data-cart-subtotal>$0.00</h5>
+                                    </div>
+                                    <div class="tf-cart-tax">
+                                        <p class="text-caption-1">Taxes and shipping calculated at checkout</p>
+                                    </div>
+                                    <div class="tf-mini-cart-view-checkout">
+                                        <a href="/cart" class="tf-btn w-100 btn-white radius-4 has-border"><span class="text">View cart</span></a>
+                                        <a href="/checkout" class="tf-btn w-100 btn-fill radius-4" data-cart-checkout><span class="text">Check Out</span></a>
+                                    </div>
+                                    <div class="text-center">
+                                        <a class="link text-btn-uppercase" href="/search">Or continue shopping</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- Tool panels — direct children of .tf-mini-cart-wrap, after
+                                 .tf-mini-cart-bottom (exactly like index.html). Hidden by
+                                 default; the `.open` class (toggled on button click) slides
+                                 them up. --}}
+                            <div class="tf-mini-cart-tool-openable add-note" data-cart-tool-panel="note">
+                                <div class="tf-mini-cart-tool-content">
+                                    <div class="tf-mini-cart-tool-text">
+                                        <span class="text-title">Note</span>
+                                    </div>
+                                    <form class="form-add-note tf-mini-cart-tool-wrap" data-cart-note-form>
+                                        <fieldset class="d-flex">
+                                            <textarea name="note" placeholder="Add special instructions for your order..."></textarea>
+                                        </fieldset>
+                                        <div class="tf-cart-tool-btns">
+                                            <button type="submit" class="btn-style-2 w-100"><span class="text text-btn-uppercase">Save</span></button>
+                                            <div class="text-center w-100 text-btn-uppercase tf-mini-cart-tool-close">Cancel</div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <div class="tf-mini-cart-tool-openable add-coupon" data-cart-tool-panel="coupon">
+                                <div class="tf-mini-cart-tool-content">
+                                    <div class="tf-mini-cart-tool-text">
+                                        <span class="text-title">Add A Coupon Code</span>
+                                    </div>
+                                    <form class="form-add-coupon tf-mini-cart-tool-wrap" data-cart-coupon-form>
+                                        <fieldset>
+                                            <div class="text-caption-1 text-secondary mb_8">Enter Code</div>
+                                            <input type="text" name="code" placeholder="Discount code">
+                                        </fieldset>
+                                        <div class="tf-cart-tool-btns">
+                                            <button type="submit" class="btn-style-2 w-100"><span class="text text-btn-uppercase">Apply</span></button>
+                                            <div class="text-center w-100 text-btn-uppercase tf-mini-cart-tool-close">Cancel</div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

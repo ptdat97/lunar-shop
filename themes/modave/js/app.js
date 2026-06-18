@@ -2,15 +2,14 @@ import axios from 'axios';
 import { createApp } from 'vue';
 
 /*
-| Modave theme = Blade SSR + Vanilla JS, with Vue reserved ONLY for the core
-| commerce islands where rich client state genuinely pays off:
+| Modave theme = Blade SSR + Vanilla JS, with Vue reserved ONLY for:
 |   - product-purchase  (variant picker)
-|   - cart-page, cart-drawer, cart-count  (cart)
 |   - checkout-page     (checkout)
 |   - quick-view        (variant + add-to-cart in a modal)
 |
-| Everything else (collection filters, search, wishlist, auth, per-card add-to-cart)
-| is Blade-rendered and progressively enhanced with vanilla modules under ./enhance/*.
+| The cart (mini-cart drawer, header count, cart page) is now Blade SSR + vanilla
+| (enhance/cart.js, enhance/cart-page.js). Everything else (collection filters,
+| search, wishlist, auth, per-card add-to-cart) is likewise vanilla under ./enhance/*.
 */
 window.axios = axios;
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
@@ -25,13 +24,10 @@ if (csrf) {
 /* Vue islands — core commerce only.                                          */
 /* -------------------------------------------------------------------------- */
 
-// Allow-list: only these data-vue names mount a Vue app (core commerce).
+// Allow-list: only these data-vue names mount a Vue app.
 const VUE_ISLANDS = new Set([
     'product-purchase',  // variant picker
-    'cart-page',
-    'cart-drawer',
-    'cart-count',
-    'checkout-page',
+    'checkout-page',     // checkout
     'quick-view',        // variant + add-to-cart in a modal
 ]);
 

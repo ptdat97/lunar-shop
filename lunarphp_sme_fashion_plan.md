@@ -229,7 +229,7 @@ modules/Product/
 | **Collection** | Collection, collection groups, gán product | Collections, Collection Groups | ✅ chạy (storefront + API) |
 | **Inventory** | Stock per-variant, reserve, low-stock, oversell | stock trên Product Variant | ⚠️ service cơ bản (đọc stock); chưa reserve/alert |
 | **Pricing** | Giá theo variant/customer-group, tax-inclusive | Prices, Currencies, Customer Groups | ✅ wrap Lunar Pricing |
-| **Cart** | Lunar Cart wrap, line, coupon, free-ship threshold | Lunar Cart | ✅ chạy (drawer + API + coupon) |
+| **Cart** | Lunar Cart wrap, line, coupon, free-ship threshold | Lunar Cart | ✅ chạy (drawer/page/count vanilla + API + coupon) |
 | **Checkout** | Pipeline validate→pricing→ship→tax→pay→order | Lunar checkout pipeline | ✅ chạy (addresses/shipping/placeOrder, driver `offline`) |
 | **Customer** | Khách, địa chỉ, auth (web + Sanctum), order history, wishlist | Customers, Customer Groups | ✅ chạy (auth web+API, wishlist, orders) |
 | **Order** | Order, trạng thái, fulfilment, invoice | Sales / Orders | ⚠️ đọc order history; chưa email/invoice/fulfilment UI |
@@ -350,26 +350,30 @@ Layout (theme::layouts, Blade SSR)
 
 ## Quy ước JS
 
-> **Phân tầng JS (chốt 2026-06-18): Blade SSR + Vanilla JS là mặc định; Vue CHỈ
-> dùng cho 4 nhóm core commerce.** Mọi thứ khác là Blade render + vanilla enhancement.
+> **Phân tầng JS (cập nhật 2026-06-18): Blade SSR + Vanilla JS là mặc định; Vue CHỈ
+> dùng cho 3 island.** Mọi thứ khác là Blade render + vanilla enhancement.
 
 **Vue 3 (island) — CHỈ cho:**
 1. **Product variant picker** — `product-purchase`
-2. **Cart** — `cart-page`, `cart-drawer`, `cart-count`
-3. **Checkout** — `checkout-page`
-4. **Quick view** — `quick-view` (vì chứa variant + add-to-cart)
+2. **Checkout** — `checkout-page`
+3. **Quick view** — `quick-view` (vì chứa variant + add-to-cart)
 
 → allow-list trong `themes/modave/js/app.js` (`VUE_ISLANDS`); `data-vue` ngoài danh
 sách này **không** được mount Vue.
 
 **Vanilla JS (`themes/modave/js/enhance/*.js`) — mọi thứ còn lại:**
+- **Cart** (mini-cart drawer `enhance/cart.js`, header count, trang cart
+  `enhance/cart-page.js`) — render từ `/api/v1/cart`, qty/remove/coupon/note,
+  panel tool trượt (`.open`) đúng markup `#shoppingCart` của index.html.
 - collection filters/sort/pagination, search page, search modal, wishlist
   (button/count/page), auth form + logout, **per-card add-to-cart** (delegated).
 - Mỗi module export `default fn(root=document)`, tự target qua `data-*`, bootstrap
   tự động trong `app.js`. Card sản phẩm động render qua `enhance/_card.js` (khớp đúng
   markup `product-card.blade.php`).
-- Giao tiếp với Vue cart qua DOM event: vanilla add-to-cart `dispatchEvent('cart:updated')`
-  → Vue cart store refresh. Không coupling trực tiếp.
+- Đồng bộ giữa các consumer qua DOM event: add-to-cart/biến động giỏ
+  `dispatchEvent('cart:updated')` → `enhance/cart.js` refresh + bắn `cart:refreshed`
+  → `enhance/cart-page.js` refresh. Checkout (Vue) vẫn dùng `cart-store.js` riêng,
+  nghe cùng event. Không coupling trực tiếp, không vòng lặp (refresh không bắn event).
 
 **Chung:**
 - **jQuery** chỉ cho tiện ích nhỏ / plugin sẵn (slider, lazyload) — không xử lý state chính.
@@ -402,8 +406,9 @@ hoặc fetch-on-load (vanilla) rồi chỉ để SSR trong `<noscript>`. Đó l�
 mất SEO + flash trắng.
 
 **Ngoại lệ hợp lệ (fetch-on-mount được chấp nhận):** nội dung **cá nhân hóa / theo
-session, không cần crawl** — cart drawer/count (Vue), quick-view (Vue), trang
-cart/checkout (Vue), wishlist membership (vanilla, load 1 lần). Không phải nội dung SEO.
+session, không cần crawl** — cart drawer/count + trang cart (vanilla, fetch
+`/api/v1/cart`), quick-view (Vue), checkout (Vue), wishlist membership (vanilla,
+load 1 lần). Không phải nội dung SEO nên fetch/hydrate client-side OK.
 
 **Đã áp dụng (2026-06-18):** `collection` + `search` SSR-first; controller dùng chung
 `SearchEngine` với API → SSR grid + `$state` nhúng → enhancer **vanilla**
@@ -698,6 +703,93 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
   → order, auth, search. Là điều kiện để refactor an toàn khi thêm các feature trên.
 - **Hook/event wiring:** module Hook mới có routes; chuẩn hóa event domain (order.placed,
   stock.low, product.viewed) để Email/Analytics/Notify-me cắm vào, tránh coupling.
+
+---
+
+# Đề xuất: Module `Recommend` (gợi ý sản phẩm)
+
+> Mục tiêu: một nguồn gợi ý **dùng chung** cho product page ("You may also like"),
+> mini-cart drawer ("You May Also Like"), trang giỏ, quick-view và email — tránh
+> mỗi nơi tự query một kiểu như hiện tại (`ProductService::related()`).
+
+## Nguyên tắc #1 trước: Lunar đã có gì?
+
+| Đã có trong Lunar (KẾ THỪA) | Ghi chú |
+|---|---|
+| **`Lunar\Models\ProductAssociation`** (cross-sell / up-sell / alternate) | Quan hệ curate thủ công: `$product->associate($other, 'cross-sell')`. Có sẵn **Filament relation manager** trong product editor → admin tự gắn. |
+| `lunar_order_lines` | Lịch sử mua → tính "frequently bought together" tự động. |
+| `ProductService::related()` (đã có trong repo) | Gợi ý theo collection — **wrap lại làm 1 strategy**, không bỏ. |
+
+→ Module `Recommend` **không tự tạo bảng association mới**. Curate thủ công dùng
+thẳng `ProductAssociation` của Lunar. Chỉ build **mới** phần Lunar không có:
+lớp điều phối + các strategy tự động (co-purchase, also-viewed) + cache + API.
+
+## Kiến trúc (theo đúng mẫu module `Search`: interface + driver/strategy)
+
+```text
+modules/Recommend/
+ ├── Contracts/RecommendationStrategy.php   # interface chung
+ ├── Strategies/
+ │    ├── AssociationStrategy.php           # đọc Lunar ProductAssociation (curate tay)
+ │    ├── CollectionStrategy.php            # wrap related() hiện có (cùng collection)
+ │    ├── CoPurchaseStrategy.php            # "bought together" từ order_lines
+ │    └── AlsoViewedStrategy.php            # từ event product.viewed (module Hook)
+ ├── Services/RecommendationService.php     # điều phối: chọn strategy + fallback + cache
+ ├── Http/
+ │    ├── Controllers/Api/V1/RecommendationController.php
+ │    └── Resources/  (tái dùng ProductResource — KHÔNG tạo shape mới)
+ ├── Database/Migrations/  (chỉ nếu cần bảng product_views cho also-viewed)
+ ├── Routes/api.php
+ └── RecommendServiceProvider.php
+```
+
+```php
+interface RecommendationStrategy
+{
+    /** @return Collection<Product>  đã loại trùng + loại sản phẩm nguồn/giỏ */
+    public function for(Product $product, int $limit = 8): Collection;
+}
+```
+
+`RecommendationService::for($product, context, $limit)`:
+1. Chạy strategy theo **context** (`product`, `cart`, `checkout`) với thứ tự ưu tiên:
+   curate (`AssociationStrategy`) → tự động (`CoPurchase` → `AlsoViewed`) →
+   fallback (`CollectionStrategy`). Curate luôn lên đầu.
+2. Gộp + loại trùng + loại sản phẩm đã ở trong giỏ/đang xem, cắt còn `$limit`.
+3. **Cache** theo `(product_id|cart_signature, context)` (Redis ở prod), invalidate
+   qua event (`order.placed`, `product.updated` — module Hook).
+
+## API (một contract, dùng lại `ProductResource`)
+
+```text
+GET /api/v1/products/{slug}/recommendations?context=product&limit=8
+GET /api/v1/cart/recommendations?limit=6        # cho mini-cart drawer
+```
+
+Trả `{ data: [ProductResource…] }` — **đúng shape** product card hiện có, nên
+`enhance/_card.js` render được ngay (vanilla) cho mini-cart, không thêm component.
+
+## Tích hợp storefront (đúng SSR-first + phân tầng JS đã chốt)
+
+- **Product page** "You may also like": **SSR** — controller gọi
+  `RecommendationService::for($product,'product')`, render `x-theme::product-card`
+  (đang là `$related` → đổi nguồn sang service này, giữ SSR, crawlable).
+- **Mini-cart drawer** "You May Also Like": khối `[data-cart-recommendations]` (đã
+  chừa sẵn trong `cart-drawer.vue` khi refactor) → khi mở giỏ, gọi
+  `/api/v1/cart/recommendations`, render bằng JSON shape có sẵn. Là phần của island
+  cart (Vue) nên hợp lệ fetch-on-open.
+- **Email** (sau): cùng service → "có thể bạn thích" trong mail xác nhận đơn.
+
+## Lộ trình Recommend (nhỏ, tăng dần — đừng làm AI sớm)
+
+1. **P1:** `AssociationStrategy` (curate tay, dùng Lunar) + `CollectionStrategy`
+   (wrap `related()`) + service + cache + API. Nối product page (SSR) + mini-cart.
+2. **P2:** `CoPurchaseStrategy` từ `order_lines` (job tính bảng tổng hợp định kỳ).
+3. **P3:** `AlsoViewedStrategy` — cần event `product.viewed` (module Hook) + bảng
+   `product_views`. Chỉ làm khi có đủ traffic.
+
+> KHÔNG dùng ML/vector ở giai đoạn SME. Co-purchase + curate tay là đủ ROI; giữ
+> interface để sau này thêm strategy `scout`/vector mà không đụng caller (giống Search).
 
 ---
 
