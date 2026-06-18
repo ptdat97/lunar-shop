@@ -6,8 +6,8 @@
 >
 > **Cập nhật rà soát codebase — 2026-06-18:** nền tảng đã đi xa hơn nhiều so với
 > "skeleton". 21 module đã scaffold và phần lớn có service + controller + routes
-> (web + `/api/v1`) hoạt động. Hai theme đã tồn tại (`fashion`, `modave`); **`modave`
-> là theme đang active** với storefront hoàn chỉnh (home, product, collection, cart,
+> (web + `/api/v1`) hoạt động. Theme `fashion` là theme đang active với storefront
+> hoàn chỉnh (home, product, collection, cart,
 > checkout, search, account, wishlist) bằng Blade SSR + Vue islands. Tóm tắt nhanh:
 >
 > - ✅ **Đã chạy được:** Catalog/Product/Collection, Cart + Checkout (Lunar, COD/bank),
@@ -360,10 +360,10 @@ Layout (theme::layouts, Blade SSR)
 2. **Checkout** — `checkout-page`
 3. **Quick view** — `quick-view` (vì chứa variant + add-to-cart)
 
-→ allow-list trong `themes/modave/js/app.js` (`VUE_ISLANDS`); `data-vue` ngoài danh
+→ allow-list trong `themes/fashion/js/app.js` (`VUE_ISLANDS`); `data-vue` ngoài danh
 sách này **không** được mount Vue.
 
-**Vanilla JS (`themes/modave/js/enhance/*.js`) — mọi thứ còn lại:**
+**Vanilla JS (`themes/fashion/js/enhance/*.js`) — mọi thứ còn lại:**
 - **Cart** (mini-cart drawer `enhance/cart.js`, header count, trang cart
   `enhance/cart-page.js`) — render từ `/api/v1/cart`, qty/remove/coupon/note,
   panel tool trượt (`.open`) đúng markup `#shoppingCart` của index.html.
@@ -595,7 +595,7 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
 - ✅ Skeleton `modules/` + autoload PSR-4 `Modules\\` + `ModulesServiceProvider`
 - ✅ Filament admin của Lunar đã cài & chạy (`/lunar`)
 - ✅ Sanctum cài, `/api/v1/*` gom từ module + API Resources
-- ✅ Theme (`fashion` + `modave`), namespace `theme::`, Vite theo `THEME` env
+- ✅ Theme (`fashion`), namespace `theme::`, Vite theo `THEME` env
 - ✅ Vue 3 + jQuery + axios trong `themes/<theme>/js/app.js`
 - ✅ Seeders dữ liệu mẫu (product/variant/collection/size chart)
 
@@ -670,7 +670,7 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
      "mua cả set" thêm vào giỏ một lần. Tận dụng `outfits` đã thiết kế trong plan.
 
 7. **Recently viewed + "You may also like"** — *Catalog/Product*
-   - Recently viewed lưu localStorage (Vue island) — đã có markup trong theme modave.
+   - Recently viewed lưu localStorage (Vue island) — đã có markup trong theme fashion.
    - Related đã có ở product page; mở rộng sang "frequently bought together" (gợi ý theo collection).
 
 8. **Size Intelligence v2** — *Product (đã có size chart + recommend-size)*
