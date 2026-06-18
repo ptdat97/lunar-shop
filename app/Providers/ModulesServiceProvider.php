@@ -36,6 +36,7 @@ class ModulesServiceProvider extends ServiceProvider
         'Media',
         'FileManager',
         'Search',
+        'Recommend',
         'Promotion',
         'Shipping',
         'Payment',

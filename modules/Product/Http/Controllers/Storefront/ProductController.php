@@ -6,12 +6,14 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Routing\Controller;
 use Modules\Product\Services\ProductService;
 use Modules\Product\Services\SizeChartService;
+use Modules\Recommend\Services\RecommendationService;
 
 class ProductController extends Controller
 {
     public function __construct(
         protected ProductService $products,
         protected SizeChartService $sizeChart,
+        protected RecommendationService $recommend,
     ) {}
 
     /**
@@ -25,7 +27,8 @@ class ProductController extends Controller
 
         return view('theme::pages.product', [
             'product' => $product,
-            'related' => $this->products->related($product),
+            // "You may also like" — curated associations first, collection fallback.
+            'related' => $this->recommend->forProduct($product),
             'slug' => $slug,
             'sizeChart' => $this->sizeChart->for($product),
         ]);

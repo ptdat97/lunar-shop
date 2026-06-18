@@ -744,6 +744,15 @@
     <div class="modal fullRight fade modal-shopping-cart" id="shoppingCart">
         <div class="modal-dialog">
             <div class="modal-content">
+                {{-- "You May Also Like" — filled by enhance/cart.js from
+                     /api/v1/cart/recommendations when the drawer opens. --}}
+                <div class="tf-minicart-recommendations" data-cart-recommendations style="display:none">
+                    <h6 class="title">You May Also Like</h6>
+                    <div class="wrap-recommendations">
+                        <div class="list-cart" data-cart-recommendations-list></div>
+                    </div>
+                </div>
+
                 {{-- SSR markup (modave index.html); vanilla JS (enhance/cart.js) fills
                      items / totals / threshold from /api/v1/cart and wires the tools. --}}
                 <div class="d-flex flex-column flex-grow-1 h-100" data-cart-drawer>

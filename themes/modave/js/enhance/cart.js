@@ -163,6 +163,49 @@ export default function cart(root = document) {
 
     // Refresh whenever something adds to the cart (e.g. product card / variant picker).
     window.addEventListener('cart:updated', () => refresh(target));
+
+    // "You May Also Like" — load when the drawer opens (recommendations depend on
+    // cart contents, so fetch fresh each open rather than caching).
+    const modal = document.getElementById('shoppingCart');
+    if (drawer && modal) {
+        modal.addEventListener('shown.bs.modal', () => loadRecommendations(drawer));
+    }
+}
+
+function recItemHtml(p) {
+    const url = p.slug ? `/products/${encodeURIComponent(p.slug)}` : '#';
+    const img = p.thumbnail || PLACEHOLDER;
+    const variant = p.variants?.[0];
+    const price = variant?.price?.formatted ?? '';
+    return `
+    <div class="list-cart-item">
+        <div class="image">
+            <a href="${url}"><img class="lazyload" src="${esc(img)}" alt="${esc(p.name)}"></a>
+        </div>
+        <div class="content">
+            <div class="name"><a class="link text-line-clamp-1" href="${url}">${esc(p.name)}</a></div>
+            <div class="cart-item-bot">
+                <div class="text-button price">${esc(price)}</div>
+                ${variant ? `<a class="link text-button" href="javascript:void(0);" data-add-to-cart data-variant="${variant.id}">Add to cart</a>` : ''}
+            </div>
+        </div>
+    </div>`;
+}
+
+async function loadRecommendations(drawer) {
+    const box = drawer.parentElement.querySelector('[data-cart-recommendations]');
+    const list = drawer.parentElement.querySelector('[data-cart-recommendations-list]');
+    if (!box || !list) return;
+    try {
+        const { data } = await window.axios.get('/api/v1/cart/recommendations', { params: { limit: 6 } });
+        const items = data.data ?? [];
+        if (items.length) {
+            list.innerHTML = items.map(recItemHtml).join('');
+            box.style.display = '';
+        } else {
+            box.style.display = 'none';
+        }
+    } catch (e) { box.style.display = 'none'; }
 }
 
 function openPanel(drawer, name) {

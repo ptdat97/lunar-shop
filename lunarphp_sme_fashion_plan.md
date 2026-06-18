@@ -138,6 +138,7 @@ modules/                         # TOÀN BỘ logic ở đây (21 module — đ�
  ├── Media
  ├── FileManager                  # (ngoài plan gốc) quản lý file admin
  ├── Search
+ ├── Recommend                    # gợi ý sản phẩm (P1: Association + Collection)
  ├── Promotion
  ├── Shipping
  ├── Payment
@@ -240,6 +241,7 @@ modules/Product/
 | **Media** | Conversions, definitions fashion (hover/gallery/zoom) | Lunar Media (Spatie) | ⚠️ definitions có; chưa AVIF/WebP `<picture>` ở storefront |
 | **FileManager** | Quản lý file/asset trong admin | — | ✅ Filament page (tiện ích nội bộ) |
 | **Search** | Interface + driver `database`/`scout`; suggest + filters | — (xem Search abstraction) | ✅ chạy (interface + 2 driver + DTO) |
+| **Recommend** | Gợi ý sản phẩm (product page + mini-cart), strategy chain | Lunar `ProductAssociation` (curate) | ✅ chạy P1 (Association + Collection strategy + API) |
 | **Promotion** | %, BXGY, free-ship, cart/coupon rules | Discounts | ⚠️ wrap đọc Discount; chưa UI/áp dụng nâng cao |
 | **Shipping** | Shipping methods/zones/rates | shipping của Lunar | ⚠️ service cơ bản; chưa zone/rate UI |
 | **Payment** | COD, Bank, VNPay, MoMo (P1); Stripe/PayPal (P2) | payment driver của Lunar + driver mới | ⚠️ **chỉ skeleton** — mới driver `offline`; chưa VNPay/MoMo/Stripe |
@@ -706,11 +708,22 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
 
 ---
 
-# Đề xuất: Module `Recommend` (gợi ý sản phẩm)
+# Module `Recommend` (gợi ý sản phẩm) — ✅ P1 đã implement (2026-06-18)
 
 > Mục tiêu: một nguồn gợi ý **dùng chung** cho product page ("You may also like"),
 > mini-cart drawer ("You May Also Like"), trang giỏ, quick-view và email — tránh
 > mỗi nơi tự query một kiểu như hiện tại (`ProductService::related()`).
+>
+> **Trạng thái P1 (đã chạy end-to-end):** `modules/Recommend/` —
+> `Contracts/RecommendationStrategy`, `Strategies/AssociationStrategy` (đọc Lunar
+> `ProductAssociation`, curate ưu tiên đầu) + `Strategies/CollectionStrategy` (wrap
+> `ProductService::related()`), `Services/RecommendationService` (điều phối theo
+> `config/recommend.php` + dứt trùng + loại source/giỏ + cache id theo product),
+> API `GET /api/v1/products/{slug}/recommendations` và `GET /api/v1/cart/recommendations`
+> (trả `ProductResource`). Product page SSR đổi `$related` sang service; mini-cart
+> drawer nạp "You May Also Like" qua `enhance/cart.js` khi mở (render bằng markup
+> `list-cart-item`). Đã verify: curate lên đầu, fallback collection lấp phần còn lại,
+> loại sản phẩm đã có trong giỏ. **P2/P3 (CoPurchase/AlsoViewed) chưa làm.**
 
 ## Nguyên tắc #1 trước: Lunar đã có gì?
 
