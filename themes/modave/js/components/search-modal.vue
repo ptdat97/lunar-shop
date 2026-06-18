@@ -47,6 +47,14 @@ function pick(value) {
     term.value = value;
     fetchResults();
 }
+
+const PLACEHOLDER = '/themes/modave/images/products/womens/women-8.jpg';
+
+// The search API exposes a single thumbnail; reuse it for the hover image so
+// the modave card markup (img-product + img-hover) renders without gaps.
+function image(p) {
+    return p.thumbnail || PLACEHOLDER;
+}
 </script>
 
 <template>
@@ -87,14 +95,32 @@ function pick(value) {
 
         <!-- Live product results -->
         <div v-if="loading" class="text-center mt_16">Searching…</div>
-        <div v-else-if="products.length" class="mt_16">
+        <div v-else-if="products.length">
             <h6 class="mb_16">Products</h6>
-            <div class="tf-grid-layout tf-col-2 lg-col-3 xl-col-4">
-                <div v-for="p in products" :key="p.id" class="card-product">
+            <div class="tf-grid-layout tf-col-2 lg-col-3 xl-col-4 loadmore-item">
+                <div v-for="p in products" :key="p.id" class="fl-item card-product">
                     <div class="card-product-wrapper">
                         <a :href="`/products/${p.slug}`" class="product-img">
-                            <img class="lazyload img-product" :src="p.thumbnail || '/themes/modave/images/products/womens/women-8.jpg'" :alt="p.name">
+                            <img class="lazyload img-product" :src="image(p)" :alt="p.name">
+                            <img class="lazyload img-hover" :src="image(p)" :alt="p.name">
                         </a>
+                        <div class="list-product-btn">
+                            <a href="javascript:void(0);" class="box-icon wishlist btn-icon-action">
+                                <span class="icon icon-heart"></span>
+                                <span class="tooltip">Wishlist</span>
+                            </a>
+                            <a href="#compare" data-bs-toggle="offcanvas" aria-controls="compare" class="box-icon compare btn-icon-action">
+                                <span class="icon icon-gitDiff"></span>
+                                <span class="tooltip">Compare</span>
+                            </a>
+                            <a :href="`/products/${p.slug}`" class="box-icon quickview tf-btn-loading">
+                                <span class="icon icon-eye"></span>
+                                <span class="tooltip">Quick View</span>
+                            </a>
+                        </div>
+                        <div class="list-btn-main">
+                            <a :href="`/products/${p.slug}`" class="btn-main-product">View product</a>
+                        </div>
                     </div>
                     <div class="card-product-info">
                         <a :href="`/products/${p.slug}`" class="title link">{{ p.name }}</a>
@@ -103,7 +129,7 @@ function pick(value) {
                 </div>
             </div>
             <a :href="`/search?q=${encodeURIComponent(term)}`" class="tf-btn btn-fill mt_16 d-inline-block">
-                View all results
+                <span class="text text-btn-uppercase">View all results</span>
             </a>
         </div>
         <p v-else-if="term && !loading" class="mt_16 text-secondary">No products found for “{{ term }}”.</p>
