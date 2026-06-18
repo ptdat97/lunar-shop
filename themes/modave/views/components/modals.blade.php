@@ -59,8 +59,46 @@
     <div class="modal fade modal-search" id="search">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
-                {{-- Vue island: live search (suggest + product results) --}}
-                <div data-vue="search-modal"></div>
+                {{-- SSR markup; vanilla JS (enhance/search-modal.js) handles suggest + live results --}}
+                <div class="search-modal-body" data-search-modal>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5>Search</h5>
+                        <span class="icon-close icon-close-popup" data-bs-dismiss="modal"></span>
+                    </div>
+
+                    <form class="form-search" action="{{ route('storefront.search') }}" method="get" data-search-form>
+                        <fieldset class="text">
+                            <input type="text" name="q" placeholder="Searching..." autocomplete="off" data-search-input>
+                        </fieldset>
+                        <button type="submit">
+                            <svg class="icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M11 19C15.4183 19 19 15.4183 19 11C19 6.58172 15.4183 3 11 3C6.58172 3 3 6.58172 3 11C3 15.4183 6.58172 19 11 19Z" stroke="#181818" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                                <path d="M21.35 21.0004L17 16.6504" stroke="#181818" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                            </svg>
+                        </button>
+                    </form>
+
+                    {{-- Popular keywords (shown until the user types) --}}
+                    <div data-search-keywords>
+                        <h5 class="mb_16">Feature keywords Today</h5>
+                        <ul class="list-tags">
+                            @foreach (['Dress', 'Jacket', 'T-shirt', 'Trousers', 'Coat'] as $kw)
+                                <li><a href="javascript:void(0);" class="radius-60 link" data-search-keyword>{{ $kw }}</a></li>
+                            @endforeach
+                        </ul>
+                    </div>
+
+                    {{-- Live results (populated by JS) --}}
+                    <ul class="search-suggestions list-tags mb_16" data-search-suggestions style="display:none"></ul>
+                    <div data-search-products style="display:none">
+                        <h6 class="mb_16">Products</h6>
+                        <div class="tf-grid-layout tf-col-2 lg-col-3 xl-col-4" data-search-products-grid></div>
+                        <a href="#" class="tf-btn btn-fill mt_16 d-inline-block" data-search-all>
+                            <span class="text text-btn-uppercase">View all results</span>
+                        </a>
+                    </div>
+                    <p class="mt_16 text-secondary" data-search-empty style="display:none"></p>
+                </div>
             </div>
         </div>
     </div>

@@ -14,7 +14,23 @@
             <div class="login-wrap">
                 <div class="left">
                     <div class="heading"><h4>Login</h4></div>
-                    <div data-vue="auth-form" data-mode="login" data-redirect="/account"></div>
+                    <form class="form-login form-has-password" data-auth-form data-endpoint="/api/v1/auth/login" data-redirect="/account">
+                        @csrf
+                        <div class="wrap">
+                            <fieldset>
+                                <input type="email" name="email" placeholder="Email address*" required>
+                                <span class="text-danger small" data-error-for="email"></span>
+                            </fieldset>
+                            <fieldset class="position-relative password-item">
+                                <input type="password" name="password" class="input-password" placeholder="Password*" required>
+                                <span class="text-danger small" data-error-for="password"></span>
+                            </fieldset>
+                        </div>
+                        <p class="text-danger" data-form-message></p>
+                        <div class="button-submit">
+                            <button class="tf-btn btn-fill" type="submit"><span class="text text-button">Login</span></button>
+                        </div>
+                    </form>
                 </div>
                 <div class="right">
                     <h4 class="mb_8">New Customer</h4>

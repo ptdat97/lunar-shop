@@ -1,8 +1,27 @@
 # SME Fashion Ecommerce — Laravel 12 + LunarPHP
 
-> Trạng thái hiện tại của repo: Laravel 12 + Lunar 1.0 (skeleton). Lunar đã kéo theo
+> Trạng thái hiện tại của repo: Laravel 12 + Lunar 1.0. Lunar đã kéo theo
 > **Filament 3** làm admin panel, và frontend đã có **Vite 7 + Tailwind 4 + Axios**.
 > Kế hoạch dưới đây bám sát đúng những gì đã cài, không thêm stack chưa cần.
+>
+> **Cập nhật rà soát codebase — 2026-06-18:** nền tảng đã đi xa hơn nhiều so với
+> "skeleton". 21 module đã scaffold và phần lớn có service + controller + routes
+> (web + `/api/v1`) hoạt động. Hai theme đã tồn tại (`fashion`, `modave`); **`modave`
+> là theme đang active** với storefront hoàn chỉnh (home, product, collection, cart,
+> checkout, search, account, wishlist) bằng Blade SSR + Vue islands. Tóm tắt nhanh:
+>
+> - ✅ **Đã chạy được:** Catalog/Product/Collection, Cart + Checkout (Lunar, COD/bank),
+>   Customer auth (web + Sanctum), Wishlist, Order history, Search (interface +
+>   driver `database` + `scout`), CMS (Pages/Banners/Lookbooks/Redirects + Filament),
+>   Menu, SectionBuilder, Theme switch, Media conversions, **Fashion Size Intelligence**
+>   (size chart + "find my size" qua `/recommend-size`).
+> - ⚠️ **Mới khung, chưa có ruột:** **Payment** (chỉ dùng driver `offline` của Lunar,
+>   chưa có VNPay/MoMo/Stripe), **Analytics** (mới vài hàm tổng hợp, chưa có dashboard),
+>   **Promotion** (mới wrap Discount đọc, chưa có UI áp dụng nâng cao).
+> - ❌ **Chưa có:** test tự động (0 test trong `modules/`), email giao dịch, SEO
+>   schema/sitemap đầy đủ, ảnh responsive `<picture>` AVIF/WebP ở storefront.
+>
+> Bảng trạng thái chi tiết ở mục "Trạng thái triển khai (rà soát thực tế)" bên dưới.
 
 ---
 
@@ -102,7 +121,7 @@ routes/
  ├── web.php                     # gom (require) web routes từ các module
  └── api.php                     # gom /api/v1/* từ các module (Sanctum)
 
-modules/                         # TOÀN BỘ logic ở đây
+modules/                         # TOÀN BỘ logic ở đây (21 module — đã scaffold)
  ├── Catalog
  ├── Product
  ├── Collection
@@ -110,12 +129,14 @@ modules/                         # TOÀN BỘ logic ở đây
  ├── Pricing
  ├── Cart
  ├── Checkout
- ├── Customer
+ ├── Customer                     # + auth Sanctum, wishlist
  ├── Order
  ├── CMS
+ ├── Menu                         # (ngoài plan gốc) menu điều hướng
  ├── Theme
  ├── SectionBuilder
  ├── Media
+ ├── FileManager                  # (ngoài plan gốc) quản lý file admin
  ├── Search
  ├── Promotion
  ├── Shipping
@@ -201,30 +222,35 @@ modules/Product/
 
 ## Trách nhiệm từng module
 
-| Module | Trách nhiệm | Resource/feature Lunar đã có (kế thừa) | Trạng thái |
+| Module | Trách nhiệm | Resource/feature Lunar đã có (kế thừa) | Trạng thái thực tế |
 |---|---|---|---|
-| **Catalog** | Điều phối product/collection, listing, facet | Products, Brands, Tags, Attribute Groups, Product Types | ✔ core |
-| **Product** | Product, variant, options (size/color), attributes, related | Products, Product Variants, Product Options | ✔ core |
-| **Collection** | Collection, collection groups, gán product | Collections, Collection Groups | ✔ core |
-| **Inventory** | Stock per-variant, reserve, low-stock, oversell | stock trên Product Variant | ✔ |
-| **Pricing** | Giá theo variant/customer-group, tax-inclusive | Prices, Currencies, Customer Groups | ✔ core |
-| **Cart** | Lunar Cart wrap, line, coupon, free-ship threshold | Lunar Cart | ✔ core |
-| **Checkout** | Pipeline validate→pricing→ship→tax→pay→order | Lunar checkout pipeline | ✔ core |
-| **Customer** | Khách, địa chỉ, auth (web + Sanctum), order history | Customers, Customer Groups | ✔ core |
-| **Order** | Order, trạng thái, fulfilment, invoice | Sales / Orders | ✔ core |
-| **CMS** | Pages, menus, banners, lookbooks, redirects | — | custom |
-| **Theme** | Active theme, view namespace, Vite, manifest | — | custom |
-| **SectionBuilder** | page_sections (JSON) → Blade partial trong theme | — | custom |
-| **Media** | Conversions WebP/AVIF, responsive | Lunar Media (Spatie) | ✔ |
-| **Search** | MySQL full-text (P1) → Scout sau; filters API | — (xem Search abstraction) | custom→Scout |
-| **Promotion** | %, BXGY, free-ship, cart/coupon rules | Discounts | ✔ core |
-| **Shipping** | Shipping methods/zones/rates | shipping của Lunar | ✔ core |
-| **Payment** | COD, Bank, VNPay, MoMo (P1); Stripe/PayPal (P2) | payment driver của Lunar + driver mới | ✔ core + custom |
-| **Hook** | action/filter (Eventy) + domain events liên-module | Lunar events | custom |
-| **Analytics** | Tracking, báo cáo bán hàng, KPI | Activities (log) | custom |
+| **Catalog** | Điều phối product/collection, listing, facet, seeders demo | Products, Brands, Tags, Attribute Groups, Product Types | ✅ chạy (home + storefront controllers, seeders) |
+| **Product** | Product, variant, options (size/color), material, size chart, related | Products, Product Variants, Product Options | ✅ chạy (Service + API Resource + size chart) |
+| **Collection** | Collection, collection groups, gán product | Collections, Collection Groups | ✅ chạy (storefront + API) |
+| **Inventory** | Stock per-variant, reserve, low-stock, oversell | stock trên Product Variant | ⚠️ service cơ bản (đọc stock); chưa reserve/alert |
+| **Pricing** | Giá theo variant/customer-group, tax-inclusive | Prices, Currencies, Customer Groups | ✅ wrap Lunar Pricing |
+| **Cart** | Lunar Cart wrap, line, coupon, free-ship threshold | Lunar Cart | ✅ chạy (drawer + API + coupon) |
+| **Checkout** | Pipeline validate→pricing→ship→tax→pay→order | Lunar checkout pipeline | ✅ chạy (addresses/shipping/placeOrder, driver `offline`) |
+| **Customer** | Khách, địa chỉ, auth (web + Sanctum), order history, wishlist | Customers, Customer Groups | ✅ chạy (auth web+API, wishlist, orders) |
+| **Order** | Order, trạng thái, fulfilment, invoice | Sales / Orders | ⚠️ đọc order history; chưa email/invoice/fulfilment UI |
+| **CMS** | Pages, banners, lookbooks, redirects | — | ✅ chạy (4 Filament resource + storefront) |
+| **Menu** | Menu điều hướng storefront (header/footer) | — | ✅ chạy (model + Filament + service) |
+| **Theme** | Active theme, view namespace, Vite, manifest | — | ✅ chạy (2 theme, switch qua config) |
+| **SectionBuilder** | page_sections (JSON) → Blade partial trong theme | — | ✅ chạy (model + Filament + render) |
+| **Media** | Conversions, definitions fashion (hover/gallery/zoom) | Lunar Media (Spatie) | ⚠️ definitions có; chưa AVIF/WebP `<picture>` ở storefront |
+| **FileManager** | Quản lý file/asset trong admin | — | ✅ Filament page (tiện ích nội bộ) |
+| **Search** | Interface + driver `database`/`scout`; suggest + filters | — (xem Search abstraction) | ✅ chạy (interface + 2 driver + DTO) |
+| **Promotion** | %, BXGY, free-ship, cart/coupon rules | Discounts | ⚠️ wrap đọc Discount; chưa UI/áp dụng nâng cao |
+| **Shipping** | Shipping methods/zones/rates | shipping của Lunar | ⚠️ service cơ bản; chưa zone/rate UI |
+| **Payment** | COD, Bank, VNPay, MoMo (P1); Stripe/PayPal (P2) | payment driver của Lunar + driver mới | ⚠️ **chỉ skeleton** — mới driver `offline`; chưa VNPay/MoMo/Stripe |
+| **Hook** | action/filter (Eventy) + domain events liên-module | Lunar events | ⚠️ routes có; chưa thấy event wiring rõ ràng |
+| **Analytics** | Tracking, báo cáo bán hàng, KPI | Activities (log) | ⚠️ service tổng hợp (revenue/orders); chưa dashboard |
 
 > Cấu hình hệ thống (Channels, Languages, Taxes, Staff) dùng thẳng Settings của Lunar,
 > không cần module riêng.
+>
+> Chú thích: ✅ = đã có code chạy được end-to-end (route + service/controller).
+> ⚠️ = đã scaffold nhưng còn thiếu phần chính (đánh dấu trong cột để biết build tiếp gì).
 
 > "✔ core / ✔" = Lunar **đã có** → module chỉ **kế thừa và mở rộng** (config → extend
 > điểm mở rộng chính chủ → wrap bằng service), **tuyệt đối không** viết lại hay sửa `vendor/`.
@@ -323,10 +349,67 @@ Layout (theme::layouts, Blade SSR)
 ```
 
 ## Quy ước JS
-- **Vue 3** mount theo "island": từng component gắn vào `data-vue` element, không SPA.
+
+> **Phân tầng JS (chốt 2026-06-18): Blade SSR + Vanilla JS là mặc định; Vue CHỈ
+> dùng cho 4 nhóm core commerce.** Mọi thứ khác là Blade render + vanilla enhancement.
+
+**Vue 3 (island) — CHỈ cho:**
+1. **Product variant picker** — `product-purchase`
+2. **Cart** — `cart-page`, `cart-drawer`, `cart-count`
+3. **Checkout** — `checkout-page`
+4. **Quick view** — `quick-view` (vì chứa variant + add-to-cart)
+
+→ allow-list trong `themes/modave/js/app.js` (`VUE_ISLANDS`); `data-vue` ngoài danh
+sách này **không** được mount Vue.
+
+**Vanilla JS (`themes/modave/js/enhance/*.js`) — mọi thứ còn lại:**
+- collection filters/sort/pagination, search page, search modal, wishlist
+  (button/count/page), auth form + logout, **per-card add-to-cart** (delegated).
+- Mỗi module export `default fn(root=document)`, tự target qua `data-*`, bootstrap
+  tự động trong `app.js`. Card sản phẩm động render qua `enhance/_card.js` (khớp đúng
+  markup `product-card.blade.php`).
+- Giao tiếp với Vue cart qua DOM event: vanilla add-to-cart `dispatchEvent('cart:updated')`
+  → Vue cart store refresh. Không coupling trực tiếp.
+
+**Chung:**
 - **jQuery** chỉ cho tiện ích nhỏ / plugin sẵn (slider, lazyload) — không xử lý state chính.
 - **Axios** gọi `/api/v1/*`, CSRF + Sanctum cookie tự đính kèm (cùng domain).
-- State giỏ hàng là server-side (Lunar cart), Vue chỉ render và đồng bộ qua API.
+- State giỏ hàng là server-side (Lunar cart); JS chỉ render và đồng bộ qua API.
+
+## ⭐ Nguyên tắc SSR-first (BẮT BUỘC cho nội dung catalog công khai)
+
+> **Mọi nội dung công khai (product, collection, search, CMS) phải render đầy đủ
+> ở server.** Vue chỉ "enhance" markup đã có sẵn, KHÔNG được là nguồn render duy nhất.
+
+Mô hình 3 lớp, áp dụng cho mọi trang catalog:
+
+1. **SSR shell** — controller (trong module) gọi service/engine, Blade render **HTML
+   thật** (grid sản phẩm, facet, phân trang). Crawlable, không "flash" trắng, chạy
+   được cả khi tắt JS. Form/link là `GET` thật để fallback no-JS hoạt động.
+2. **JSON Resource (hydration payload)** — controller serialize **cùng một shape**
+   với `/api/v1/*` (qua API Resource) rồi nhúng vào DOM:
+   ```blade
+   <script type="application/json" data-island-state>@json($state)</script>
+   ```
+   → **một contract duy nhất** cho SSR và island; không lệch dữ liệu, không nhân đôi shape.
+3. **JS enhancement (vanilla cho catalog)** — module trong `enhance/*.js` đọc payload
+   nhúng làm trạng thái đầu, **KHÔNG fetch lần đầu**, chỉ gọi API khi người dùng tương
+   tác (đổi filter/sort/page/term), re-render grid tại chỗ qua `enhance/_card.js`, và
+   đồng bộ URL qua `history.replaceState` để reload/share/back-forward đúng.
+
+**Anti-pattern (cấm):** render nội dung catalog bằng `onMounted(() => fetch())` (Vue)
+hoặc fetch-on-load (vanilla) rồi chỉ để SSR trong `<noscript>`. Đó là CSR trá hình →
+mất SEO + flash trắng.
+
+**Ngoại lệ hợp lệ (fetch-on-mount được chấp nhận):** nội dung **cá nhân hóa / theo
+session, không cần crawl** — cart drawer/count (Vue), quick-view (Vue), trang
+cart/checkout (Vue), wishlist membership (vanilla, load 1 lần). Không phải nội dung SEO.
+
+**Đã áp dụng (2026-06-18):** `collection` + `search` SSR-first; controller dùng chung
+`SearchEngine` với API → SSR grid + `$state` nhúng → enhancer **vanilla**
+(`enhance/collection-shop.js`, `enhance/search-results.js`) đọc state, chỉ fetch khi
+tương tác. Wishlist + auth + search modal cũng đã chuyển sang vanilla; Vue thu hẹp còn
+4 nhóm core (variant / cart / checkout / quick-view).
 
 ---
 
@@ -497,37 +580,124 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
 > "kiểm tra `vendor/lunarphp` đã có chưa" (Nguyên tắc #1). Có → kế thừa & phát triển;
 > không → mới build mới. Không bao giờ build lại thứ Lunar đã có.
 
-## Phase 0 — Bootstrap nền tảng (vài ngày)
-- Tạo skeleton `modules/` + autoload PSR-4 `Modules\\` trong `composer.json`
-  + `ModulesServiceProvider` quét/đăng ký provider, gom routes `web`/`api` của module
-- Publish & cấu hình Filament admin của Lunar (`lunar:install`)
-- Cài Sanctum, scaffold `routes/api.php` gom `/api/v1/*` từ module + Resources
-- Tạo `themes/fashion/` (views + js + css + theme.json); module **Theme** đăng ký
-  view namespace `theme::` + trỏ Vite input vào theme active
-- Bootstrap Vue 3 + jQuery + axios trong `themes/fashion/js/app.js`
-- Seed dữ liệu mẫu (product/variant/collection)
+> **Trạng thái rà soát 2026-06-18:** Phase 0–3 về cơ bản **đã xong**; Phase 4–6
+> đang dang dở (checkout chạy với COD/bank nhưng thiếu cổng thanh toán VN, chưa
+> media responsive/SEO đầy đủ, chưa optimization layer). Đánh dấu ✅/🚧/⬜ dưới đây.
 
-## Phase 1 — Foundation (2–3 tuần)
-- Auth (web + Sanctum API), admin products/variants/collections
-- API: products, collections, cart (contract đầu tiên)
-- Cart server-side qua Lunar
+## Phase 0 — Bootstrap nền tảng ✅ (xong)
+- ✅ Skeleton `modules/` + autoload PSR-4 `Modules\\` + `ModulesServiceProvider`
+- ✅ Filament admin của Lunar đã cài & chạy (`/lunar`)
+- ✅ Sanctum cài, `/api/v1/*` gom từ module + API Resources
+- ✅ Theme (`fashion` + `modave`), namespace `theme::`, Vite theo `THEME` env
+- ✅ Vue 3 + jQuery + axios trong `themes/<theme>/js/app.js`
+- ✅ Seeders dữ liệu mẫu (product/variant/collection/size chart)
 
-## Phase 2 — Storefront (3–4 tuần)
-- Homepage, product page, collection page (Blade SSR)
-- Vue islands: cart drawer, variant picker, filters, search autocomplete
-- Search (MySQL), filters qua API
+## Phase 1 — Foundation ✅ (xong)
+- ✅ Auth web + Sanctum API; quản trị products/variants/collections qua Filament Lunar
+- ✅ API products, collections, cart (contract đã ổn định qua Resource)
+- ✅ Cart server-side qua Lunar (drawer + coupon + free-ship threshold)
 
-## Phase 3 — CMS + Sections (3 tuần)
-- Pages, sections (JSON → Blade partial), menus, banners, theme manifest
+## Phase 2 — Storefront ✅ (phần lớn xong)
+- ✅ Homepage, product page, collection page, search, account, wishlist (Blade SSR)
+- ✅ Vue islands: cart drawer, variant picker (product-purchase), quick view, search modal
+- ✅ Search (driver `database`) + suggest; 🚧 **collection filters/facets** (cần hoàn thiện UI lọc)
 
-## Phase 4 — Checkout (2 tuần)
-- Shipping, payments (COD/Bank/VNPay/MoMo), promotions, orders
+## Phase 3 — CMS + Sections ✅ (xong khung)
+- ✅ Pages, Banners, Lookbooks, Redirects, Menu, SectionBuilder (Filament + render)
+- 🚧 Bổ sung nhiều section type + preview cho admin
 
-## Phase 5 — Media + Search nâng cao (2 tuần)
-- WebP/AVIF, responsive images; cân nhắc Scout nếu catalog lớn
+## Phase 4 — Checkout 🚧 (đang làm)
+- ✅ Shipping cơ bản, đặt hàng COD/Bank qua Lunar, order history
+- ⬜ **Cổng thanh toán VN: VNPay, MoMo** (ưu tiên cao — xem Đề xuất P0)
+- ⬜ Email xác nhận đơn / cập nhật trạng thái; invoice
+- 🚧 Promotion: áp dụng coupon nâng cao, hiển thị tiết kiệm
 
-## Phase 6 — Optimization (ongoing)
-- Redis cache/session, Horizon, CDN, query/index tuning
+## Phase 5 — Media + Search nâng cao ⬜ (chưa)
+- ⬜ Responsive `<picture>` AVIF/WebP ở storefront (definitions đã có, chưa render)
+- ⬜ Cân nhắc bật driver `scout` (Meilisearch/Typesense) khi catalog lớn
+
+## Phase 6 — Optimization ⬜ (chưa)
+- ⬜ Redis cache/session, Horizon queue, CDN, query/index tuning
+- ⬜ **Test tự động** (hiện 0 test trong `modules/` — nợ kỹ thuật cần trả sớm)
+
+---
+
+# Đề xuất bổ sung tính năng (ưu tiên cho SME fashion)
+
+> Dựa trên rà soát codebase 2026-06-18. Mỗi đề xuất tuân thủ **Nguyên tắc #1**:
+> kiểm tra Lunar đã có chưa → kế thừa/mở rộng; chỉ build mới phần Lunar không có.
+> Sắp xếp theo ROI cho SME fashion (doanh thu / tỉ lệ chuyển đổi / vận hành).
+
+## P0 — Chặn doanh thu, phải làm trước
+
+1. **Cổng thanh toán Việt Nam (VNPay + MoMo)** — *module Payment*
+   - Hiện chỉ có driver `offline` của Lunar (COD/bank). SME VN cần thanh toán online.
+   - Cách làm: viết **Lunar PaymentDriver** mới (kế thừa contract `Lunar\Base\PaymentTypeInterface`),
+     đăng ký trong `config/lunar/payments.php` → checkout đã sẵn gọi qua `Payments::driver()`.
+     Thêm route callback/IPN trong module Payment, verify chữ ký, cập nhật `Transaction`.
+   - Không sửa pipeline checkout (đã hoạt động) — chỉ thêm driver + callback.
+
+2. **Email giao dịch** — *module Order (+ Notifications)*
+   - Xác nhận đơn, cập nhật trạng thái, hủy/hoàn. Hiện đặt hàng xong **không gửi gì**.
+   - Cách làm: lắng nghe event order của Lunar (hoặc trong `CheckoutService::placeOrder`),
+     gửi Laravel Notification (mail). Template Blade trong theme/`resources`. Queue hóa.
+
+3. **Khôi phục giỏ hàng & "còn X cái" (urgency/stock)** — *Cart + Inventory*
+   - Hiển thị tồn thấp ("Chỉ còn 3"), chặn oversell khi đặt. Inventory hiện mới đọc stock.
+   - Cách làm: thêm reserve khi vào checkout + validate ở `placeOrder` (Lunar có stock,
+     chỉ cần wrap kiểm tra). Badge low-stock đổ từ API có sẵn.
+
+## P1 — Tăng chuyển đổi / AOV (fashion-specific)
+
+4. **Bộ lọc & facets cho collection/search** — *Search + Catalog*
+   - Lọc theo size, màu, giá, brand, material, availability + đếm số lượng mỗi filter.
+   - `SearchQuery`/`SearchResult` đã có chỗ cho facets — chỉ cần hiện thực trong
+     `DatabaseSearchEngine` (group count) + Vue `<collection-filters>`. **Zero** đổi contract.
+
+5. **Back-in-stock / Notify me** — *Inventory + Customer*
+   - Sản phẩm fashion hay hết size hot. Cho khách đăng ký email khi có hàng lại.
+   - Bảng `stock_notifications(variant_id, email)`; job quét khi stock>0 → gửi mail.
+
+6. **Gợi ý phối đồ "Complete the look" / Lookbook shoppable** — *CMS (đã có Lookbook/Outfit)*
+   - Lookbook model đã tồn tại → bổ sung render shoppable (hotspot sản phẩm) + block
+     "mua cả set" thêm vào giỏ một lần. Tận dụng `outfits` đã thiết kế trong plan.
+
+7. **Recently viewed + "You may also like"** — *Catalog/Product*
+   - Recently viewed lưu localStorage (Vue island) — đã có markup trong theme modave.
+   - Related đã có ở product page; mở rộng sang "frequently bought together" (gợi ý theo collection).
+
+8. **Size Intelligence v2** — *Product (đã có size chart + recommend-size)*
+   - Đã có "find my size". Mở rộng: lưu hồ sơ số đo của khách (đăng nhập), gợi ý fit
+     theo lịch sử mua/đổi trả, cảnh báo "thường giữa hai size".
+
+## P2 — Vận hành & giữ chân
+
+9. **Khuyến mãi nâng cao hiển thị storefront** — *Promotion*
+   - Lunar Discounts đã có (BXGY, %, free-ship). Bổ sung: banner countdown, hiển thị
+     "tiết kiệm X", thanh free-ship progress ("mua thêm 50k để freeship").
+
+10. **Analytics dashboard trong Filament** — *Analytics*
+    - Service đã có revenue/orders/monthly. Gắn vào Filament widget (Lunar dùng Filament):
+      doanh thu theo ngày, top sản phẩm/size/màu bán chạy, tỉ lệ đổi trả theo size.
+
+11. **Đổi/trả hàng (returns/RMA)** — *Order*
+    - Fashion tỉ lệ đổi trả cao. Quy trình yêu cầu đổi size/hoàn tiền + trạng thái.
+    - Build mới (Lunar không có RMA): bảng `return_requests` + Filament resource + email.
+
+12. **SEO kỹ thuật hoàn chỉnh** — *Catalog/CMS*
+    - schema.org Product/Offer/BreadcrumbList, OG tags, sitemap.xml, canonical, redirects
+      (Redirect resource đã có). Storefront đã SSR → chỉ thêm meta + structured data.
+
+13. **Ảnh responsive AVIF/WebP `<picture>`** — *Media*
+    - `FashionMediaDefinitions` đã định nghĩa conversions; cần render `<picture>` với
+      srcset ở product card + gallery để tăng tốc mobile (Core Web Vitals → SEO).
+
+## Nợ kỹ thuật xuyên suốt (không phải feature nhưng chặn chất lượng)
+
+- **Test tự động:** 0 test trong `modules/`. Tối thiểu Feature test cho cart → checkout
+  → order, auth, search. Là điều kiện để refactor an toàn khi thêm các feature trên.
+- **Hook/event wiring:** module Hook mới có routes; chuẩn hóa event domain (order.placed,
+  stock.low, product.viewed) để Email/Analytics/Notify-me cắm vào, tránh coupling.
 
 ---
 

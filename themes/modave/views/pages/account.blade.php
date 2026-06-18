@@ -20,8 +20,10 @@
                     <li><a href="/search" class="link">Continue shopping</a></li>
                 </ul>
 
-                {{-- Logout via the auth API --}}
-                <div data-vue="logout-button" class="mt_20"></div>
+                {{-- Logout via the auth API (vanilla, enhanced by enhance/auth.js) --}}
+                <button type="button" class="tf-btn btn-outline mt_20" data-logout>
+                    <span class="text text-button">Log out</span>
+                </button>
             </div>
         </div>
     </section>

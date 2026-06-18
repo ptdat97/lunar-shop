@@ -20,16 +20,21 @@
             <img class="lazyload img-hover" data-src="{{ $img }}" src="{{ $img }}" alt="{{ $name }}">
         </a>
         <div class="list-product-btn">
-            <span data-vue="wishlist-button" data-product="{{ $product->id }}"></span>
+            {{-- Vanilla wishlist toggle (enhanced by enhance/wishlist.js) --}}
+            <a href="javascript:void(0);" class="box-icon wishlist btn-icon-action" data-wishlist-toggle="{{ $product->id }}">
+                <span class="icon icon-heart"></span>
+                <span class="tooltip">Add to wishlist</span>
+            </a>
             <a href="javascript:void(0);" class="box-icon quickview"
                onclick="window.dispatchEvent(new CustomEvent('quickview:open', {detail:{slug:'{{ $slug }}'}}))">
                 <span class="icon icon-eye"></span><span class="tooltip">Quick View</span>
             </a>
         </div>
         <div class="list-btn-main">
-            {{-- Vue island: add to cart via /api/v1/cart --}}
+            {{-- Vanilla add-to-cart (delegated by enhance/add-to-cart.js → /api/v1/cart).
+                 Dispatches cart:updated so the Vue cart drawer/count refresh. --}}
             <button type="button" class="btn-main-product"
-                    data-vue="add-to-cart" data-variant="{{ $variant?->id }}">Add To cart</button>
+                    data-add-to-cart data-variant="{{ $variant?->id }}">Add To cart</button>
         </div>
     </div>
     <div class="card-product-info">
