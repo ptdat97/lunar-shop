@@ -36,6 +36,7 @@ class MultiSizeProductsSeeder extends Seeder
         $language = Language::getDefault();
         $mediaCollection = config('lunar.media.collection', 'images');
 
+        $sizeOption = ProductOption::whereJsonContains('name->en', 'Size')->first();
         $sizeValues = $this->sizeValueIds();      // ['S'=>id, ...]
         $collections = $this->collectionIds();
         $material = [
@@ -67,6 +68,13 @@ class MultiSizeProductsSeeder extends Seeder
                 'default' => true,
                 'language_id' => $language->id,
             ]);
+
+            // Link the product to the Size option so the admin variant editor
+            // can render the value matrix (variants carry the values, but the
+            // admin reads them via the product's assigned options).
+            if ($sizeOption) {
+                $product->productOptions()->syncWithoutDetaching([$sizeOption->id => ['position' => 1]]);
+            }
 
             // One variant per size, each with its own price and size value.
             foreach (self::SIZES as $size) {

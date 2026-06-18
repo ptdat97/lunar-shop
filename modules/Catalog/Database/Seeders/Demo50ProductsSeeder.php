@@ -32,7 +32,7 @@ class Demo50ProductsSeeder extends Seeder
         $language = Language::getDefault();
         $collection = config('lunar.media.collection', 'images');
 
-        [$sizeValues, $colorValues] = $this->options();
+        [$sizeValues, $colorValues, $sizeOption, $colorOption] = $this->options();
         $collections = $this->collections();
 
         $womens = $this->images('womens', 'women-');
@@ -77,6 +77,14 @@ class Demo50ProductsSeeder extends Seeder
                 'language_id' => $language->id,
             ]);
 
+            // Link the product to the Size/Color options so the admin variant
+            // editor can render the value matrix (variants carry the values, but
+            // the admin reads them via the product's assigned options).
+            $product->productOptions()->syncWithoutDetaching([
+                $sizeOption->id => ['position' => 1],
+                $colorOption->id => ['position' => 2],
+            ]);
+
             // Variant options (cycle through size/color).
             $variant->values()->syncWithoutDetaching([
                 $sizeValues[$i % count($sizeValues)],
@@ -103,7 +111,7 @@ class Demo50ProductsSeeder extends Seeder
     }
 
     /**
-     * @return array{0: array<int,int>, 1: array<int,int>}
+     * @return array{0: array<int,int>, 1: array<int,int>, 2: ProductOption, 3: ProductOption}
      */
     protected function options(): array
     {
@@ -113,6 +121,8 @@ class Demo50ProductsSeeder extends Seeder
         return [
             $size->values()->pluck('id')->all(),
             $color->values()->pluck('id')->all(),
+            $size,
+            $color,
         ];
     }
 
