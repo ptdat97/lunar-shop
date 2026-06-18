@@ -5,11 +5,13 @@ namespace Modules\Product\Http\Controllers\Storefront;
 use Illuminate\Contracts\View\View;
 use Illuminate\Routing\Controller;
 use Modules\Product\Services\ProductService;
+use Modules\Product\Services\SizeChartService;
 
 class ProductController extends Controller
 {
     public function __construct(
         protected ProductService $products,
+        protected SizeChartService $sizeChart,
     ) {}
 
     /**
@@ -24,6 +26,8 @@ class ProductController extends Controller
         return view('theme::pages.product', [
             'product' => $product,
             'related' => $this->products->related($product),
+            'slug' => $slug,
+            'sizeChart' => $this->sizeChart->for($product),
         ]);
     }
 }

@@ -93,6 +93,11 @@
                             {{-- Vue island: variant picker + quantity + add to cart --}}
                             <div data-vue="product-purchase" data-variants='@json($variants)'></div>
 
+                            {{-- Size & Fit (opens popup) --}}
+                            <div class="mt_20">
+                                <x-theme::size-chart :size-chart="$sizeChart ?? []" :slug="$slug ?? ''" />
+                            </div>
+
                             <div class="tf-product-info-extra-link mt_20">
                                 <a href="/search" class="tf-product-extra-icon">
                                     <span class="text">Continue shopping</span>

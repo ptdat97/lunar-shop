@@ -65,6 +65,12 @@ class ModulesServiceProvider extends ServiceProvider
         $pages = \Modules\Theme\Support\AdminPages::all();
         $extraResources = \Modules\Theme\Support\AdminPages::resources();
 
+        // Fashion sizing: add Size Chart + Material managers to the product editor.
+        // Extensions are read while resources build, so register before panel().
+        \Lunar\Admin\Support\Facades\LunarPanel::extensions([
+            \Lunar\Admin\Filament\Resources\ProductResource::class => \Modules\Product\Filament\Extensions\ProductSizeExtension::class,
+        ]);
+
         \Lunar\Admin\Support\Facades\LunarPanel::panel(function ($panel) use ($pages, $extraResources) {
             // Replace the default ProductTypeResource with our custom version
             // so that Product Types appears as a standalone menu item (not nested under Products).
