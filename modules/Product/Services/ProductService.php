@@ -33,7 +33,7 @@ class ProductService
         return Product::query()
             ->where('status', 'published')
             ->whereHas('urls', fn ($u) => $u->where('slug', $slug))
-            ->with(['variants', 'thumbnail', 'brand', 'collections', 'media'])
+            ->with(['variants.values.option', 'thumbnail', 'brand', 'collections', 'media'])
             ->first();
     }
 

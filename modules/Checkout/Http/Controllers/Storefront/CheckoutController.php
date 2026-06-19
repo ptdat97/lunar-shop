@@ -6,6 +6,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controller;
 use Lunar\Facades\CartSession;
+use Lunar\Models\Country;
 use Lunar\Models\Order;
 
 class CheckoutController extends Controller
@@ -21,7 +22,10 @@ class CheckoutController extends Controller
             return redirect()->route('storefront.home');
         }
 
-        return view('theme::pages.checkout');
+        return view('theme::pages.checkout', [
+            // Embedded for the island's address form (not SEO content).
+            'countries' => Country::orderBy('name')->get(['id', 'name'])->toArray(),
+        ]);
     }
 
     /**

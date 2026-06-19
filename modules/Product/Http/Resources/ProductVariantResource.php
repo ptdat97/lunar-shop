@@ -26,6 +26,12 @@ class ProductVariantResource extends JsonResource
                 'amount' => $pricing->matched->price->decimal(),
                 'formatted' => (string) $pricing->matched->price->formatted(),
             ],
+            // Option values (e.g. Size: M, Color: Black) so the variant picker
+            // can build its matrix from the shared payload — no extra fetch.
+            'options' => $this->whenLoaded('values', fn () => $this->values->map(fn ($value) => [
+                'option' => $value->option?->translate('name'),
+                'value' => $value->translate('name'),
+            ])->values()),
         ];
     }
 }

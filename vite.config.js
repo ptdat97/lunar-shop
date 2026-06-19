@@ -6,7 +6,7 @@ import fs from 'node:fs';
 
 const theme = process.env.THEME ?? 'fashion';
 
-// Only include entries the active theme actually ships (modave uses vendor CSS).
+// Only include entries the active theme actually ships (CSS entry is optional).
 const input = [`themes/${theme}/js/app.js`];
 if (fs.existsSync(`themes/${theme}/css/app.css`)) {
     input.unshift(`themes/${theme}/css/app.css`);
