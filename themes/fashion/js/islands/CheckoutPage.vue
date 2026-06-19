@@ -3,9 +3,10 @@
 // Cart + totals are session content (fetched from /api/v1/cart on mount, an
 // allowed SSR-first exception). Countries come from embedded island state.
 // Order placement redirects to the confirmation page.
-import { onMounted, reactive, ref } from 'vue';
+import { onMounted, reactive, ref, watch } from 'vue';
 import api from '../api.js';
 import { CART_UPDATED, emit } from '../events.js';
+import { useVnLocations } from '../composables/useVnLocations.js';
 
 const props = defineProps({
     countries: { type: Array, default: () => [] },
@@ -22,11 +23,31 @@ const loading = ref(true);
 const placing = ref(false);
 const error = ref('');
 
+// Vietnam 2-tier address (province → ward). province maps to address.state,
+// ward to address.city; line_one is the street detail.
+const { provinces, wards, loadProvinces, loadWards, provinceName, wardName } = useVnLocations();
+const provinceId = ref(null);
+const wardId = ref(null);
+
+watch(provinceId, (id) => {
+    wardId.value = null;
+    loadWards(id);
+});
+
 const form = reactive({
-    first_name: '', last_name: '', line_one: '', city: '',
-    postcode: '', country_id: props.countries[0]?.id ?? null,
+    first_name: '', last_name: '', line_one: '',
+    country_id: props.countries[0]?.id ?? null,
     contact_email: '', contact_phone: '',
 });
+
+// Build the address payload, mapping province/ward to Lunar's state/city.
+function addressPayload() {
+    return {
+        ...form,
+        state: provinceName(provinceId.value),
+        city: wardName(wardId.value),
+    };
+}
 
 const chosenShipping = ref(null);
 const paymentType = ref('cod');
@@ -41,8 +62,12 @@ async function loadCart() {
 
 async function saveAddress() {
     error.value = '';
+    if (!provinceId.value || !wardId.value) {
+        error.value = 'Vui lòng chọn Tỉnh/Thành và Phường/Xã.';
+        return;
+    }
     try {
-        const { data } = await api.post('/checkout/addresses', { shipping: { ...form } });
+        const { data } = await api.post('/checkout/addresses', { shipping: addressPayload() });
         setCart(data);
         addressSaved.value = true;
         // Shipping options depend on the destination address.
@@ -96,6 +121,7 @@ function validationMessage(e) {
 }
 
 onMounted(async () => {
+    loadProvinces();
     try { await loadCart(); } finally { loading.value = false; }
 });
 </script>
@@ -107,18 +133,28 @@ onMounted(async () => {
             <section class="border rounded p-3 mb-3">
                 <h2 class="h6 text-uppercase">Shipping address</h2>
                 <div class="row g-2">
-                    <div class="col-6"><input v-model="form.first_name" class="form-control" placeholder="First name"></div>
-                    <div class="col-6"><input v-model="form.last_name" class="form-control" placeholder="Last name"></div>
-                    <div class="col-12"><input v-model="form.line_one" class="form-control" placeholder="Address"></div>
-                    <div class="col-6"><input v-model="form.city" class="form-control" placeholder="City"></div>
-                    <div class="col-6"><input v-model="form.postcode" class="form-control" placeholder="Postcode"></div>
+                    <div class="col-6"><input v-model="form.first_name" class="form-control" placeholder="Họ"></div>
+                    <div class="col-6"><input v-model="form.last_name" class="form-control" placeholder="Tên"></div>
+                    <div class="col-6">
+                        <select v-model.number="provinceId" class="form-select">
+                            <option :value="null" disabled>Tỉnh/Thành phố</option>
+                            <option v-for="p in provinces" :key="p.id" :value="p.id">{{ p.name }}</option>
+                        </select>
+                    </div>
+                    <div class="col-6">
+                        <select v-model.number="wardId" class="form-select" :disabled="!provinceId">
+                            <option :value="null" disabled>Phường/Xã</option>
+                            <option v-for="w in wards" :key="w.id" :value="w.id">{{ w.name }}</option>
+                        </select>
+                    </div>
+                    <div class="col-12"><input v-model="form.line_one" class="form-control" placeholder="Số nhà, tên đường"></div>
                     <div class="col-12">
                         <select v-model.number="form.country_id" class="form-select">
                             <option v-for="c in countries" :key="c.id" :value="c.id">{{ c.name }}</option>
                         </select>
                     </div>
                     <div class="col-6"><input v-model="form.contact_email" type="email" class="form-control" placeholder="Email"></div>
-                    <div class="col-6"><input v-model="form.contact_phone" class="form-control" placeholder="Phone"></div>
+                    <div class="col-6"><input v-model="form.contact_phone" class="form-control" placeholder="Số điện thoại"></div>
                 </div>
                 <button class="btn btn-dark mt-3" @click="saveAddress">
                     {{ addressSaved ? 'Update address' : 'Continue' }}

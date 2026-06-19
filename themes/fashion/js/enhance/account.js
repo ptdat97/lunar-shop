@@ -63,7 +63,7 @@ function orderDetailHtml(order) {
     <div class="text-uppercase">Shipping to</div>
     <div>${esc(addr.name)}</div>
     <div>${esc(addr.line_one)}${addr.line_two ? ', ' + esc(addr.line_two) : ''}</div>
-    <div>${esc(addr.city)} ${esc(addr.postcode)}</div>
+    <div>${esc(addr.city)}${addr.state ? ', ' + esc(addr.state) : ''}</div>
     ${addr.contact_phone ? `<div>${esc(addr.contact_phone)}</div>` : ''}
 </div>` : '';
     return `
@@ -136,7 +136,7 @@ function addressCard(a) {
         ${a.shipping_default ? '<span class="badge bg-dark mb-2">Default</span>' : ''}
         <div class="fw-semibold">${esc(a.first_name)} ${esc(a.last_name)}</div>
         <div class="small text-muted">${esc(a.line_one)}${a.line_two ? ', ' + esc(a.line_two) : ''}</div>
-        <div class="small text-muted">${esc(a.city)} ${esc(a.postcode)}</div>
+        <div class="small text-muted">${esc(a.city)}${a.state ? ', ' + esc(a.state) : ''}</div>
         ${a.contact_phone ? `<div class="small text-muted">${esc(a.contact_phone)}</div>` : ''}
         <div class="mt-2 d-flex gap-2">
             <button class="btn btn-link btn-sm p-0" data-address-edit="${a.id}">Edit</button>
@@ -155,12 +155,41 @@ function initAddresses(root, countries, stats) {
     const formTitle = root.querySelector('[data-address-form-title]');
     const errorBox = root.querySelector('[data-address-error]');
     const select = root.querySelector('[data-country-select]');
+    const provinceSelect = root.querySelector('[data-province-select]');
+    const wardSelect = root.querySelector('[data-ward-select]');
     let cache = [];
+    let provinces = [];
     let loaded = false;
 
     if (select) {
         select.innerHTML = countries.map((c) => `<option value="${c.id}">${esc(c.name)}</option>`).join('');
     }
+
+    // Province → ward dependent selects. The address stores names (state=province,
+    // city=ward), so option values are names; province options carry data-id for
+    // the ward lookup.
+    async function loadProvinces() {
+        if (provinces.length || !provinceSelect) return;
+        const { data } = await api.get('/locations/provinces');
+        provinces = data.data ?? [];
+        provinceSelect.insertAdjacentHTML('beforeend', provinces
+            .map((p) => `<option value="${esc(p.name)}" data-id="${p.id}">${esc(p.name)}</option>`).join(''));
+    }
+
+    async function loadWards(provinceId, selectedName = '') {
+        if (!wardSelect) return;
+        wardSelect.innerHTML = '<option value="" disabled selected>Phường/Xã</option>';
+        wardSelect.disabled = ! provinceId;
+        if (! provinceId) return;
+        const { data } = await api.get(`/locations/provinces/${provinceId}/wards`);
+        wardSelect.insertAdjacentHTML('beforeend', (data.data ?? [])
+            .map((w) => `<option value="${esc(w.name)}"${w.name === selectedName ? ' selected' : ''}>${esc(w.name)}</option>`).join(''));
+    }
+
+    provinceSelect?.addEventListener('change', () => {
+        const opt = provinceSelect.selectedOptions[0];
+        loadWards(opt?.dataset.id);
+    });
 
     function render() {
         if (loading) loading.hidden = true;
@@ -181,18 +210,34 @@ function initAddresses(root, countries, stats) {
         }
     }
 
-    function openForm(address = null) {
+    async function openForm(address = null) {
+        await loadProvinces();
         form.reset();
         if (errorBox) errorBox.hidden = true;
         form.elements.id.value = address?.id ?? '';
+
+        // Reset dependent selects to placeholders.
+        if (provinceSelect) provinceSelect.value = '';
+        if (wardSelect) { wardSelect.innerHTML = '<option value="" disabled selected>Phường/Xã</option>'; wardSelect.disabled = true; }
+
         if (address) {
             Object.entries(address).forEach(([k, v]) => {
-                if (form.elements[k] !== undefined && form.elements[k] !== null) {
-                    if (form.elements[k].type === 'checkbox') form.elements[k].checked = !!v;
-                    else form.elements[k].value = v ?? '';
+                const el = form.elements[k];
+                // state/city are the province/ward selects, handled below.
+                if (el && k !== 'state' && k !== 'city') {
+                    if (el.type === 'checkbox') el.checked = !!v;
+                    else el.value = v ?? '';
                 }
             });
+
+            // Preselect province (by name) → load its wards → preselect ward.
+            if (provinceSelect && address.state) {
+                provinceSelect.value = address.state;
+                const opt = provinceSelect.selectedOptions[0];
+                await loadWards(opt?.dataset.id, address.city ?? '');
+            }
         }
+
         if (formTitle) formTitle.textContent = address ? 'Edit address' : 'Add address';
         formWrap.hidden = false;
         formWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });

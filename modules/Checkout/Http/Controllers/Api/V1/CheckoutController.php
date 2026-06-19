@@ -39,8 +39,9 @@ class CheckoutController extends Controller
             'shipping.first_name' => ['required', 'string', 'max:255'],
             'shipping.last_name' => ['required', 'string', 'max:255'],
             'shipping.line_one' => ['required', 'string', 'max:255'],
-            'shipping.city' => ['required', 'string', 'max:255'],
-            'shipping.postcode' => ['required', 'string', 'max:32'],
+            'shipping.state' => ['required', 'string', 'max:255'],   // Tỉnh/Thành
+            'shipping.city' => ['required', 'string', 'max:255'],    // Phường/Xã
+            'shipping.postcode' => ['nullable', 'string', 'max:32'],
             'shipping.country_id' => ['required', 'integer'],
             'shipping.contact_email' => ['nullable', 'email'],
             'shipping.contact_phone' => ['nullable', 'string', 'max:32'],

@@ -22,6 +22,7 @@ class ModulesServiceProvider extends ServiceProvider
         'Hook',
         'Theme',
         'Catalog',
+        'Location',
         'Product',
         'Collection',
         'Inventory',

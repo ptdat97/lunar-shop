@@ -5,6 +5,7 @@ namespace Modules\Payment\Services;
 use Illuminate\Support\Carbon;
 use Lunar\Models\Order;
 use Lunar\Models\Transaction;
+use Modules\Order\Events\OrderPaid;
 use Modules\Payment\Data\VNPayResult;
 
 /**
@@ -70,8 +71,10 @@ class VNPayPaymentProcessor
             'driver' => 'vnpay',
             'amount' => $amount,
             'reference' => $reference,
-            'status' => $query['vnp_ResponseCode'] ?? null,
-            'card_type' => $query['vnp_BankCode'] ?? null,
+            'status' => (string) ($query['vnp_ResponseCode'] ?? ''),
+            // card_type is NOT NULL in lunar_transactions; default to empty.
+            'card_type' => $query['vnp_BankCode'] ?? '',
+            'last_four' => '',
             'captured_at' => $success ? Carbon::now() : null,
             'meta' => $query,
         ]);
@@ -81,6 +84,9 @@ class VNPayPaymentProcessor
                 'status' => 'payment-received',
                 'placed_at' => $order->placed_at ?? Carbon::now(),
             ]);
+
+            // Domain signal for the payment-received email (+ future fulfilment).
+            OrderPaid::dispatch($order);
         }
 
         return new VNPayResult(

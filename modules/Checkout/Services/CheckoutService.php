@@ -40,10 +40,29 @@ class CheckoutService
     {
         $cart = $this->carts->current();
 
+        // VN 2-tier addresses (state=province, city=ward) carry no postcode, but
+        // Lunar requires one for order creation — default it so checkout works.
+        $shipping = $this->withPostcode($shipping);
+
         $cart->setShippingAddress($shipping);
-        $cart->setBillingAddress($billing ?? $shipping);
+        $cart->setBillingAddress($billing ? $this->withPostcode($billing) : $shipping);
 
         return $cart->calculate();
+    }
+
+    /**
+     * Ensure an address has a non-empty postcode (Lunar requires it).
+     *
+     * @param  array<string, mixed>  $address
+     * @return array<string, mixed>
+     */
+    protected function withPostcode(array $address): array
+    {
+        if (blank($address['postcode'] ?? null)) {
+            $address['postcode'] = '00000';
+        }
+
+        return $address;
     }
 
     /**

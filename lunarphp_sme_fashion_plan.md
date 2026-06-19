@@ -631,8 +631,8 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
 ## Phase 4 — Checkout 🚧 (đang làm)
 - ✅ Shipping cơ bản, đặt hàng COD/Bank qua Lunar, order history + order detail
 - ✅ Checkout gắn order vào customer của user đăng nhập (`CheckoutService` + `CustomerResolver`)
-- ⬜ **Cổng thanh toán VN: VNPay, MoMo** (ưu tiên cao — xem Đề xuất P0)
-- ⬜ Email xác nhận đơn / cập nhật trạng thái; invoice
+- ✅ **Cổng thanh toán VNPay** (driver + redirect + return/IPN, idempotent) — xem Phase 7.1; ⬜ MoMo
+- ✅ **Email giao dịch** (xác nhận / thanh toán / cập nhật trạng thái, queued) — xem Phase 7.2; ⬜ invoice
 - 🚧 Promotion: áp dụng coupon nâng cao, hiển thị tiết kiệm
 
 ## Phase 5 — Media + Search nâng cao ⬜ (chưa)
@@ -642,27 +642,45 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
 
 ## Phase 6 — Optimization ⬜ (chưa)
 - ⬜ Redis cache/session, Horizon queue, CDN, query/index tuning
-- ⬜ **Test tự động** (mới có stub `tests/*/ExampleTest.php`, **0 test thực** cho
-  `modules/` — nợ kỹ thuật cần trả sớm, nhất là sau khi vừa đổi contract API account/order)
+- ✅ **Test tự động** (2026-06-19): 35 Feature test phủ auth/cart/address/checkout/order/
+  search/size/VNPay/email — xem Phase 7.3. ⬜ Redis/Horizon/CDN/index tuning vẫn chưa.
 
 ## Phase 7 — Go-live readiness 🎯 (ĐỀ XUẤT — phase tiếp theo)
 
 > Storefront + theme đã đủ để **trông như shop thật**. Phase 7 lấp đúng các lỗ hổng
 > còn chặn việc **bán thật + chạy production an toàn**. Thứ tự = ROI giảm dần.
 
-**7.1 — Thanh toán online VN (VNPay/MoMo)** — *Payment* — 🔴 chặn doanh thu lớn nhất
-  - Viết Lunar `PaymentDriver` (kế thừa `PaymentTypeInterface`), đăng ký ở
-    `config/lunar/payments.php`; checkout **không đổi** (đã gọi `Payments::driver()`).
-  - Thêm route callback/IPN (module Payment), verify chữ ký, cập nhật `Transaction` +
-    trạng thái order. Theme: thêm lựa chọn payment trong `CheckoutPage.vue` (đã có khung cod/bank).
+**7.1 — Thanh toán online VN (VNPay)** — *Payment* — ✅ **đã làm (2026-06-19)**
+  - ✅ `VNPayPayment` driver (kế thừa `AbstractPayment`), đăng ký qua
+    `Payments::extend('vnpay')` + `config/lunar/payments.php` (type `vnpay`); checkout
+    **không đổi pipeline** (vẫn `Payments::driver()`). Driver tạo order `awaiting-payment`.
+  - ✅ `VNPayGateway` (build URL + HMAC-SHA512 + verify), routes `start`/`return`/`ipn`
+    (`VNPayController` + `VNPayPaymentProcessor`): verify chữ ký, ghi `Transaction`, chuyển
+    order → `payment-received`, **idempotent** (return + IPN không double-record).
+  - ✅ Theme: `CheckoutPage.vue` thêm option VNPay (chỉ hiện khi cấu hình) + redirect sang
+    gateway. Bật bằng `VNPAY_TMN_CODE`/`VNPAY_HASH_SECRET` (`config/payment.php`).
+  - ⬜ Còn: **MoMo** (cùng mẫu driver), refund qua API (hiện refund out-of-band), và lưu ý
+    **VNPay chỉ nhận VND** — shop phải dùng currency VND.
 
-**7.2 — Email giao dịch** — *Order + Notifications* — 🔴 đặt hàng xong hiện không gửi gì
-  - Lắng nghe event order (hoặc trong `placeOrder`) → Laravel Notification (mail), queue hóa.
-  - Template Blade. Tối thiểu: xác nhận đơn + cập nhật trạng thái.
+**7.2 — Email giao dịch** — *Order* — ✅ **đã làm (2026-06-19)**
+  - ✅ 3 mailable queued (`OrderConfirmationMail`, `OrderPaidMail`, `OrderStatusUpdatedMail`)
+    + markdown templates (`order::mail.*`) + `OrderMailer` (resolve recipient từ địa chỉ giao).
+  - ✅ Wiring: confirm qua `PaymentAttemptEvent` (mọi driver), paid qua event domain
+    `OrderPaid` (VNPay callback), status-update qua `OrderObserver` (bỏ qua status thanh toán).
+  - ✅ Verify với `MAIL_MAILER=log`. ⬜ Còn: template đẹp/branding, đa ngôn ngữ, invoice PDF.
 
-**7.3 — Test an toàn hồi quy** — *toàn repo* — 🟠 vừa đổi contract account/order (Bước mở rộng)
-  - Feature test: cart→checkout→order, auth/register/login, address CRUD, profile/password,
-    search+facets, recommend-size. Là điều kiện để 7.1/7.2 không phá vỡ flow đang chạy.
+**7.3 — Test an toàn hồi quy** — *toàn repo* — ✅ **đã làm (2026-06-19)**
+  - ✅ **35 Feature test / 141 assertion, all green.** Bao phủ: auth (register/login/logout
+    + profile/password), cart (add/update/remove/coupon), address book CRUD (+ ownership),
+    checkout→order COD (+ order history/detail + cách ly theo customer), search+facets+suggest,
+    size-chart + recommend-size, **VNPay** (chữ ký + tamper, callback paid/idempotent/invalid/
+    failed-code, return redirect, IPN RspCode) + **email** (confirm/paid qua `Mail::fake`).
+  - Hạ tầng: `tests/TestCase` dùng `RefreshDatabase`; chạy trên **MySQL `lunar_testing`** (app
+    phụ thuộc JSON functions/facets — SQLite không emulate được); trait `CreatesStorefrontData`
+    (seed base data + fixture product/size-chart). Chạy: `php artisan test`.
+  - 🐞 Test bắt 1 bug thật: `AddressController::update/destroy` typehint `int` trong khi Lunar
+    route-model-binding inject `Address` → đã sửa nhận model + kiểm tra ownership.
+  - ⬜ Mở rộng sau: storefront Blade pages (smoke render), wishlist toggle, MoMo khi thêm.
 
 **7.4 — Media responsive `<picture>`** — *Media + theme* — 🟠 Core Web Vitals/mobile
   - `FashionMediaDefinitions` đã có conversions; render `<picture>` + `srcset` ở

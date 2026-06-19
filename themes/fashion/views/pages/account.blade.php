@@ -85,16 +85,24 @@
                     <form data-address-form>
                         <input type="hidden" name="id">
                         <div class="row g-2">
-                            <div class="col-6"><input class="form-control" name="first_name" placeholder="First name" required></div>
-                            <div class="col-6"><input class="form-control" name="last_name" placeholder="Last name" required></div>
-                            <div class="col-12"><input class="form-control" name="line_one" placeholder="Address" required></div>
-                            <div class="col-12"><input class="form-control" name="line_two" placeholder="Apartment, suite (optional)"></div>
-                            <div class="col-6"><input class="form-control" name="city" placeholder="City" required></div>
-                            <div class="col-6"><input class="form-control" name="postcode" placeholder="Postcode" required></div>
+                            <div class="col-6"><input class="form-control" name="first_name" placeholder="Họ" required></div>
+                            <div class="col-6"><input class="form-control" name="last_name" placeholder="Tên" required></div>
+                            <div class="col-6">
+                                <select class="form-select" name="state" required data-province-select>
+                                    <option value="" disabled selected>Tỉnh/Thành phố</option>
+                                </select>
+                            </div>
+                            <div class="col-6">
+                                <select class="form-select" name="city" required data-ward-select disabled>
+                                    <option value="" disabled selected>Phường/Xã</option>
+                                </select>
+                            </div>
+                            <div class="col-12"><input class="form-control" name="line_one" placeholder="Số nhà, tên đường" required></div>
+                            <div class="col-12"><input class="form-control" name="line_two" placeholder="Toà nhà, ghi chú (tuỳ chọn)"></div>
                             <div class="col-12">
                                 <select class="form-select" name="country_id" required data-country-select></select>
                             </div>
-                            <div class="col-6"><input class="form-control" name="contact_phone" placeholder="Phone"></div>
+                            <div class="col-6"><input class="form-control" name="contact_phone" placeholder="Số điện thoại"></div>
                             <div class="col-12 form-check ms-1">
                                 <input class="form-check-input" type="checkbox" name="shipping_default" id="addr-ship-default">
                                 <label class="form-check-label" for="addr-ship-default">Use as default shipping address</label>

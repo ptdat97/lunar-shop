@@ -48,10 +48,10 @@ class AddressController extends Controller
     /**
      * PATCH /api/v1/customer/addresses/{address}
      */
-    public function update(Request $request, int $address): AddressResource
+    public function update(Request $request, Address $address): AddressResource
     {
         $customer = $this->customers->forUser($request->user());
-        $model = $this->ownedAddress($customer, $address);
+        $model = $this->ownedAddress($customer, $address->getKey());
         $data = $this->validated($request);
 
         $model->update($data);
@@ -63,10 +63,10 @@ class AddressController extends Controller
     /**
      * DELETE /api/v1/customer/addresses/{address}
      */
-    public function destroy(Request $request, int $address): JsonResponse
+    public function destroy(Request $request, Address $address): JsonResponse
     {
         $customer = $this->customers->forUser($request->user());
-        $this->ownedAddress($customer, $address)->delete();
+        $this->ownedAddress($customer, $address->getKey())->delete();
 
         return response()->json(['data' => ['status' => 'deleted']]);
     }
@@ -81,9 +81,9 @@ class AddressController extends Controller
             'last_name' => ['required', 'string', 'max:255'],
             'line_one' => ['required', 'string', 'max:255'],
             'line_two' => ['nullable', 'string', 'max:255'],
-            'city' => ['required', 'string', 'max:255'],
-            'state' => ['nullable', 'string', 'max:255'],
-            'postcode' => ['required', 'string', 'max:32'],
+            'state' => ['required', 'string', 'max:255'],   // Tỉnh/Thành
+            'city' => ['required', 'string', 'max:255'],    // Phường/Xã
+            'postcode' => ['nullable', 'string', 'max:32'],
             'country_id' => ['required', 'integer', 'exists:lunar_countries,id'],
             'contact_email' => ['nullable', 'email', 'max:255'],
             'contact_phone' => ['nullable', 'string', 'max:32'],
