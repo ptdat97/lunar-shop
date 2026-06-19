@@ -339,26 +339,29 @@ Product (Lunar)
 ## Cấu trúc trang
 ```text
 Layout (theme::layouts, Blade SSR)
- ├── Header / mega menu
- ├── Page content (Blade)
- │    └── Vue islands:
- │         ├── <cart-drawer>
- │         ├── <variant-picker>
- │         ├── <quick-view>
- │         ├── <collection-filters>
- │         └── <search-autocomplete>
+ ├── Header / mega menu (MenuRenderer) + mini-cart drawer (offcanvas, vanilla)
+ ├── Page content (Blade SSR)
+ │    ├── Vue islands (chỉ 2 đang active):
+ │    │    ├── product-purchase   (variant picker + add-to-cart)
+ │    │    └── checkout-page      (address → shipping → place)
+ │    └── Vanilla enhancers (mặc định): cart drawer/page, collection+search
+ │         grid (SSR-first + facets), wishlist, auth, account, add-to-cart,
+ │         size-finder ("find my size")
  └── Footer
 ```
+> **Trạng thái 2026-06-19:** theme `fashion` đã dựng đầy đủ Bước 1–6 (xem
+> [lunarphp_sme_fashion_theme_plan.md](lunarphp_sme_fashion_theme_plan.md)).
+> `quick-view` **hoãn lại** (chưa build); search autocomplete/modal chưa làm.
 
 ## Quy ước JS
 
-> **Phân tầng JS (cập nhật 2026-06-18): Blade SSR + Vanilla JS là mặc định; Vue CHỈ
-> dùng cho 3 island.** Mọi thứ khác là Blade render + vanilla enhancement.
+> **Phân tầng JS (cập nhật 2026-06-19): Blade SSR + Vanilla JS là mặc định; Vue CHỈ
+> dùng cho island cốt lõi.** Mọi thứ khác là Blade render + vanilla enhancement.
 
-**Vue 3 (island) — CHỈ cho:**
-1. **Product variant picker** — `product-purchase`
-2. **Checkout** — `checkout-page`
-3. **Quick view** — `quick-view` (vì chứa variant + add-to-cart)
+**Vue 3 (island) — allow-list tối đa 3, hiện 2 đang active:**
+1. **Product variant picker** — `product-purchase` ✅
+2. **Checkout** — `checkout-page` ✅
+3. **Quick view** — `quick-view` ⬜ (đã chừa chỗ trong allow-list; **hoãn**, chưa build)
 
 → allow-list trong `themes/fashion/js/app.js` (`VUE_ISLANDS`); `data-vue` ngoài danh
 sách này **không** được mount Vue.
@@ -587,9 +590,11 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
 > "kiểm tra `vendor/lunarphp` đã có chưa" (Nguyên tắc #1). Có → kế thừa & phát triển;
 > không → mới build mới. Không bao giờ build lại thứ Lunar đã có.
 
-> **Trạng thái rà soát 2026-06-18:** Phase 0–3 về cơ bản **đã xong**; Phase 4–6
-> đang dang dở (checkout chạy với COD/bank nhưng thiếu cổng thanh toán VN, chưa
-> media responsive/SEO đầy đủ, chưa optimization layer). Đánh dấu ✅/🚧/⬜ dưới đây.
+> **Trạng thái rà soát 2026-06-19:** Phase 0–3 **xong**; **theme `fashion` dựng đầy
+> đủ** (storefront SSR-first hoàn chỉnh: home, product + variant island + Size
+> Intelligence, collection/search + facets, cart + checkout, wishlist, account đa
+> mục, SEO/JSON-LD). Còn lại chủ yếu là **backend chặn doanh thu** (cổng thanh toán
+> VN, email giao dịch) + **media responsive** + **test/optimization**. Đánh dấu ✅/🚧/⬜.
 
 ## Phase 0 — Bootstrap nền tảng ✅ (xong)
 - ✅ Skeleton `modules/` + autoload PSR-4 `Modules\\` + `ModulesServiceProvider`
@@ -604,28 +609,71 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
 - ✅ API products, collections, cart (contract đã ổn định qua Resource)
 - ✅ Cart server-side qua Lunar (drawer + coupon + free-ship threshold)
 
-## Phase 2 — Storefront ✅ (phần lớn xong)
-- ✅ Homepage, product page, collection page, search, account, wishlist (Blade SSR)
-- ✅ Vue islands: cart drawer, variant picker (product-purchase), quick view, search modal
-- ✅ Search (driver `database`) + suggest; 🚧 **collection filters/facets** (cần hoàn thiện UI lọc)
+## Phase 2 — Storefront ✅ (xong)
+- ✅ Homepage, product, collection, search, cart, checkout, account (đa mục:
+  orders + order detail + address book + profile/password), wishlist, auth (Blade SSR)
+- ✅ Vue islands **đang active: `product-purchase`, `checkout-page`** (quick-view hoãn)
+- ✅ Cart drawer + cart page + coupon, add-to-cart, wishlist toggle — **vanilla**
+- ✅ Search (driver `database`) + suggest **API**; ✅ **collection/search filters + facets**
+  (SSR-first: `computeFacets` ở `DatabaseSearchEngine` + facet sidebar + `enhance/_shop.js`,
+  fallback no-JS bằng GET). ⬜ search autocomplete/modal (suggest API có, chưa gắn UI)
+- ✅ **Fashion Size Intelligence trên storefront**: size chart modal + "find my size"
+  (`enhance/size-finder.js` → `recommend-size`, áp size vào variant picker)
+- ✅ **SEO storefront**: canonical, robots (noindex trang riêng tư), OpenGraph/Twitter,
+  JSON-LD Product + BreadcrumbList ở product page
 
 ## Phase 3 — CMS + Sections ✅ (xong khung)
 - ✅ Pages, Banners, Lookbooks, Redirects, Menu, SectionBuilder (Filament + render)
-- 🚧 Bổ sung nhiều section type + preview cho admin
+- ✅ Section partial storefront: hero-slider, category-grid, product-tabs, iconbox
+- 🚧 Bổ sung section type còn lại (lookbook/testimonial/instagram chưa có partial → render comment),
+  preview cho admin, và **trỏ ảnh seed/demo khỏi `/themes/modave/*` (đã 404)**
 
 ## Phase 4 — Checkout 🚧 (đang làm)
-- ✅ Shipping cơ bản, đặt hàng COD/Bank qua Lunar, order history
+- ✅ Shipping cơ bản, đặt hàng COD/Bank qua Lunar, order history + order detail
+- ✅ Checkout gắn order vào customer của user đăng nhập (`CheckoutService` + `CustomerResolver`)
 - ⬜ **Cổng thanh toán VN: VNPay, MoMo** (ưu tiên cao — xem Đề xuất P0)
 - ⬜ Email xác nhận đơn / cập nhật trạng thái; invoice
 - 🚧 Promotion: áp dụng coupon nâng cao, hiển thị tiết kiệm
 
 ## Phase 5 — Media + Search nâng cao ⬜ (chưa)
-- ⬜ Responsive `<picture>` AVIF/WebP ở storefront (definitions đã có, chưa render)
+- ⬜ Responsive `<picture>` AVIF/WebP ở storefront (definitions đã có, theme chưa render —
+  card/gallery hiện dùng `<img>` 1 conversion)
 - ⬜ Cân nhắc bật driver `scout` (Meilisearch/Typesense) khi catalog lớn
 
 ## Phase 6 — Optimization ⬜ (chưa)
 - ⬜ Redis cache/session, Horizon queue, CDN, query/index tuning
-- ⬜ **Test tự động** (hiện 0 test trong `modules/` — nợ kỹ thuật cần trả sớm)
+- ⬜ **Test tự động** (mới có stub `tests/*/ExampleTest.php`, **0 test thực** cho
+  `modules/` — nợ kỹ thuật cần trả sớm, nhất là sau khi vừa đổi contract API account/order)
+
+## Phase 7 — Go-live readiness 🎯 (ĐỀ XUẤT — phase tiếp theo)
+
+> Storefront + theme đã đủ để **trông như shop thật**. Phase 7 lấp đúng các lỗ hổng
+> còn chặn việc **bán thật + chạy production an toàn**. Thứ tự = ROI giảm dần.
+
+**7.1 — Thanh toán online VN (VNPay/MoMo)** — *Payment* — 🔴 chặn doanh thu lớn nhất
+  - Viết Lunar `PaymentDriver` (kế thừa `PaymentTypeInterface`), đăng ký ở
+    `config/lunar/payments.php`; checkout **không đổi** (đã gọi `Payments::driver()`).
+  - Thêm route callback/IPN (module Payment), verify chữ ký, cập nhật `Transaction` +
+    trạng thái order. Theme: thêm lựa chọn payment trong `CheckoutPage.vue` (đã có khung cod/bank).
+
+**7.2 — Email giao dịch** — *Order + Notifications* — 🔴 đặt hàng xong hiện không gửi gì
+  - Lắng nghe event order (hoặc trong `placeOrder`) → Laravel Notification (mail), queue hóa.
+  - Template Blade. Tối thiểu: xác nhận đơn + cập nhật trạng thái.
+
+**7.3 — Test an toàn hồi quy** — *toàn repo* — 🟠 vừa đổi contract account/order (Bước mở rộng)
+  - Feature test: cart→checkout→order, auth/register/login, address CRUD, profile/password,
+    search+facets, recommend-size. Là điều kiện để 7.1/7.2 không phá vỡ flow đang chạy.
+
+**7.4 — Media responsive `<picture>`** — *Media + theme* — 🟠 Core Web Vitals/mobile
+  - `FashionMediaDefinitions` đã có conversions; render `<picture>` + `srcset` ở
+    `product-card` và gallery. Cải thiện LCP mobile → tốt cho SEO vừa làm ở Phase 2.
+
+**7.5 — Dọn dữ liệu seed/demo modave** — *SectionBuilder/Seeders* — 🟡 nhanh, gọn
+  - Ảnh hero/lookbook/testimonial trong `SectionSchemas` + seeders vẫn trỏ
+    `/themes/modave/*` (đã xoá → 404). Thay bằng ảnh thật hoặc placeholder, re-seed.
+
+**7.6 — Hạ tầng production** — *Optimization* — 🟡 khi chuẩn bị deploy
+  - Redis cache/session, Horizon queue (email/job stock), CDN cho `public/`, rà index DB.
 
 ---
 
@@ -656,10 +704,11 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
 
 ## P1 — Tăng chuyển đổi / AOV (fashion-specific)
 
-4. **Bộ lọc & facets cho collection/search** — *Search + Catalog*
-   - Lọc theo size, màu, giá, brand, material, availability + đếm số lượng mỗi filter.
-   - `SearchQuery`/`SearchResult` đã có chỗ cho facets — chỉ cần hiện thực trong
-     `DatabaseSearchEngine` (group count) + Vue `<collection-filters>`. **Zero** đổi contract.
+4. **Bộ lọc & facets cho collection/search** — ✅ **đã làm (2026-06-19)** (size + color)
+   - `DatabaseSearchEngine::computeFacets` trả `{size,color}` (value+count); theme có
+     facet sidebar SSR + `enhance/_shop.js` (đọc `$state`, fetch khi đổi filter/sort/page,
+     `history.replaceState`), fallback no-JS bằng GET. **Zero** đổi contract.
+   - ⬜ Mở rộng facet: **giá (range), brand, material, availability** — engine mới có size/color.
 
 5. **Back-in-stock / Notify me** — *Inventory + Customer*
    - Sản phẩm fashion hay hết size hot. Cho khách đăng ký email khi có hàng lại.
@@ -673,9 +722,11 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
    - Recently viewed lưu localStorage (Vue island) — đã có markup trong theme fashion.
    - Related đã có ở product page; mở rộng sang "frequently bought together" (gợi ý theo collection).
 
-8. **Size Intelligence v2** — *Product (đã có size chart + recommend-size)*
-   - Đã có "find my size". Mở rộng: lưu hồ sơ số đo của khách (đăng nhập), gợi ý fit
-     theo lịch sử mua/đổi trả, cảnh báo "thường giữa hai size".
+8. **Size Intelligence v2** — *Product* (✅ **base đã ra storefront 2026-06-19**)
+   - ✅ Size chart modal + "find my size" (`size-finder.js` → `recommend-size`, áp size
+     vào variant picker qua event `size:recommended`).
+   - ⬜ v2: lưu **hồ sơ số đo** của khách đăng nhập (prefill form), gợi ý fit theo lịch
+     sử mua/đổi trả, cảnh báo "thường giữa hai size", facet giá theo range.
 
 ## P2 — Vận hành & giữ chân
 
@@ -691,9 +742,10 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
     - Fashion tỉ lệ đổi trả cao. Quy trình yêu cầu đổi size/hoàn tiền + trạng thái.
     - Build mới (Lunar không có RMA): bảng `return_requests` + Filament resource + email.
 
-12. **SEO kỹ thuật hoàn chỉnh** — *Catalog/CMS*
-    - schema.org Product/Offer/BreadcrumbList, OG tags, sitemap.xml, canonical, redirects
-      (Redirect resource đã có). Storefront đã SSR → chỉ thêm meta + structured data.
+12. **SEO kỹ thuật** — *Catalog/CMS* (🚧 **phần lớn đã làm 2026-06-19**)
+    - ✅ schema.org Product/Offer/BreadcrumbList, OG/Twitter, canonical (strip query ở
+      collection), robots noindex cho trang riêng tư. ⬜ Còn: **sitemap.xml**, JSON-LD cho
+      collection (ItemList) + CMS page, OG image cho home/collection.
 
 13. **Ảnh responsive AVIF/WebP `<picture>`** — *Media*
     - `FashionMediaDefinitions` đã định nghĩa conversions; cần render `<picture>` với

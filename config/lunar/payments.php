@@ -17,8 +17,16 @@ return [
             'authorized' => 'awaiting-payment',
         ],
 
-        // Phase 2 gateways (VNPay / MoMo / Stripe / PayPal) register custom
-        // drivers via Payments::extend(...) — added later without touching callers.
+        // VNPay — online gateway (redirect + callback). The custom driver is
+        // registered via Payments::extend('vnpay', ...) in PaymentServiceProvider.
+        // 'authorized' is the order status set on redirect (before payment);
+        // the return/IPN callback moves it to 'payment-received' once paid.
+        'vnpay' => [
+            'driver' => 'vnpay',
+            'authorized' => 'awaiting-payment',
+        ],
+
+        // Further gateways (MoMo / Stripe / PayPal) follow the same pattern.
     ],
 
 ];

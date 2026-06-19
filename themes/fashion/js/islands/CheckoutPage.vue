@@ -10,7 +10,11 @@ import { CART_UPDATED, emit } from '../events.js';
 const props = defineProps({
     countries: { type: Array, default: () => [] },
     confirmationBase: { type: String, default: '/checkout/confirmation' },
+    vnpayEnabled: { type: Boolean, default: false },
 });
+
+// Expose to the template.
+const vnpayEnabled = props.vnpayEnabled;
 
 const cart = ref(null);
 const shippingOptions = ref([]);
@@ -68,8 +72,18 @@ async function placeOrder() {
     error.value = '';
     try {
         const { data } = await api.post('/checkout', { payment_type: paymentType.value });
+        const order = data.data;
         emit(CART_UPDATED); // cart is now empty → drawer/count refresh
-        window.location.href = `${props.confirmationBase}/${data.data.reference}`;
+
+        // Online gateways (VNPay) need a redirect to the provider; offline
+        // methods (cod/bank) go straight to the confirmation page.
+        if (paymentType.value === 'vnpay') {
+            const { data: start } = await api.get(`/payment/vnpay/start/${order.id}`, { baseURL: '/' });
+            window.location.href = start.data.redirect_url;
+            return;
+        }
+
+        window.location.href = `${props.confirmationBase}/${order.reference}`;
     } catch (e) {
         error.value = 'Could not place the order. Please try again.';
         placing.value = false;
@@ -135,6 +149,10 @@ onMounted(async () => {
                 <div class="form-check">
                     <input class="form-check-input" type="radio" id="pay-bank" value="bank-transfer" v-model="paymentType">
                     <label class="form-check-label" for="pay-bank">Bank transfer</label>
+                </div>
+                <div class="form-check" v-if="vnpayEnabled">
+                    <input class="form-check-input" type="radio" id="pay-vnpay" value="vnpay" v-model="paymentType">
+                    <label class="form-check-label" for="pay-vnpay">VNPay (online payment)</label>
                 </div>
             </section>
         </div>

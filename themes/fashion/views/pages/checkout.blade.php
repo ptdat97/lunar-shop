@@ -14,6 +14,7 @@
         <script type="application/json" data-island-state>@json([
             'countries' => $countries,
             'confirmationBase' => url('/checkout/confirmation'),
+            'vnpayEnabled' => $vnpayEnabled,
         ])</script>
 
         <noscript>

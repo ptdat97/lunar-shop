@@ -25,6 +25,8 @@ class CheckoutController extends Controller
         return view('theme::pages.checkout', [
             // Embedded for the island's address form (not SEO content).
             'countries' => Country::orderBy('name')->get(['id', 'name'])->toArray(),
+            // Only offer VNPay when merchant credentials are configured.
+            'vnpayEnabled' => filled(config('payment.vnpay.tmn_code')),
         ]);
     }
 
