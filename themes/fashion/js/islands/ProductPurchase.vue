@@ -3,7 +3,7 @@
 // ProductResource ($state) — no fetch on mount. Picking option values resolves
 // the matching variant (price/stock), and add-to-cart posts to /api/v1/cart and
 // emits cart:updated so the mini-cart drawer refreshes.
-import { computed, reactive, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 import api from '../api.js';
 import { CART_UPDATED, emit } from '../events.js';
 
@@ -69,6 +69,20 @@ const error = ref('');
 const inStock = computed(() => (currentVariant.value?.stock ?? 0) > 0);
 const canAdd = computed(() => currentVariant.value && inStock.value && (!hasOptions.value || optionGroups.value.every((g) => selected[g.name])));
 const priceText = computed(() => currentVariant.value?.price?.formatted ?? '');
+
+// Size Intelligence: "find my size" (size-finder.js) dispatches the picked
+// size; preselect it on the matching option group if that value exists.
+function applyRecommendedSize(e) {
+    const size = e.detail?.size;
+    if (!size) return;
+    const group = optionGroups.value.find((g) =>
+        /size/i.test(g.name) && g.values.includes(size)
+    ) ?? optionGroups.value.find((g) => g.values.includes(size));
+    if (group) selected[group.name] = size;
+}
+
+onMounted(() => window.addEventListener('size:recommended', applyRecommendedSize));
+onUnmounted(() => window.removeEventListener('size:recommended', applyRecommendedSize));
 
 async function addToCart() {
     if (!canAdd.value || adding.value) return;
