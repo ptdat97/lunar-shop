@@ -6,6 +6,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
+use Lunar\Models\Country;
 
 class AuthPageController extends Controller
 {
@@ -42,6 +43,9 @@ class AuthPageController extends Controller
             return redirect()->route('storefront.login');
         }
 
-        return view('theme::pages.account', ['user' => Auth::user()]);
+        return view('theme::pages.account', [
+            'user' => Auth::user(),
+            'countries' => Country::orderBy('name')->get(['id', 'name'])->toArray(),
+        ]);
     }
 }

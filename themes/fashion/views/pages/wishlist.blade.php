@@ -1,6 +1,7 @@
 @extends('theme::layouts.app')
 
 @section('title', 'Wishlist — '.config('app.name'))
+@section('robots', 'noindex, follow')
 
 @section('content')
 <div class="container py-4" data-wishlist-page>

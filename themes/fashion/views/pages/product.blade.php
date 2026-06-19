@@ -11,10 +11,30 @@
 
     $media = $product->media ?? collect();
     $firstVariant = $product->variants->first();
+
+    // OG image: first media's large conversion (fallback to original).
+    $ogImage = null;
+    if ($first = $media->first()) {
+        try { $ogImage = $first->hasGeneratedConversion('large') ? $first->getUrl('large') : $first->getUrl(); }
+        catch (\Throwable $e) { $ogImage = null; }
+    }
+
+    // Lowest variant price for structured data, via the same Lunar Pricing
+    // engine the API uses (resolve() keeps $state['variants'] as resource
+    // objects, so we read prices straight from the models instead).
+    $priceAmount = $product->variants->map(function ($variant) {
+        try { return \Lunar\Facades\Pricing::for($variant)->get()->matched->price->decimal(); }
+        catch (\Throwable $e) { return null; }
+    })->filter()->min();
+    $inStock = $product->variants->sum('stock') > 0;
 @endphp
 
 @section('title', $name.' — '.config('app.name'))
 @section('meta_description', \Illuminate\Support\Str::limit(strip_tags((string) $description), 155))
+@section('og_type', 'product')
+@if($ogImage)
+    @section('og_image', $ogImage)
+@endif
 
 @section('content')
 <div class="container py-4">
@@ -118,3 +138,42 @@
     @endif
 </div>
 @endsection
+
+@push('head')
+@php
+    $currency = \Lunar\Models\Currency::getDefault()?->code ?? 'USD';
+    $jsonLd = [
+        '@context' => 'https://schema.org',
+        '@type' => 'Product',
+        'name' => $name,
+        'description' => \Illuminate\Support\Str::limit(strip_tags((string) $description), 300),
+        'sku' => $firstVariant?->sku,
+        'image' => $ogImage ? [$ogImage] : [],
+        'brand' => $product->brand?->name ? ['@type' => 'Brand', 'name' => $product->brand->name] : null,
+        'offers' => $priceAmount !== null ? [
+            '@type' => 'Offer',
+            'price' => (string) $priceAmount,
+            'priceCurrency' => $currency,
+            'availability' => $inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+            'url' => url()->current(),
+        ] : null,
+    ];
+    $breadcrumbItems = [['name' => 'Home', 'url' => route('storefront.home')]];
+    if ($collection = $product->collections->first()) {
+        $breadcrumbItems[] = [
+            'name' => $collection->translateAttribute('name'),
+            'url' => $collection->defaultUrl?->slug ? route('storefront.collection', $collection->defaultUrl->slug) : url()->current(),
+        ];
+    }
+    $breadcrumbItems[] = ['name' => $name, 'url' => url()->current()];
+    $breadcrumbLd = [
+        '@context' => 'https://schema.org',
+        '@type' => 'BreadcrumbList',
+        'itemListElement' => collect($breadcrumbItems)->map(fn ($item, $i) => [
+            '@type' => 'ListItem', 'position' => $i + 1, 'name' => $item['name'], 'item' => $item['url'],
+        ])->all(),
+    ];
+@endphp
+<script type="application/ld+json">@json(array_filter($jsonLd), JSON_UNESCAPED_SLASHES)</script>
+<script type="application/ld+json">@json($breadcrumbLd, JSON_UNESCAPED_SLASHES)</script>
+@endpush

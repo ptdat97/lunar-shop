@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Modules\Customer\Http\Controllers\Api\V1\AddressController;
 use Modules\Customer\Http\Controllers\Api\V1\AuthController;
 use Modules\Customer\Http\Controllers\Api\V1\CustomerController;
 use Modules\Customer\Http\Controllers\Api\V1\WishlistController;
@@ -16,7 +17,15 @@ Route::prefix('api/v1')->middleware('web')->group(function (): void {
 // or the SPA cookie session.
 Route::prefix('api/v1')->middleware(['web', 'auth:sanctum'])->group(function (): void {
     Route::get('customer', [CustomerController::class, 'show'])->name('api.v1.customer.show');
+    Route::patch('customer', [CustomerController::class, 'update'])->name('api.v1.customer.update');
+    Route::patch('customer/password', [CustomerController::class, 'password'])->name('api.v1.customer.password');
     Route::get('customer/orders', [CustomerController::class, 'orders'])->name('api.v1.customer.orders');
+
+    // Address book (CRUD).
+    Route::get('customer/addresses', [AddressController::class, 'index'])->name('api.v1.customer.addresses.index');
+    Route::post('customer/addresses', [AddressController::class, 'store'])->name('api.v1.customer.addresses.store');
+    Route::patch('customer/addresses/{address}', [AddressController::class, 'update'])->name('api.v1.customer.addresses.update');
+    Route::delete('customer/addresses/{address}', [AddressController::class, 'destroy'])->name('api.v1.customer.addresses.destroy');
 
     Route::get('wishlist', [WishlistController::class, 'index'])->name('api.v1.wishlist.index');
     Route::post('wishlist', [WishlistController::class, 'toggle'])->name('api.v1.wishlist.toggle');

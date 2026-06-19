@@ -1,6 +1,9 @@
 @extends('theme::layouts.app')
 
 @section('title', $collection->translateAttribute('name').' — '.config('app.name'))
+@section('meta_description', \Illuminate\Support\Str::limit(strip_tags((string) $collection->translateAttribute('description')), 155))
+{{-- Canonical drops filter/sort/page query so faceted variants don't compete. --}}
+@section('canonical', url()->current())
 
 @section('content')
     <div class="container pt-4">

@@ -1,44 +1,154 @@
 @extends('theme::layouts.app')
 
 @section('title', 'My account — '.config('app.name'))
+@section('robots', 'noindex, follow')
 
 @section('content')
 <div class="container py-4" data-account>
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 mb-0">My account</h1>
-        <button class="btn btn-outline-dark btn-sm" data-logout>Sign out</button>
-    </div>
+    <script type="application/json" data-account-state>@json(['countries' => $countries])</script>
+    <h1 class="h3 mb-4">My account</h1>
 
     <div class="row g-4">
-        {{-- Profile (SSR — already authenticated) --}}
-        <div class="col-12 col-lg-4">
-            <div class="border rounded p-3">
-                <h2 class="h6 text-uppercase">Profile</h2>
-                <dl class="row small mb-0">
-                    <dt class="col-4 text-muted fw-normal">Name</dt><dd class="col-8">{{ $user->name }}</dd>
-                    <dt class="col-4 text-muted fw-normal">Email</dt><dd class="col-8">{{ $user->email }}</dd>
-                </dl>
+        {{-- Sidebar nav --}}
+        <div class="col-12 col-lg-3">
+            <div class="list-group" role="tablist">
+                <button class="list-group-item list-group-item-action active" data-tab-btn="dashboard">Dashboard</button>
+                <button class="list-group-item list-group-item-action" data-tab-btn="orders">Orders</button>
+                <button class="list-group-item list-group-item-action" data-tab-btn="addresses">Addresses</button>
+                <button class="list-group-item list-group-item-action" data-tab-btn="profile">Profile</button>
+                <a class="list-group-item list-group-item-action" href="{{ route('storefront.wishlist') }}">Wishlist</a>
+                <button class="list-group-item list-group-item-action text-danger" data-logout>Sign out</button>
             </div>
-            <a href="{{ route('storefront.wishlist') }}" class="btn btn-link px-0 mt-2">View wishlist →</a>
         </div>
 
-        {{-- Order history (fetched — personalised, not SEO content) --}}
-        <div class="col-12 col-lg-8">
-            <div class="border rounded p-3">
-                <h2 class="h6 text-uppercase">Order history</h2>
-                <div class="text-muted small" data-orders-loading>Loading orders…</div>
-                <div class="text-muted small" data-orders-empty hidden>You have no orders yet.</div>
-                <div class="table-responsive" data-orders-wrap hidden>
-                    <table class="table table-sm align-middle mb-0">
-                        <thead>
-                            <tr class="small text-uppercase text-muted">
-                                <th>Reference</th><th>Date</th><th>Status</th><th class="text-end">Total</th>
-                            </tr>
-                        </thead>
-                        <tbody data-orders-body></tbody>
-                    </table>
+        <div class="col-12 col-lg-9">
+            {{-- Dashboard --}}
+            <section data-tab-panel="dashboard">
+                <div class="border rounded p-3 mb-3">
+                    <h2 class="h6 text-uppercase">Hello, {{ $user->name }}</h2>
+                    <p class="text-muted mb-0">{{ $user->email }}</p>
                 </div>
-            </div>
+                <div class="row g-3">
+                    <div class="col-6 col-md-4">
+                        <button class="border rounded p-3 w-100 text-start bg-white" data-tab-btn="orders">
+                            <div class="h4 mb-0" data-stat-orders>—</div>
+                            <div class="small text-muted">Orders</div>
+                        </button>
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <button class="border rounded p-3 w-100 text-start bg-white" data-tab-btn="addresses">
+                            <div class="h4 mb-0" data-stat-addresses>—</div>
+                            <div class="small text-muted">Saved addresses</div>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            {{-- Orders --}}
+            <section data-tab-panel="orders" hidden>
+                <div class="border rounded p-3">
+                    <h2 class="h6 text-uppercase">Order history</h2>
+                    <div class="text-muted small" data-orders-loading>Loading orders…</div>
+                    <div class="text-muted small" data-orders-empty hidden>You have no orders yet.</div>
+                    <div class="table-responsive" data-orders-wrap hidden>
+                        <table class="table table-sm align-middle mb-0">
+                            <thead>
+                                <tr class="small text-uppercase text-muted">
+                                    <th>Reference</th><th>Date</th><th>Status</th><th class="text-end">Total</th><th></th>
+                                </tr>
+                            </thead>
+                            <tbody data-orders-body></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {{-- Order detail (shown when a row is opened) --}}
+                <div class="border rounded p-3 mt-3" data-order-detail hidden>
+                    <button class="btn btn-link p-0 mb-2" data-order-back>← Back to orders</button>
+                    <div data-order-detail-body></div>
+                </div>
+            </section>
+
+            {{-- Addresses --}}
+            <section data-tab-panel="addresses" hidden>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="h6 text-uppercase mb-0">Address book</h2>
+                    <button class="btn btn-dark btn-sm" data-address-new>Add address</button>
+                </div>
+                <div class="text-muted small" data-addresses-loading>Loading…</div>
+                <div class="text-muted small" data-addresses-empty hidden>No saved addresses yet.</div>
+                <div class="row g-3" data-addresses-list></div>
+
+                {{-- Address form (create/edit) --}}
+                <div class="border rounded p-3 mt-3" data-address-form-wrap hidden>
+                    <h3 class="h6" data-address-form-title>Add address</h3>
+                    <form data-address-form>
+                        <input type="hidden" name="id">
+                        <div class="row g-2">
+                            <div class="col-6"><input class="form-control" name="first_name" placeholder="First name" required></div>
+                            <div class="col-6"><input class="form-control" name="last_name" placeholder="Last name" required></div>
+                            <div class="col-12"><input class="form-control" name="line_one" placeholder="Address" required></div>
+                            <div class="col-12"><input class="form-control" name="line_two" placeholder="Apartment, suite (optional)"></div>
+                            <div class="col-6"><input class="form-control" name="city" placeholder="City" required></div>
+                            <div class="col-6"><input class="form-control" name="postcode" placeholder="Postcode" required></div>
+                            <div class="col-12">
+                                <select class="form-select" name="country_id" required data-country-select></select>
+                            </div>
+                            <div class="col-6"><input class="form-control" name="contact_phone" placeholder="Phone"></div>
+                            <div class="col-12 form-check ms-1">
+                                <input class="form-check-input" type="checkbox" name="shipping_default" id="addr-ship-default">
+                                <label class="form-check-label" for="addr-ship-default">Use as default shipping address</label>
+                            </div>
+                        </div>
+                        <div class="alert alert-danger mt-2" data-address-error hidden></div>
+                        <div class="mt-3 d-flex gap-2">
+                            <button class="btn btn-dark" type="submit">Save</button>
+                            <button class="btn btn-outline-secondary" type="button" data-address-cancel>Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            {{-- Profile --}}
+            <section data-tab-panel="profile" hidden>
+                <div class="border rounded p-3 mb-3">
+                    <h2 class="h6 text-uppercase">Profile</h2>
+                    <form data-profile-form>
+                        <div class="mb-2">
+                            <label class="form-label small">Name</label>
+                            <input class="form-control" name="name" value="{{ $user->name }}" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Email</label>
+                            <input class="form-control" type="email" name="email" value="{{ $user->email }}" required>
+                        </div>
+                        <div class="alert alert-danger" data-profile-error hidden></div>
+                        <div class="alert alert-success" data-profile-ok hidden>Profile updated.</div>
+                        <button class="btn btn-dark" type="submit">Save changes</button>
+                    </form>
+                </div>
+
+                <div class="border rounded p-3">
+                    <h2 class="h6 text-uppercase">Change password</h2>
+                    <form data-password-form>
+                        <div class="mb-2">
+                            <label class="form-label small">Current password</label>
+                            <input class="form-control" type="password" name="current_password" autocomplete="current-password" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">New password</label>
+                            <input class="form-control" type="password" name="password" minlength="8" autocomplete="new-password" required>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label small">Confirm new password</label>
+                            <input class="form-control" type="password" name="password_confirmation" minlength="8" autocomplete="new-password" required>
+                        </div>
+                        <div class="alert alert-danger" data-password-error hidden></div>
+                        <div class="alert alert-success" data-password-ok hidden>Password changed.</div>
+                        <button class="btn btn-dark" type="submit">Update password</button>
+                    </form>
+                </div>
+            </section>
         </div>
     </div>
 </div>

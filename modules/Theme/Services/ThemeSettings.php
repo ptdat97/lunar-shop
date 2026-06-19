@@ -99,7 +99,7 @@ class ThemeSettings
     }
 
     /**
-     * Built-in defaults taken from the Modave template.
+     * Built-in defaults for the storefront theme (overridable in admin).
      *
      * @return array<string, mixed>
      */
@@ -107,9 +107,11 @@ class ThemeSettings
     {
         return [
             'general' => [
-                'logo' => '/themes/modave/images/logo/logo.svg',
-                'logo_footer' => '/themes/modave/images/logo/logo.svg',
-                'favicon' => '/themes/modave/images/logo/favicon.png',
+                // No bundled logo/favicon by default — the theme falls back to the
+                // site name as text. Admins upload brand assets via Theme settings.
+                'logo' => '',
+                'logo_footer' => '',
+                'favicon' => '',
             ],
             'topbar' => [
                 ['text' => 'Free shipping on all orders over $20.00'],
@@ -131,12 +133,8 @@ class ThemeSettings
             'newsletter' => [
                 'heading' => 'Sign up for our newsletter and get 10% off your first purchase',
             ],
-            'payment' => [
-                '/themes/modave/images/payment/img-1.png',
-                '/themes/modave/images/payment/img-2.png',
-                '/themes/modave/images/payment/img-3.png',
-                '/themes/modave/images/payment/img-4.png',
-            ],
+            // Payment badge images are admin-uploaded; none bundled by default.
+            'payment' => [],
             'copyright' => '© '.date('Y').' Fashion Store. All Rights Reserved.',
         ];
     }

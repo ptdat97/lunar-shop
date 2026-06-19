@@ -1,6 +1,7 @@
 @extends('theme::layouts.app')
 
 @section('title', 'Cart — '.config('app.name'))
+@section('robots', 'noindex, follow')
 
 @section('content')
 <div class="container py-4" data-cart-page>

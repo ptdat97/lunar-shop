@@ -1,7 +1,5 @@
-// Auth + account. Vanilla. Login/register post to /api/v1/auth/* (Sanctum SPA
-// cookie session), logout clears it, and the account page loads order history.
-// Auth pages are server-guarded (redirect when already/!authed); JS only drives
-// the form submit + redirect.
+// Auth: login/register form submit + logout. Posts to /api/v1/auth/* (Sanctum
+// SPA cookie session). Account page logic lives in enhance/account.js.
 
 import api from '../api.js';
 
@@ -30,7 +28,8 @@ function bindAuthForm(form) {
         if (btn) { btn.disabled = true; btn.textContent = 'Please wait…'; }
 
         const payload = Object.fromEntries(new FormData(form).entries());
-        if (form.querySelector('[name="remember"]')) payload.remember = form.querySelector('[name="remember"]').checked;
+        const remember = form.querySelector('[name="remember"]');
+        if (remember) payload.remember = remember.checked;
 
         try {
             await api.post(`/auth/${mode}`, payload);
@@ -42,6 +41,7 @@ function bindAuthForm(form) {
     });
 }
 
+// Logout is shared (auth pages + account sidebar).
 function bindLogout() {
     document.querySelectorAll('[data-logout]').forEach((btn) => {
         if (btn.dataset.bound) return;
@@ -53,49 +53,7 @@ function bindLogout() {
     });
 }
 
-function formatTotal(total) {
-    if (!total) return '';
-    if (typeof total === 'string') return total;
-    const dp = total.currency?.decimal_places ?? 2;
-    const amount = (total.value ?? 0) / 10 ** dp;
-    return `${amount.toFixed(dp)} ${total.currency?.code ?? ''}`.trim();
-}
-
-function rowHtml(order) {
-    const date = order.placed_at ? new Date(order.placed_at).toLocaleDateString() : '—';
-    return `
-<tr>
-    <td class="fw-semibold">${order.reference ?? '—'}</td>
-    <td>${date}</td>
-    <td><span class="badge bg-light text-dark text-capitalize">${(order.status ?? '').replace(/-/g, ' ')}</span></td>
-    <td class="text-end">${formatTotal(order.total)}</td>
-</tr>`;
-}
-
-async function loadOrders(root) {
-    const loading = root.querySelector('[data-orders-loading]');
-    const empty = root.querySelector('[data-orders-empty]');
-    const wrap = root.querySelector('[data-orders-wrap]');
-    const body = root.querySelector('[data-orders-body]');
-    try {
-        const { data } = await api.get('/customer/orders');
-        const orders = data.data ?? [];
-        if (loading) loading.hidden = true;
-        if (!orders.length) { if (empty) empty.hidden = false; return; }
-        body.innerHTML = orders.map(rowHtml).join('');
-        if (wrap) wrap.hidden = false;
-    } catch (e) {
-        if (loading) loading.textContent = 'Could not load orders.';
-    }
-}
-
 export default function (root = document) {
     root.querySelectorAll('[data-auth-form]').forEach(bindAuthForm);
     bindLogout();
-
-    const account = root.querySelector('[data-account]');
-    if (account && !account.dataset.bound) {
-        account.dataset.bound = '1';
-        loadOrders(account);
-    }
 }

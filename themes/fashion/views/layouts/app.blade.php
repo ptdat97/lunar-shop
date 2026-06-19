@@ -10,6 +10,21 @@
 
     <title>@yield('title', $theme->get('general.site_name', config('app.name')))</title>
     <meta name="description" content="@yield('meta_description', $theme->get('seo.description', ''))">
+    <meta name="robots" content="@yield('robots', 'index, follow')">
+    <link rel="canonical" href="@yield('canonical', url()->current())">
+
+    {{-- Open Graph / Twitter. Pages override og:type/og:image via @section. --}}
+    <meta property="og:site_name" content="{{ config('app.name') }}">
+    <meta property="og:type" content="@yield('og_type', 'website')">
+    <meta property="og:title" content="@yield('og_title', View::yieldContent('title', config('app.name')))">
+    <meta property="og:description" content="@yield('og_description', View::yieldContent('meta_description'))">
+    <meta property="og:url" content="{{ url()->current() }}">
+    @hasSection('og_image')
+        <meta property="og:image" content="@yield('og_image')">
+        <meta name="twitter:card" content="summary_large_image">
+    @else
+        <meta name="twitter:card" content="summary">
+    @endif
 
     @if($favicon = $theme->image('general.favicon'))
         <link rel="icon" href="{{ $favicon }}">
@@ -25,11 +40,15 @@
     @stack('head')
 </head>
 <body class="d-flex flex-column min-vh-100">
+    <a href="#main-content" class="visually-hidden-focusable position-absolute top-0 start-0 m-2 btn btn-dark btn-sm">
+        Skip to content
+    </a>
+
     @include('theme::partials.header')
 
     @include('theme::partials.flash')
 
-    <main class="flex-grow-1">
+    <main class="flex-grow-1" id="main-content" tabindex="-1">
         @yield('content')
     </main>
 

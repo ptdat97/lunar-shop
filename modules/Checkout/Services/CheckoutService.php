@@ -3,11 +3,13 @@
 namespace Modules\Checkout\Services;
 
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Lunar\Facades\Payments;
 use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Cart;
 use Lunar\Models\Order;
 use Modules\Cart\Services\CartService;
+use Modules\Customer\Services\CustomerResolver;
 
 /**
  * Orchestrates checkout over Lunar's engine (addresses → shipping → payment →
@@ -17,6 +19,7 @@ class CheckoutService
 {
     public function __construct(
         protected CartService $carts,
+        protected CustomerResolver $customers,
     ) {}
 
     /**
@@ -62,7 +65,16 @@ class CheckoutService
      */
     public function placeOrder(string $paymentType = 'cod'): Order
     {
-        $cart = $this->carts->current()->calculate();
+        $cart = $this->carts->current();
+
+        // Link the cart to the logged-in user's customer so the order shows up
+        // in their order history (guests place orders without a customer).
+        if (Auth::check() && ! $cart->customer_id) {
+            $customer = $this->customers->forUser(Auth::user());
+            $cart->update(['customer_id' => $customer->id]);
+        }
+
+        $cart = $cart->calculate();
 
         $authorize = Payments::driver(
             config("lunar.payments.types.{$paymentType}.driver", 'offline')

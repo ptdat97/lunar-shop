@@ -1,6 +1,8 @@
 @extends('theme::layouts.app')
 
 @section('title', ($query ? 'Search: '.$query : 'Search').' — '.config('app.name'))
+{{-- Search results are not index-worthy (thin/duplicate); keep them out. --}}
+@section('robots', 'noindex, follow')
 
 @section('content')
     <div class="container pt-4">

@@ -1,6 +1,7 @@
 @extends('theme::layouts.app')
 
 @section('title', 'Checkout — '.config('app.name'))
+@section('robots', 'noindex, follow')
 
 @section('content')
 <div class="container py-4">
