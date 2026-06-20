@@ -31,17 +31,11 @@ class ProductResource extends JsonResource
     }
 
     /**
-     * Resolve a conversion URL, falling back to the original if the conversion
-     * hasn't been generated yet (getUrl() throws otherwise).
+     * Resolve a conversion URL, generating the conversion on demand if its file
+     * is missing (MediaUrl self-heals; falls back to the original if it can't).
      */
     protected function imageUrl(?Media $media, string $conversion): ?string
     {
-        if (! $media) {
-            return null;
-        }
-
-        return $media->hasGeneratedConversion($conversion)
-            ? $media->getUrl($conversion)
-            : $media->getUrl();
+        return app(\Modules\Media\Services\MediaUrl::class)->conversion($media, $conversion);
     }
 }

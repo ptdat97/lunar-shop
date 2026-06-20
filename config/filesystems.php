@@ -49,10 +49,12 @@ return [
 
         // Storefront media: original images + resized conversions written
         // directly under public/media (served at /media, no symlink needed).
+        // Relative URL (no host) so images work on any host/port — dev
+        // (127.0.0.1:8989), localhost, or production — without depending on APP_URL.
         'media' => [
             'driver' => 'local',
             'root' => public_path('media'),
-            'url' => rtrim(env('APP_URL', 'http://localhost'), '/').'/media',
+            'url' => '/media',
             'visibility' => 'public',
             'throw' => false,
             'report' => false,

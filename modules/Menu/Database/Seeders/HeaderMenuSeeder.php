@@ -50,7 +50,7 @@ class HeaderMenuSeeder extends Seeder
             'type' => 'banner',
             'label' => 'New season',
             'parent_id' => $shop->id,
-            'image' => '/themes/modave/images/demo/home-fashion-womenswear.jpg',
+            'image' => '/demo/DTT_8954.jpg',
             'url' => '/collections/new-arrivals',
             'sort' => 2,
         ]);

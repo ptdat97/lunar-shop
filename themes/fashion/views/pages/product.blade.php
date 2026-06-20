@@ -17,12 +17,8 @@
     // share the admin-configured zoom width/height.
     $zoomSize = app(\Modules\Media\Services\MediaSettings::class)->sizes()['zoom'];
 
-    // OG image: first media's large conversion (fallback to original).
-    $ogImage = null;
-    if ($first = $media->first()) {
-        try { $ogImage = $first->hasGeneratedConversion('large') ? $first->getUrl('large') : $first->getUrl(); }
-        catch (\Throwable $e) { $ogImage = null; }
-    }
+    // OG image: first media's `large` conversion, generated on demand if missing.
+    $ogImage = app(\Modules\Media\Services\MediaUrl::class)->conversion($media->first(), 'large');
 
     // Lowest variant price for structured data, via the same Lunar Pricing
     // engine the API uses (resolve() keeps $state['variants'] as resource
@@ -68,10 +64,10 @@
             <div class="row g-2" id="product-gallery" data-pswp-gallery>
                 @forelse($media as $image)
                     @php
-                        try { $large = $image->hasGeneratedConversion('large') ? $image->getUrl('large') : $image->getUrl(); }
-                        catch (\Throwable $e) { $large = null; }
-                        try { $zoom = $image->hasGeneratedConversion('zoom') ? $image->getUrl('zoom') : $large; }
-                        catch (\Throwable $e) { $zoom = $large; }
+                        // `large`/`zoom` conversions, generated on demand if missing.
+                        $urls = app(\Modules\Media\Services\MediaUrl::class);
+                        $large = $urls->conversion($image, 'large');
+                        $zoom = $urls->conversion($image, 'zoom') ?? $large;
                     @endphp
                     @if($large)
                         <div class="{{ $loop->first ? 'col-12' : 'col-6' }}">

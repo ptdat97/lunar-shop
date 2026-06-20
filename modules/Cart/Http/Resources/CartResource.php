@@ -48,13 +48,8 @@ class CartResource extends JsonResource
     {
         $media = $line->purchasable?->product?->thumbnail;
 
-        if (! $media) {
-            return null;
-        }
-
-        return $media->hasGeneratedConversion('small')
-            ? $media->getUrl('small')
-            : $media->getUrl();
+        // Generates the `small` conversion on demand if its file is missing.
+        return app(\Modules\Media\Services\MediaUrl::class)->conversion($media, 'small');
     }
 
     /**

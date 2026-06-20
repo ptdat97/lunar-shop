@@ -44,18 +44,11 @@ class MediaImageResource
         }
 
         $zoomSize ??= app(MediaSettings::class)->sizes()['zoom'];
+        $urls = app(\Modules\Media\Services\MediaUrl::class);
 
-        try {
-            $large = $media->hasGeneratedConversion('large') ? $media->getUrl('large') : $media->getUrl();
-        } catch (\Throwable $e) {
-            $large = null;
-        }
-
-        try {
-            $zoom = $media->hasGeneratedConversion('zoom') ? $media->getUrl('zoom') : $large;
-        } catch (\Throwable $e) {
-            $zoom = $large;
-        }
+        // Generated on demand when their files are missing.
+        $large = $urls->conversion($media, 'large');
+        $zoom = $urls->conversion($media, 'zoom') ?? $large;
 
         if (! $large) {
             return null;

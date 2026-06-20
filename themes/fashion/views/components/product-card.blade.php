@@ -6,17 +6,8 @@
     $url = $slug ? route('storefront.product', $slug) : '#';
     $name = $product->translateAttribute('name');
 
-    $thumb = $product->thumbnail;
-    $image = null;
-    if ($thumb) {
-        try {
-            $image = $thumb->hasGeneratedConversion('medium')
-                ? $thumb->getUrl('medium')
-                : $thumb->getUrl();
-        } catch (\Throwable $e) {
-            $image = null;
-        }
-    }
+    // Resolves the `medium` URL, generating the conversion on demand if missing.
+    $image = app(\Modules\Media\Services\MediaUrl::class)->conversion($product->thumbnail, 'medium');
 @endphp
 
 <article class="product-card h-100 position-relative">

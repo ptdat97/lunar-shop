@@ -54,7 +54,11 @@ class AuthTest extends TestCase
 
     public function test_customer_endpoints_require_auth(): void
     {
-        $this->getJson('/api/v1/customer')->assertUnauthorized();
+        // /customer is public on purpose: the storefront calls it to detect
+        // login state, so a guest gets 200 + null (not 401).
+        $this->getJson('/api/v1/customer')->assertOk()->assertJsonPath('data', null);
+
+        // Personal data still requires auth.
         $this->getJson('/api/v1/customer/orders')->assertUnauthorized();
     }
 

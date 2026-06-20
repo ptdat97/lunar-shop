@@ -161,12 +161,18 @@ class MultiSizeProductsSeeder extends Seeder
     }
 
     /**
+     * Real demo images from public/demo (the gender args are kept for the call
+     * site but no longer scope the pool — all products share the demo folder).
+     *
      * @return array<int, string>
      */
-    protected function images(string $folder, string $prefix): array
+    protected function images(string $folder = '', string $prefix = ''): array
     {
-        $dir = public_path("themes/modave/images/products/{$folder}");
+        $dir = public_path('demo');
 
-        return collect(glob("{$dir}/{$prefix}*.jpg") ?: [])->values()->all();
+        return collect(glob("{$dir}/*.{jpg,jpeg,png}", GLOB_BRACE) ?: [])
+            ->sort()
+            ->values()
+            ->all();
     }
 }
