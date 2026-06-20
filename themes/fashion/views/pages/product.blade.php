@@ -12,6 +12,11 @@
     $media = $product->media ?? collect();
     $firstVariant = $product->variants->first();
 
+    // PhotoSwipe needs the pixel dimensions of the full-size (zoom) image.
+    // Every conversion is Fit::Crop to the configured size, so all zoom images
+    // share the admin-configured zoom width/height.
+    $zoomSize = app(\Modules\Media\Services\MediaSettings::class)->sizes()['zoom'];
+
     // OG image: first media's large conversion (fallback to original).
     $ogImage = null;
     if ($first = $media->first()) {
@@ -52,18 +57,26 @@
     </nav>
 
     <div class="row g-4">
-        {{-- Gallery --}}
+        {{-- Gallery. PhotoSwipe lightbox: visible thumbnails use the `large`
+             conversion; clicking opens the `zoom` conversion in the lightbox. --}}
         <div class="col-12 col-lg-7">
-            <div class="row g-2">
+            <div class="row g-2" id="product-gallery" data-pswp-gallery>
                 @forelse($media as $image)
                     @php
-                        try { $url = $image->hasGeneratedConversion('large') ? $image->getUrl('large') : $image->getUrl(); }
-                        catch (\Throwable $e) { $url = null; }
+                        try { $large = $image->hasGeneratedConversion('large') ? $image->getUrl('large') : $image->getUrl(); }
+                        catch (\Throwable $e) { $large = null; }
+                        try { $zoom = $image->hasGeneratedConversion('zoom') ? $image->getUrl('zoom') : $large; }
+                        catch (\Throwable $e) { $zoom = $large; }
                     @endphp
-                    @if($url)
+                    @if($large)
                         <div class="{{ $loop->first ? 'col-12' : 'col-6' }}">
-                            <img src="{{ $url }}" alt="{{ $name }}" class="img-fluid rounded w-100"
-                                 loading="{{ $loop->first ? 'eager' : 'lazy' }}">
+                            <a href="{{ $zoom }}" class="d-block product-gallery__item rounded"
+                               data-pswp-width="{{ $zoomSize['width'] }}"
+                               data-pswp-height="{{ $zoomSize['height'] }}"
+                               target="_blank" rel="noreferrer">
+                                <img src="{{ $large }}" alt="{{ $name }}" class="img-fluid rounded w-100"
+                                     loading="{{ $loop->first ? 'eager' : 'lazy' }}">
+                            </a>
                         </div>
                     @endif
                 @empty
@@ -176,4 +189,95 @@
 @endphp
 <script type="application/ld+json">@json(array_filter($jsonLd), JSON_UNESCAPED_SLASHES)</script>
 <script type="application/ld+json">@json($breadcrumbLd, JSON_UNESCAPED_SLASHES)</script>
+
+{{-- PhotoSwipe lightbox styles (public/vendor). --}}
+<link rel="stylesheet" href="{{ asset('vendor/photoswipe/photoswipe.css') }}">
+@endpush
+
+@push('scripts')
+{{-- PhotoSwipe (UMD globals: PhotoSwipe, PhotoSwipeLightbox). The lightbox is
+     given the PhotoSwipe core as `pswpModule` so it doesn't try to dynamically
+     import the ESM build. Custom chrome: a single close button plus a bottom bar
+     with prev / counter / next (the default UI is disabled). --}}
+<script src="{{ asset('vendor/photoswipe/photoswipe.umd.min.js') }}"></script>
+<script src="{{ asset('vendor/photoswipe/photoswipe-lightbox.umd.min.js') }}"></script>
+<script>
+    (function () {
+        const PSWP_GALLERY_SEL = '#product-gallery';
+        const PSWP_CHILD_SEL = 'a.product-gallery__item';
+        let pswpLightbox = null;
+
+        function initPhotoSwipe() {
+            if (!window.PhotoSwipeLightbox || !window.PhotoSwipe) return;
+            if (pswpLightbox) pswpLightbox.destroy();
+            pswpLightbox = new PhotoSwipeLightbox({
+                gallery: PSWP_GALLERY_SEL,
+                children: PSWP_CHILD_SEL,
+                pswpModule: PhotoSwipe,
+                showHideAnimationType: 'zoom',
+                close: false,
+                zoom: false,
+                counter: false,
+                preloader: false,
+                arrowPrev: false,
+                arrowNext: false,
+            });
+
+            pswpLightbox.on('uiRegister', () => {
+                const pswp = pswpLightbox.pswp;
+
+                pswp.ui.registerElement({
+                    name: 'blsClose',
+                    className: 'pswp__button--bls--close',
+                    title: 'Close',
+                    order: 20,
+                    isButton: true,
+                    html: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
+                    onClick: 'close',
+                });
+
+                pswp.ui.registerElement({
+                    name: 'bottomBar',
+                    className: 'pswp__bottom-bar',
+                    appendTo: 'wrapper',
+                    html: `
+                        <button type="button" class="pswp__button pswp__button-next" aria-label="Next">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-big-right-icon lucide-arrow-big-right"><path d="M13.207 19.793a.707.707 0 0 1-1.207-.5V16a1 1 0 0 0-1-1H5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h6a1 1 0 0 0 1-1V4.707a.707.707 0 0 1 1.207-.5l6.94 6.94a1.207 1.207 0 0 1 0 1.707z"/></svg>
+                        </button>
+                        <span class="pswp__counter"></span>
+                        <button type="button" class="pswp__button pswp__button-prev" aria-label="Previous">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-big-left-icon lucide-arrow-big-left"><path d="M10.793 19.793a.707.707 0 0 0 1.207-.5V16a1 1 0 0 1 1-1h6a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-6a1 1 0 0 1-1-1V4.707a.707.707 0 0 0-1.207-.5l-6.94 6.94a1.207 1.207 0 0 0 0 1.707z"/></svg>
+                        </button>
+                    `,
+                    onInit: (el, pswp) => {
+                        const prevButton = el.querySelector('.pswp__button-prev');
+                        const nextButton = el.querySelector('.pswp__button-next');
+                        const counter = el.querySelector('.pswp__counter');
+
+                        const updateBottomBar = () => {
+                            const total = pswp.getNumItems();
+                            counter.textContent = `${pswp.currIndex + 1} / ${total}`;
+                            el.classList.toggle('pswp__bottom-bar--single', total <= 1);
+                            prevButton.disabled = !pswp.options.loop && pswp.currIndex <= 0;
+                            nextButton.disabled = !pswp.options.loop && pswp.currIndex >= total - 1;
+                        };
+
+                        prevButton.addEventListener('click', () => pswp.prev());
+                        nextButton.addEventListener('click', () => pswp.next());
+                        pswp.on('change', updateBottomBar);
+                        updateBottomBar();
+                    },
+                });
+            });
+
+            pswpLightbox.init();
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initPhotoSwipe);
+        } else {
+            initPhotoSwipe();
+        }
+    })();
+</script>
 @endpush
