@@ -5,6 +5,7 @@ namespace Modules\Payment\Providers;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Facades\Payments;
 use Modules\Payment\PaymentTypes\VNPayPayment;
+use Modules\Theme\Support\LunarConfigOverride;
 
 class PaymentServiceProvider extends ServiceProvider
 {
@@ -25,6 +26,10 @@ class PaymentServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Re-apply payment-type overrides (COD default, bank-transfer, vnpay) on
+        // top of Lunar's published config/lunar/payments.php — survives --force.
+        LunarConfigOverride::applyFrom('lunar.payments', __DIR__ . '/../Config/overrides.php');
+
         $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
 
         $this->loadRoutesFrom(__DIR__ . '/../Routes/web.php');

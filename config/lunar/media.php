@@ -1,18 +1,14 @@
 <?php
 
 use Lunar\Base\StandardMediaDefinitions;
-use Modules\Media\Definitions\FashionMediaDefinitions;
 
 return [
 
     'definitions' => [
-        // Media Library assets get the same responsive + WebP conversions as
-        // storefront imagery so picked files are ready for the front end.
-        'asset' => FashionMediaDefinitions::class,
+        'asset' => StandardMediaDefinitions::class,
         'brand' => StandardMediaDefinitions::class,
-        // Storefront-facing models get responsive + WebP conversions.
-        'collection' => FashionMediaDefinitions::class,
-        'product' => FashionMediaDefinitions::class,
+        'collection' => StandardMediaDefinitions::class,
+        'product' => StandardMediaDefinitions::class,
         'product-option' => StandardMediaDefinitions::class,
         'product-option-value' => StandardMediaDefinitions::class,
     ],
