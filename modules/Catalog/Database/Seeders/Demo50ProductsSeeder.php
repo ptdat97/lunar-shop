@@ -19,8 +19,8 @@ use Lunar\Models\TaxClass;
 use Lunar\Models\Url;
 
 /**
- * Seeds 50 demo fashion products with real images from
- * public/themes/modave/images/products. Idempotent (keyed by slug).
+ * Seeds 50 demo fashion products with real demo images from
+ * public/demo. Idempotent (keyed by slug).
  */
 class Demo50ProductsSeeder extends Seeder
 {
@@ -35,8 +35,8 @@ class Demo50ProductsSeeder extends Seeder
         [$sizeValues, $colorValues, $sizeOption, $colorOption] = $this->options();
         $collections = $this->collections();
 
-        $womens = $this->images('womens', 'women-');
-        $mens = $this->images('mens', 'men-');
+        // Single shared pool of demo photos at public/demo.
+        $pool = $this->images();
 
         foreach ($this->catalog() as $i => $item) {
             $slug = Str::slug($item['name']) . '-' . ($i + 1);
@@ -91,8 +91,7 @@ class Demo50ProductsSeeder extends Seeder
                 $colorValues[$i % count($colorValues)],
             ]);
 
-            // Media: at least 3 images per product from the matching gender pool.
-            $pool = $item['gender'] === 'men' && $mens ? $mens : $womens;
+            // Media: at least 3 images per product from the shared demo pool.
             if ($pool) {
                 $count = count($pool);
                 for ($n = 0; $n < 3; $n++) {
@@ -185,15 +184,16 @@ class Demo50ProductsSeeder extends Seeder
     }
 
     /**
-     * Absolute paths to product images matching a prefix.
+     * Absolute paths to every demo image in public/demo (jpg/jpeg/png).
      *
      * @return array<int, string>
      */
-    protected function images(string $folder, string $prefix): array
+    protected function images(): array
     {
-        $dir = public_path("themes/modave/images/products/{$folder}");
+        $dir = public_path('demo');
 
-        return collect(glob("{$dir}/{$prefix}*.jpg") ?: [])
+        return collect(glob("{$dir}/*.{jpg,jpeg,png}", GLOB_BRACE) ?: [])
+            ->sort()
             ->values()
             ->all();
     }
