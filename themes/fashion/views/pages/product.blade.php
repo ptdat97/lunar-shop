@@ -6,7 +6,7 @@
     // Hydration payload for the variant island (Bước 4) — same ProductResource
     // shape as GET /api/v1/products/{slug}. SSR below renders without it.
     $state = (new \Modules\Product\Http\Resources\ProductResource(
-        $product->loadMissing(['variants.values.option'])
+        $product->loadMissing(['variants.values.option', 'variants.images', 'media'])
     ))->resolve();
 
     $media = $product->media ?? collect();
@@ -56,9 +56,14 @@
         </ol>
     </nav>
 
-    <div class="row g-4">
-        {{-- Gallery. PhotoSwipe lightbox: visible thumbnails use the `large`
-             conversion; clicking opens the `zoom` conversion in the lightbox. --}}
+    {{-- Gallery + purchase panel as ONE Vue island (data-vue="product-detail").
+         Picking a variant swaps the gallery to that variant's images (shared
+         state). The markup below is the no-JS SSR fallback: the island replaces
+         it on mount and hydrates from data-island-state. PhotoSwipe lightbox:
+         visible thumbnails use the `large` conversion; clicking opens `zoom`. --}}
+    <div class="row g-4" data-vue="product-detail" data-slug="{{ $slug }}">
+        <script type="application/json" data-island-state>@json($state)</script>
+
         <div class="col-12 col-lg-7">
             <div class="row g-2" id="product-gallery" data-pswp-gallery>
                 @forelse($media as $image)
@@ -87,7 +92,6 @@
             </div>
         </div>
 
-        {{-- Purchase panel --}}
         <div class="col-12 col-lg-5">
             @if($brand = $product->brand?->name)
                 <div class="text-muted text-uppercase small">{{ $brand }}</div>
@@ -96,12 +100,7 @@
 
             @include('theme::components.price', ['product' => $product])
 
-            {{-- Variant picker.
-                 SSR renders the variant list as a real fallback; the Vue island
-                 (Bước 4) mounts here and hydrates from data-island-state. --}}
-            <div class="my-4" data-vue="product-purchase" data-slug="{{ $slug }}">
-                <script type="application/json" data-island-state>@json($state)</script>
-
+            <div class="my-4">
                 @if($product->variants->count() > 1)
                     <label class="form-label small text-uppercase">Variant</label>
                     <div class="d-flex flex-wrap gap-2 mb-3">
@@ -131,7 +130,13 @@
                     <div class="text-muted">{!! $description !!}</div>
                 </div>
             @endif
+        </div>
+    </div>
 
+    {{-- Size chart stays in Blade (outside the island): it's static and the Vue
+         island would otherwise wipe it on mount. Sits under the purchase panel. --}}
+    <div class="row">
+        <div class="col-12 col-lg-5 offset-lg-7">
             @include('theme::partials.size-chart', ['sizeChart' => $sizeChart, 'slug' => $slug])
         </div>
     </div>
@@ -199,85 +204,11 @@
      given the PhotoSwipe core as `pswpModule` so it doesn't try to dynamically
      import the ESM build. Custom chrome: a single close button plus a bottom bar
      with prev / counter / next (the default UI is disabled). --}}
+{{-- PhotoSwipe core + lightbox as UMD globals (window.PhotoSwipe /
+     window.PhotoSwipeLightbox). The gallery island (ProductGallery.vue) reads
+     these globals and (re)initialises the lightbox whenever the variant — and
+     thus the visible image set — changes. No vanilla init here: the lightbox is
+     a JS-only feature, so when JS runs the island always owns it. --}}
 <script src="{{ asset('vendor/photoswipe/photoswipe.umd.min.js') }}"></script>
 <script src="{{ asset('vendor/photoswipe/photoswipe-lightbox.umd.min.js') }}"></script>
-<script>
-    (function () {
-        const PSWP_GALLERY_SEL = '#product-gallery';
-        const PSWP_CHILD_SEL = 'a.product-gallery__item';
-        let pswpLightbox = null;
-
-        function initPhotoSwipe() {
-            if (!window.PhotoSwipeLightbox || !window.PhotoSwipe) return;
-            if (pswpLightbox) pswpLightbox.destroy();
-            pswpLightbox = new PhotoSwipeLightbox({
-                gallery: PSWP_GALLERY_SEL,
-                children: PSWP_CHILD_SEL,
-                pswpModule: PhotoSwipe,
-                showHideAnimationType: 'zoom',
-                close: false,
-                zoom: false,
-                counter: false,
-                preloader: false,
-                arrowPrev: false,
-                arrowNext: false,
-            });
-
-            pswpLightbox.on('uiRegister', () => {
-                const pswp = pswpLightbox.pswp;
-
-                pswp.ui.registerElement({
-                    name: 'blsClose',
-                    className: 'pswp__button--bls--close',
-                    title: 'Close',
-                    order: 20,
-                    isButton: true,
-                    html: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-x-icon lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>',
-                    onClick: 'close',
-                });
-
-                pswp.ui.registerElement({
-                    name: 'bottomBar',
-                    className: 'pswp__bottom-bar',
-                    appendTo: 'wrapper',
-                    html: `
-                        <button type="button" class="pswp__button pswp__button-next" aria-label="Next">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-big-right-icon lucide-arrow-big-right"><path d="M13.207 19.793a.707.707 0 0 1-1.207-.5V16a1 1 0 0 0-1-1H5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h6a1 1 0 0 0 1-1V4.707a.707.707 0 0 1 1.207-.5l6.94 6.94a1.207 1.207 0 0 1 0 1.707z"/></svg>
-                        </button>
-                        <span class="pswp__counter"></span>
-                        <button type="button" class="pswp__button pswp__button-prev" aria-label="Previous">
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-big-left-icon lucide-arrow-big-left"><path d="M10.793 19.793a.707.707 0 0 0 1.207-.5V16a1 1 0 0 1 1-1h6a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-6a1 1 0 0 1-1-1V4.707a.707.707 0 0 0-1.207-.5l-6.94 6.94a1.207 1.207 0 0 0 0 1.707z"/></svg>
-                        </button>
-                    `,
-                    onInit: (el, pswp) => {
-                        const prevButton = el.querySelector('.pswp__button-prev');
-                        const nextButton = el.querySelector('.pswp__button-next');
-                        const counter = el.querySelector('.pswp__counter');
-
-                        const updateBottomBar = () => {
-                            const total = pswp.getNumItems();
-                            counter.textContent = `${pswp.currIndex + 1} / ${total}`;
-                            el.classList.toggle('pswp__bottom-bar--single', total <= 1);
-                            prevButton.disabled = !pswp.options.loop && pswp.currIndex <= 0;
-                            nextButton.disabled = !pswp.options.loop && pswp.currIndex >= total - 1;
-                        };
-
-                        prevButton.addEventListener('click', () => pswp.prev());
-                        nextButton.addEventListener('click', () => pswp.next());
-                        pswp.on('change', updateBottomBar);
-                        updateBottomBar();
-                    },
-                });
-            });
-
-            pswpLightbox.init();
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initPhotoSwipe);
-        } else {
-            initPhotoSwipe();
-        }
-    })();
-</script>
 @endpush

@@ -32,6 +32,10 @@ class ProductVariantResource extends JsonResource
                 'option' => $value->option?->translate('name'),
                 'value' => $value->translate('name'),
             ])->values()),
+            // Per-variant gallery images (Lunar's media_product_variant pivot).
+            // Empty when the admin hasn't assigned variant-specific media — the
+            // gallery island then falls back to the product-level images.
+            'images' => $this->whenLoaded('images', fn () => MediaImageResource::collection($this->images)),
         ];
     }
 }

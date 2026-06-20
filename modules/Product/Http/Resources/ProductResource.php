@@ -24,6 +24,9 @@ class ProductResource extends JsonResource
             'thumbnail' => $this->imageUrl($this->thumbnail, 'medium'),
             'brand' => $this->whenLoaded('brand', fn () => $this->brand?->name),
             'variants' => ProductVariantResource::collection($this->whenLoaded('variants')),
+            // Product-level gallery images — the default the storefront gallery
+            // shows, and the fallback when a chosen variant has no own images.
+            'images' => $this->whenLoaded('media', fn () => MediaImageResource::collection($this->media)),
         ];
     }
 

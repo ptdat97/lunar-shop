@@ -3,9 +3,13 @@
 // ProductResource ($state) — no fetch on mount. Picking option values resolves
 // the matching variant (price/stock), and add-to-cart posts to /api/v1/cart and
 // emits cart:updated so the mini-cart drawer refreshes.
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue';
 import api from '../api.js';
 import { CART_UPDATED, emit } from '../events.js';
+
+// Notify the parent (ProductDetail) which variant is selected so the gallery
+// can swap to that variant's images. Harmless when mounted standalone.
+const emitVue = defineEmits(['variant-change']);
 
 // Props come from data-island-state (the whole ProductResource object).
 const props = defineProps({
@@ -83,6 +87,9 @@ function applyRecommendedSize(e) {
 
 onMounted(() => window.addEventListener('size:recommended', applyRecommendedSize));
 onUnmounted(() => window.removeEventListener('size:recommended', applyRecommendedSize));
+
+// Surface the selected variant to the parent island (gallery image swap).
+watch(currentVariant, (v) => emitVue('variant-change', v), { immediate: true });
 
 async function addToCart() {
     if (!canAdd.value || adding.value) return;

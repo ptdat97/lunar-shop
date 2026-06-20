@@ -14,10 +14,12 @@ import { createApp } from 'vue';
 // --- Vue islands allow-list -----------------------------------------------
 // quick-view is intentionally deferred (not built yet).
 import ProductPurchase from './islands/ProductPurchase.vue';
+import ProductDetail from './islands/ProductDetail.vue';
 import CheckoutPage from './islands/CheckoutPage.vue';
 
 const VUE_ISLANDS = {
     'product-purchase': ProductPurchase,
+    'product-detail': ProductDetail,
     'checkout-page': CheckoutPage,
 };
 
