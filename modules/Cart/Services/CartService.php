@@ -4,6 +4,7 @@ namespace Modules\Cart\Services;
 
 use Lunar\Facades\CartSession;
 use Lunar\Models\Cart;
+use Lunar\Models\CartLine;
 use Lunar\Models\ProductVariant;
 
 /**
@@ -17,8 +18,38 @@ class CartService
      */
     public function current(): Cart
     {
-        // current() auto-creates because lunar.cart_session.auto_create = true.
-        return CartSession::current()->calculate();
+        // Fetch (auto-creating, per lunar.cart_session.auto_create) WITHOUT
+        // calculating yet: Lunar's calculate() pipeline throws a TypeError on a
+        // line whose purchasable (variant) was deleted/unpublished while it sat
+        // in the cart, which would 500 the storefront. Prune those lines first,
+        // then calculate on a cart with a fresh `lines` relation.
+        $cart = CartSession::current(calculate: false);
+
+        if ($this->pruneMissingLines($cart)) {
+            $cart->load('lines');
+        }
+
+        return $cart->calculate();
+    }
+
+    /**
+     * Remove cart lines whose variant no longer exists. Returns true if any
+     * line was removed.
+     */
+    protected function pruneMissingLines(Cart $cart): bool
+    {
+        $missing = $cart->lines()
+            ->where('purchasable_type', (new ProductVariant)->getMorphClass())
+            ->whereNotIn('purchasable_id', ProductVariant::query()->select('id'))
+            ->pluck('id');
+
+        if ($missing->isEmpty()) {
+            return false;
+        }
+
+        CartLine::whereIn('id', $missing)->delete();
+
+        return true;
     }
 
     /**

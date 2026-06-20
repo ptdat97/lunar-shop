@@ -20,11 +20,15 @@ class CustomerController extends Controller
     ) {}
 
     /**
-     * GET /api/v1/customer  — the authenticated user's profile.
+     * GET /api/v1/customer  — the current user's profile, or `null` for a
+     * guest. Public on purpose: the storefront calls this on load to detect
+     * login state, so a guest must get 200 + null rather than a 401 error.
      */
     public function show(Request $request): JsonResponse
     {
-        return response()->json(['data' => $this->payload($request->user())]);
+        $user = $request->user();
+
+        return response()->json(['data' => $user ? $this->payload($user) : null]);
     }
 
     /**

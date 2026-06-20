@@ -25,12 +25,13 @@ function setCount(n) {
 
 async function loadMembership() {
     try {
+        // Public endpoint: guests get an empty list (200), not a 401.
         const { data } = await api.get('/wishlist');
         membership = new Set((data.product_ids ?? []).map(Number));
         setCount(membership.size);
         markActive(document);
     } catch {
-        // Logged out → leave hearts inactive, no count.
+        // Network/other failure → leave hearts inactive, no count.
         membership = new Set();
     }
 }
