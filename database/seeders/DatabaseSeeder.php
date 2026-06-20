@@ -9,6 +9,7 @@ use Modules\Catalog\Database\Seeders\DemoOptionsSeeder;
 use Modules\Catalog\Database\Seeders\MultiSizeProductsSeeder;
 use Modules\CMS\Database\Seeders\CmsDemoSeeder;
 use Modules\FileManager\Database\Seeders\MediaLibraryDemoSeeder;
+use Modules\Location\Database\Seeders\VnLocationSeeder;
 use Modules\Product\Database\Seeders\SizeIntelligenceDemoSeeder;
 use Modules\Menu\Database\Seeders\FooterMenuSeeder;
 use Modules\Menu\Database\Seeders\HeaderMenuSeeder;
@@ -25,6 +26,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             BaseDataSeeder::class,            // channel/currency/language/tax/type
+            VnLocationSeeder::class,          // VN provinces + wards (address dropdowns)
             Demo50ProductsSeeder::class,      // products + options + collections + media
             DemoOptionsSeeder::class,         // ensure size/color assigned to base variants
             MultiSizeProductsSeeder::class,   // products with full S/M/L/XL run + dimensions (recommender demo)

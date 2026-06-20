@@ -10,12 +10,15 @@
     {{-- Checkout island. Cart/totals are session content (fetched on mount);
          countries are embedded so the address form has no extra round-trip.
          confirmation_base lets the island redirect after placing the order. --}}
-    <div data-vue="checkout-page">
-        <script type="application/json" data-island-state>@json([
+    @php
+        $islandState = [
             'countries' => $countries,
             'confirmationBase' => url('/checkout/confirmation'),
             'vnpayEnabled' => $vnpayEnabled,
-        ])</script>
+        ];
+    @endphp
+    <div data-vue="checkout-page">
+        <script type="application/json" data-island-state>@json($islandState)</script>
 
         <noscript>
             <p class="text-muted">Checkout requires JavaScript. Please enable it to continue.</p>
