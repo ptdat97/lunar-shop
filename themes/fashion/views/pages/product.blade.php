@@ -61,30 +61,58 @@
         <script type="application/json" data-product-state>@json($state)</script>
 
         <div class="col-12 col-lg-7">
-            <div class="row g-2" id="product-gallery" data-pswp-gallery>
-                @forelse($media as $image)
-                    @php
-                        // `large`/`zoom` conversions, generated on demand if missing.
-                        $urls = app(\Modules\Media\Services\MediaUrl::class);
-                        $large = $urls->conversion($image, 'large');
-                        $zoom = $urls->conversion($image, 'zoom') ?? $large;
-                    @endphp
-                    @if($large)
-                        <div class="{{ $loop->first ? 'col-12' : 'col-6' }}">
-                            <a href="{{ $zoom }}" class="d-block product-gallery__item rounded"
-                               data-pswp-width="{{ $zoomSize['width'] }}"
-                               data-pswp-height="{{ $zoomSize['height'] }}"
-                               target="_blank" rel="noreferrer">
-                                <img src="{{ $large }}" alt="{{ $name }}" class="img-fluid rounded w-100"
-                                     loading="{{ $loop->first ? 'eager' : 'lazy' }}">
-                            </a>
+            {{-- Swiper gallery: main slider + thumbnail strip. enhance/_gallery.js
+                 inits Swiper and binds PhotoSwipe to the main slides (click → zoom),
+                 and re-renders this when the chosen variant changes. The structure
+                 below is the SSR fallback (a plain swiper, usable with no JS). --}}
+            @php
+                $urls = app(\Modules\Media\Services\MediaUrl::class);
+                $galleryImages = $media->map(fn ($image) => [
+                    'small' => $urls->conversion($image, 'small') ?? $urls->conversion($image, 'large'),
+                    'large' => $urls->conversion($image, 'large'),
+                    'zoom' => $urls->conversion($image, 'zoom') ?? $urls->conversion($image, 'large'),
+                ])->filter(fn ($i) => $i['large']);
+            @endphp
+
+            {{-- Thumbs strip sits to the LEFT of the main image (vertical on
+                 desktop, horizontal under the main on mobile). --}}
+            <div id="product-gallery" data-product-gallery class="product-gallery">
+                @if($galleryImages->isNotEmpty())
+                    @if($galleryImages->count() > 1)
+                        <div class="swiper product-gallery__thumbs" data-gallery-thumbs>
+                            <div class="swiper-wrapper">
+                                @foreach($galleryImages as $img)
+                                    <div class="swiper-slide">
+                                        <img src="{{ $img['small'] }}" alt="{{ $name }}"
+                                             class="img-fluid rounded" loading="lazy">
+                                    </div>
+                                @endforeach
+                            </div>
                         </div>
                     @endif
-                @empty
-                    <div class="col-12 ratio ratio-4x3 bg-light rounded d-flex align-items-center justify-content-center text-muted">
+
+                    <div class="swiper product-gallery__main" data-gallery-main>
+                        <div class="swiper-wrapper">
+                            @foreach($galleryImages as $img)
+                                <div class="swiper-slide">
+                                    <a href="{{ $img['zoom'] }}" class="d-block product-gallery__item rounded"
+                                       data-pswp-width="{{ $zoomSize['width'] }}"
+                                       data-pswp-height="{{ $zoomSize['height'] }}"
+                                       target="_blank" rel="noreferrer">
+                                        <img src="{{ $img['large'] }}" alt="{{ $name }}" class="img-fluid rounded w-100"
+                                             loading="{{ $loop->first ? 'eager' : 'lazy' }}">
+                                    </a>
+                                </div>
+                            @endforeach
+                        </div>
+                        <div class="swiper-button-prev"></div>
+                        <div class="swiper-button-next"></div>
+                    </div>
+                @else
+                    <div class="ratio ratio-4x3 bg-light rounded d-flex align-items-center justify-content-center text-muted">
                         No image
                     </div>
-                @endforelse
+                @endif
             </div>
         </div>
 

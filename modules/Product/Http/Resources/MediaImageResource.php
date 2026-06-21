@@ -17,7 +17,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 class MediaImageResource
 {
     /**
-     * @return array<int, array{id:int, large:?string, zoom:?string, width:int, height:int, primary:bool}>
+     * @return array<int, array{id:int, small:?string, large:?string, zoom:?string, width:int, height:int, primary:bool}>
      */
     public static function collection(iterable $media): array
     {
@@ -35,7 +35,7 @@ class MediaImageResource
 
     /**
      * @param  array{width:int, height:int}|null  $zoomSize
-     * @return array{id:int, large:?string, zoom:?string, width:int, height:int, primary:bool}|null
+     * @return array{id:int, small:?string, large:?string, zoom:?string, width:int, height:int, primary:bool}|null
      */
     public static function one(?Media $media, ?array $zoomSize = null): ?array
     {
@@ -49,6 +49,7 @@ class MediaImageResource
         // Generated on demand when their files are missing.
         $large = $urls->conversion($media, 'large');
         $zoom = $urls->conversion($media, 'zoom') ?? $large;
+        $small = $urls->conversion($media, 'small') ?? $large;
 
         if (! $large) {
             return null;
@@ -56,6 +57,7 @@ class MediaImageResource
 
         return [
             'id' => $media->id,
+            'small' => $small,
             'large' => $large,
             'zoom' => $zoom,
             'width' => (int) $zoomSize['width'],

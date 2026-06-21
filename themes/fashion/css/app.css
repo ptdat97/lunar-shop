@@ -92,7 +92,8 @@
     content: "\F415"; /* heart-fill */
 }
 
-/* Product page gallery: thumbnails open the PhotoSwipe lightbox (zoom image). */
+/* Product page gallery: Swiper main slider + thumbnail strip. Clicking the
+   main image opens the PhotoSwipe lightbox (zoom image). */
 .product-gallery__item {
     display: block;
     overflow: hidden;
@@ -105,6 +106,64 @@
 
 .product-gallery__item:hover img {
     transform: scale(1.03);
+}
+
+/* Layout: thumbs strip to the LEFT of the main image on desktop; stacked
+   (thumbs above main) on mobile. */
+.product-gallery {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+
+@media (min-width: 992px) {
+    .product-gallery {
+        flex-direction: row;
+        align-items: flex-start;
+    }
+    .product-gallery__thumbs {
+        order: -1;            /* keep thumbs first (left) */
+        width: 88px;
+        max-height: 560px;    /* vertical scroll within this height */
+        flex: 0 0 88px;
+    }
+    .product-gallery__main {
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+}
+
+/* Main slider: nav arrows in theme colour. */
+.product-gallery__main {
+    border-radius: .375rem;
+    overflow: hidden;
+}
+
+.product-gallery__main .swiper-button-prev,
+.product-gallery__main .swiper-button-next {
+    color: #111;
+    --swiper-navigation-size: 28px;
+}
+
+/* Thumbnails: dim until active/hovered. */
+.product-gallery__thumbs {
+    width: 100%;
+}
+
+.product-gallery__thumbs .swiper-slide {
+    cursor: pointer;
+    opacity: .5;
+    transition: opacity .2s ease;
+}
+
+.product-gallery__thumbs .swiper-slide:hover,
+.product-gallery__thumbs .swiper-slide-thumb-active {
+    opacity: 1;
+}
+
+.product-gallery__thumbs .swiper-slide-thumb-active img {
+    outline: 2px solid #111;
+    outline-offset: -2px;
 }
 
 /* PhotoSwipe custom chrome (default UI is disabled in the init config). */
