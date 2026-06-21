@@ -26,9 +26,22 @@
 >   conversion đã xong, theme vẫn render `<img>` 1 size), sitemap.xml + JSON-LD
 >   collection/CMS, invoice PDF, RMA/đổi-trả.
 >
-> **Test:** từ 0 → **8 file Feature / 41 test method** (auth, cart, address, checkout/
-> order, search/size, VNPay, **Location**, **on-demand conversion**) chạy trên MySQL
-> `lunar_testing`.
+> **Test:** từ 0 → **hiện 60 test / 251 assertion** (auth, cart, address, checkout
+> API + **checkout SSR**, search/size, VNPay, Location, on-demand conversion, token
+> auth, recommendations) chạy trên MySQL `lunar_testing`.
+>
+> ⭐ **Cập nhật kiến trúc 2026-06-21 — BỎ HOÀN TOÀN VUE, storefront 100% Blade SSR +
+> vanilla JS.** Lý do: luồng checkout multi-step bằng Vue island gây lỗi "Enter your
+> address first" / state lệch. Đã viết lại:
+> - **Checkout**: 1 form Blade SSR POST `/checkout` (address + shipping + payment cùng
+>   lúc) → `CheckoutController@place` chạy cả flow server-side → hết race multi-step.
+>   Dropdown Tỉnh→Phường bằng `enhance/checkout-address.js` (vanilla, vẫn dùng
+>   `/api/v1/locations`).
+> - **Product**: variant picker + gallery (PhotoSwipe) chuyển sang `enhance/product-variant.js`
+>   + `enhance/_gallery.js` (đọc `ProductResource` nhúng SSR; pre-select variant đầu → chạy no-JS).
+> - Gỡ `vue` + `@vitejs/plugin-vue` khỏi `package.json`/`vite.config.js`; xoá toàn bộ
+>   `themes/fashion/js/islands/*`. Bundle `app.js` từ ~126KB (có Vue) → ~3KB.
+> - **Các mục/bảng nhắc "Vue island" bên dưới là LỊCH SỬ** — storefront giờ không còn Vue.
 >
 > Bảng trạng thái chi tiết ở mục "Trạng thái triển khai (rà soát thực tế)" bên dưới.
 
@@ -97,7 +110,7 @@ Xây ecommerce fashion cho SME theo hướng:
 | Commerce core | LunarPHP 1.0 | ✅ đã có |
 | Admin | Filament 3 (qua Lunar) | ✅ đã có, cần publish panel |
 | Storefront render | Blade (SSR) | cần build |
-| Storefront JS | Vue 3 (islands) + jQuery | cần thêm |
+| Storefront JS | **Vanilla JS (no Vue)** + jQuery (tiện ích) | ✅ |
 | Build | Vite 7 + Laravel Vite Plugin | ✅ đã có |
 | HTTP client (JS) | Axios | ✅ đã có |
 | CSS | Tailwind CSS 4 | ✅ đã có |

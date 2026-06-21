@@ -36,6 +36,36 @@ class CheckoutOrderTest extends TestCase
         ]);
     }
 
+    public function test_resaving_address_after_choosing_shipping_keeps_the_order_placeable(): void
+    {
+        // Regression: re-saving the address used to drop the chosen shipping
+        // option → "Missing Shipping Option" (generic 500) at order time.
+        $product = $this->createProduct(['price' => 5000]);
+        $this->postJson('/api/v1/cart', ['variant_id' => $product->variants->first()->id, 'quantity' => 1]);
+
+        $this->postJson('/api/v1/checkout/addresses', ['shipping' => $this->shippingPayload()])->assertSuccessful();
+        $this->postJson('/api/v1/checkout/shipping', ['identifier' => 'standard'])->assertSuccessful();
+
+        // User edits & re-saves the address after picking shipping.
+        $this->postJson('/api/v1/checkout/addresses', ['shipping' => $this->shippingPayload()])->assertSuccessful();
+
+        $this->postJson('/api/v1/checkout', ['payment_type' => 'cod'])
+            ->assertSuccessful()
+            ->assertJsonStructure(['data' => ['id', 'reference', 'status']]);
+    }
+
+    public function test_place_without_shipping_returns_clear_error(): void
+    {
+        $product = $this->createProduct(['price' => 5000]);
+        $this->postJson('/api/v1/cart', ['variant_id' => $product->variants->first()->id, 'quantity' => 1]);
+        $this->postJson('/api/v1/checkout/addresses', ['shipping' => $this->shippingPayload()])->assertSuccessful();
+
+        // No shipping chosen → actionable 422, not a generic 500.
+        $this->postJson('/api/v1/checkout', ['payment_type' => 'cod'])
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Please choose a shipping method before placing your order.');
+    }
+
     public function test_place_rejects_unknown_payment_type(): void
     {
         $this->primeCheckout();

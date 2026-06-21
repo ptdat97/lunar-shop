@@ -40,6 +40,13 @@ class CheckoutService
     {
         $cart = $this->carts->current();
 
+        // Lunar's setShippingAddress replaces the address row, which drops any
+        // previously chosen shipping option (stored on that row). Remember it so
+        // re-saving the address (e.g. the user edits it after picking shipping)
+        // doesn't silently clear the selection → "Missing Shipping Option" at
+        // order time.
+        $previousOption = $cart->shippingAddress?->shipping_option;
+
         // VN 2-tier addresses (state=province, city=ward) carry no postcode, but
         // Lunar requires one for order creation — default it so checkout works.
         $shipping = $this->withPostcode($shipping);
@@ -47,7 +54,15 @@ class CheckoutService
         $cart->setShippingAddress($shipping);
         $cart->setBillingAddress($billing ? $this->withPostcode($billing) : $shipping);
 
-        return $cart->calculate();
+        $cart = $cart->calculate();
+
+        // Re-apply the prior shipping option if it's still available for the new
+        // address.
+        if ($previousOption && ShippingManifest::getOption($cart, $previousOption)) {
+            $cart = $this->setShipping($previousOption);
+        }
+
+        return $cart;
     }
 
     /**
@@ -94,6 +109,12 @@ class CheckoutService
         }
 
         $cart = $cart->calculate();
+
+        // Guard the common recoverable cause of order-creation failure with a
+        // clear message (otherwise Lunar throws a CartException → generic 500).
+        if ($cart->isShippable() && ! $cart->getShippingOption()) {
+            abort(422, 'Please choose a shipping method before placing your order.');
+        }
 
         $authorize = Payments::driver(
             config("lunar.payments.types.{$paymentType}.driver", 'offline')

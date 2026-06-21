@@ -52,13 +52,13 @@
         </ol>
     </nav>
 
-    {{-- Gallery + purchase panel as ONE Vue island (data-vue="product-detail").
-         Picking a variant swaps the gallery to that variant's images (shared
-         state). The markup below is the no-JS SSR fallback: the island replaces
-         it on mount and hydrates from data-island-state. PhotoSwipe lightbox:
-         visible thumbnails use the `large` conversion; clicking opens `zoom`. --}}
-    <div class="row g-4" data-vue="product-detail" data-slug="{{ $slug }}">
-        <script type="application/json" data-island-state>@json($state)</script>
+    {{-- Gallery + purchase panel — full SSR. Vanilla JS (enhance/product-variant.js)
+         reads the embedded ProductResource ($state) to swap price/stock/gallery and
+         set the add-to-cart variant when option values change. Crawlable, works
+         no-JS (first variant pre-selected). PhotoSwipe lightbox: thumbnails use the
+         `large` conversion; clicking opens `zoom`. --}}
+    <div class="row g-4" data-product-detail data-slug="{{ $slug }}">
+        <script type="application/json" data-product-state>@json($state)</script>
 
         <div class="col-12 col-lg-7">
             <div class="row g-2" id="product-gallery" data-pswp-gallery>
@@ -94,26 +94,47 @@
             @endif
             <h1 class="h3">{{ $name }}</h1>
 
-            @include('theme::components.price', ['product' => $product])
+            {{-- Price reflects the selected variant (updated by JS); SSR shows the
+                 first variant's price. --}}
+            <div class="h4 my-3" data-product-price>{{ $firstVariant?->prices->first()?->price->formatted() }}</div>
 
             <div class="my-4">
-                @if($product->variants->count() > 1)
-                    <label class="form-label small text-uppercase">Variant</label>
-                    <div class="d-flex flex-wrap gap-2 mb-3">
-                        @foreach($product->variants as $variant)
-                            <button type="button" class="btn btn-outline-dark btn-sm"
-                                    data-variant="{{ $variant->id }}"
-                                    @disabled($variant->stock <= 0)>
-                                {{ $variant->sku }}
-                            </button>
-                        @endforeach
-                    </div>
-                @endif
+                @php
+                    // Option groups (e.g. Size → [S,M,L]) derived from variants, in
+                    // a stable order, for the SSR buttons.
+                    $optionGroups = [];
+                    foreach ($product->variants as $variant) {
+                        foreach ($variant->values as $value) {
+                            $optName = $value->option?->translate('name') ?? $value->option?->name ?? 'Option';
+                            $valName = $value->translate('name') ?? $value->name;
+                            $optionGroups[$optName] = $optionGroups[$optName] ?? [];
+                            if (! in_array($valName, $optionGroups[$optName], true)) {
+                                $optionGroups[$optName][] = $valName;
+                            }
+                        }
+                    }
+                @endphp
 
-                <form method="POST" action="#" data-add-to-cart>
+                @foreach($optionGroups as $optName => $values)
+                    <div class="mb-3" data-option-group="{{ $optName }}">
+                        <label class="form-label small text-uppercase d-block">{{ $optName }}</label>
+                        <div class="d-flex flex-wrap gap-2">
+                            @foreach($values as $val)
+                                <button type="button" class="btn btn-sm btn-outline-dark"
+                                        data-option="{{ $optName }}" data-value="{{ $val }}">{{ $val }}</button>
+                            @endforeach
+                        </div>
+                    </div>
+                @endforeach
+
+                <div class="small text-muted mb-3" data-product-stock>
+                    @if($firstVariant && $firstVariant->stock > 0){{ $firstVariant->stock }} in stock @elseif($firstVariant)Out of stock @endif
+                </div>
+
+                <form method="POST" action="{{ route('storefront.cart') }}" data-add-to-cart>
                     @csrf
-                    <input type="hidden" name="variant_id" value="{{ $firstVariant?->id }}">
-                    <button class="btn btn-dark btn-lg w-100" type="submit"
+                    <input type="hidden" name="variant_id" value="{{ $firstVariant?->id }}" data-variant-input>
+                    <button class="btn btn-dark btn-lg w-100" type="submit" data-add-to-cart-btn
                             @disabled(!$firstVariant || $firstVariant->stock <= 0)>
                         {{ $firstVariant && $firstVariant->stock > 0 ? 'Add to cart' : 'Out of stock' }}
                     </button>
@@ -196,15 +217,10 @@
 @endpush
 
 @push('scripts')
-{{-- PhotoSwipe (UMD globals: PhotoSwipe, PhotoSwipeLightbox). The lightbox is
-     given the PhotoSwipe core as `pswpModule` so it doesn't try to dynamically
-     import the ESM build. Custom chrome: a single close button plus a bottom bar
-     with prev / counter / next (the default UI is disabled). --}}
 {{-- PhotoSwipe core + lightbox as UMD globals (window.PhotoSwipe /
-     window.PhotoSwipeLightbox). The gallery island (ProductGallery.vue) reads
-     these globals and (re)initialises the lightbox whenever the variant — and
-     thus the visible image set — changes. No vanilla init here: the lightbox is
-     a JS-only feature, so when JS runs the island always owns it. --}}
+     window.PhotoSwipeLightbox). enhance/_gallery.js reads these globals and
+     (re)initialises the lightbox on load and whenever the chosen variant — and
+     thus the visible image set — changes. --}}
 <script src="{{ asset('vendor/photoswipe/photoswipe.umd.min.js') }}"></script>
 <script src="{{ asset('vendor/photoswipe/photoswipe-lightbox.umd.min.js') }}"></script>
 @endpush
