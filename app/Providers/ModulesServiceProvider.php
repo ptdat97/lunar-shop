@@ -3,9 +3,9 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Lunar\Admin\Filament\Resources\ProductTypeResource as BaseProductTypeResource;
+use Lunar\Admin\Filament\Resources as Lunar;
 use Lunar\Admin\LunarPanelManager;
-use Modules\Theme\Filament\Resources\ProductTypeResource;
+use Modules\Theme\Filament\Resources as Custom;
 
 class ModulesServiceProvider extends ServiceProvider
 {
@@ -73,13 +73,32 @@ class ModulesServiceProvider extends ServiceProvider
             \Lunar\Admin\Filament\Resources\ProductResource::class => \Modules\Product\Filament\Extensions\ProductSizeExtension::class,
         ]);
 
-        \Lunar\Admin\Support\Facades\LunarPanel::panel(function ($panel) use ($pages, $extraResources) {
-            // Replace the default ProductTypeResource with our custom version
-            // so that Product Types appears as a standalone menu item (not nested under Products).
-            // Filament Panel::resources() merges, so we must use reflection to reset the array.
+        // Swap selected Lunar resources for our subclasses (custom navigation /
+        // grouping). Keyed by the base class we drop → the replacement we add.
+        // Re-grouped so the sidebar mirrors how the data is actually organised:
+        //  - Catalog: ProductType (standalone), ProductOption, AttributeGroup,
+        //    Tag, Collection, ProductVariant (the last two had no group at all).
+        //  - Sales: CustomerGroup (was under Settings, next to Customers now).
+        //  - Settings: Tax Class/Rate/Zone kept here but hidden from the menu
+        //    (managed via the consolidated "Taxes" page).
+        $swaps = [
+            Lunar\ProductTypeResource::class => Custom\ProductTypeResource::class,
+            Lunar\ProductOptionResource::class => Custom\ProductOptionResource::class,
+            Lunar\AttributeGroupResource::class => Custom\AttributeGroupResource::class,
+            Lunar\TagResource::class => Custom\TagResource::class,
+            Lunar\CollectionResource::class => Custom\CollectionResource::class,
+            Lunar\ProductVariantResource::class => Custom\ProductVariantResource::class,
+            Lunar\CustomerGroupResource::class => Custom\CustomerGroupResource::class,
+            Lunar\TaxClassResource::class => Custom\TaxClassResource::class,
+            Lunar\TaxRateResource::class => Custom\TaxRateResource::class,
+            Lunar\TaxZoneResource::class => Custom\TaxZoneResource::class,
+        ];
+
+        \Lunar\Admin\Support\Facades\LunarPanel::panel(function ($panel) use ($pages, $extraResources, $swaps) {
+            // Filament Panel::resources() merges, so we use reflection to reset the array.
             $replacement = collect(LunarPanelManager::getResources())
-                ->reject(fn ($r) => $r === BaseProductTypeResource::class)
-                ->push(ProductTypeResource::class)
+                ->reject(fn ($r) => isset($swaps[$r]))
+                ->merge(array_values($swaps))
                 ->merge($extraResources)
                 ->values()
                 ->toArray();
