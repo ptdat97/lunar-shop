@@ -52,30 +52,4 @@
             @endforeach
         </div>
     </section>
-
-    @once
-        @push('head')
-            <style>
-                .lookbook__frame { aspect-ratio: 4 / 5; background: #f4f4f4; }
-                .lookbook__pin { transform: translate(-50%, -50%); }
-                .lookbook__dot {
-                    width: 28px; height: 28px; border: none; border-radius: 50%;
-                    background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,.25); cursor: pointer;
-                    position: relative;
-                }
-                .lookbook__dot::before {
-                    content: '+'; position: absolute; inset: 0; display: flex;
-                    align-items: center; justify-content: center; font-size: 18px; line-height: 1; color: #111;
-                }
-                .lookbook__card {
-                    position: absolute; top: 50%; left: calc(100% + 10px); transform: translateY(-50%);
-                    width: max-content; max-width: 220px; padding: 8px; background: #fff; border-radius: 8px;
-                    box-shadow: 0 4px 16px rgba(0,0,0,.18); opacity: 0; visibility: hidden;
-                    transition: opacity .2s ease, visibility .2s ease;
-                }
-                .lookbook__pin:hover .lookbook__card { opacity: 1; visibility: visible; }
-                .lookbook__thumb { width: 56px; height: 56px; object-fit: cover; border-radius: 6px; flex: 0 0 auto; }
-            </style>
-        @endpush
-    @endonce
 @endif

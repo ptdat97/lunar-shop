@@ -1,14 +1,13 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
-import tailwindcss from '@tailwindcss/vite';
 import fs from 'node:fs';
 
 const theme = process.env.THEME ?? 'fashion';
 
-// Only include entries the active theme actually ships (CSS entry is optional).
+// Only include entries the active theme actually ships (SCSS entry is optional).
 const input = [`themes/${theme}/js/app.js`];
-if (fs.existsSync(`themes/${theme}/css/app.css`)) {
-    input.unshift(`themes/${theme}/css/app.css`);
+if (fs.existsSync(`themes/${theme}/css/app.scss`)) {
+    input.unshift(`themes/${theme}/css/app.scss`);
 }
 
 export default defineConfig({
@@ -17,7 +16,6 @@ export default defineConfig({
             input,
             refresh: [`themes/${theme}/**`],
         }),
-        tailwindcss(),
     ],
     server: {
         watch: {

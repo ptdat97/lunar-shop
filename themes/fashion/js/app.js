@@ -5,7 +5,7 @@
 // attributes. Pages render fully server-side; JS only progressively enhances
 // (cart drawer, variant picker, checkout address dropdowns, filters, etc.).
 //
-// CSS is a separate Vite entry (themes/fashion/css/app.css), loaded via @vite
+// CSS is a separate Vite entry (themes/fashion/css/app.scss), loaded via @vite
 // in the layout — not imported here.
 
 // Eager-glob so adding a file under enhance/ auto-registers it. The leading

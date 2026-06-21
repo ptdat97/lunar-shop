@@ -1,0 +1,19 @@
+// Fashion theme — design tokens.
+//
+// Edit these to re-skin the theme. They are emitted as CSS custom properties
+// in app.scss so they can also be tweaked at runtime / per-page if needed.
+
+$accent: #111111 !default;
+$accent-contrast: #ffffff !default;
+$muted: #6c757d !default;
+$header-height: 72px !default;
+
+// Spacing / radius scale used by custom components.
+$radius: .375rem !default;
+$transition: .3s ease !default;
+
+// Breakpoints (kept in sync with Bootstrap 5 defaults).
+$bp-sm: 576px !default;
+$bp-md: 768px !default;
+$bp-lg: 992px !default;
+$bp-xl: 1200px !default;

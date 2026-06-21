@@ -1,0 +1,21 @@
+// Fashion theme — SCSS entry (compiled by Vite/Dart Sass).
+//
+// The theme is SSR + Bootstrap 5; this is the single stylesheet bundle.
+// Bootstrap (grid/components/utilities) and the Bootstrap Icons webfont ship
+// prebuilt from public/vendor and are loaded via <link> in the layout — these
+// styles layer theme tokens + custom components on top of Bootstrap.
+
+@use 'partials/variables' as v;
+@use 'partials/mixins' as m;
+@use 'partials/base';
+@use 'partials/lookbook';
+@use 'partials/custom';
+
+// Expose tokens as runtime CSS custom properties (keeps the old
+// --fashion-* contract the rest of the theme/JS relies on).
+:root {
+    --fashion-accent: #{v.$accent};
+    --fashion-accent-contrast: #{v.$accent-contrast};
+    --fashion-muted: #{v.$muted};
+    --fashion-header-height: #{v.$header-height};
+}

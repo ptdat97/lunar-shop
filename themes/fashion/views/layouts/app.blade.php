@@ -35,7 +35,7 @@
     <link rel="stylesheet" href="{{ asset('vendor/swiper/swiper-bundle.min.css') }}">
 
     {{-- Theme CSS/JS (Vite) --}}
-    @vite(['themes/fashion/css/app.css', 'themes/fashion/js/app.js'])
+    @vite(['themes/fashion/css/app.scss', 'themes/fashion/js/app.js'])
 
     @stack('head')
 </head>

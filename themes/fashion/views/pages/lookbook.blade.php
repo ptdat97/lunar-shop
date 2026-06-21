@@ -67,18 +67,4 @@
             </div>
         </section>
     @endif
-
-    @once
-        @push('head')
-            <style>
-                .lookbook-hero__media { max-height: 60vh; overflow: hidden; }
-                .lookbook-hero__media img { height: 60vh; }
-                /* Masonry-style gallery via CSS columns. */
-                .lookbook-gallery { column-count: 1; column-gap: 1rem; }
-                @media (min-width: 576px) { .lookbook-gallery { column-count: 2; } }
-                @media (min-width: 992px) { .lookbook-gallery { column-count: 3; } }
-                .lookbook-gallery__item { break-inside: avoid; margin-bottom: 1rem; }
-            </style>
-        @endpush
-    @endonce
 @endsection
