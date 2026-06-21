@@ -8,6 +8,7 @@
 
 import api from '../api.js';
 import { CART_UPDATED, CART_REFRESHED, emit, on } from '../events.js';
+import { renderGrid } from './_card.js';
 
 let lastCart = null;
 
@@ -88,6 +89,28 @@ function render(cart) {
     renderDrawer(cart);
 }
 
+// "You may also like" — fetched separately from the cart so a slow/empty
+// recommendation never blocks rendering the cart itself. Hidden when empty.
+async function refreshRecommendations() {
+    const block = document.querySelector('#shoppingCart [data-cart-recommendations]');
+    const grid = block?.querySelector('[data-cart-recommendations-grid]');
+    if (!block || !grid) return;
+
+    try {
+        const { data } = await api.get('/cart/recommendations');
+        const items = data.data ?? data ?? [];
+        if (items.length) {
+            renderGrid(grid, items, 'col-6');
+            block.hidden = false;
+        } else {
+            grid.innerHTML = '';
+            block.hidden = true;
+        }
+    } catch {
+        block.hidden = true;
+    }
+}
+
 async function refresh() {
     const { data } = await api.get('/cart');
     render(data.data ?? data);
@@ -113,7 +136,7 @@ export default function (root = document) {
         drawerEl.dataset.cartInit = '1';
 
         // Fetch fresh contents each time the drawer opens.
-        drawerEl.addEventListener('show.bs.offcanvas', () => { refresh(); });
+        drawerEl.addEventListener('show.bs.offcanvas', () => { refresh(); refreshRecommendations(); });
 
         // Qty +/- , manual qty edit, remove — delegated (survives re-render).
         drawerEl.addEventListener('click', (e) => {

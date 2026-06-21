@@ -7,12 +7,16 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
 use Modules\Product\Http\Resources\ProductResource;
 use Modules\Product\Services\ProductService;
+use Modules\Product\Services\SizeChartService;
+use Modules\Recommend\Services\RecommendationService;
 use Modules\Search\Data\SearchQuery;
 
 class ProductController extends Controller
 {
     public function __construct(
         protected ProductService $products,
+        protected SizeChartService $sizeChart,
+        protected RecommendationService $recommend,
     ) {}
 
     /**
@@ -37,13 +41,32 @@ class ProductController extends Controller
 
     /**
      * GET /api/v1/products/{slug}
+     *
+     * Optional `?include=size_chart,related` attaches the same extras the web
+     * product page renders (R3 — web↔API parity for headless clients). Without
+     * `include` the shape is unchanged.
      */
-    public function show(string $slug): ProductResource
+    public function show(Request $request, string $slug): ProductResource
     {
         $product = $this->products->findBySlug($slug);
 
         abort_if($product === null, 404);
 
-        return new ProductResource($product);
+        $include = array_filter(array_map(
+            'trim',
+            explode(',', (string) $request->query('include', ''))
+        ));
+
+        $resource = new ProductResource($product);
+
+        if (in_array('size_chart', $include, true)) {
+            $resource->withSizeChart($this->sizeChart->for($product));
+        }
+
+        if (in_array('related', $include, true)) {
+            $resource->withRelated($this->recommend->forProduct($product));
+        }
+
+        return $resource;
     }
 }

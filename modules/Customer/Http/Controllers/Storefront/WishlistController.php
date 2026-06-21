@@ -6,30 +6,24 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
-use Lunar\Models\Product;
-use Modules\Customer\Models\WishlistItem;
+use Modules\Customer\Services\WishlistService;
 
 class WishlistController extends Controller
 {
+    public function __construct(
+        protected WishlistService $wishlist,
+    ) {}
+
     /**
      * Wishlist page (SSR). Renders the user's wishlisted products server-side;
      * vanilla JS only enhances the remove/toggle interaction.
      */
     public function __invoke(Request $request): View
     {
-        $products = collect();
-
-        if (Auth::check()) {
-            $productIds = WishlistItem::where('user_id', $request->user()->id)->pluck('product_id');
-
-            $products = Product::query()
-                ->whereIn('id', $productIds)
-                ->with(['variants', 'thumbnail', 'brand'])
-                ->get();
-        }
+        $user = $request->user();
 
         return view('theme::pages.wishlist', [
-            'products' => $products,
+            'products' => $user ? $this->wishlist->productsFor($user) : collect(),
             'authed' => Auth::check(),
         ]);
     }

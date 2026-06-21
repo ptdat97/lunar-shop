@@ -2,6 +2,7 @@
 
 namespace Modules\Promotion\Services;
 
+use Illuminate\Support\Collection;
 use Lunar\Models\Discount;
 
 class PromotionService
@@ -12,6 +13,22 @@ class PromotionService
     public function active()
     {
         return Discount::active()->usable()->get();
+    }
+
+    /**
+     * Active coupon-based discounts a shopper can apply at the cart, highest
+     * priority first.
+     *
+     * @return Collection<int, Discount>
+     */
+    public function availableCoupons(): Collection
+    {
+        return Discount::query()
+            ->whereNotNull('coupon')
+            ->active()
+            ->usable()
+            ->orderByDesc('priority')
+            ->get(['id', 'coupon', 'name']);
     }
 
     /**

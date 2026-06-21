@@ -18,6 +18,16 @@ class OrderService
     }
 
     /**
+     * Find an order by its public reference (e.g. the confirmation page).
+     */
+    public function findByReference(string $reference): ?Order
+    {
+        return Order::where('reference', $reference)
+            ->with('lines')
+            ->first();
+    }
+
+    /**
      * Find an order by ID for a customer.
      */
     public function findForCustomer(int $orderId, int $customerId): ?Order

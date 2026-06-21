@@ -2,11 +2,12 @@
 
 namespace Modules\Checkout\Http\Controllers\Api\V1;
 
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
 use Modules\Cart\Http\Resources\CartResource;
 use Modules\Checkout\Http\Resources\OrderResource;
+use Modules\Checkout\Http\Resources\ShippingOptionResource;
 use Modules\Checkout\Services\CheckoutService;
 
 class CheckoutController extends Controller
@@ -18,16 +19,11 @@ class CheckoutController extends Controller
     /**
      * GET /api/v1/checkout/shipping-options
      */
-    public function shippingOptions(): JsonResponse
+    public function shippingOptions(): AnonymousResourceCollection
     {
-        $options = $this->checkout->shippingOptions()->map(fn ($o) => [
-            'identifier' => $o->identifier,
-            'name' => $o->name,
-            'description' => $o->description,
-            'price' => (string) $o->price->formatted(),
-        ])->values();
-
-        return response()->json(['data' => $options]);
+        return ShippingOptionResource::collection(
+            $this->checkout->shippingOptions()->values()
+        );
     }
 
     /**

@@ -5,12 +5,15 @@ namespace Modules\Customer\Http\Controllers\Api\V1;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Lunar\Models\Product;
-use Modules\Customer\Models\WishlistItem;
+use Modules\Customer\Services\WishlistService;
 use Modules\Product\Http\Resources\ProductResource;
 
 class WishlistController extends Controller
 {
+    public function __construct(
+        protected WishlistService $wishlist,
+    ) {}
+
     /**
      * GET /api/v1/wishlist — the user's wishlist products. Public on purpose:
      * the storefront loads this on every page to mark hearts, so a guest must
@@ -18,20 +21,15 @@ class WishlistController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
-        if (! $request->user()) {
+        $user = $request->user();
+
+        if (! $user) {
             return response()->json(['data' => [], 'product_ids' => []]);
         }
 
-        $productIds = $this->items($request)->pluck('product_id');
-
-        $products = Product::query()
-            ->whereIn('id', $productIds)
-            ->with(['variants', 'thumbnail', 'brand'])
-            ->get();
-
         return response()->json([
-            'data' => ProductResource::collection($products),
-            'product_ids' => $productIds->values(),
+            'data' => ProductResource::collection($this->wishlist->productsFor($user)),
+            'product_ids' => $this->wishlist->productIdsFor($user)->values(),
         ]);
     }
 
@@ -44,31 +42,8 @@ class WishlistController extends Controller
             'product_id' => ['required', 'integer'],
         ]);
 
-        $existing = WishlistItem::where('user_id', $request->user()->id)
-            ->where('product_id', $data['product_id'])
-            ->first();
-
-        if ($existing) {
-            $existing->delete();
-            $inWishlist = false;
-        } else {
-            WishlistItem::create([
-                'user_id' => $request->user()->id,
-                'product_id' => $data['product_id'],
-            ]);
-            $inWishlist = true;
-        }
-
         return response()->json([
-            'data' => [
-                'in_wishlist' => $inWishlist,
-                'count' => $this->items($request)->count(),
-            ],
+            'data' => $this->wishlist->toggle($request->user(), $data['product_id']),
         ]);
-    }
-
-    protected function items(Request $request)
-    {
-        return WishlistItem::where('user_id', $request->user()->id);
     }
 }

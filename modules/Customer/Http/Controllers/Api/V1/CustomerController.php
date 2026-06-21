@@ -8,6 +8,7 @@ use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Modules\Customer\Http\Resources\UserResource;
 use Modules\Customer\Services\CustomerResolver;
 use Modules\Order\Http\Resources\OrderResource;
 use Modules\Order\Services\OrderService;
@@ -28,7 +29,9 @@ class CustomerController extends Controller
     {
         $user = $request->user();
 
-        return response()->json(['data' => $user ? $this->payload($user) : null]);
+        return response()->json([
+            'data' => $user ? UserResource::make($user)->resolve($request) : null,
+        ]);
     }
 
     /**
@@ -52,7 +55,7 @@ class CustomerController extends Controller
             $customer->update(['first_name' => $parts[0] ?? '', 'last_name' => $parts[1] ?? '']);
         }
 
-        return response()->json(['data' => $this->payload($user->refresh())]);
+        return UserResource::make($user->refresh())->response();
     }
 
     /**
@@ -92,17 +95,5 @@ class CustomerController extends Controller
         return response()->json([
             'data' => OrderResource::collection($this->orders->customerOrders($customer->id))->resolve(),
         ]);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function payload($user): array
-    {
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-        ];
     }
 }

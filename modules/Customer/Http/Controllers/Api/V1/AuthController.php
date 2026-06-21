@@ -3,13 +3,13 @@
 namespace Modules\Customer\Http\Controllers\Api\V1;
 
 use App\Models\User;
-use Illuminate\Auth\AuthenticationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Modules\Customer\Http\Resources\UserResource;
 
 /**
  * Session/cookie auth for the storefront (Sanctum SPA). Wraps Laravel auth —
@@ -37,7 +37,7 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return response()->json(['data' => $this->userPayload($user)], 201);
+        return UserResource::make($user)->response()->setStatusCode(201);
     }
 
     /**
@@ -58,7 +58,7 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return response()->json(['data' => $this->userPayload($request->user())]);
+        return UserResource::make($request->user())->response();
     }
 
     /**
@@ -71,14 +71,5 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return response()->json(['data' => ['status' => 'logged_out']]);
-    }
-
-    protected function userPayload(User $user): array
-    {
-        return [
-            'id' => $user->id,
-            'name' => $user->name,
-            'email' => $user->email,
-        ];
     }
 }

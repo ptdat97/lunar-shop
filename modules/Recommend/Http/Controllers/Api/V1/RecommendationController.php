@@ -43,15 +43,7 @@ class RecommendationController extends Controller
     {
         $limit = min(12, max(1, (int) $request->input('limit', config('recommend.cart_limit', 6))));
 
-        $cart = $this->cart->current()->loadMissing('lines.purchasable.product.variants', 'lines.purchasable.product.thumbnail');
-
-        $cartProducts = $cart->lines
-            ->map(fn ($line) => $line->purchasable?->product)
-            ->filter()
-            ->unique('id')
-            ->values();
-
-        $items = $this->recommend->forCart($cartProducts, $limit);
+        $items = $this->recommend->forCart($this->cart->products(), $limit);
 
         return ProductResource::collection($items);
     }

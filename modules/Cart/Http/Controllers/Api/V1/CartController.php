@@ -2,17 +2,19 @@
 
 namespace Modules\Cart\Http\Controllers\Api\V1;
 
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
-use Lunar\Models\Discount;
 use Modules\Cart\Http\Resources\CartResource;
 use Modules\Cart\Services\CartService;
+use Modules\Promotion\Http\Resources\CouponResource;
+use Modules\Promotion\Services\PromotionService;
 
 class CartController extends Controller
 {
     public function __construct(
         protected CartService $cart,
+        protected PromotionService $promotions,
     ) {}
 
     /**
@@ -87,19 +89,8 @@ class CartController extends Controller
     /**
      * GET /api/v1/cart/coupons — active coupons the shopper can apply.
      */
-    public function availableCoupons(): JsonResponse
+    public function availableCoupons(): AnonymousResourceCollection
     {
-        $coupons = Discount::query()
-            ->whereNotNull('coupon')
-            ->active()
-            ->usable()
-            ->orderByDesc('priority')
-            ->get(['coupon', 'name'])
-            ->map(fn (Discount $d) => [
-                'code' => $d->coupon,
-                'name' => $d->name,
-            ]);
-
-        return response()->json(['data' => $coupons]);
+        return CouponResource::collection($this->promotions->availableCoupons());
     }
 }

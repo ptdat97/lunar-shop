@@ -6,9 +6,9 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Collection\Services\CollectionService;
-use Modules\Product\Http\Resources\ProductResource;
 use Modules\Search\Contracts\SearchEngine;
 use Modules\Search\Data\SearchQuery;
+use Modules\Search\Http\Resources\SearchResultResource;
 
 class CollectionController extends Controller
 {
@@ -39,19 +39,8 @@ class CollectionController extends Controller
         $result = $this->search->search(SearchQuery::fromRequest($request));
         $result->items->loadMissing(['variants', 'thumbnail', 'brand']);
 
-        // Same shape as GET /api/v1/search — one contract for SSR + island.
-        $state = ProductResource::collection($result->items)
-            ->additional([
-                'facets' => $result->facets,
-                'meta' => [
-                    'total' => $result->total,
-                    'page' => $result->page,
-                    'per_page' => $result->perPage,
-                    'last_page' => $result->lastPage(),
-                ],
-            ])
-            ->response($request)
-            ->getData(true);
+        // Same contract as GET /api/v1/search — one shape for SSR + island.
+        $state = SearchResultResource::toState($result, $request);
 
         return view('theme::pages.collection', [
             'collection' => $collection,

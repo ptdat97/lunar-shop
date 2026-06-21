@@ -5,9 +5,9 @@ namespace Modules\Search\Http\Controllers\Storefront;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Modules\Product\Http\Resources\ProductResource;
 use Modules\Search\Contracts\SearchEngine;
 use Modules\Search\Data\SearchQuery;
+use Modules\Search\Http\Resources\SearchResultResource;
 
 class SearchController extends Controller
 {
@@ -27,18 +27,8 @@ class SearchController extends Controller
         $result = $this->search->search(SearchQuery::fromRequest($request));
         $result->items->loadMissing(['variants', 'thumbnail', 'brand']);
 
-        $state = ProductResource::collection($result->items)
-            ->additional([
-                'facets' => $result->facets,
-                'meta' => [
-                    'total' => $result->total,
-                    'page' => $result->page,
-                    'per_page' => $result->perPage,
-                    'last_page' => $result->lastPage(),
-                ],
-            ])
-            ->response($request)
-            ->getData(true);
+        // Same contract as GET /api/v1/search — one shape for SSR + island.
+        $state = SearchResultResource::toState($result, $request);
 
         return view('theme::pages.search', [
             'query' => $query,

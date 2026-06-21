@@ -4,7 +4,16 @@ use Illuminate\Support\Facades\Route;
 use Modules\Customer\Http\Controllers\Api\V1\AddressController;
 use Modules\Customer\Http\Controllers\Api\V1\AuthController;
 use Modules\Customer\Http\Controllers\Api\V1\CustomerController;
+use Modules\Customer\Http\Controllers\Api\V1\TokenAuthController;
 use Modules\Customer\Http\Controllers\Api\V1\WishlistController;
+
+// Token (PAT) auth for native app / headless clients — stateless, no session,
+// so the plain `api` group (not `web`). The SPA cookie flow below is unchanged;
+// the authenticated endpoints already accept the issued bearer token.
+Route::prefix('api/v1')->middleware('api')->group(function (): void {
+    Route::post('auth/token', [TokenAuthController::class, 'issue'])->name('api.v1.auth.token');
+    Route::post('auth/token/register', [TokenAuthController::class, 'register'])->name('api.v1.auth.token.register');
+});
 
 // Auth uses Sanctum SPA (cookie session) → stateful `web` group.
 Route::prefix('api/v1')->middleware('web')->group(function (): void {
@@ -34,4 +43,7 @@ Route::prefix('api/v1')->middleware(['web', 'auth:sanctum'])->group(function ():
     Route::delete('customer/addresses/{address}', [AddressController::class, 'destroy'])->name('api.v1.customer.addresses.destroy');
 
     Route::post('wishlist', [WishlistController::class, 'toggle'])->name('api.v1.wishlist.toggle');
+
+    // Token logout (app/headless): revoke the PAT used for this request.
+    Route::post('auth/token/revoke', [TokenAuthController::class, 'revoke'])->name('api.v1.auth.token.revoke');
 });

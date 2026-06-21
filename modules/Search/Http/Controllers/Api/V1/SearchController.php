@@ -4,9 +4,9 @@ namespace Modules\Search\Http\Controllers\Api\V1;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Modules\Product\Http\Resources\ProductResource;
 use Modules\Search\Contracts\SearchEngine;
 use Modules\Search\Data\SearchQuery;
+use Modules\Search\Http\Resources\SearchResultResource;
 
 class SearchController extends Controller
 {
@@ -23,16 +23,7 @@ class SearchController extends Controller
 
         $result->items->loadMissing(['variants', 'thumbnail', 'brand']);
 
-        return ProductResource::collection($result->items)
-            ->additional([
-                'facets' => $result->facets,
-                'meta' => [
-                    'total' => $result->total,
-                    'page' => $result->page,
-                    'per_page' => $result->perPage,
-                    'last_page' => $result->lastPage(),
-                ],
-            ]);
+        return SearchResultResource::collection($result);
     }
 
     /**

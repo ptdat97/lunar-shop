@@ -10,10 +10,21 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * Stable JSON contract for a product. Shared by web SSR, /api/v1, and
  * future app/headless clients. Keep the shape backwards-compatible.
  *
+ * Optional extras (R3 — web↔API parity) are opt-in and only appear when set via
+ * {@see self::withSizeChart()} / {@see self::withRelated()}, so the default shape
+ * is unchanged. The single-call product endpoint uses `?include=size_chart,related`
+ * to let a headless client fetch everything the web product page renders.
+ *
  * @mixin \Lunar\Models\Product
  */
 class ProductResource extends JsonResource
 {
+    /** @var array<string, mixed>|null */
+    protected ?array $sizeChart = null;
+
+    /** @var \Illuminate\Support\Collection<int, \Lunar\Models\Product>|null */
+    protected $related = null;
+
     public function toArray(Request $request): array
     {
         return [
@@ -27,7 +38,34 @@ class ProductResource extends JsonResource
             // Product-level gallery images — the default the storefront gallery
             // shows, and the fallback when a chosen variant has no own images.
             'images' => $this->whenLoaded('media', fn () => MediaImageResource::collection($this->media)),
+            // Opt-in extras (?include=…) — absent unless explicitly attached.
+            'size_chart' => $this->when($this->sizeChart !== null, fn () => $this->sizeChart),
+            'related' => $this->when($this->related !== null, fn () => static::collection($this->related)),
         ];
+    }
+
+    /**
+     * Attach the size chart payload so it serialises under `size_chart`.
+     *
+     * @param  array<string, mixed>  $sizeChart
+     */
+    public function withSizeChart(array $sizeChart): static
+    {
+        $this->sizeChart = $sizeChart;
+
+        return $this;
+    }
+
+    /**
+     * Attach related products so they serialise under `related`.
+     *
+     * @param  \Illuminate\Support\Collection<int, \Lunar\Models\Product>  $related
+     */
+    public function withRelated($related): static
+    {
+        $this->related = $related;
+
+        return $this;
     }
 
     /**

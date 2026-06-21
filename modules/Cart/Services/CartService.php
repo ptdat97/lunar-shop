@@ -2,9 +2,11 @@
 
 namespace Modules\Cart\Services;
 
+use Illuminate\Support\Collection;
 use Lunar\Facades\CartSession;
 use Lunar\Models\Cart;
 use Lunar\Models\CartLine;
+use Lunar\Models\Product;
 use Lunar\Models\ProductVariant;
 
 /**
@@ -50,6 +52,27 @@ class CartService
         CartLine::whereIn('id', $missing)->delete();
 
         return true;
+    }
+
+    /**
+     * The distinct products currently in the cart, with the relations the
+     * product card / recommendations need. Single source so callers don't reach
+     * into cart line internals.
+     *
+     * @return Collection<int, Product>
+     */
+    public function products(): Collection
+    {
+        $cart = $this->current()->loadMissing(
+            'lines.purchasable.product.variants',
+            'lines.purchasable.product.thumbnail',
+        );
+
+        return $cart->lines
+            ->map(fn (CartLine $line) => $line->purchasable?->product)
+            ->filter()
+            ->unique('id')
+            ->values();
     }
 
     /**

@@ -6,10 +6,14 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
-use Lunar\Models\Country;
+use Modules\Location\Services\CountryService;
 
 class AuthPageController extends Controller
 {
+    public function __construct(
+        protected CountryService $countries,
+    ) {}
+
     /**
      * Login page (redirects home if already authenticated).
      */
@@ -45,7 +49,7 @@ class AuthPageController extends Controller
 
         return view('theme::pages.account', [
             'user' => Auth::user(),
-            'countries' => Country::orderBy('name')->get(['id', 'name'])->toArray(),
+            'countries' => $this->countries->forSelect(),
         ]);
     }
 }

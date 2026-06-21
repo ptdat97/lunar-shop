@@ -2,6 +2,7 @@
 
 namespace Modules\Product\Http\Requests;
 
+use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Modules\Product\Models\SizeChartRow;
 
@@ -25,6 +26,25 @@ class SizeRecommendRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    /**
+     * At least one measurement is required — surfaced as a standard 422
+     * { message, errors } response (consistent with the rest of the API).
+     */
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator): void {
+            $provided = collect(SizeChartRow::MEASUREMENTS)
+                ->contains(fn (string $key) => $this->filled($key));
+
+            if (! $provided) {
+                $validator->errors()->add(
+                    'measurements',
+                    'Provide at least one body measurement (e.g. bust, waist, hip).'
+                );
+            }
+        });
     }
 
     /**

@@ -78,6 +78,7 @@ class SearchSizeTest extends TestCase
         $slug = $product->defaultUrl->slug;
 
         $this->postJson("/api/v1/products/{$slug}/recommend-size", [])
-            ->assertStatus(422);
+            ->assertStatus(422)
+            ->assertJsonValidationErrors('measurements');
     }
 }

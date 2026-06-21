@@ -41,14 +41,8 @@ class SizeController extends Controller
 
         abort_if($product === null, 404);
 
-        $body = $request->measurements();
-
-        if (empty($body)) {
-            return response()->json([
-                'message' => 'Provide at least one body measurement (e.g. bust, waist, hip).',
-            ], 422);
-        }
-
-        return response()->json(['data' => $this->recommender->recommend($product, $body)]);
+        return response()->json([
+            'data' => $this->recommender->recommend($product, $request->measurements()),
+        ]);
     }
 }

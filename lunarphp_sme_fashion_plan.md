@@ -4,22 +4,31 @@
 > **Filament 3** làm admin panel, và frontend đã có **Vite 7 + Tailwind 4 + Axios**.
 > Kế hoạch dưới đây bám sát đúng những gì đã cài, không thêm stack chưa cần.
 >
-> **Cập nhật rà soát codebase — 2026-06-18:** nền tảng đã đi xa hơn nhiều so với
-> "skeleton". 21 module đã scaffold và phần lớn có service + controller + routes
-> (web + `/api/v1`) hoạt động. Theme `fashion` là theme đang active với storefront
-> hoàn chỉnh (home, product, collection, cart,
-> checkout, search, account, wishlist) bằng Blade SSR + Vue islands. Tóm tắt nhanh:
+> **Cập nhật rà soát codebase — 2026-06-21:** nền tảng đã đi xa hơn nhiều so với
+> "skeleton". **23 module** đã scaffold (thêm **Location** — VN tỉnh/phường — so với
+> rà soát trước) và phần lớn có service + controller + routes (web + `/api/v1`)
+> hoạt động. Theme `fashion` là theme đang active với storefront hoàn chỉnh (home,
+> product, collection, cart, checkout, search, account, wishlist) bằng Blade SSR +
+> Vue islands. Tóm tắt nhanh:
 >
-> - ✅ **Đã chạy được:** Catalog/Product/Collection, Cart + Checkout (Lunar, COD/bank),
->   Customer auth (web + Sanctum), Wishlist, Order history, Search (interface +
->   driver `database` + `scout`), CMS (Pages/Banners/Lookbooks/Redirects + Filament),
->   Menu, SectionBuilder, Theme switch, Media conversions, **Fashion Size Intelligence**
->   (size chart + "find my size" qua `/recommend-size`).
-> - ⚠️ **Mới khung, chưa có ruột:** **Payment** (chỉ dùng driver `offline` của Lunar,
->   chưa có VNPay/MoMo/Stripe), **Analytics** (mới vài hàm tổng hợp, chưa có dashboard),
->   **Promotion** (mới wrap Discount đọc, chưa có UI áp dụng nâng cao).
-> - ❌ **Chưa có:** test tự động (0 test trong `modules/`), email giao dịch, SEO
->   schema/sitemap đầy đủ, ảnh responsive `<picture>` AVIF/WebP ở storefront.
+> - ✅ **Đã chạy được:** Catalog/Product/Collection, Cart + Checkout (Lunar, COD/bank
+>   **+ VNPay**), Customer auth (web + Sanctum), Wishlist, Order history + **email giao
+>   dịch (queued)**, Search (interface + driver `database` + `scout`), CMS
+>   (Pages/Banners/Lookbooks/Redirects + Filament), Menu, SectionBuilder, Theme switch,
+>   **Fashion Size Intelligence** (size chart + "find my size" qua `/recommend-size`),
+>   **Location VN** (provinces/wards API + dropdown checkout/account), **Media
+>   on-demand conversions** (sinh size khi request, sizes cấu hình qua Filament).
+> - ⚠️ **Mới khung, chưa có ruột:** **Payment MoMo** (mới có VNPay; MoMo chưa),
+>   **Analytics** (mới vài hàm tổng hợp, chưa có dashboard), **Promotion** (mới wrap
+>   Discount đọc, chưa có UI áp dụng nâng cao), **Inventory** (đọc stock/low/out;
+>   chưa reserve/oversell/notify-me).
+> - ❌ **Chưa có:** ảnh responsive `<picture>`/`srcset` ở storefront (hạ tầng
+>   conversion đã xong, theme vẫn render `<img>` 1 size), sitemap.xml + JSON-LD
+>   collection/CMS, invoice PDF, RMA/đổi-trả.
+>
+> **Test:** từ 0 → **8 file Feature / 41 test method** (auth, cart, address, checkout/
+> order, search/size, VNPay, **Location**, **on-demand conversion**) chạy trên MySQL
+> `lunar_testing`.
 >
 > Bảng trạng thái chi tiết ở mục "Trạng thái triển khai (rà soát thực tế)" bên dưới.
 
@@ -121,7 +130,7 @@ routes/
  ├── web.php                     # gom (require) web routes từ các module
  └── api.php                     # gom /api/v1/* từ các module (Sanctum)
 
-modules/                         # TOÀN BỘ logic ở đây (21 module — đã scaffold)
+modules/                         # TOÀN BỘ logic ở đây (23 module — đã scaffold)
  ├── Catalog
  ├── Product
  ├── Collection
@@ -142,6 +151,7 @@ modules/                         # TOÀN BỘ logic ở đây (21 module — đ�
  ├── Promotion
  ├── Shipping
  ├── Payment
+ ├── Location                     # (ngoài plan gốc) địa giới VN: tỉnh/phường cho địa chỉ
  ├── Hook
  └── Analytics
 
@@ -228,23 +238,24 @@ modules/Product/
 | **Catalog** | Điều phối product/collection, listing, facet, seeders demo | Products, Brands, Tags, Attribute Groups, Product Types | ✅ chạy (home + storefront controllers, seeders) |
 | **Product** | Product, variant, options (size/color), material, size chart, related | Products, Product Variants, Product Options | ✅ chạy (Service + API Resource + size chart) |
 | **Collection** | Collection, collection groups, gán product | Collections, Collection Groups | ✅ chạy (storefront + API) |
-| **Inventory** | Stock per-variant, reserve, low-stock, oversell | stock trên Product Variant | ⚠️ service cơ bản (đọc stock); chưa reserve/alert |
+| **Inventory** | Stock per-variant, reserve, low-stock, oversell | stock trên Product Variant | ⚠️ service đọc stock/low/out (`InventoryService`); chưa reserve/oversell/notify-me |
 | **Pricing** | Giá theo variant/customer-group, tax-inclusive | Prices, Currencies, Customer Groups | ✅ wrap Lunar Pricing |
 | **Cart** | Lunar Cart wrap, line, coupon, free-ship threshold | Lunar Cart | ✅ chạy (drawer/page/count vanilla + API + coupon) |
 | **Checkout** | Pipeline validate→pricing→ship→tax→pay→order | Lunar checkout pipeline | ✅ chạy (addresses/shipping/placeOrder, driver `offline`) |
 | **Customer** | Khách, địa chỉ, auth (web + Sanctum), order history, wishlist | Customers, Customer Groups | ✅ chạy (auth web+API, wishlist, orders) |
-| **Order** | Order, trạng thái, fulfilment, invoice | Sales / Orders | ⚠️ đọc order history; chưa email/invoice/fulfilment UI |
+| **Order** | Order, trạng thái, fulfilment, invoice | Sales / Orders | ✅ order history + **email giao dịch (3 mailable queued)**; ⚠️ chưa invoice PDF/fulfilment UI |
 | **CMS** | Pages, banners, lookbooks, redirects | — | ✅ chạy (4 Filament resource + storefront) |
 | **Menu** | Menu điều hướng storefront (header/footer) | — | ✅ chạy (model + Filament + service) |
 | **Theme** | Active theme, view namespace, Vite, manifest | — | ✅ chạy (2 theme, switch qua config) |
 | **SectionBuilder** | page_sections (JSON) → Blade partial trong theme | — | ✅ chạy (model + Filament + render) |
-| **Media** | Conversions, definitions fashion (hover/gallery/zoom) | Lunar Media (Spatie) | ⚠️ definitions có; chưa AVIF/WebP `<picture>` ở storefront |
+| **Media** | Conversions, definitions fashion (hover/gallery/zoom) | Lunar Media (Spatie) | ✅ **on-demand conversion** (`MediaUrl`+`ConversionGenerator` tự sinh size khi request, dùng trong API Resource) + sizes cấu hình qua Filament (`MediaSettings`); ⚠️ theme vẫn `<img>` 1 size, chưa `<picture>`/`srcset` |
 | **FileManager** | Quản lý file/asset trong admin | — | ✅ Filament page (tiện ích nội bộ) |
 | **Search** | Interface + driver `database`/`scout`; suggest + filters | — (xem Search abstraction) | ✅ chạy (interface + 2 driver + DTO) |
 | **Recommend** | Gợi ý sản phẩm (product page + mini-cart), strategy chain | Lunar `ProductAssociation` (curate) | ✅ chạy P1 (Association + Collection strategy + API) |
 | **Promotion** | %, BXGY, free-ship, cart/coupon rules | Discounts | ⚠️ wrap đọc Discount; chưa UI/áp dụng nâng cao |
 | **Shipping** | Shipping methods/zones/rates | shipping của Lunar | ⚠️ service cơ bản; chưa zone/rate UI |
-| **Payment** | COD, Bank, VNPay, MoMo (P1); Stripe/PayPal (P2) | payment driver của Lunar + driver mới | ⚠️ **chỉ skeleton** — mới driver `offline`; chưa VNPay/MoMo/Stripe |
+| **Payment** | COD, Bank, VNPay, MoMo (P1); Stripe/PayPal (P2) | payment driver của Lunar + driver mới | ✅ `offline` (COD/bank) + **VNPay** (driver + gateway HMAC + return/IPN idempotent); ⚠️ chưa MoMo/Stripe/refund-API |
+| **Location** | Địa giới hành chính VN (tỉnh/phường) cho form địa chỉ | — | ✅ chạy (2 model + seeder data + API `provinces`/`wards`, gắn dropdown checkout + account) |
 | **Hook** | action/filter (Eventy) + domain events liên-module | Lunar events | ⚠️ routes có; chưa thấy event wiring rõ ràng |
 | **Analytics** | Tracking, báo cáo bán hàng, KPI | Activities (log) | ⚠️ service tổng hợp (revenue/orders); chưa dashboard |
 
@@ -272,13 +283,154 @@ POST   /api/v1/cart
 GET    /api/v1/cart
 PATCH  /api/v1/cart/lines/{id}
 POST   /api/v1/checkout
-POST   /api/v1/auth/login        (Sanctum)
+POST   /api/v1/auth/login        (Sanctum SPA cookie)
+POST   /api/v1/auth/token        (PAT — app/headless, trả { data, token })
+POST   /api/v1/auth/token/register
+POST   /api/v1/auth/token/revoke (auth:sanctum — logout token)
 GET    /api/v1/customer/orders
+GET    /api/v1/locations/provinces                       (Location — dropdown địa chỉ)
+GET    /api/v1/locations/provinces/{province}/wards      (Location)
 ```
 
 - Phase này: Vue islands trong Blade gọi các endpoint trên (cùng domain → cookie Sanctum).
-- Sau này: mobile app / Nuxt headless dùng **chính các endpoint đó** với token Sanctum.
+- Sau này: mobile app / Nuxt headless dùng **chính các endpoint đó** với token Sanctum —
+  ✅ đã sẵn: phát token qua `POST /api/v1/auth/token` (xem R5), mọi route `auth:sanctum`
+  nhận luôn Bearer token, **không phải viết lại backend**.
 - API Resource giữ contract ổn định để không phá vỡ client.
+
+---
+
+# Rà soát API-first & nền tảng Headless (2026-06-21)
+
+> Mục tiêu rà: storefront hiện tại có thực sự "API-first" để sau này cắm app/headless
+> mà **không viết lại backend** không. Kết luận: **nền tảng đã đúng hướng** (Storefront
+> và API cùng gọi một service + cùng một API Resource; SSR hydrate từ chính shape của
+> `/api/v1`). Còn vài **rò rỉ** cần refactor để contract sạch và headless-ready.
+
+> ⛔ **RÀNG BUỘC BẤT BIẾN — Phần cần SEO vẫn SSR bằng Blade.** "API-first / nền tảng
+> headless" ở đây nghĩa là **mọi nghiệp vụ dùng chung qua một service + API Resource**,
+> **KHÔNG** phải là chuyển storefront sang render client-side. Mọi nội dung công khai
+> cần crawl — **home, product, collection, search, CMS page, breadcrumb, JSON-LD,
+> meta/OG** — **bắt buộc render HTML thật ở server bằng Blade** (controller gọi service,
+> Blade in ra; island/JS chỉ *enhance* markup đã có). Headless (app/Nuxt) là **consumer
+> thứ hai** dùng chung `/api/v1`, **không thay thế** đường SSR. Refactor dưới đây chỉ
+> dọn contract phía sau — **không được biến trang SEO thành fetch-on-mount**. Đây là
+> nhắc lại "Nguyên tắc SSR-first (BẮT BUỘC)" ở mục Storefront, áp cho cả phần API-first.
+
+## ✅ Đã đạt (giữ nguyên, đây là điểm mạnh)
+
+- **Tách controller Storefront vs `Api/V1` rõ ràng** ở mọi module trục (Product,
+  Collection, Cart, Checkout, Search, Customer, Order).
+- **Một service là nguồn logic duy nhất**, cả 2 path gọi chung: `ProductService`,
+  `CartService`, `CheckoutService`, `SearchEngine` (interface), `RecommendationService`.
+  Controller mỏng, không chứa nghiệp vụ (trừ ngoại lệ ở mục rò rỉ bên dưới).
+- **SSR hydrate từ chính API Resource:** `CollectionController`/`SearchController`
+  nhúng `$state` = đúng shape `{data,facets,meta}` của `GET /api/v1/search` → "một
+  contract cho SSR + island", không lệch dữ liệu (đúng nguyên tắc SSR-first).
+- **Versioning sẵn:** mọi route tự prefix `api/v1` → dễ mở `v2` không phá v1.
+- **Sanctum đã bật** (`HasApiTokens` trên `User`), guard `web` (SPA cookie) đã chạy.
+
+## ⚠️ Rò rỉ cần refactor (ưu tiên giảm dần)
+
+**R1 — Shape `$state` SSR bị copy-paste (drift risk).** — ✅ **đã làm (2026-06-21)**
+Khối `ProductResource::collection(...)->additional(['facets'=>…,'meta'=>…])->response()->getData(true)`
+trước lặp **nguyên si** ở 3 nơi (`Api/V1/SearchController`, `Storefront/SearchController`,
+`Storefront/CollectionController`).
+→ ✅ Đã rút về **`Modules\Search\Http\Resources\SearchResultResource`**: `::collection($result)`
+trả contract API `{data,facets,meta}`, `::toState($result,$request)` trả cùng shape dạng
+mảng cho SSR hydrate. Cả 3 call site gọi chung — **một nguồn shape duy nhất**, không còn
+drift. Test `SearchSizeTest` xác nhận shape không đổi.
+
+**R2 — Nghiệp vụ + query model rò vào controller.** — ✅ **đã làm (2026-06-21)**
+Trước: `Api/V1/CartController::availableCoupons()` query thẳng `Lunar\Models\Discount` +
+trả mảng tay; `Checkout::shippingOptions()` và `Auth::userPayload()`/`Customer::payload()`
+map mảng inline (user shape lặp 3 lần).
+→ ✅ Đã đẩy xuống service + bọc Resource:
+  - `PromotionService::availableCoupons()` + **`CouponResource`** ← CartController.
+  - **`ShippingOptionResource`** ← CheckoutController (dùng `CheckoutService::shippingOptions()`).
+  - **`UserResource`** dùng chung ở `AuthController` (register/login) **và**
+    `CustomerController` (show/update) — xoá cả 2 bản `userPayload`/`payload` trùng.
+  - Controller giờ chỉ điều phối; return shape giữ nguyên (41 test xanh).
+
+**R3 — Web page "giàu" hơn API (headless thiếu data).** — ✅ **đã làm (2026-06-21)**
+Trước: trang product SSR đổ `related` + `sizeChart` vào Blade, nhưng
+`GET /api/v1/products/{slug}` chỉ trả `ProductResource` trần → client headless không
+lấy được trong **một** call (dù size-chart/recommendations đã có endpoint riêng:
+`/products/{slug}/size-chart`, `/products/{slug}/recommendations`).
+→ ✅ Thêm **`?include=size_chart,related`** cho `show()`: controller resolve qua
+`SizeChartService::for()` + `RecommendationService::forProduct()` (services sẵn có,
+`hydrate()` đã eager-load variants/thumbnail/brand), `ProductResource` gắn extras
+opt-in qua `withSizeChart()`/`withRelated()` (`related` tái dùng chính `ProductResource`).
+**Backward-compatible:** không có `include` → shape cũ **y nguyên** (test xác nhận
+`data.size_chart`/`data.related` vắng mặt).
+**SEO:** trang product web **vẫn SSR Blade như cũ** — đây chỉ là làm endpoint API đầy
+đủ cho *consumer headless*; web page **không** chuyển sang fetch qua JS.
+→ Test mới `ProductIncludeTest` (3 case): default không extras, `include=size_chart`,
+`include=related`.
+
+**R4 — Envelope không nhất quán.** — ✅ **đã làm (2026-06-21)**
+Trước: success đã khá thống nhất (`{data, meta?}`), nhưng **error** thì tuỳ
+`Accept` header — `abort_if(...,404)` / exception có thể render HTML hoặc shape lệch
+khi client headless không gửi `Accept: application/json`.
+→ ✅ Đăng ký một `$exceptions->render()` trong `bootstrap/app.php` cho mọi request
+`api/v1/*`: trả **`{message, errors?}`** bất kể `Accept` header. Map status chuẩn
+(`AuthenticationException`→401, `AuthorizationException`→403, `ModelNotFoundException`→404,
+`HttpException`→status của nó, còn lại→500), default message an toàn (không leak nội bộ
+ở 500). `ValidationException` **giữ nguyên** cho Laravel render (đã đúng `{message,errors}`).
+→ Test mới `ApiErrorEnvelopeTest` (3 case): 404 envelope, **404 khi KHÔNG gửi Accept json**
+(case headless), và validation vẫn `{message,errors}`. Quy ước success vẫn: `{data, meta?}`.
+
+**R5 — Auth mới chỉ SPA-cookie, chưa có token cho mobile/headless thật.** — ✅ **đã làm (2026-06-21)**
+Trước: chỉ có cookie session (guard `web`); mobile app native không dùng cookie.
+→ ✅ Thêm **`TokenAuthController`** (Personal Access Token): `POST /api/v1/auth/token`
+(login → token), `/auth/token/register` (đăng ký → token, 201), `/auth/token/revoke`
+(logout token, `auth:sanctum`). Issue/register ở group **`api`** (stateless, **không**
+session); revoke trong group `auth:sanctum`. Dùng chung validate + `UserResource` với
+luồng cookie, trả `{ data: User, token }`. **Thuần additive** — luồng SPA cookie không
+đổi, các route `auth:sanctum` sẵn có nhận luôn Bearer token. `personal_access_tokens`
+đã có migration sẵn trong repo. Test: `TokenAuthTest` (issue/reject/register/auth bằng
+token/revoke→401).
+
+**R6 — Phụ thuộc model xuyên module ở tầng controller.** — ✅ **đã làm (2026-06-21)**
+Trước: storefront controller query thẳng model của module khác để lấy data cho view —
+`Country::orderBy()` (Checkout **và** AuthPage, trùng nhau), `Order::where('reference')`
+(Checkout), `Product::query()` + `WishlistItem` (Wishlist storefront **và** API trùng nhau).
+→ ✅ Gom hết về service:
+  - **`WishlistService`** (Customer): `productsFor()`/`productIdsFor()`/`toggle()` — cả
+    storefront + API wishlist controller dùng chung, hết query `Product`/`WishlistItem` tay.
+  - **`CountryService::forSelect()`** (Location — đúng module sở hữu geo/reference, cached
+    forever) — Checkout + AuthPage dùng chung, hết `Country::orderBy()` lặp.
+  - **`OrderService::findByReference()`** (Order) — Checkout confirmation dùng (+ `abort_if`
+    404 → đi qua envelope R4 thay vì `firstOrFail()` raw).
+→ **Kết quả:** `grep "use Lunar\Models" modules/*/Http/Controllers/Storefront/*.php` = **rỗng**.
+  Còn 2 import hợp lệ (không phải vi phạm): `AddressController` (route-model-binding type
+  hint, Address là domain của Customer) và `VNPayController` (Payment thao tác Order nó đang
+  settle — đúng nghiệp vụ callback). 50 test vẫn xanh, không thêm test (refactor thuần).
+
+## Lộ trình refactor (an toàn nhờ đã có test — **55 test, toàn bộ R1–R6 xong**)
+
+1. **R1 + R2** (gom shape + đẩy logic xuống service/Resource) — ✅ **xong (2026-06-21)**,
+   41 test xanh, return shape không đổi.
+2. **R4** (chuẩn hoá envelope success/error) — ✅ **xong (2026-06-21)**, +3 test (44 tổng).
+3. **R3** (parity web↔API: include related/size-chart) — ✅ **xong (2026-06-21)**, +3 test (47 tổng).
+4. **R6** (gom model access vào service) — ✅ **xong (2026-06-21)**, storefront controller
+   sạch model xuyên module, 50 test xanh.
+5. **R5** (token auth — PAT cho app/headless) — ✅ **xong (2026-06-21)**, +5 test (55 tổng).
+   `TokenAuthController` thêm `POST /api/v1/auth/token`, `/auth/token/register` (public,
+   group `api` — stateless, không session), `/auth/token/revoke` (`auth:sanctum`). Dùng
+   chung validate + `UserResource` với luồng cookie; trả `{ data: User, token }`.
+   **Thuần additive:** luồng SPA cookie **không đổi**; các endpoint `auth:sanctum` sẵn có
+   nhận luôn Bearer token (đã verify token auth được `/customer/orders`, revoke → 401).
+
+> Nguyên tắc xuyên suốt khi refactor: **không đổi URL/return shape đang chạy** (web
+> island phụ thuộc), chỉ rút trùng + bọc Resource phía sau; chạy `php artisan test`
+> sau mỗi bước. Mọi shape mới phải là **superset** tương thích ngược của shape cũ.
+
+> ✅ **Kết luận API-first / headless-ready (2026-06-21):** toàn bộ R1–R6 đã xong. Một lớp
+> service + API Resource dùng chung cho web SSR và `/api/v1`; error envelope chuẩn;
+> product endpoint parity qua `?include`; storefront controller không còn chạm model
+> xuyên module; và **token auth sẵn sàng cho app/Nuxt** mà không phải viết lại backend.
+> SSR Blade cho nội dung SEO **giữ nguyên** — headless là consumer thứ hai, không thay thế.
 
 ---
 
@@ -635,15 +787,19 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
 - ✅ **Email giao dịch** (xác nhận / thanh toán / cập nhật trạng thái, queued) — xem Phase 7.2; ⬜ invoice
 - 🚧 Promotion: áp dụng coupon nâng cao, hiển thị tiết kiệm
 
-## Phase 5 — Media + Search nâng cao ⬜ (chưa)
-- ⬜ Responsive `<picture>` AVIF/WebP ở storefront (definitions đã có, theme chưa render —
-  card/gallery hiện dùng `<img>` 1 conversion)
+## Phase 5 — Media + Search nâng cao 🚧 (đang làm)
+- 🚧 Media on-demand: ✅ hạ tầng sinh conversion khi request (`MediaUrl` +
+  `ConversionGenerator`, dùng trong `ProductResource`/`CartResource`/`MediaImageResource`)
+  + sizes cấu hình qua Filament (`MediaSettings` + page `MediaImageSizes`) +
+  `OnDemandConversionTest`. ⬜ **Còn: render `<picture>`/`srcset` (AVIF/WebP) ở card/gallery
+  trong theme** — hiện vẫn `<img>` 1 size.
 - ⬜ Cân nhắc bật driver `scout` (Meilisearch/Typesense) khi catalog lớn
 
 ## Phase 6 — Optimization ⬜ (chưa)
 - ⬜ Redis cache/session, Horizon queue, CDN, query/index tuning
-- ✅ **Test tự động** (2026-06-19): 35 Feature test phủ auth/cart/address/checkout/order/
-  search/size/VNPay/email — xem Phase 7.3. ⬜ Redis/Horizon/CDN/index tuning vẫn chưa.
+- ✅ **Test tự động** (cập nhật 2026-06-21): **8 file Feature / 41 test method** phủ
+  auth/cart/address/checkout/order/search/size/VNPay/email + **Location** +
+  **on-demand conversion** — xem Phase 7.3. ⬜ Redis/Horizon/CDN/index tuning vẫn chưa.
 
 ## Phase 7 — Go-live readiness 🎯 (ĐỀ XUẤT — phase tiếp theo)
 
@@ -669,12 +825,13 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
     `OrderPaid` (VNPay callback), status-update qua `OrderObserver` (bỏ qua status thanh toán).
   - ✅ Verify với `MAIL_MAILER=log`. ⬜ Còn: template đẹp/branding, đa ngôn ngữ, invoice PDF.
 
-**7.3 — Test an toàn hồi quy** — *toàn repo* — ✅ **đã làm (2026-06-19)**
-  - ✅ **35 Feature test / 141 assertion, all green.** Bao phủ: auth (register/login/logout
+**7.3 — Test an toàn hồi quy** — *toàn repo* — ✅ **đã làm (mở rộng 2026-06-21)**
+  - ✅ **8 file Feature / 41 test method, all green.** Bao phủ: auth (register/login/logout
     + profile/password), cart (add/update/remove/coupon), address book CRUD (+ ownership),
     checkout→order COD (+ order history/detail + cách ly theo customer), search+facets+suggest,
     size-chart + recommend-size, **VNPay** (chữ ký + tamper, callback paid/idempotent/invalid/
-    failed-code, return redirect, IPN RspCode) + **email** (confirm/paid qua `Mail::fake`).
+    failed-code, return redirect, IPN RspCode) + **email** (confirm/paid qua `Mail::fake`),
+    **Location** (provinces/wards API) + **on-demand media conversion** (sinh size khi request).
   - Hạ tầng: `tests/TestCase` dùng `RefreshDatabase`; chạy trên **MySQL `lunar_testing`** (app
     phụ thuộc JSON functions/facets — SQLite không emulate được); trait `CreatesStorefrontData`
     (seed base data + fixture product/size-chart). Chạy: `php artisan test`.
@@ -682,9 +839,11 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
     route-model-binding inject `Address` → đã sửa nhận model + kiểm tra ownership.
   - ⬜ Mở rộng sau: storefront Blade pages (smoke render), wishlist toggle, MoMo khi thêm.
 
-**7.4 — Media responsive `<picture>`** — *Media + theme* — 🟠 Core Web Vitals/mobile
-  - `FashionMediaDefinitions` đã có conversions; render `<picture>` + `srcset` ở
-    `product-card` và gallery. Cải thiện LCP mobile → tốt cho SEO vừa làm ở Phase 2.
+**7.4 — Media responsive `<picture>`** — *Media + theme* — 🚧 **hạ tầng xong, theme chưa**
+  - ✅ `FashionMediaDefinitions` + on-demand generation (`MediaUrl`/`ConversionGenerator`) +
+    sizes cấu hình qua Filament (`MediaSettings`); API Resource đã trả URL theo conversion.
+  - ⬜ **Còn lại (đúng phần chặn Core Web Vitals/mobile):** render `<picture>` + `srcset`
+    (AVIF/WebP) ở `product-card` và gallery — theme hiện vẫn `<img>` 1 conversion.
 
 **7.5 — Dọn dữ liệu seed/demo modave** — *SectionBuilder/Seeders* — 🟡 nhanh, gọn
   - Ảnh hero/lookbook/testimonial trong `SectionSchemas` + seeders vẫn trỏ
@@ -703,8 +862,9 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
 
 ## P0 — Chặn doanh thu, phải làm trước
 
-1. **Cổng thanh toán Việt Nam (VNPay + MoMo)** — *module Payment*
-   - Hiện chỉ có driver `offline` của Lunar (COD/bank). SME VN cần thanh toán online.
+1. **Cổng thanh toán Việt Nam (VNPay + MoMo)** — *module Payment* (✅ **VNPay xong**; ⬜ MoMo)
+   - ✅ VNPay driver + gateway + return/IPN idempotent đã chạy (xem Phase 7.1). ⬜ Còn MoMo
+     (cùng mẫu driver) + refund qua API.
    - Cách làm: viết **Lunar PaymentDriver** mới (kế thừa contract `Lunar\Base\PaymentTypeInterface`),
      đăng ký trong `config/lunar/payments.php` → checkout đã sẵn gọi qua `Payments::driver()`.
      Thêm route callback/IPN trong module Payment, verify chữ ký, cập nhật `Transaction`.
@@ -765,14 +925,16 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
       collection), robots noindex cho trang riêng tư. ⬜ Còn: **sitemap.xml**, JSON-LD cho
       collection (ItemList) + CMS page, OG image cho home/collection.
 
-13. **Ảnh responsive AVIF/WebP `<picture>`** — *Media*
-    - `FashionMediaDefinitions` đã định nghĩa conversions; cần render `<picture>` với
-      srcset ở product card + gallery để tăng tốc mobile (Core Web Vitals → SEO).
+13. **Ảnh responsive AVIF/WebP `<picture>`** — *Media* (🚧 hạ tầng xong)
+    - ✅ Conversions + on-demand generation + sizes cấu hình admin đã có; ⬜ chỉ còn render
+      `<picture>` với srcset ở product card + gallery để tăng tốc mobile (Core Web Vitals → SEO).
 
 ## Nợ kỹ thuật xuyên suốt (không phải feature nhưng chặn chất lượng)
 
-- **Test tự động:** 0 test trong `modules/`. Tối thiểu Feature test cho cart → checkout
-  → order, auth, search. Là điều kiện để refactor an toàn khi thêm các feature trên.
+- **Test tự động:** ✅ đã có **8 file Feature / 41 test method** ở `tests/Feature` (cart→
+  checkout→order, auth, search, VNPay, email, Location, on-demand conversion) chạy trên
+  MySQL `lunar_testing`. ⬜ Còn: smoke render Blade storefront, wishlist toggle, MoMo, và
+  test sống cạnh module (`modules/*/Tests` vẫn 0).
 - **Hook/event wiring:** module Hook mới có routes; chuẩn hóa event domain (order.placed,
   stock.low, product.viewed) để Email/Analytics/Notify-me cắm vào, tránh coupling.
 
@@ -791,9 +953,23 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
 > `config/recommend.php` + dứt trùng + loại source/giỏ + cache id theo product),
 > API `GET /api/v1/products/{slug}/recommendations` và `GET /api/v1/cart/recommendations`
 > (trả `ProductResource`). Product page SSR đổi `$related` sang service; mini-cart
-> drawer nạp "You May Also Like" qua `enhance/cart.js` khi mở (render bằng markup
-> `list-cart-item`). Đã verify: curate lên đầu, fallback collection lấp phần còn lại,
-> loại sản phẩm đã có trong giỏ. **P2/P3 (CoPurchase/AlsoViewed) chưa làm.**
+> drawer nạp "You May Also Like" qua `enhance/cart.js` khi mở (khối
+> `[data-cart-recommendations]` trong `cart-drawer.blade.php`, render bằng `_card.js`).
+> Đã verify: curate lên đầu, fallback collection lấp phần còn lại, loại sản phẩm đã
+> có trong giỏ.
+>
+> **Cập nhật 2026-06-21:**
+> - ✅ **R2+R4 cho 2 endpoint:** "ràng buộc ≥1 số đo" của `recommend-size` chuyển vào
+>   `SizeRecommendRequest::withValidator` → trả 422 `{message,errors}` chuẩn (bỏ
+>   response 422 tay trong `SizeController`); logic gom product trong giỏ của
+>   `forCart` đẩy xuống **`CartService::products()`** (controller hết với vào cart line).
+> - ✅ **Nối mini-cart "You may also like" ra storefront** (trước đây endpoint có nhưng
+>   `enhance/cart.js` **chưa** gọi — sót khi refactor Vue→vanilla). Nay fetch khi mở
+>   drawer, render `_card.js`, ẩn khi rỗng. Build Vite OK.
+> - ✅ **Test mới:** `RecommendationTest` (product curate-first / 404 / cart loại sản
+>   phẩm trong giỏ) + siết assert 422 cho `recommend-size`.
+>
+> **P2/P3 (CoPurchase/AlsoViewed) chưa làm.**
 
 ## Nguyên tắc #1 trước: Lunar đã có gì?
 
