@@ -30,7 +30,12 @@ class Lookbook extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(LookbookItem::class);
+        return $this->hasMany(LookbookItem::class)->orderBy('sort');
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(LookbookImage::class)->orderBy('sort');
     }
 
     public function scopePublished($query)

@@ -67,9 +67,11 @@ class SectionSchemas
             ],
 
             'lookbook' => [
+                'heading' => 'Shop The Look',
+                'subheading' => 'Get inspired by our curated looks — tap a pin to shop the piece.',
                 'slides' => [
                     [
-                        'banner' => '/demo/DTT_9258.jpg',
+                        'banner' => '/demo/blog-7.jpg',
                         'position' => 'position3',
                         'pin_image' => '/demo/DTT_9602.jpg',
                         'pin_title' => 'Rattan bag with handle',
@@ -77,17 +79,9 @@ class SectionSchemas
                         'pin_url' => '/search',
                     ],
                     [
-                        'banner' => '/demo/DTT_9540.jpg',
-                        'position' => '',
-                        'pin_image' => '/demo/DTT_9618.jpg',
-                        'pin_title' => 'Rattan bag with handle',
-                        'pin_price' => '$159.99',
-                        'pin_url' => '/search',
-                    ],
-                    [
-                        'banner' => '/demo/DTT_9566.jpg',
+                        'banner' => '/demo/blog-15.jpg',
                         'position' => 'position5',
-                        'pin_image' => '/demo/IMG_5804.jpeg',
+                        'pin_image' => '/demo/DTT_9618.jpg',
                         'pin_title' => 'Rattan bag with handle',
                         'pin_price' => '$159.99',
                         'pin_url' => '/search',

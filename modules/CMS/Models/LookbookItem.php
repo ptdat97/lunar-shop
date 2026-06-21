@@ -4,6 +4,7 @@ namespace Modules\CMS\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Lunar\Models\Product;
 
 class LookbookItem extends Model
 {
@@ -24,5 +25,10 @@ class LookbookItem extends Model
     public function lookbook(): BelongsTo
     {
         return $this->belongsTo(Lookbook::class);
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
     }
 }

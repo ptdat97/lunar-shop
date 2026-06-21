@@ -50,14 +50,37 @@ class LookbookResource extends Resource
                             ->label('Cover image'),
                     ]),
 
+                Forms\Components\Section::make('Gallery')
+                    ->description('Photo collection shown at the top of the lookbook page.')
+                    ->schema([
+                        Forms\Components\Repeater::make('images')
+                            ->relationship()
+                            ->schema([
+                                MediaPicker::make('image', type: 'image')
+                                    ->label('Image')
+                                    ->required(),
+                                Forms\Components\TextInput::make('caption')
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('sort')
+                                    ->numeric()
+                                    ->default(0),
+                            ])
+                            ->columns(3)
+                            ->orderable('sort')
+                            ->defaultItems(0),
+                    ]),
+
                 Forms\Components\Section::make('Products')
+                    ->description('Shown at the bottom of the lookbook page.')
                     ->schema([
                         Forms\Components\Repeater::make('items')
                             ->relationship()
                             ->schema([
                                 Forms\Components\Select::make('product_id')
                                     ->label('Product')
-                                    ->options(\Lunar\Models\Product::pluck('name', 'id'))
+                                    ->options(fn () => \Lunar\Models\Product::all()
+                                        ->mapWithKeys(fn ($product) => [$product->id => $product->translateAttribute('name')]))
+                                    ->getOptionLabelUsing(fn ($value): ?string => \Lunar\Models\Product::find($value)?->translateAttribute('name'))
                                     ->searchable()
                                     ->required(),
                                 Forms\Components\TextInput::make('caption')

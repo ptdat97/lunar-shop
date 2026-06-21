@@ -62,8 +62,11 @@ class HeaderMenuSeeder extends Seeder
         // 4) Sale — link with badge
         $this->item($menu, ['type' => 'link', 'label' => 'Sale', 'collection_id' => $collections['sale']?->id, 'badge' => 'Hot', 'sort' => 4]);
 
-        // 5) Blog — dropdown of links
-        $blog = $this->item($menu, ['type' => 'dropdown', 'label' => 'Blog', 'sort' => 5]);
+        // 5) Lookbooks — direct link to the lookbook index page
+        $this->item($menu, ['type' => 'link', 'label' => 'Lookbooks', 'url' => '/lookbooks', 'sort' => 5]);
+
+        // 6) Blog — dropdown of links
+        $blog = $this->item($menu, ['type' => 'dropdown', 'label' => 'Blog', 'sort' => 6]);
         $this->item($menu, ['type' => 'link', 'label' => 'All posts', 'url' => '/blog', 'parent_id' => $blog->id, 'sort' => 0]);
         $this->item($menu, ['type' => 'link', 'label' => 'About us', 'url' => '/about', 'parent_id' => $blog->id, 'sort' => 1]);
     }
