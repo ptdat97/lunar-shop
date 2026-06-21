@@ -50,6 +50,11 @@ class OnDemandConversionTest extends TestCase
         $generator->ensure($media->fresh(), 'medium');
         Storage::disk($media->conversions_disk)->delete($media->getPathRelativeToRoot('medium'));
 
+        // The "exists" result is cached for hot reads, so an out-of-band file
+        // delete is intentionally not detected until the cache is busted (which
+        // regeneration/deletion does). Mirror that here.
+        $generator->forgetExists($media, 'medium');
+
         // Flag still says generated, but the file is gone → must regenerate.
         $this->assertTrue($media->fresh()->hasGeneratedConversion('medium'));
         $this->assertTrue($generator->ensure($media->fresh(), 'medium'));

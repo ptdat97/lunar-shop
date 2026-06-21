@@ -9,12 +9,17 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Modules\Media\Services\MediaRegenerator;
 use Modules\Media\Services\MediaSettings;
 
 /**
  * Admin page to configure image conversion sizes (small/medium/large/zoom).
- * Sizes are read by FashionMediaDefinitions, so changes apply to newly
- * generated conversions; existing media can be regenerated from here.
+ *
+ * Sizes are read by FashionMediaDefinitions, so changes apply to newly generated
+ * conversions. Existing media is rebuilt via a QUEUED BATCH (see MediaRegenerator)
+ * — production-safe for large libraries: the work runs across many small jobs on
+ * the queue with a live progress bar, instead of one synchronous request that
+ * would time out. Requires a running queue worker (`php artisan queue:work`).
  */
 class MediaImageSizes extends Page implements HasForms
 {
@@ -30,12 +35,21 @@ class MediaImageSizes extends Page implements HasForms
 
     protected static string $view = 'media::filament.pages.media-image-sizes';
 
+    /** Bounds for a configurable dimension (px). */
+    protected const MIN_DIMENSION = 16;
+
+    protected const MAX_DIMENSION = 5000;
+
     /** @var array<string, mixed> */
     public array $data = [];
+
+    /** Live batch progress, refreshed by the page poll. @var array<string,mixed>|null */
+    public ?array $batch = null;
 
     public function mount(): void
     {
         $this->form->fill(app(MediaSettings::class)->sizes());
+        $this->refreshBatch();
     }
 
     public function form(Form $form): Form
@@ -43,7 +57,7 @@ class MediaImageSizes extends Page implements HasForms
         return $form
             ->schema([
                 Section::make('Conversion sizes')
-                    ->description('Width and height (px) for each generated image size. "Fit fill" keeps the given aspect ratio.')
+                    ->description('Width and height (px) for each generated image size. Larger sizes mean sharper images but bigger files — keep them as small as the design allows for fast page loads.')
                     ->schema($this->sizeFields()),
             ])
             ->statePath('data');
@@ -62,10 +76,16 @@ class MediaImageSizes extends Page implements HasForms
                 ->schema([
                     TextInput::make("{$key}.width")
                         ->label('Width (px)')
-                        ->numeric()->minValue(1)->required(),
+                        ->numeric()
+                        ->minValue(self::MIN_DIMENSION)
+                        ->maxValue(self::MAX_DIMENSION)
+                        ->required(),
                     TextInput::make("{$key}.height")
                         ->label('Height (px)')
-                        ->numeric()->minValue(1)->required(),
+                        ->numeric()
+                        ->minValue(self::MIN_DIMENSION)
+                        ->maxValue(self::MAX_DIMENSION)
+                        ->required(),
                 ]);
         }
 
@@ -74,74 +94,77 @@ class MediaImageSizes extends Page implements HasForms
 
     public function save(): void
     {
+        // Validates against the min/max rules declared on the fields.
+        $this->form->validate();
+
         app(MediaSettings::class)->save($this->form->getState());
 
         Notification::make()
             ->title('Image sizes saved')
-            ->body('New sizes apply to newly generated images. Use “Regenerate all” to update existing media.')
+            ->body('New sizes apply to newly generated images. Use “Regenerate all” to rebuild existing media with the new sizes.')
             ->success()
             ->send();
     }
 
     /**
-     * Regenerate only the conversions that are missing (fast, non-destructive).
+     * Queue a batch that regenerates only MISSING conversions (fast, additive).
      */
-    public function regenerate(): void
+    public function regenerateMissing(): void
     {
-        $this->runRegenerate(['--only-missing' => true, '--force' => true], 'Missing conversions regenerated');
+        $this->queueRegenerate(onlyMissing: true);
     }
 
     /**
-     * Force regenerate ALL conversions, overwriting existing files. Use after
-     * changing sizes so previously generated images are rebuilt.
+     * Queue a batch that rebuilds ALL conversions (use after changing sizes).
      */
-    public function forceRegenerate(): void
+    public function regenerateAll(): void
     {
-        $this->runRegenerate(['--force' => true], 'All conversions regenerated');
+        $this->queueRegenerate(onlyMissing: false);
+    }
+
+    public function cancelRegenerate(): void
+    {
+        app(MediaRegenerator::class)->cancel();
+        $this->refreshBatch();
+
+        Notification::make()->title('Regeneration cancelled')->warning()->send();
     }
 
     /**
-     * Run media-library:regenerate inline (synchronously) so a button click
-     * does the work without needing a separate `php artisan queue:work`
-     * terminal. The Spatie command dispatches a PerformConversionsJob per
-     * media item, so we force the queue connection to "sync" for this call —
-     * those jobs then run in-process and finish before the request returns.
-     *
-     * @param  array<string, mixed>  $options
+     * Poll target: refresh the batch progress shown in the view.
      */
-    protected function runRegenerate(array $options, string $title): void
+    public function refreshBatch(): void
     {
-        // Regenerating a large library runs many conversions in one request;
-        // lift PHP's execution time limit so it isn't killed mid-way. (Has no
-        // effect when PHP runs in safe mode or via some FPM configs, but is the
-        // standard guard for long-running synchronous work.)
-        @set_time_limit(0);
+        $this->batch = app(MediaRegenerator::class)->progress();
+    }
 
-        // Force conversion jobs to run in-process regardless of the app's
-        // default queue driver, so nothing is left waiting for a worker.
-        $original = config('queue.default');
-        config(['queue.default' => 'sync']);
+    protected function queueRegenerate(bool $onlyMissing): void
+    {
+        $regenerator = app(MediaRegenerator::class);
 
-        try {
-            \Illuminate\Support\Facades\Artisan::call('media-library:regenerate', $options);
-            $output = trim(\Illuminate\Support\Facades\Artisan::output());
-        } catch (\Throwable $e) {
-            config(['queue.default' => $original]);
-
+        if ($regenerator->isRunning()) {
             Notification::make()
-                ->title('Regeneration failed')
-                ->body($e->getMessage())
-                ->danger()
+                ->title('Already running')
+                ->body('A regeneration batch is already in progress.')
+                ->warning()
                 ->send();
 
             return;
         }
 
-        config(['queue.default' => $original]);
+        $batchId = $regenerator->dispatch($onlyMissing);
+
+        if ($batchId === null) {
+            Notification::make()->title('No media to regenerate')->warning()->send();
+
+            return;
+        }
+
+        $this->refreshBatch();
 
         Notification::make()
-            ->title($title)
-            ->body($output !== '' ? $output : 'Done. Existing images have been rebuilt with the current sizes.')
+            ->title('Regeneration queued')
+            ->body('Running in the background. Progress updates below. (Requires a queue worker.)')
             ->success()
             ->send();
     }
