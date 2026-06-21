@@ -57,7 +57,7 @@
     @include('theme::partials.cart-drawer')
 
     {{-- Vendor JS (public/vendor). Vue is imported on demand by app.js. --}}
-    <script src="{{ asset('vendor/jquery/jquery-3.6.0.min.js') }}"></script>
+    <script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script>
     <script src="{{ asset('vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('vendor/swiper/swiper-bundle.min.js') }}"></script>
 
