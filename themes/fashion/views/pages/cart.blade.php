@@ -58,5 +58,13 @@
         <p class="mb-3">Your cart is empty.</p>
         <a href="{{ route('storefront.search') }}" class="btn btn-dark">Continue shopping</a>
     </div>
+
+    {{-- "You may also like" — loaded from /api/v1/cart/recommendations
+         (session-scoped, not SEO content). Hidden until it has items. Same
+         ProductResource shape → rendered by _card.js, matching the drawer. --}}
+    <section class="mt-5" data-cart-recommendations hidden>
+        <h2 class="h5 text-uppercase mb-3">You may also like</h2>
+        <div class="row g-4" data-cart-recommendations-grid></div>
+    </section>
 </div>
 @endsection

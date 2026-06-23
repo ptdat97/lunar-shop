@@ -4,6 +4,7 @@
 
 import api from '../api.js';
 import { CART_UPDATED, CART_REFRESHED, emit, on } from '../events.js';
+import { renderGrid } from './_card.js';
 
 function esc(v) {
     return String(v ?? '').replace(/[&<>"']/g, (c) => ({
@@ -45,13 +46,18 @@ export default function (root = document) {
     const content = page.querySelector('[data-cart-content]');
     const empty = page.querySelector('[data-cart-empty]');
     const linesEl = page.querySelector('[data-cart-lines]');
+    const recs = page.querySelector('[data-cart-recommendations]');
+    const recsGrid = recs?.querySelector('[data-cart-recommendations-grid]');
+    let cartHasLines = false;
 
     function render(cart) {
         if (loading) loading.hidden = true;
         const lines = cart?.lines ?? [];
+        cartHasLines = lines.length > 0;
         if (!lines.length) {
             if (content) content.hidden = true;
             if (empty) empty.hidden = false;
+            if (recs) recs.hidden = true; // no recs alongside an empty cart
             return;
         }
         if (empty) empty.hidden = true;
@@ -70,6 +76,26 @@ export default function (root = document) {
     async function load() {
         const { data } = await api.get('/cart');
         render(data.data ?? data);
+        refreshRecommendations();
+    }
+
+    // "You may also like" — fetched separately so a slow/empty recommendation
+    // never blocks rendering the cart. Hidden when empty (mirrors the drawer).
+    async function refreshRecommendations() {
+        if (!recs || !recsGrid) return;
+        try {
+            const { data } = await api.get('/cart/recommendations');
+            const items = data.data ?? data ?? [];
+            if (items.length && cartHasLines) {
+                renderGrid(recsGrid, items);
+                recs.hidden = false;
+            } else {
+                recsGrid.innerHTML = '';
+                recs.hidden = true;
+            }
+        } catch {
+            recs.hidden = true;
+        }
     }
 
     async function mutate(promise) {

@@ -10,3 +10,55 @@
 //
 //       @include m.up(lg) { padding: 4rem; }
 //   }
+
+// Cart drawer header — keep the title + close button on one clean row so
+// nothing overlaps or gets clipped. Bootstrap's default offcanvas-header is a
+// flexbox, but we make the alignment / spacing explicit and stop the title
+// from being pushed under the close button on narrow widths.
+#shoppingCart .offcanvas-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    padding: 1rem 1.25rem;
+
+    .offcanvas-title {
+        margin: 0;
+        min-width: 0;                // allow the title to shrink before the button
+        flex: 1 1 auto;
+        font-size: 1.05rem;
+        line-height: 1.2;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .btn-close {
+        flex: 0 0 auto;              // never shrink / never get covered
+        margin: 0;                   // override Bootstrap's negative offsets
+        padding: .5rem;
+    }
+}
+
+// Cart drawer body is a flex column: shipping + line items + recommendations
+// share one scrollable region ([data-cart-scroll]) so they flow naturally and
+// scroll together; the footer stays pinned at the bottom. min-height:0 is what
+// actually lets the flex child scroll instead of pushing siblings off-screen.
+#shoppingCart .offcanvas-body {
+    min-height: 0;
+
+    [data-cart-scroll] {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-y: auto;
+    }
+
+    [data-cart-footer] {
+        flex: 0 0 auto;              // pinned below; never squeezed
+    }
+
+    [data-cart-recommendations] {
+        border-top: 1px solid var(--bs-border-color, #dee2e6);
+        margin-top: .5rem;
+    }
+}

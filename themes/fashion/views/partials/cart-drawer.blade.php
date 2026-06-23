@@ -8,29 +8,33 @@
     </div>
 
     <div class="offcanvas-body d-flex flex-column p-0">
-        {{-- Free-shipping progress --}}
-        <div class="px-3 pt-3 small text-muted" data-cart-shipping hidden></div>
+        {{-- Scroll region: shipping + line items + recommendations all scroll
+             together; the footer below stays pinned. --}}
+        <div class="flex-grow-1 overflow-auto" data-cart-scroll>
+            {{-- Free-shipping progress --}}
+            <div class="px-3 pt-3 small text-muted" data-cart-shipping hidden></div>
 
-        {{-- Line items (rendered by JS) --}}
-        <div class="flex-grow-1 overflow-auto px-3" data-cart-body>
-            <div class="text-center text-muted py-5" data-cart-loading>Loading…</div>
+            {{-- Line items (rendered by JS) --}}
+            <div class="px-3" data-cart-body>
+                <div class="text-center text-muted py-5" data-cart-loading>Loading…</div>
+            </div>
+
+            {{-- Empty state --}}
+            <div class="text-center text-muted py-5 px-3" data-cart-empty hidden>
+                <p class="mb-3">Your cart is empty.</p>
+                <a href="{{ route('storefront.search') }}" class="btn btn-outline-dark btn-sm">Continue shopping</a>
+            </div>
+
+            {{-- "You may also like" — loaded from /api/v1/cart/recommendations
+                 when the drawer opens (session-scoped, not SEO content). Hidden
+                 until it has items. Same ProductResource shape → _card.js. --}}
+            <div class="px-3 pb-3" data-cart-recommendations hidden>
+                <h6 class="text-uppercase small text-muted mt-3 mb-2">You may also like</h6>
+                <div class="row g-2" data-cart-recommendations-grid></div>
+            </div>
         </div>
 
-        {{-- Empty state --}}
-        <div class="text-center text-muted py-5 px-3" data-cart-empty hidden>
-            <p class="mb-3">Your cart is empty.</p>
-            <a href="{{ route('storefront.search') }}" class="btn btn-outline-dark btn-sm">Continue shopping</a>
-        </div>
-
-        {{-- "You may also like" — loaded from /api/v1/cart/recommendations when
-             the drawer opens (session-scoped, not SEO content). Hidden until it
-             has items. Same ProductResource shape → rendered by _card.js. --}}
-        <div class="px-3 pb-3" data-cart-recommendations hidden>
-            <h6 class="text-uppercase small text-muted mt-3 mb-2">You may also like</h6>
-            <div class="row g-2" data-cart-recommendations-grid></div>
-        </div>
-
-        {{-- Footer: totals + actions --}}
+        {{-- Footer: totals + actions (pinned below the scroll region) --}}
         <div class="border-top p-3" data-cart-footer hidden>
             <div class="d-flex justify-content-between mb-2">
                 <span>Subtotal</span>

@@ -119,7 +119,7 @@
 
         {{-- Order summary --}}
         <div class="col-12 col-lg-5">
-            <div class="border rounded p-3">
+            <div class="border rounded p-3" data-checkout-summary>
                 <h2 class="h6 text-uppercase">Order summary</h2>
                 @foreach($cart->lines as $line)
                     <div class="d-flex justify-content-between small py-1">
@@ -127,10 +127,32 @@
                         <span>{{ $line->subTotal->formatted() }}</span>
                     </div>
                 @endforeach
+
+                {{-- Coupon — applied via /api/v1/cart/coupon (same endpoint as the
+                     cart page). It's stored on the server-side cart session, so
+                     placeOrder() picks it up automatically; the summary lines
+                     below just update from the response without reloading. --}}
+                <div class="border-top pt-2 mt-2">
+                    <label class="form-label small mb-1">Coupon code</label>
+                    <div class="input-group input-group-sm" data-coupon-form>
+                        <input class="form-control" placeholder="Enter code" data-coupon-input
+                               value="{{ $cart->coupon_code }}">
+                        @if($cart->coupon_code)
+                            <button class="btn btn-outline-danger" type="button" data-coupon-remove>Remove</button>
+                        @else
+                            <button class="btn btn-outline-dark" type="button" data-coupon-apply>Apply</button>
+                        @endif
+                    </div>
+                    <div class="small mt-1" data-coupon-status></div>
+                </div>
+
                 <dl class="row small border-top pt-2 mt-2 mb-0">
-                    <dt class="col-7 fw-normal">Subtotal</dt><dd class="col-5 text-end">{{ $cart->subTotal?->formatted() }}</dd>
-                    <dt class="col-7 fw-normal">Tax</dt><dd class="col-5 text-end">{{ $cart->taxTotal?->formatted() }}</dd>
-                    <dt class="col-7 fw-bold">Total</dt><dd class="col-5 text-end fw-bold">{{ $cart->total?->formatted() }}</dd>
+                    <dt class="col-7 fw-normal">Subtotal</dt><dd class="col-5 text-end" data-sum-subtotal>{{ $cart->subTotal?->formatted() }}</dd>
+                    <div class="col-12 p-0 d-flex" data-discount-row @class(['d-none' => ! $cart->discountTotal?->value])>
+                        <dt class="col-7 fw-normal">Discount</dt><dd class="col-5 text-end text-success" data-sum-discount>−{{ $cart->discountTotal?->formatted() }}</dd>
+                    </div>
+                    <dt class="col-7 fw-normal">Tax</dt><dd class="col-5 text-end" data-sum-tax>{{ $cart->taxTotal?->formatted() }}</dd>
+                    <dt class="col-7 fw-bold">Total</dt><dd class="col-5 text-end fw-bold" data-sum-total>{{ $cart->total?->formatted() }}</dd>
                 </dl>
                 <button class="btn btn-dark w-100 mt-3" type="submit">Place order</button>
             </div>
