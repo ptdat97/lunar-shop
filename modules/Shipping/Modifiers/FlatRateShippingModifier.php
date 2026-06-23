@@ -10,10 +10,13 @@ use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Contracts\Cart;
 use Lunar\Models\Currency;
 use Lunar\Models\TaxClass;
+use Modules\Shipping\Services\ShippingZoneResolver;
 
 /**
  * Registers shipping options into Lunar's manifest before totals are calculated.
- * Phase 1: flat standard rate, free over an optional threshold.
+ * The rate comes from the DB-backed shipping zones (matched on the cart's
+ * shipping address), falling back to the static config/shipping.php flat rate
+ * when no zone matches.
  *
  * This is Lunar's official extension point — we inherit, not reimplement.
  */
@@ -24,12 +27,7 @@ class FlatRateShippingModifier extends ShippingModifier
         $currency = $cart->currency ?? Currency::getDefault();
         $taxClass = TaxClass::getDefault();
 
-        $subTotal = $cart->subTotal?->value ?? 0;
-        $freeThreshold = (int) config('shipping.free_threshold', 0);
-
-        $rate = ($freeThreshold > 0 && $subTotal >= $freeThreshold)
-            ? 0
-            : (int) config('shipping.standard_rate', 3000);
+        $rate = app(ShippingZoneResolver::class)->rateForCart($cart);
 
         ShippingManifest::addOption(new ShippingOption(
             name: 'Standard Delivery',

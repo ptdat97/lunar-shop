@@ -15,7 +15,7 @@ class OrderResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        return [
+        $data = [
             'id' => $this->id,
             'reference' => $this->reference,
             'status' => $this->status,
@@ -34,6 +34,12 @@ class OrderResource extends JsonResource
             'shipping_address' => $this->whenLoaded('shippingAddress', fn () => $this->address($this->shippingAddress)),
             'billing_address' => $this->whenLoaded('billingAddress', fn () => $this->address($this->billingAddress)),
         ];
+
+        return \Modules\Hook\Facades\Hook::applyFilters(
+            \Modules\Hook\Support\Hooks::ORDER_RESOURCE,
+            $data,
+            [$this->resource],
+        );
     }
 
     /**

@@ -93,4 +93,15 @@ class CartController extends Controller
     {
         return CouponResource::collection($this->promotions->availableCoupons());
     }
+
+    /**
+     * POST /api/v1/cart/coupon/validate  { code } — check a code without
+     * applying it (live storefront feedback). Returns 200 with {valid, ...}.
+     */
+    public function validateCoupon(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $data = $request->validate(['code' => ['required', 'string', 'max:255']]);
+
+        return response()->json($this->promotions->validateCoupon($data['code']));
+    }
 }

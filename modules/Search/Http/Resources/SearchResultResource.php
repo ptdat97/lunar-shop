@@ -24,16 +24,26 @@ class SearchResultResource
      */
     public static function collection(SearchResult $result): AnonymousResourceCollection
     {
-        return ProductResource::collection($result->items)
-            ->additional([
-                'facets' => $result->facets,
-                'meta' => [
-                    'total' => $result->total,
-                    'page' => $result->page,
-                    'per_page' => $result->perPage,
-                    'last_page' => $result->lastPage(),
-                ],
-            ]);
+        $additional = [
+            'facets' => $result->facets,
+            'meta' => [
+                'total' => $result->total,
+                'page' => $result->page,
+                'per_page' => $result->perPage,
+                'last_page' => $result->lastPage(),
+            ],
+        ];
+
+        // Let other modules adjust the facets/meta envelope (e.g. inject a
+        // promoted-results facet) without this resource depending on them. The
+        // `data` items are already hooked via ProductResource.
+        $additional = \Modules\Hook\Facades\Hook::applyFilters(
+            \Modules\Hook\Support\Hooks::SEARCH_RESULTS,
+            $additional,
+            [$result],
+        );
+
+        return ProductResource::collection($result->items)->additional($additional);
     }
 
     /**

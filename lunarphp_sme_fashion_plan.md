@@ -251,7 +251,7 @@ modules/Product/
 | **Catalog** | Điều phối product/collection, listing, facet, seeders demo | Products, Brands, Tags, Attribute Groups, Product Types | ✅ chạy (home + storefront controllers, seeders) |
 | **Product** | Product, variant, options (size/color), material, size chart, related | Products, Product Variants, Product Options | ✅ chạy (Service + API Resource + size chart) |
 | **Collection** | Collection, collection groups, gán product | Collections, Collection Groups | ✅ chạy (storefront + API) |
-| **Inventory** | Stock per-variant, reserve, low-stock, oversell | stock trên Product Variant | ⚠️ service đọc stock/low/out (`InventoryService`); chưa reserve/oversell/notify-me |
+| **Inventory** | Stock per-variant, reserve, low-stock, oversell | stock trên Product Variant | ✅ reserve stock khi tạo order (`DecrementStock` pipeline) + oversell guard (atomic, honor backorder/always), notify-me back-in-stock (model + API `/inventory/notify-me` + email queued khi restock), Filament page **Stock Levels** |
 | **Pricing** | Giá theo variant/customer-group, tax-inclusive | Prices, Currencies, Customer Groups | ✅ wrap Lunar Pricing |
 | **Cart** | Lunar Cart wrap, line, coupon, free-ship threshold | Lunar Cart | ✅ chạy (drawer/page/count vanilla + API + coupon) |
 | **Checkout** | Pipeline validate→pricing→ship→tax→pay→order | Lunar checkout pipeline | ✅ chạy (addresses/shipping/placeOrder, driver `offline`) |
@@ -265,12 +265,12 @@ modules/Product/
 | **FileManager** | Quản lý file/asset trong admin | — | ✅ Filament page (tiện ích nội bộ) |
 | **Search** | Interface + driver `database`/`scout`; suggest + filters | — (xem Search abstraction) | ✅ chạy (interface + 2 driver + DTO) |
 | **Recommend** | Gợi ý sản phẩm (product page + mini-cart), strategy chain | Lunar `ProductAssociation` (curate) | ✅ chạy P1 (Association + Collection strategy + API) |
-| **Promotion** | %, BXGY, free-ship, cart/coupon rules | Discounts | ⚠️ wrap đọc Discount; chưa UI/áp dụng nâng cao |
-| **Shipping** | Shipping methods/zones/rates | shipping của Lunar | ⚠️ service cơ bản; chưa zone/rate UI |
+| **Promotion** | %, BXGY, free-ship, cart/coupon rules | Discounts | ✅ apply/remove coupon + **validate coupon không-apply** (`/cart/coupon/validate`, live feedback) + mô tả discount human-readable (`describe`) trong CouponResource; admin discount dùng Lunar `DiscountResource` (BXGY có sẵn) |
+| **Shipping** | Shipping methods/zones/rates | shipping của Lunar | ✅ **zone/rate DB-backed** (`ShippingZone` model: country + states → rate + free-threshold, most-specific-wins) qua `ShippingZoneResolver` + `FlatRateShippingModifier`, fallback config; Filament **Shipping Zones** resource (CRUD) |
 | **Payment** | COD, Bank, VNPay, MoMo (P1); Stripe/PayPal (P2) | payment driver của Lunar + driver mới | ✅ `offline` (COD/bank) + **VNPay** (driver + gateway HMAC + return/IPN idempotent); ⚠️ chưa MoMo/Stripe/refund-API |
 | **Location** | Địa giới hành chính VN (tỉnh/phường) cho form địa chỉ | — | ✅ chạy (2 model + seeder data + API `provinces`/`wards`, gắn dropdown checkout + account) |
-| **Hook** | action/filter (Eventy) + domain events liên-module | Lunar events | ⚠️ routes có; chưa thấy event wiring rõ ràng |
-| **Analytics** | Tracking, báo cáo bán hàng, KPI | Activities (log) | ⚠️ service tổng hợp (revenue/orders); chưa dashboard |
+| **Hook** | action/filter (Eventy) + domain events liên-module | Lunar events | ✅ `HookManager` native (action/filter theo priority) + facade `Hook` + registry `Hooks::*`. **Hook hoá toàn bộ payload + event**: FILTER trên mọi API Resource (`product.resource`/`cart.resource`/`collection.resource`/`order.resource`/`search.results`) cho phép module khác enrich payload không cần phụ thuộc; FILTER `product.purchasable` (Inventory veto oversell); ACTION `order.placed`/`order.paid`/`order.status_changed`. Consumer thật: Inventory thêm block `availability` vào product payload qua `product.resource` |
+| **Analytics** | Tracking, báo cáo bán hàng, KPI | Activities (log) | ✅ `AnalyticsService` (revenue/orders/AOV/monthly/top-products, **MySQL-portable**, đếm đúng paid statuses) + Filament **Sales Dashboard** (KPI + trend + recent orders + best-sellers) |
 
 > Cấu hình hệ thống (Channels, Languages, Taxes, Staff) dùng thẳng Settings của Lunar,
 > không cần module riêng.

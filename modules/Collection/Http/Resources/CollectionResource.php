@@ -14,11 +14,17 @@ class CollectionResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        return [
+        $data = [
             'id' => $this->id,
             'name' => $this->translateAttribute('name'),
             'slug' => $this->defaultUrl?->slug,
             'description' => $this->translateAttribute('description'),
         ];
+
+        return \Modules\Hook\Facades\Hook::applyFilters(
+            \Modules\Hook\Support\Hooks::COLLECTION_RESOURCE,
+            $data,
+            [$this->resource],
+        );
     }
 }

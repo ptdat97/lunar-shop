@@ -27,12 +27,20 @@ class OrderObserver
             return;
         }
 
-        $previous = $order->getOriginal('status');
+        $previous = (string) $order->getOriginal('status');
+
+        // Broadcast every status transition on the shared hook so other modules
+        // can react (audit, fulfilment, analytics) — independent of whether an
+        // email is sent below.
+        \Modules\Hook\Facades\Hook::doAction(
+            \Modules\Hook\Support\Hooks::ORDER_STATUS_CHANGED,
+            [$order, $previous],
+        );
 
         if (in_array($order->status, self::SKIP, true)) {
             return;
         }
 
-        $this->mailer->send($order, new OrderStatusUpdatedMail($order, (string) $previous));
+        $this->mailer->send($order, new OrderStatusUpdatedMail($order, $previous));
     }
 }

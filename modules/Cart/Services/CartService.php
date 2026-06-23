@@ -77,10 +77,28 @@ class CartService
 
     /**
      * Add a variant to the cart.
+     *
+     * Purchasability is decided through the `product.purchasable` hook so other
+     * modules (Inventory) can veto an oversell before the line is created. The
+     * default is Lunar's own stock/backorder check.
+     *
+     * @throws \Illuminate\Validation\ValidationException
      */
     public function add(int $variantId, int $quantity = 1): Cart
     {
         $variant = ProductVariant::findOrFail($variantId);
+
+        $purchasable = \Modules\Hook\Facades\Hook::applyFilters(
+            \Modules\Hook\Support\Hooks::PRODUCT_PURCHASABLE,
+            $variant->canBeFulfilledAtQuantity($quantity),
+            [$variant, $quantity],
+        );
+
+        if (! $purchasable) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'quantity' => 'Sorry, there isn\'t enough stock to add that quantity.',
+            ]);
+        }
 
         return $this->current()->add($variant, $quantity)->calculate();
     }

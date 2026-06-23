@@ -15,7 +15,7 @@ class CartResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        return [
+        $data = [
             'id' => $this->id,
             'lines_count' => $this->lines->sum('quantity'),
             'lines' => $this->lines->map(fn ($line) => [
@@ -38,6 +38,14 @@ class CartResource extends JsonResource
             ],
             'free_shipping' => $this->freeShippingInfo(),
         ];
+
+        // Let other modules enrich the cart payload (e.g. Recommend adds
+        // cross-sell suggestions) without this resource depending on them.
+        return \Modules\Hook\Facades\Hook::applyFilters(
+            \Modules\Hook\Support\Hooks::CART_RESOURCE,
+            $data,
+            [$this->resource],
+        );
     }
 
     /**

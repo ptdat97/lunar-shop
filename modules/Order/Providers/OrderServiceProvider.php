@@ -39,6 +39,16 @@ class OrderServiceProvider extends ServiceProvider
         Event::listen(PaymentAttemptEvent::class, SendOrderConfirmation::class);
         Event::listen(OrderPaid::class, SendOrderPaidEmail::class);
 
+        // Bridge the OrderPaid domain event to the shared `order.paid` hook so
+        // other modules can react (analytics, loyalty, fulfilment) without
+        // depending on the Order module directly.
+        Event::listen(OrderPaid::class, function (OrderPaid $event): void {
+            \Modules\Hook\Facades\Hook::doAction(
+                \Modules\Hook\Support\Hooks::ORDER_PAID,
+                [$event->order],
+            );
+        });
+
         // Status-change email (e.g. dispatched/completed) via model observer.
         Order::observe(OrderObserver::class);
     }

@@ -27,7 +27,7 @@ class ProductResource extends JsonResource
 
     public function toArray(Request $request): array
     {
-        return [
+        $data = [
             'id' => $this->id,
             'name' => $this->translateAttribute('name'),
             'slug' => $this->defaultUrl?->slug,
@@ -42,6 +42,14 @@ class ProductResource extends JsonResource
             'size_chart' => $this->when($this->sizeChart !== null, fn () => $this->sizeChart),
             'related' => $this->when($this->related !== null, fn () => static::collection($this->related)),
         ];
+
+        // Let other modules enrich the product payload (e.g. Inventory adds
+        // availability) without this resource depending on them.
+        return \Modules\Hook\Facades\Hook::applyFilters(
+            \Modules\Hook\Support\Hooks::PRODUCT_RESOURCE,
+            $data,
+            [$this->resource],
+        );
     }
 
     /**

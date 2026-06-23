@@ -127,6 +127,16 @@ class CheckoutService
         // Cart is consumed; forget it from the session so a fresh one starts.
         $this->carts->forget();
 
-        return Order::findOrFail($authorize->orderId);
+        $order = Order::findOrFail($authorize->orderId);
+
+        // Broadcast the placement on the shared hook so any module can react
+        // (analytics, fulfilment, notifications) without Checkout depending on
+        // them. Stock is already reserved by the DecrementStock pipeline.
+        \Modules\Hook\Facades\Hook::doAction(
+            \Modules\Hook\Support\Hooks::ORDER_PLACED,
+            [$order],
+        );
+
+        return $order;
     }
 }

@@ -17,6 +17,7 @@ class CouponResource extends JsonResource
         return [
             'code' => $this->coupon,
             'name' => $this->name,
+            'description' => app(\Modules\Promotion\Services\PromotionService::class)->describe($this->resource),
         ];
     }
 }
