@@ -7,6 +7,10 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
+use Modules\CMS\Filament\Resources\PageResource\Pages\CreatePage;
+use Modules\CMS\Filament\Resources\PageResource\Pages\EditPage;
+use Modules\CMS\Filament\Resources\PageResource\Pages\ListPages;
 use Modules\CMS\Models\Page;
 use Modules\FileManager\Filament\Forms\MediaPicker;
 
@@ -16,9 +20,12 @@ class PageResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-document-text';
 
-    protected static ?string $navigationGroup = 'Content';
-
     protected static ?int $navigationSort = 1;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('lunarpanel::global.sections.content');
+    }
 
     public static function form(Form $form): Form
     {
@@ -30,8 +37,7 @@ class PageResource extends Resource
                             ->required()
                             ->maxLength(255)
                             ->live(onBlur: true)
-                            ->afterStateUpdated(fn ($state, Forms\Set $set) =>
-                                $set('slug', \Illuminate\Support\Str::slug($state))
+                            ->afterStateUpdated(fn ($state, Forms\Set $set) => $set('slug', Str::slug($state))
                             ),
                         Forms\Components\TextInput::make('slug')
                             ->required()
@@ -104,9 +110,9 @@ class PageResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => \Modules\CMS\Filament\Resources\PageResource\Pages\ListPages::route('/'),
-            'create' => \Modules\CMS\Filament\Resources\PageResource\Pages\CreatePage::route('/create'),
-            'edit' => \Modules\CMS\Filament\Resources\PageResource\Pages\EditPage::route('/{record}/edit'),
+            'index' => ListPages::route('/'),
+            'create' => CreatePage::route('/create'),
+            'edit' => EditPage::route('/{record}/edit'),
         ];
     }
 }

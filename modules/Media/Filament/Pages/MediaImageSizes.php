@@ -2,6 +2,7 @@
 
 namespace Modules\Media\Filament\Pages;
 
+use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -27,9 +28,12 @@ class MediaImageSizes extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-photo';
 
-    protected static ?string $navigationGroup = 'Settings';
-
     protected static ?string $title = 'Image Sizes';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('lunarpanel::global.sections.settings');
+    }
 
     protected static ?string $slug = 'settings/image-sizes';
 
@@ -64,7 +68,7 @@ class MediaImageSizes extends Page implements HasForms
     }
 
     /**
-     * @return array<int, \Filament\Forms\Components\Component>
+     * @return array<int, Component>
      */
     protected function sizeFields(): array
     {

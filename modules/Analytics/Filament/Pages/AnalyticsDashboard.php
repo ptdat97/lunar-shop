@@ -3,8 +3,11 @@
 namespace Modules\Analytics\Filament\Pages;
 
 use Filament\Pages\Page;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Number;
 use Lunar\Models\Currency;
+use Lunar\Models\Order;
 use Modules\Analytics\Services\AnalyticsService;
 
 /**
@@ -16,9 +19,12 @@ class AnalyticsDashboard extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
 
-    protected static ?string $navigationGroup = 'Sales';
-
     protected static ?int $navigationSort = -10;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('lunarpanel::global.sections.sales');
+    }
 
     protected static ?string $title = 'Sales Dashboard';
 
@@ -32,7 +38,7 @@ class AnalyticsDashboard extends Page
     /** @var array<int, array{month:string, revenue:int, orders:int, label:string, formatted:string}> */
     public array $monthly = [];
 
-    /** @var \Illuminate\Support\Collection<int, \Lunar\Models\Order> */
+    /** @var Collection<int, Order> */
     public $recent;
 
     /** @var array<int, array{name:string, quantity:int, revenue:int, formatted:string}> */
@@ -48,7 +54,7 @@ class AnalyticsDashboard extends Page
         ];
 
         $this->monthly = array_map(function (array $row): array {
-            $row['label'] = \Illuminate\Support\Carbon::createFromFormat('Y-m', $row['month'])->format('M Y');
+            $row['label'] = Carbon::createFromFormat('Y-m', $row['month'])->format('M Y');
             $row['formatted'] = $this->money($row['revenue']);
 
             return $row;

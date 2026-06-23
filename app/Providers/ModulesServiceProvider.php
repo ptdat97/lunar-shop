@@ -2,10 +2,15 @@
 
 namespace App\Providers;
 
+use Filament\Navigation\NavigationGroup;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Admin\Filament\Resources as Lunar;
+use Lunar\Admin\Filament\Resources\ProductResource;
 use Lunar\Admin\LunarPanelManager;
+use Lunar\Admin\Support\Facades\LunarPanel;
+use Modules\Product\Filament\Extensions\ProductSizeExtension;
 use Modules\Theme\Filament\Resources as Custom;
+use Modules\Theme\Support\AdminPages;
 
 class ModulesServiceProvider extends ServiceProvider
 {
@@ -64,13 +69,13 @@ class ModulesServiceProvider extends ServiceProvider
      */
     protected function registerLunarPanel(): void
     {
-        $pages = \Modules\Theme\Support\AdminPages::all();
-        $extraResources = \Modules\Theme\Support\AdminPages::resources();
+        $pages = AdminPages::all();
+        $extraResources = AdminPages::resources();
 
         // Fashion sizing: add Size Chart + Material managers to the product editor.
         // Extensions are read while resources build, so register before panel().
-        \Lunar\Admin\Support\Facades\LunarPanel::extensions([
-            \Lunar\Admin\Filament\Resources\ProductResource::class => \Modules\Product\Filament\Extensions\ProductSizeExtension::class,
+        LunarPanel::extensions([
+            ProductResource::class => ProductSizeExtension::class,
         ]);
 
         // Swap selected Lunar resources for our subclasses (custom navigation /
@@ -94,7 +99,7 @@ class ModulesServiceProvider extends ServiceProvider
             Lunar\TaxZoneResource::class => Custom\TaxZoneResource::class,
         ];
 
-        \Lunar\Admin\Support\Facades\LunarPanel::panel(function ($panel) use ($pages, $extraResources, $swaps) {
+        LunarPanel::panel(function ($panel) use ($pages, $extraResources, $swaps) {
             // Filament Panel::resources() merges, so we use reflection to reset the array.
             $replacement = collect(LunarPanelManager::getResources())
                 ->reject(fn ($r) => isset($swaps[$r]))
@@ -105,6 +110,35 @@ class ModulesServiceProvider extends ServiceProvider
 
             (function () use ($replacement) {
                 $this->resources = $replacement;
+            })->call($panel);
+
+            // Lunar's defaultPanel() already registered its group order with
+            // hardcoded English labels ('Catalog', 'Sales', NavigationGroup
+            // 'Settings'), but resources report their group via the translated
+            // lunarpanel::global.sections.* keys. Under a non-English locale
+            // (e.g. vi) those labels no longer match, so Filament can't place
+            // the groups and they fall to the end of the sidebar.
+            //
+            // Panel::navigationGroups() MERGES, so calling it would just append
+            // our groups after Lunar's stale string entries — and because the
+            // first entry is then a plain string, Filament's matcher skips the
+            // label lookup entirely. Reset the array via reflection (same trick
+            // used for resources above) so only our translated groups remain.
+            //
+            // Labels are Closures, not __() calls: this closure runs inside
+            // register() where the translator isn't bound yet, while Filament
+            // resolves a group's label lazily at render time (request scope) and
+            // matches it against the resources' getNavigationGroup() output.
+            $section = fn (string $key) => __("lunarpanel::global.sections.{$key}");
+            $navigationGroups = [
+                NavigationGroup::make()->label(fn () => $section('catalog')),
+                NavigationGroup::make()->label(fn () => $section('sales')),
+                NavigationGroup::make()->label(fn () => $section('content')),
+                NavigationGroup::make()->label(fn () => $section('settings'))->collapsed(),
+            ];
+
+            (function () use ($navigationGroups) {
+                $this->navigationGroups = $navigationGroups;
             })->call($panel);
 
             if ($pages) {

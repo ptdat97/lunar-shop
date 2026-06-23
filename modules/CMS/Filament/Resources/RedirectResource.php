@@ -7,6 +7,9 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Modules\CMS\Filament\Resources\RedirectResource\Pages\CreateRedirect;
+use Modules\CMS\Filament\Resources\RedirectResource\Pages\EditRedirect;
+use Modules\CMS\Filament\Resources\RedirectResource\Pages\ListRedirects;
 use Modules\CMS\Models\Redirect;
 
 class RedirectResource extends Resource
@@ -15,9 +18,12 @@ class RedirectResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-arrow-right-end-on-rectangle';
 
-    protected static ?string $navigationGroup = 'Content';
-
     protected static ?int $navigationSort = 5;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('lunarpanel::global.sections.content');
+    }
 
     public static function form(Form $form): Form
     {
@@ -88,9 +94,9 @@ class RedirectResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => \Modules\CMS\Filament\Resources\RedirectResource\Pages\ListRedirects::route('/'),
-            'create' => \Modules\CMS\Filament\Resources\RedirectResource\Pages\CreateRedirect::route('/create'),
-            'edit' => \Modules\CMS\Filament\Resources\RedirectResource\Pages\EditRedirect::route('/{record}/edit'),
+            'index' => ListRedirects::route('/'),
+            'create' => CreateRedirect::route('/create'),
+            'edit' => EditRedirect::route('/{record}/edit'),
         ];
     }
 }

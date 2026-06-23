@@ -14,6 +14,7 @@ use Illuminate\Http\UploadedFile;
 use Livewire\WithFileUploads;
 use Lunar\Models\Asset;
 use Modules\FileManager\Services\FileManager;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * Gallery-style media library built on Lunar Assets + Spatie MediaLibrary.
@@ -28,9 +29,12 @@ class MediaLibrary extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-photo';
 
-    protected static ?string $navigationGroup = 'Content';
-
     protected static ?string $title = 'Media Library';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('lunarpanel::global.sections.content');
+    }
 
     protected static ?int $navigationSort = 10;
 
@@ -139,7 +143,7 @@ class MediaLibrary extends Page implements HasForms
         $this->uploadForm->fill();
 
         Notification::make()
-            ->title($count . ' file(s) uploaded')
+            ->title($count.' file(s) uploaded')
             ->success()
             ->send();
     }
@@ -233,7 +237,7 @@ class MediaLibrary extends Page implements HasForms
         $count = $assets->count();
         $this->selected = [];
 
-        Notification::make()->title($count . ' file(s) deleted')->success()->send();
+        Notification::make()->title($count.' file(s) deleted')->success()->send();
     }
 
     /**
@@ -276,7 +280,7 @@ class MediaLibrary extends Page implements HasForms
      */
     public function getFoldersProperty(): array
     {
-        return \Spatie\MediaLibrary\MediaCollections\Models\Media::query()
+        return Media::query()
             ->whereNotNull('custom_properties->folder')
             ->pluck('custom_properties')
             ->map(fn ($p) => $p['folder'] ?? null)

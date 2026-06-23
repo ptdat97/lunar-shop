@@ -28,9 +28,12 @@ class StockOverview extends Page implements HasTable
 
     protected static ?string $navigationIcon = 'heroicon-o-exclamation-triangle';
 
-    protected static ?string $navigationGroup = 'Sales';
-
     protected static ?string $title = 'Stock Levels';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('lunarpanel::global.sections.sales');
+    }
 
     protected static ?string $slug = 'stock-levels';
 
@@ -130,8 +133,8 @@ class StockOverview extends Page implements HasTable
             // Count of pending "notify me" subscribers, without needing a
             // relation on Lunar's variant model.
             ->selectRaw("{$table}.*, ("
-                . 'select count(*) from stock_notifications '
-                . "where stock_notifications.product_variant_id = {$table}.id "
-                . 'and stock_notifications.notified_at is null) as waiting');
+                .'select count(*) from stock_notifications '
+                ."where stock_notifications.product_variant_id = {$table}.id "
+                .'and stock_notifications.notified_at is null) as waiting');
     }
 }

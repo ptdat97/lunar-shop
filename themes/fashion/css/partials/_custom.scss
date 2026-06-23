@@ -126,61 +126,6 @@
         }
     }
 
-    // Image swatch option (e.g. Color values that have a per-variant photo).
-    // product-variant.js still toggles .btn-dark/.btn-outline-dark on these, so
-    // we neutralise Bootstrap's fill/border and show selection with a ring —
-    // keeping the thumbnail itself visible underneath.
-    .option-thumb {
-        --ring: transparent;
-        display: inline-flex;
-        flex-direction: column;
-        align-items: center;
-        gap: .25rem;
-        width: 4rem;
-        padding: 0;
-        background: none;
-        border: 0;
-        box-shadow: none;
-
-        &.btn-dark,
-        &.btn-outline-dark {
-            background: none;
-            color: inherit;       // keep the label dark, not white
-            border: 0;
-        }
-
-        &.btn-dark { --ring: #{v.$accent}; }   // active value
-
-        &__img {
-            display: block;
-            width: 4rem;
-            height: 5rem;
-            object-fit: cover;
-            border-radius: v.$radius;
-            background: #f5f5f5;
-            outline: 2px solid var(--ring);
-            outline-offset: 2px;
-            transition: outline-color v.$transition;
-        }
-
-        &__label {
-            font-size: .75rem;
-            line-height: 1.1;
-            text-align: center;
-            color: v.$muted;
-        }
-
-        &:hover:not(:disabled) &__img { --ring: #{rgba(v.$accent, .4)}; }
-
-        // Unavailable value: dim + strike the label, lock the swatch.
-        &:disabled {
-            opacity: .45;
-            cursor: not-allowed;
-
-            .option-thumb__label { text-decoration: line-through; }
-        }
-    }
-
     // Description rich text: comfortable line-height + tidy spacing for the
     // first/last child so it doesn't add stray margins to the panel.
     [data-product-description] {

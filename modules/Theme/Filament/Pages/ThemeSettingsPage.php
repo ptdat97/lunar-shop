@@ -23,9 +23,12 @@ class ThemeSettingsPage extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-paint-brush';
 
-    protected static ?string $navigationGroup = 'Content';
-
     protected static ?string $title = 'Theme Settings';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('lunarpanel::global.sections.content');
+    }
 
     protected static ?string $slug = 'settings/theme';
 

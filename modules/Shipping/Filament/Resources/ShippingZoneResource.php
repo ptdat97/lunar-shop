@@ -8,6 +8,9 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Lunar\Models\Country;
+use Modules\Shipping\Filament\Resources\ShippingZoneResource\Pages\CreateShippingZone;
+use Modules\Shipping\Filament\Resources\ShippingZoneResource\Pages\EditShippingZone;
+use Modules\Shipping\Filament\Resources\ShippingZoneResource\Pages\ListShippingZones;
 use Modules\Shipping\Models\ShippingZone;
 
 /**
@@ -21,9 +24,12 @@ class ShippingZoneResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
 
-    protected static ?string $navigationGroup = 'Settings';
-
     protected static ?string $navigationLabel = 'Shipping Zones';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('lunarpanel::global.sections.settings');
+    }
 
     public static function form(Form $form): Form
     {
@@ -104,9 +110,9 @@ class ShippingZoneResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => \Modules\Shipping\Filament\Resources\ShippingZoneResource\Pages\ListShippingZones::route('/'),
-            'create' => \Modules\Shipping\Filament\Resources\ShippingZoneResource\Pages\CreateShippingZone::route('/create'),
-            'edit' => \Modules\Shipping\Filament\Resources\ShippingZoneResource\Pages\EditShippingZone::route('/{record}/edit'),
+            'index' => ListShippingZones::route('/'),
+            'create' => CreateShippingZone::route('/create'),
+            'edit' => EditShippingZone::route('/{record}/edit'),
         ];
     }
 }

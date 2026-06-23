@@ -7,6 +7,11 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Support\Str;
+use Lunar\Models\Product;
+use Modules\CMS\Filament\Resources\LookbookResource\Pages\CreateLookbook;
+use Modules\CMS\Filament\Resources\LookbookResource\Pages\EditLookbook;
+use Modules\CMS\Filament\Resources\LookbookResource\Pages\ListLookbooks;
 use Modules\CMS\Models\Lookbook;
 use Modules\FileManager\Filament\Forms\MediaPicker;
 
@@ -16,9 +21,12 @@ class LookbookResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-book-open';
 
-    protected static ?string $navigationGroup = 'Content';
-
     protected static ?int $navigationSort = 3;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('lunarpanel::global.sections.content');
+    }
 
     public static function form(Form $form): Form
     {
@@ -30,8 +38,7 @@ class LookbookResource extends Resource
                             ->required()
                             ->maxLength(255)
                             ->live(onBlur: true)
-                            ->afterStateUpdated(fn ($state, Forms\Set $set) =>
-                                $set('slug', \Illuminate\Support\Str::slug($state))
+                            ->afterStateUpdated(fn ($state, Forms\Set $set) => $set('slug', Str::slug($state))
                             ),
                         Forms\Components\TextInput::make('slug')
                             ->required()
@@ -78,9 +85,9 @@ class LookbookResource extends Resource
                             ->schema([
                                 Forms\Components\Select::make('product_id')
                                     ->label('Product')
-                                    ->options(fn () => \Lunar\Models\Product::all()
+                                    ->options(fn () => Product::all()
                                         ->mapWithKeys(fn ($product) => [$product->id => $product->translateAttribute('name')]))
-                                    ->getOptionLabelUsing(fn ($value): ?string => \Lunar\Models\Product::find($value)?->translateAttribute('name'))
+                                    ->getOptionLabelUsing(fn ($value): ?string => Product::find($value)?->translateAttribute('name'))
                                     ->searchable()
                                     ->required(),
                                 Forms\Components\TextInput::make('caption')
@@ -131,9 +138,9 @@ class LookbookResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => \Modules\CMS\Filament\Resources\LookbookResource\Pages\ListLookbooks::route('/'),
-            'create' => \Modules\CMS\Filament\Resources\LookbookResource\Pages\CreateLookbook::route('/create'),
-            'edit' => \Modules\CMS\Filament\Resources\LookbookResource\Pages\EditLookbook::route('/{record}/edit'),
+            'index' => ListLookbooks::route('/'),
+            'create' => CreateLookbook::route('/create'),
+            'edit' => EditLookbook::route('/{record}/edit'),
         ];
     }
 }

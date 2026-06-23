@@ -7,6 +7,9 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Modules\CMS\Filament\Resources\BannerResource\Pages\CreateBanner;
+use Modules\CMS\Filament\Resources\BannerResource\Pages\EditBanner;
+use Modules\CMS\Filament\Resources\BannerResource\Pages\ListBanners;
 use Modules\CMS\Models\Banner;
 use Modules\FileManager\Filament\Forms\MediaPicker;
 
@@ -16,9 +19,12 @@ class BannerResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-photo';
 
-    protected static ?string $navigationGroup = 'Content';
-
     protected static ?int $navigationSort = 2;
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('lunarpanel::global.sections.content');
+    }
 
     public static function form(Form $form): Form
     {
@@ -100,9 +106,9 @@ class BannerResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => \Modules\CMS\Filament\Resources\BannerResource\Pages\ListBanners::route('/'),
-            'create' => \Modules\CMS\Filament\Resources\BannerResource\Pages\CreateBanner::route('/create'),
-            'edit' => \Modules\CMS\Filament\Resources\BannerResource\Pages\EditBanner::route('/{record}/edit'),
+            'index' => ListBanners::route('/'),
+            'create' => CreateBanner::route('/create'),
+            'edit' => EditBanner::route('/{record}/edit'),
         ];
     }
 }

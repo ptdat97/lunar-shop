@@ -7,6 +7,9 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Modules\Product\Filament\Resources\SizeChartResource\Pages\CreateSizeChart;
+use Modules\Product\Filament\Resources\SizeChartResource\Pages\EditSizeChart;
+use Modules\Product\Filament\Resources\SizeChartResource\Pages\ListSizeCharts;
 use Modules\Product\Models\SizeChart;
 
 /**
@@ -20,9 +23,12 @@ class SizeChartResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-table-cells';
 
-    protected static ?string $navigationGroup = 'Catalog';
-
     protected static ?string $navigationLabel = 'Size Charts';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('lunarpanel::global.sections.catalog');
+    }
 
     protected static ?int $navigationSort = 20;
 
@@ -102,9 +108,9 @@ class SizeChartResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => \Modules\Product\Filament\Resources\SizeChartResource\Pages\ListSizeCharts::route('/'),
-            'create' => \Modules\Product\Filament\Resources\SizeChartResource\Pages\CreateSizeChart::route('/create'),
-            'edit' => \Modules\Product\Filament\Resources\SizeChartResource\Pages\EditSizeChart::route('/{record}/edit'),
+            'index' => ListSizeCharts::route('/'),
+            'create' => CreateSizeChart::route('/create'),
+            'edit' => EditSizeChart::route('/{record}/edit'),
         ];
     }
 }

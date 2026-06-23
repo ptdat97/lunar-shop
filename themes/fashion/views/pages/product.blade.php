@@ -129,19 +129,9 @@
             <div class="my-4">
                 @php
                     // Option groups (e.g. Size → [S,M,L]) derived from variants, in
-                    // a stable order, for the SSR buttons. Alongside, map each
-                    // Color value → the `small` URL of the first variant image
-                    // carrying that colour, so colours render as thumbnail swatches.
-                    //
-                    // Only the COLOUR group gets thumbnails: variant images live at
-                    // the variant level (each variant has both a size and a colour),
-                    // so without this restriction Size values would borrow the same
-                    // photos. We key swatches off colour so each picture maps to a
-                    // colour, not a size.
+                    // a stable order, for the SSR buttons.
                     $optionGroups = [];
-                    $optionThumbs = [];
                     foreach ($product->variants as $variant) {
-                        $thumb = \Modules\Product\Http\Resources\MediaImageResource::one($variant->images->first())['small'] ?? null;
                         foreach ($variant->values as $value) {
                             $optName = $value->option?->translate('name') ?? $value->option?->name ?? 'Option';
                             $valName = $value->translate('name') ?? $value->name;
@@ -149,35 +139,17 @@
                             if (! in_array($valName, $optionGroups[$optName], true)) {
                                 $optionGroups[$optName][] = $valName;
                             }
-                            // Thumbnails only for the colour group; first image wins.
-                            $isColour = (bool) preg_match('/colou?r/i', (string) ($value->option?->handle ?? $optName));
-                            if ($isColour && $thumb && empty($optionThumbs[$optName][$valName])) {
-                                $optionThumbs[$optName][$valName] = $thumb;
-                            }
                         }
                     }
                 @endphp
 
                 @foreach($optionGroups as $optName => $values)
-                    {{-- A group renders as image swatches only when its values
-                         actually have distinct variant thumbnails. --}}
-                    @php $hasThumbs = ! empty($optionThumbs[$optName]); @endphp
                     <div class="mb-3" data-option-group="{{ $optName }}">
                         <label class="form-label small text-uppercase d-block">{{ $optName }}</label>
                         <div class="d-flex flex-wrap gap-2">
                             @foreach($values as $val)
-                                @php $thumb = $optionThumbs[$optName][$val] ?? null; @endphp
-                                @if($hasThumbs && $thumb)
-                                    <button type="button" class="btn btn-sm btn-outline-dark option-thumb"
-                                            data-option="{{ $optName }}" data-value="{{ $val }}"
-                                            title="{{ $val }}" aria-label="{{ $optName }}: {{ $val }}">
-                                        <img src="{{ $thumb }}" alt="{{ $val }}" class="option-thumb__img" loading="lazy">
-                                        <span class="option-thumb__label">{{ $val }}</span>
-                                    </button>
-                                @else
-                                    <button type="button" class="btn btn-sm btn-outline-dark"
-                                            data-option="{{ $optName }}" data-value="{{ $val }}">{{ $val }}</button>
-                                @endif
+                                <button type="button" class="btn btn-sm btn-outline-dark"
+                                        data-option="{{ $optName }}" data-value="{{ $val }}">{{ $val }}</button>
                             @endforeach
                         </div>
                     </div>

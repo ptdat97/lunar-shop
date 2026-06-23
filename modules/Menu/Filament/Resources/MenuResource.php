@@ -2,6 +2,7 @@
 
 namespace Modules\Menu\Filament\Resources;
 
+use Filament\Forms\Components\Component;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section as FormSection;
@@ -23,9 +24,12 @@ class MenuResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-bars-3';
 
-    protected static ?string $navigationGroup = 'Content';
-
     protected static ?string $navigationLabel = 'Menus';
+
+    public static function getNavigationGroup(): ?string
+    {
+        return __('lunarpanel::global.sections.content');
+    }
 
     protected static ?string $modelLabel = 'Menu';
 
@@ -43,7 +47,7 @@ class MenuResource extends Resource
                 ->schema(static::itemSchema())
                 ->collapsible()
                 ->reorderable()
-                ->itemLabel(fn (array $state) => ($state['label'] ?? 'Item') . ' [' . ($state['type'] ?? 'link') . ']')
+                ->itemLabel(fn (array $state) => ($state['label'] ?? 'Item').' ['.($state['type'] ?? 'link').']')
                 ->columnSpanFull()
                 ->defaultItems(0),
         ]);
@@ -52,7 +56,7 @@ class MenuResource extends Resource
     /**
      * Schema for one top-level item. Mega items get nested columns + banners.
      *
-     * @return array<int, \Filament\Forms\Components\Component>
+     * @return array<int, Component>
      */
     protected static function itemSchema(): array
     {
@@ -102,14 +106,14 @@ class MenuResource extends Resource
                         ->itemLabel(fn (array $state) => $state['label'] ?? 'Link'),
                 ])
                 ->collapsible()->reorderable()
-                ->itemLabel(fn (array $state) => ($state['label'] ?? 'Column') . ' [' . ($state['type'] ?? 'mega-column') . ']'),
+                ->itemLabel(fn (array $state) => ($state['label'] ?? 'Column').' ['.($state['type'] ?? 'mega-column').']'),
         ];
     }
 
     /**
      * Schema for a leaf link (label + url or collection).
      *
-     * @return array<int, \Filament\Forms\Components\Component>
+     * @return array<int, Component>
      */
     protected static function linkSchema(): array
     {
