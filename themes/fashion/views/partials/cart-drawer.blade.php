@@ -40,6 +40,12 @@
                 <span>Subtotal</span>
                 <strong data-cart-subtotal></strong>
             </div>
+            {{-- Discount savings — shown by enhance/cart.js when discount_total > 0
+                 (flash sale / quantity / combo / membership all surface here). --}}
+            <div class="d-flex justify-content-between mb-2 text-success" data-cart-savings-row hidden>
+                <span><i class="bi bi-tags-fill"></i> You saved</span>
+                <strong data-cart-savings></strong>
+            </div>
             <a href="{{ route('storefront.cart') }}" class="btn btn-outline-dark w-100 mb-2">View cart</a>
             <a href="{{ route('storefront.checkout') }}" class="btn btn-dark w-100">Checkout</a>
         </div>

@@ -11,9 +11,26 @@ function esc(value) {
 }
 
 // First variant's formatted price — mirrors the Blade <x price> component.
+// When the product has a promotion price break, strike the original and show
+// the sale price (matches themes/fashion/views/components/price.blade.php).
 function priceHtml(product) {
+    const promo = product.promotion;
+    if (promo && promo.has_price_break) {
+        return `<span class="product-card__price fw-semibold text-danger me-1">${esc(promo.sale)}</span>`
+            + `<span class="product-card__price-original text-muted text-decoration-line-through small">${esc(promo.original)}</span>`;
+    }
     const price = product.variants?.[0]?.price?.formatted;
     return price ? `<span class="product-card__price fw-semibold">${esc(price)}</span>` : '';
+}
+
+// Promotion badge (top-left) — mirrors product-card.blade.php.
+function badgeHtml(product) {
+    const promo = product.promotion;
+    if (!promo) return '';
+    const flash = promo.is_flash_sale;
+    const deadline = promo.ends_at ? ` data-promo-deadline="${esc(promo.ends_at)}"` : '';
+    const icon = flash ? '<i class="bi bi-lightning-charge-fill me-1"></i>' : '';
+    return `<span class="product-card__badge badge position-absolute top-0 start-0 m-2 ${flash ? 'bg-danger' : 'bg-dark'}"${deadline}>${icon}${esc(promo.label)}</span>`;
 }
 
 export function cardHtml(product) {
@@ -28,6 +45,7 @@ export function cardHtml(product) {
 
     return `
 <article class="product-card h-100 position-relative">
+    ${badgeHtml(product)}
     <button class="btn btn-light btn-sm rounded-circle product-card__wishlist position-absolute top-0 end-0 m-2"
             data-wishlist-toggle data-product-id="${esc(product.id)}" aria-label="Add to wishlist" aria-pressed="false">
         <i class="bi bi-heart"></i>

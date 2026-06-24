@@ -33,6 +33,9 @@ class CartResource extends JsonResource
             'totals' => [
                 'sub_total' => $this->subTotal?->formatted(),
                 'discount_total' => $this->discountTotal?->formatted(),
+                // Raw minor-unit savings so the UI can decide whether to show a
+                // "you saved" row without parsing the formatted string.
+                'discount_value' => $this->discountTotal?->value ?? 0,
                 'tax_total' => $this->taxTotal?->formatted(),
                 'total' => $this->total?->formatted(),
             ],

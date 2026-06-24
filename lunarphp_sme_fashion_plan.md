@@ -265,7 +265,7 @@ modules/Product/
 | **FileManager** | Quản lý file/asset trong admin | — | ✅ Filament page (tiện ích nội bộ) |
 | **Search** | Interface + driver `database`/`scout`; suggest + filters | — (xem Search abstraction) | ✅ chạy (interface + 2 driver + DTO) |
 | **Recommend** | Gợi ý sản phẩm (product page + mini-cart), strategy chain | Lunar `ProductAssociation` (curate) | ✅ chạy P1 (Association + Collection strategy + API) |
-| **Promotion** | %, BXGY, free-ship, cart/coupon rules | Discounts | ✅ apply/remove coupon + **validate coupon không-apply** (`/cart/coupon/validate`, live feedback) + mô tả discount human-readable (`describe`) trong CouponResource; admin discount dùng Lunar `DiscountResource` (BXGY có sẵn) |
+| **Promotion** | %, BXGY, free-ship, cart/coupon rules, **flash sale / combo / membership** | Discounts | ✅ apply/remove coupon + **validate coupon không-apply** (`/cart/coupon/validate`, live feedback) + mô tả discount human-readable (`describe`); admin discount dùng Lunar `DiscountResource`. **Nâng cấp 2026-06-24:** 2 custom discount type tự động (`QuantityPercentageOff` = "mua N giảm X%", `ComboPercentageOff` = "áo + quần giảm X%") đăng ký qua `Discounts::addType`; **Flash Sale** (AmountOff time-boxed + cờ `data.flash_sale`) với `PromotionService::currentFlashSale/activeAutomatic`; **Membership theo tổng chi tiêu** (`MembershipService` → Lunar `CustomerGroup` Silver/Gold, sync qua hook `order.paid`, discount scope theo group); API `GET /api/v1/promotions` + `/promotions/membership`; theme: promo-bar countdown (SSR + `enhance/flash-sale.js`), "Today's deals" strip ở home, savings row ở cart drawer, membership card ở account (`enhance/membership.js`), **+ label khuyến mãi trên mỗi product card + gạch giá cũ/chèn giá mới** (`PromotionService::saleFor()` → badge + price-break; nhúng vào product payload qua hook `product.resource` (`PromotionHooks`) nên SSR `product-card`/`price` và grid JS `_card.js` khớp nhau); seeder `DemoPromotionSeeder` + 7 test |
 | **Shipping** | Shipping methods/zones/rates | shipping của Lunar | ✅ **zone/rate DB-backed** (`ShippingZone` model: country + states → rate + free-threshold, most-specific-wins) qua `ShippingZoneResolver` + `FlatRateShippingModifier`, fallback config; Filament **Shipping Zones** resource (CRUD) |
 | **Payment** | COD, Bank, VNPay, MoMo (P1); Stripe/PayPal (P2) | payment driver của Lunar + driver mới | ✅ `offline` (COD/bank) + **VNPay** (driver + gateway HMAC + return/IPN idempotent); ⚠️ chưa MoMo/Stripe/refund-API |
 | **Location** | Địa giới hành chính VN (tỉnh/phường) cho form địa chỉ | — | ✅ chạy (2 model + seeder data + API `provinces`/`wards`, gắn dropdown checkout + account) |
@@ -690,6 +690,10 @@ Validate → Pricing → Promotions → Shipping → Tax → Payment → Order c
 # Promotion & Inventory
 
 - Promotion: dùng Lunar Discounts (percentage, BXGY, free shipping, cart/coupon rules).
+  **Nâng cấp (2026-06-24):** thêm flash sale (time-boxed), combo tự động ("mua 2 giảm
+  10%", "áo + quần giảm 15%") qua 2 custom discount type kế thừa `AbstractDiscountType`,
+  và membership theo tổng chi tiêu (Lunar CustomerGroup Silver/Gold). Hiển thị ra theme:
+  promo-bar countdown, "Today's deals" strip, savings ở cart, membership card ở account.
 - Inventory: per-variant stock, low-stock alert, reserve, oversell prevention (Lunar).
 
 ---
@@ -921,9 +925,13 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
 
 ## P2 — Vận hành & giữ chân
 
-9. **Khuyến mãi nâng cao hiển thị storefront** — *Promotion*
-   - Lunar Discounts đã có (BXGY, %, free-ship). Bổ sung: banner countdown, hiển thị
-     "tiết kiệm X", thanh free-ship progress ("mua thêm 50k để freeship").
+9. **Khuyến mãi nâng cao hiển thị storefront** — *Promotion* — ✅ **đã làm (2026-06-24)**
+   - Lunar Discounts đã có (BXGY, %, free-ship). ✅ Bổ sung: **Flash Sale** banner +
+     countdown (SSR promo-bar + `enhance/flash-sale.js`), **combo tự động** (mua 2 giảm
+     10% qua `QuantityPercentageOff`; áo + quần giảm 15% qua `ComboPercentageOff`),
+     **membership theo chi tiêu** (CustomerGroup Silver/Gold + card ở account), hiển thị
+     "tiết kiệm X" ở cart drawer, "Today's deals" strip ở home. API `/api/v1/promotions`
+     (+`/membership`). Thanh free-ship progress đã có từ trước (CartResource `free_shipping`).
 
 10. **Analytics dashboard trong Filament** — *Analytics*
     - Service đã có revenue/orders/monthly. Gắn vào Filament widget (Lunar dùng Filament):

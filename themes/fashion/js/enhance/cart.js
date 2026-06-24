@@ -73,6 +73,15 @@ function renderDrawer(cart) {
     const subtotal = document.querySelector('#shoppingCart [data-cart-subtotal]');
     if (subtotal) subtotal.textContent = cart.totals?.sub_total ?? '';
 
+    // Discount savings (flash sale / quantity / combo / membership).
+    const savingsRow = document.querySelector('#shoppingCart [data-cart-savings-row]');
+    const savings = document.querySelector('#shoppingCart [data-cart-savings]');
+    if (savingsRow && savings) {
+        const hasDiscount = (cart.totals?.discount_value ?? 0) > 0;
+        savingsRow.hidden = !hasDiscount;
+        savings.textContent = cart.totals?.discount_total ?? '';
+    }
+
     if (shipping && cart.free_shipping) {
         shipping.hidden = false;
         shipping.textContent = cart.free_shipping.qualified

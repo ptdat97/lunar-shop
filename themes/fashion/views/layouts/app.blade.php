@@ -44,6 +44,8 @@
         Skip to content
     </a>
 
+    @include('theme::partials.promo-bar')
+
     @include('theme::partials.header')
 
     @include('theme::partials.flash')

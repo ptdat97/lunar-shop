@@ -28,6 +28,20 @@
                     <h2 class="h6 text-uppercase">Hello, {{ $user->name }}</h2>
                     <p class="text-muted mb-0">{{ $user->email }}</p>
                 </div>
+
+                {{-- Membership tier card — populated by enhance/membership.js
+                     from /api/v1/promotions/membership. Hidden until loaded. --}}
+                <div class="border rounded p-3 mb-3 d-none" data-membership>
+                    <div class="d-flex align-items-center justify-content-between">
+                        <h2 class="h6 text-uppercase mb-0">Membership</h2>
+                        <span class="badge bg-dark" data-membership-tier>—</span>
+                    </div>
+                    <p class="text-muted small mb-2" data-membership-perk hidden></p>
+                    <div class="progress" style="height:6px;" data-membership-progress-wrap hidden>
+                        <div class="progress-bar bg-warning" role="progressbar" data-membership-progress style="width:0%"></div>
+                    </div>
+                    <p class="text-muted small mt-2 mb-0" data-membership-next hidden></p>
+                </div>
                 <div class="row g-3">
                     <div class="col-6 col-md-4">
                         <button class="border rounded p-3 w-100 text-start bg-white" data-tab-btn="orders">

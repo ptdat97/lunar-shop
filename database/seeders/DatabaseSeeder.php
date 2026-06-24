@@ -14,6 +14,7 @@ use Modules\Product\Database\Seeders\SizeIntelligenceDemoSeeder;
 use Modules\Menu\Database\Seeders\FooterMenuSeeder;
 use Modules\Menu\Database\Seeders\HeaderMenuSeeder;
 use Modules\Promotion\Database\Seeders\DemoCouponSeeder;
+use Modules\Promotion\Database\Seeders\DemoPromotionSeeder;
 use Modules\SectionBuilder\Database\Seeders\HomeSectionsSeeder;
 
 /**
@@ -32,6 +33,7 @@ class DatabaseSeeder extends Seeder
             MultiSizeProductsSeeder::class,   // products with full S/M/L/XL run + dimensions (recommender demo)
             SizeIntelligenceDemoSeeder::class, // variant dimensions + materials (size chart/recommender)
             DemoCouponSeeder::class,          // SAVE10 coupon
+            DemoPromotionSeeder::class,       // flash sale, buy-2, shirt+pants combo, membership tiers
             HeaderMenuSeeder::class,          // header menu (links to collections)
             FooterMenuSeeder::class,          // footer columns
             HomeSectionsSeeder::class,        // home page sections
