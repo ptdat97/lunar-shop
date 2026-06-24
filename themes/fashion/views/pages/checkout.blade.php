@@ -146,6 +146,25 @@
                     <div class="small mt-1" data-coupon-status></div>
                 </div>
 
+                {{-- Applied promotions (SSR — the cart is already calculated).
+                     enhance/checkout-coupon.js refreshes this list when a coupon
+                     is applied/removed without a full reload. --}}
+                @php($appliedDiscounts = app(\Modules\Promotion\Services\PromotionService::class)->appliedTo($cart))
+                <div class="border-top pt-2 mt-2" data-checkout-discounts>
+                    @foreach($appliedDiscounts as $promo)
+                        <div class="d-flex justify-content-between small text-success mb-1">
+                            <span>
+                                @if($promo['is_flash_sale'])<i class="bi bi-lightning-charge-fill"></i>@else<i class="bi bi-tag"></i>@endif
+                                {{ $promo['name'] }}
+                                @if($promo['description'] && $promo['description'] !== $promo['name'])
+                                    <span class="text-muted">({{ $promo['description'] }})</span>
+                                @endif
+                            </span>
+                            <span>−{{ $promo['amount'] }}</span>
+                        </div>
+                    @endforeach
+                </div>
+
                 <dl class="row small border-top pt-2 mt-2 mb-0">
                     <dt class="col-7 fw-normal">Subtotal</dt><dd class="col-5 text-end" data-sum-subtotal>{{ $cart->subTotal?->formatted() }}</dd>
                     <div class="col-12 p-0 d-flex" data-discount-row @class(['d-none' => ! $cart->discountTotal?->value])>

@@ -19,9 +19,12 @@ class PromotionService
     }
 
     /**
-     * Active automatic (non-coupon) promotions a shopper benefits from without
-     * entering a code — flash sales, quantity deals, combos, membership perks.
-     * Used to render storefront promo banners/badges.
+     * Active automatic (non-coupon) PUBLIC promotions every shopper benefits
+     * from without entering a code — flash sales, quantity deals, combos. Used
+     * to render storefront promo banners/badges.
+     *
+     * Membership perks are excluded: they're personalised (scoped to a loyalty
+     * customer group), so they belong on the account page, not on public cards.
      *
      * @return Collection<int, Discount>
      */
@@ -32,7 +35,60 @@ class PromotionService
             ->active()
             ->usable()
             ->orderByDesc('priority')
-            ->get();
+            ->get()
+            ->reject(fn (Discount $d) => $this->isMembershipDiscount($d))
+            ->values();
+    }
+
+    /**
+     * Whether a discount is a personalised membership/loyalty perk (flagged via
+     * `data.membership`, or scoped to a non-default customer group).
+     */
+    public function isMembershipDiscount(Discount $discount): bool
+    {
+        if (($discount->data ?? [])['membership'] ?? false) {
+            return true;
+        }
+
+        $groups = $discount->relationLoaded('customerGroups')
+            ? $discount->customerGroups
+            : $discount->customerGroups()->get();
+
+        return $groups->isNotEmpty() && $groups->every(fn ($g) => ! $g->default);
+    }
+
+    /**
+     * Promotions actually applied to a calculated cart, derived from Lunar's
+     * discount breakdown. Each entry labels the discount + total saving, so the
+     * mini-cart / cart page / checkout can show "Flash Sale −$5.00" rows. One
+     * row per discount (a discount may affect several lines).
+     *
+     * @return array<int, array{name:string, description:string, amount:string, is_flash_sale:bool}>
+     */
+    public function appliedTo(\Lunar\Models\Cart $cart): array
+    {
+        $breakdown = $cart->discountBreakdown;
+
+        if (! $breakdown || $breakdown->isEmpty()) {
+            return [];
+        }
+
+        return collect($breakdown)
+            ->groupBy(fn ($entry) => $entry->discount->id)
+            ->map(function ($entries) {
+                $discount = $entries->first()->discount;
+                $amount = $entries->sum(fn ($entry) => $entry->price->value);
+                $currency = $entries->first()->price->currency;
+
+                return [
+                    'name' => $discount->name,
+                    'description' => $this->describe($discount),
+                    'amount' => (string) (new \Lunar\DataTypes\Price($amount, $currency, 1))->formatted(),
+                    'is_flash_sale' => (bool) (($discount->data ?? [])['flash_sale'] ?? false),
+                ];
+            })
+            ->values()
+            ->all();
     }
 
     /**
@@ -163,7 +219,8 @@ class PromotionService
     }
 
     /**
-     * The first variant's matched price for a product, or null.
+     * The first variant's matched price for a product, or null. Delegates to
+     * the Pricing service so the pricing engine is invoked in one place.
      */
     protected function productPrice(Product $product): ?\Lunar\DataTypes\Price
     {
@@ -173,11 +230,7 @@ class PromotionService
             return null;
         }
 
-        try {
-            return \Lunar\Facades\Pricing::for($variant)->get()->matched->price;
-        } catch (\Throwable $e) {
-            return null;
-        }
+        return app(\Modules\Pricing\Services\PricingService::class)->matchedPrice($variant);
     }
 
     /**
@@ -205,9 +258,36 @@ class PromotionService
      * Whether a discount targets a given product, via its limitation set
      * (products / variants / collections / brands). No limitations = cart-wide,
      * so it applies to every product. Exclusions remove the product.
+     *
+     * The custom quantity/combo types scope eligibility differently from the
+     * native limitation set, so they're handled first:
+     *  - QuantityPercentageOff → its `discountableConditions` (or cart-wide).
+     *  - ComboPercentageOff    → `data.combo_collections`.
      */
     public function appliesToProduct(Discount $discount, Product $product): bool
     {
+        $product->loadMissing(['collections', 'variants']);
+
+        if ($discount->type === ComboPercentageOff::class) {
+            $groups = collect(($discount->data ?? [])['combo_collections'] ?? [])
+                ->map(fn ($id) => (int) $id);
+
+            return $groups->isNotEmpty()
+                && $product->collections->pluck('id')->intersect($groups)->isNotEmpty();
+        }
+
+        if ($discount->type === QuantityPercentageOff::class) {
+            $discount->loadMissing('discountableConditions');
+            $conditions = $discount->discountableConditions;
+
+            // No conditions → applies to any line (the threshold is the gate).
+            if ($conditions->isEmpty()) {
+                return true;
+            }
+
+            return $this->productMatchesDiscountables($conditions, $product);
+        }
+
         $discount->loadMissing([
             'discountableLimitations', 'discountableExclusions', 'collections', 'brands',
         ]);
@@ -248,7 +328,7 @@ class PromotionService
 
     /**
      * Whether a product (or one of its variants) is referenced by a set of
-     * Discountable rows.
+     * Discountable rows (products / variants only).
      */
     protected function productInDiscountables(Collection $discountables, Product $product): bool
     {
@@ -265,6 +345,24 @@ class PromotionService
 
             return false;
         });
+    }
+
+    /**
+     * Like {@see productInDiscountables} but also matches collection-typed rows
+     * (the quantity type's conditions may target a collection).
+     */
+    protected function productMatchesDiscountables(Collection $discountables, Product $product): bool
+    {
+        if ($this->productInDiscountables($discountables, $product)) {
+            return true;
+        }
+
+        $collectionIds = $product->collections->pluck('id');
+
+        return $discountables->contains(
+            fn ($item) => $item->discountable_type === \Lunar\Models\Collection::morphName()
+                && $collectionIds->contains((int) $item->discountable_id)
+        );
     }
 
     /**

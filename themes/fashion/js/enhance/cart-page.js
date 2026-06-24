@@ -5,6 +5,7 @@
 import api from '../api.js';
 import { CART_UPDATED, CART_REFRESHED, emit, on } from '../events.js';
 import { renderGrid } from './_card.js';
+import { appliedDiscountsHtml } from './cart.js';
 
 function esc(v) {
     return String(v ?? '').replace(/[&<>"']/g, (c) => ({
@@ -63,6 +64,9 @@ export default function (root = document) {
         if (empty) empty.hidden = true;
         if (content) content.hidden = false;
         linesEl.innerHTML = lines.map(rowHtml).join('');
+
+        const discounts = page.querySelector('[data-cart-discounts]');
+        if (discounts) discounts.innerHTML = appliedDiscountsHtml(cart);
 
         page.querySelector('[data-sum-subtotal]').textContent = cart.totals?.sub_total ?? '—';
         page.querySelector('[data-sum-discount]').textContent = cart.totals?.discount_total ?? '—';

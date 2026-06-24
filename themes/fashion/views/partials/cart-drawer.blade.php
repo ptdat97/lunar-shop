@@ -40,9 +40,11 @@
                 <span>Subtotal</span>
                 <strong data-cart-subtotal></strong>
             </div>
-            {{-- Discount savings — shown by enhance/cart.js when discount_total > 0
-                 (flash sale / quantity / combo / membership all surface here). --}}
-            <div class="d-flex justify-content-between mb-2 text-success" data-cart-savings-row hidden>
+            {{-- Applied promotions — one labelled row per discount (flash sale /
+                 buy-2 / combo / coupon / membership), rendered by enhance/cart.js. --}}
+            <div data-cart-discounts></div>
+            {{-- Total savings — shown by enhance/cart.js when discount_total > 0. --}}
+            <div class="d-flex justify-content-between mb-2 text-success fw-semibold" data-cart-savings-row hidden>
                 <span><i class="bi bi-tags-fill"></i> You saved</span>
                 <strong data-cart-savings></strong>
             </div>

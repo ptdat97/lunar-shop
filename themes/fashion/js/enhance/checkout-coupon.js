@@ -6,6 +6,7 @@
 
 import api from '../api.js';
 import { CART_UPDATED, emit } from '../events.js';
+import { appliedDiscountsHtml } from './cart.js';
 
 export default function (root = document) {
     const summary = root.querySelector('[data-checkout-summary]');
@@ -50,9 +51,14 @@ export default function (root = document) {
         summary.querySelector('[data-sum-tax]').textContent = t.tax_total ?? '—';
         summary.querySelector('[data-sum-total]').textContent = t.total ?? '—';
 
+        const hasDiscount = (t.discount_value ?? 0) > 0;
         const discEl = summary.querySelector('[data-sum-discount]');
         if (discEl) discEl.textContent = `−${t.discount_total ?? ''}`;
-        if (discountRow) discountRow.classList.toggle('d-none', !code);
+        if (discountRow) discountRow.classList.toggle('d-none', !hasDiscount);
+
+        // Re-render the labelled applied-promotions list (automatic + coupon).
+        const discounts = summary.querySelector('[data-checkout-discounts]');
+        if (discounts) discounts.innerHTML = appliedDiscountsHtml(cart);
 
         renderButton(!!code);
         emit(CART_UPDATED); // keep the drawer/count in sync

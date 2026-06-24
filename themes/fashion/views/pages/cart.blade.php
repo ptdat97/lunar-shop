@@ -41,6 +41,10 @@
                     <div class="small mt-1" data-coupon-status></div>
                 </form>
 
+                {{-- Applied promotions — one labelled row per discount,
+                     rendered by enhance/cart-page.js. --}}
+                <div class="mb-2" data-cart-discounts></div>
+
                 <dl class="row small mb-0">
                     <dt class="col-7 fw-normal">Subtotal</dt><dd class="col-5 text-end" data-sum-subtotal>—</dd>
                     <dt class="col-7 fw-normal">Discount</dt><dd class="col-5 text-end" data-sum-discount>—</dd>

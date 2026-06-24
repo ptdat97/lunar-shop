@@ -2,11 +2,66 @@
 
 namespace Modules\Pricing\Services;
 
+use Lunar\DataTypes\Price as PriceData;
+use Lunar\Facades\Pricing;
 use Lunar\Models\Price;
+use Lunar\Models\Product;
 use Lunar\Models\ProductVariant;
 
 class PricingService
 {
+    /**
+     * The matched price for a variant via Lunar's Pricing engine (honours
+     * currency, customer group and tiers). This is the single place the
+     * pricing engine is invoked for presentation — Blade/Resources call here
+     * instead of touching the `Pricing` facade directly (keeps price logic out
+     * of views, per the coding standards).
+     */
+    public function matchedPrice(ProductVariant $variant): ?PriceData
+    {
+        try {
+            return Pricing::for($variant)->get()->matched->price;
+        } catch (\Throwable $e) {
+            return null;
+        }
+    }
+
+    /**
+     * Formatted display price for a product's first variant (e.g. "$60.00"),
+     * or null when it can't be resolved. Used by the <x-price> component.
+     */
+    public function displayPrice(Product $product): ?string
+    {
+        $variant = $product->variants->first() ?? $product->variants()->first();
+
+        if (! $variant) {
+            return null;
+        }
+
+        return (string) $this->matchedPrice($variant)?->formatted();
+    }
+
+    /**
+     * The store's default currency code (e.g. "USD", "VND"), for display /
+     * structured data. Falls back to "USD" when none is configured.
+     */
+    public function defaultCurrencyCode(): string
+    {
+        return \Lunar\Models\Currency::getDefault()?->code ?? 'USD';
+    }
+
+    /**
+     * Lowest variant price (decimal) across a product's variants, for
+     * structured data (JSON-LD Offer). Null when no variant is priced.
+     */
+    public function lowestPriceAmount(Product $product): ?float
+    {
+        return $product->variants
+            ->map(fn (ProductVariant $variant) => $this->matchedPrice($variant)?->decimal())
+            ->filter()
+            ->min();
+    }
+
     /**
      * Get the price for a variant in a given currency.
      */

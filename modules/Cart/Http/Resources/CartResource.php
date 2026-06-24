@@ -30,6 +30,9 @@ class CartResource extends JsonResource
                 'sub_total' => $line->subTotal?->formatted(),
             ])->values(),
             'coupon_code' => $this->coupon_code,
+            // Promotions actually applied to this cart (flash sale, buy-2,
+            // combo, coupon, membership) so the UI can label the savings.
+            'applied_discounts' => $this->appliedDiscounts(),
             'totals' => [
                 'sub_total' => $this->subTotal?->formatted(),
                 'discount_total' => $this->discountTotal?->formatted(),
@@ -49,6 +52,18 @@ class CartResource extends JsonResource
             $data,
             [$this->resource],
         );
+    }
+
+    /**
+     * Promotions applied to this cart, derived from Lunar's discount breakdown.
+     * Each entry labels the discount + how much it saved, so the mini-cart /
+     * cart page / checkout can show "Flash Sale −$5.00" style rows.
+     *
+     * @return array<int, array{name:string, description:string, amount:string, is_flash_sale:bool}>
+     */
+    protected function appliedDiscounts(): array
+    {
+        return app(\Modules\Promotion\Services\PromotionService::class)->appliedTo($this->resource);
     }
 
     /**

@@ -178,6 +178,103 @@ class PromotionAdvancedTest extends TestCase
         $this->assertSame(1, Discount::where('handle', 'flash-sale')->count());
     }
 
+    public function test_sale_for_returns_price_break_for_a_flash_sale_product(): void
+    {
+        $product = $this->createProduct(['price' => 10000]);
+
+        $discount = Discount::create([
+            'name' => 'Flash 25',
+            'handle' => 'flash-25',
+            'type' => \Lunar\DiscountTypes\AmountOff::class,
+            'starts_at' => now()->subHour(),
+            'ends_at' => now()->addDay(),
+            'uses' => 0,
+            'priority' => 100,
+            'stop' => false,
+            'data' => ['percentage' => 25, 'fixed_value' => false, 'flash_sale' => true],
+        ]);
+        $this->enableForAll($discount);
+
+        $sale = app(PromotionService::class)->saleFor($product->fresh());
+
+        $this->assertNotNull($sale);
+        $this->assertSame('-25%', $sale['label']);
+        $this->assertTrue($sale['is_flash_sale']);
+        $this->assertTrue($sale['has_price_break']);
+        $this->assertNotNull($sale['sale']);     // discounted price present
+        $this->assertNotNull($sale['original']); // struck price present
+    }
+
+    public function test_quantity_deal_yields_a_label_but_no_price_break(): void
+    {
+        $product = $this->createProduct(['price' => 10000]);
+
+        $discount = Discount::create([
+            'name' => 'Buy 2 -10%',
+            'handle' => 'qty-10',
+            'type' => QuantityPercentageOff::class,
+            'starts_at' => now()->subDay(),
+            'uses' => 0,
+            'priority' => 5,
+            'stop' => false,
+            'data' => ['min_qty' => 2, 'percentage' => 10],
+        ]);
+        $this->enableForAll($discount);
+
+        $sale = app(PromotionService::class)->saleFor($product->fresh());
+
+        $this->assertSame('Buy 2 -10%', $sale['label']);
+        // Cart-conditional → label only, no per-card price rewrite.
+        $this->assertFalse($sale['has_price_break']);
+    }
+
+    public function test_applied_discounts_label_the_promotions_on_a_cart(): void
+    {
+        $product = $this->createProduct(['price' => 10000]);
+
+        $discount = Discount::create([
+            'name' => 'Flash Sale — 20% Off',
+            'handle' => 'flash-applied',
+            'type' => \Lunar\DiscountTypes\AmountOff::class,
+            'starts_at' => now()->subHour(),
+            'ends_at' => now()->addDay(),
+            'uses' => 0,
+            'priority' => 100,
+            'stop' => false,
+            'data' => ['percentage' => 20, 'fixed_value' => false, 'flash_sale' => true],
+        ]);
+        $this->enableForAll($discount);
+
+        $cart = $this->makeCart();
+        $cart->add($product->variants->first(), 1);
+        $cart->calculate();
+
+        $applied = app(PromotionService::class)->appliedTo($cart);
+
+        $this->assertCount(1, $applied);
+        $this->assertSame('Flash Sale — 20% Off', $applied[0]['name']);
+        $this->assertTrue($applied[0]['is_flash_sale']);
+        $this->assertSame('20% off', $applied[0]['description']);
+        $this->assertNotEmpty($applied[0]['amount']);
+
+        // And it surfaces on the cart JSON contract under `applied_discounts`.
+        $payload = (new \Modules\Cart\Http\Resources\CartResource($cart))->toArray(request());
+        $this->assertSame('Flash Sale — 20% Off', $payload['applied_discounts'][0]['name']);
+    }
+
+    public function test_membership_discount_is_excluded_from_public_promotions(): void
+    {
+        $this->seed(DemoPromotionSeeder::class);
+
+        $public = app(PromotionService::class)->activeAutomatic();
+
+        // Membership discounts are scoped to tier groups → not public badges.
+        $this->assertTrue(
+            $public->every(fn (Discount $d) => ! ($d->data['membership'] ?? false)),
+            'membership discounts should not appear in public automatic promotions',
+        );
+    }
+
     public function test_membership_tier_is_resolved_from_lifetime_spend(): void
     {
         $membership = app(MembershipService::class);

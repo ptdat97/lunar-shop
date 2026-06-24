@@ -4,11 +4,11 @@ namespace Modules\Product\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Lunar\Facades\Pricing;
+use Modules\Pricing\Services\PricingService;
 
 /**
- * Variant JSON contract, including resolved price via Lunar's Pricing engine
- * (we inherit Lunar pricing — no reimplementation).
+ * Variant JSON contract, including resolved price via the Pricing service
+ * (wraps Lunar's Pricing engine — invoked in one place, no reimplementation).
  *
  * @mixin \Lunar\Models\ProductVariant
  */
@@ -16,15 +16,16 @@ class ProductVariantResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $pricing = Pricing::for($this->resource)->get();
+        $price = app(PricingService::class)->matchedPrice($this->resource);
 
         return [
             'id' => $this->id,
             'sku' => $this->sku,
             'stock' => $this->stock,
             'price' => [
-                'amount' => $pricing->matched->price->decimal(),
-                'formatted' => (string) $pricing->matched->price->formatted(),
+                'amount' => $price?->decimal(),
+                'formatted' => (string) $price?->formatted(),
+                'currency' => $price?->currency?->code,
             ],
             // Option values (e.g. Size: M, Color: Black) so the variant picker
             // can build its matrix from the shared payload — no extra fetch.

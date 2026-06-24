@@ -42,6 +42,26 @@ function lineHtml(line) {
 </div>`;
 }
 
+// One labelled row per applied promotion. `flash` rows get a lightning icon.
+// Reused by the cart page enhancer via the exported helper below.
+export function appliedDiscountsHtml(cart) {
+    const list = cart?.applied_discounts ?? [];
+    if (!list.length) return '';
+    return list.map((d) => {
+        const icon = d.is_flash_sale
+            ? '<i class="bi bi-lightning-charge-fill"></i>'
+            : '<i class="bi bi-tag"></i>';
+        const desc = d.description && d.description !== d.name
+            ? ` <span class="text-muted">(${esc(d.description)})</span>`
+            : '';
+        return `
+<div class="d-flex justify-content-between mb-1 small text-success">
+    <span>${icon} ${esc(d.name)}${desc}</span>
+    <span>−${esc(d.amount)}</span>
+</div>`;
+    }).join('');
+}
+
 function renderCount(cart) {
     document.querySelectorAll('[data-cart-count]').forEach((el) => {
         const n = cart?.lines_count ?? 0;
@@ -73,7 +93,11 @@ function renderDrawer(cart) {
     const subtotal = document.querySelector('#shoppingCart [data-cart-subtotal]');
     if (subtotal) subtotal.textContent = cart.totals?.sub_total ?? '';
 
-    // Discount savings (flash sale / quantity / combo / membership).
+    // Applied promotions (flash sale / quantity / combo / coupon / membership).
+    const discounts = document.querySelector('#shoppingCart [data-cart-discounts]');
+    if (discounts) discounts.innerHTML = appliedDiscountsHtml(cart);
+
+    // Total savings line below the labelled promotions.
     const savingsRow = document.querySelector('#shoppingCart [data-cart-savings-row]');
     const savings = document.querySelector('#shoppingCart [data-cart-savings]');
     if (savingsRow && savings) {

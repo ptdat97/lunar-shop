@@ -20,13 +20,9 @@
     // OG image: first media's `large` conversion, generated on demand if missing.
     $ogImage = app(\Modules\Media\Services\MediaUrl::class)->conversion($media->first(), 'large');
 
-    // Lowest variant price for structured data, via the same Lunar Pricing
-    // engine the API uses (resolve() keeps $state['variants'] as resource
-    // objects, so we read prices straight from the models instead).
-    $priceAmount = $product->variants->map(function ($variant) {
-        try { return \Lunar\Facades\Pricing::for($variant)->get()->matched->price->decimal(); }
-        catch (\Throwable $e) { return null; }
-    })->filter()->min();
+    // Lowest variant price for structured data (JSON-LD Offer), via the Pricing
+    // presentation service — the same engine the API uses. No price logic here.
+    $priceAmount = app(\Modules\Pricing\Services\PricingService::class)->lowestPriceAmount($product);
     $inStock = $product->variants->sum('stock') > 0;
 @endphp
 
@@ -117,14 +113,38 @@
         </div>
 
         <div class="col-12 col-lg-5">
-            @if($brand = $product->brand?->name)
-                <div class="text-muted text-uppercase small">{{ $brand }}</div>
-            @endif
-            <h1 class="h3">{{ $name }}</h1>
+            @php
+                $pricing = app(\Modules\Pricing\Services\PricingService::class);
+                $sale = app(\Modules\Promotion\Services\PromotionService::class)->saleFor($product);
+            @endphp
 
-            {{-- Price reflects the selected variant (updated by JS); SSR shows the
-                 first variant's price. --}}
-            <div class="h4 my-3" data-product-price>{{ $firstVariant?->prices->first()?->price->formatted() }}</div>
+            <div class="d-flex align-items-start gap-2">
+                <div class="flex-grow-1">
+                    @if($brand = $product->brand?->name)
+                        <div class="text-muted text-uppercase small">{{ $brand }}</div>
+                    @endif
+                    <h1 class="h3">{{ $name }}</h1>
+                </div>
+                {{-- Promotion badge (same source as the product card). --}}
+                @if($sale)
+                    <span class="badge fs-6 {{ ($sale['is_flash_sale'] ?? false) ? 'bg-danger' : 'bg-dark' }}"
+                          @if($sale['ends_at'] ?? false) data-promo-deadline="{{ $sale['ends_at'] }}" @endif>
+                        @if($sale['is_flash_sale'] ?? false)<i class="bi bi-lightning-charge-fill me-1"></i>@endif{{ $sale['label'] }}
+                    </span>
+                @endif
+            </div>
+
+            {{-- Price reflects the selected variant (updated by JS). On a price
+                 break the original is struck and the sale price shown beside it;
+                 enhance/product-variant.js keeps this in sync on variant change. --}}
+            <div class="h4 my-3" data-product-price>
+                @if($sale && ($sale['has_price_break'] ?? false))
+                    <span class="text-danger me-2" data-price-sale>{{ $sale['sale'] }}</span>
+                    <span class="text-muted text-decoration-line-through fs-6" data-price-original>{{ $sale['original'] }}</span>
+                @else
+                    <span data-price-sale>{{ $pricing->displayPrice($product) }}</span>
+                @endif
+            </div>
 
             <div class="my-4">
                 @php
@@ -204,7 +224,7 @@
 
 @push('head')
 @php
-    $currency = \Lunar\Models\Currency::getDefault()?->code ?? 'USD';
+    $currency = app(\Modules\Pricing\Services\PricingService::class)->defaultCurrencyCode();
     $jsonLd = [
         '@context' => 'https://schema.org',
         '@type' => 'Product',

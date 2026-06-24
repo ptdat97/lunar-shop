@@ -15,6 +15,38 @@ function readState(root) {
     try { return JSON.parse(tag.textContent); } catch { return null; }
 }
 
+function esc(v) {
+    return String(v ?? '').replace(/[&<>"']/g, (c) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+    }[c]));
+}
+
+// Render the price for the chosen variant. When the product has an
+// unconditional percentage price break (flash sale / sale), strike the variant
+// original and show the discounted price; otherwise just the variant price.
+// Matches the SSR markup in pages/product.blade.php (data-price-sale/original).
+function renderPrice(el, variant, promotion) {
+    const original = variant.price.formatted;
+    const pct = (promotion && promotion.has_price_break) ? promotion.percentage : null;
+
+    if (pct && Number.isFinite(variant.price.amount) && variant.price.currency) {
+        const saleAmount = variant.price.amount * (1 - pct / 100);
+        let saleFormatted;
+        try {
+            saleFormatted = new Intl.NumberFormat(undefined, {
+                style: 'currency', currency: variant.price.currency,
+            }).format(saleAmount);
+        } catch {
+            saleFormatted = saleAmount.toFixed(2);
+        }
+        el.innerHTML = `<span class="text-danger me-2" data-price-sale>${esc(saleFormatted)}</span>`
+            + `<span class="text-muted text-decoration-line-through fs-6" data-price-original>${esc(original)}</span>`;
+        return;
+    }
+
+    el.innerHTML = `<span data-price-sale>${esc(original)}</span>`;
+}
+
 function buildOptionGroups(variants) {
     const groups = new Map();
     variants.forEach((v) => {
@@ -88,7 +120,7 @@ export default function (root = document) {
         const allChosen = !groups.length || groups.every((g) => selected[g.name]);
         const inStock = (variant?.stock ?? 0) > 0;
 
-        if (priceEl && variant?.price?.formatted) priceEl.textContent = variant.price.formatted;
+        if (priceEl && variant?.price?.formatted) renderPrice(priceEl, variant, state.promotion);
         if (stockEl) stockEl.textContent = variant ? (inStock ? `${variant.stock} in stock` : 'Out of stock') : '';
         if (variantInput && variant) variantInput.value = variant.id;
 

@@ -1,20 +1,11 @@
 {{-- Display price for a product. Included with ['product' => $product].
-     Resolves from the first variant via Lunar Pricing — the same engine the API
-     (ProductVariantResource) uses, so SSR price matches the API.
+     Price + promotion come from presentation services (no pricing/discount
+     logic in the view) — the same engines the API uses, so SSR matches the API.
 
      When an automatic promotion gives this product a price break, the original
      price is struck through and the discounted price shown beside it. --}}
 @php
-    $variant = $product->variants->first();
-    $formatted = null;
-    if ($variant) {
-        try {
-            $formatted = (string) \Lunar\Facades\Pricing::for($variant)->get()->matched->price->formatted();
-        } catch (\Throwable $e) {
-            $formatted = null;
-        }
-    }
-
+    $formatted = app(\Modules\Pricing\Services\PricingService::class)->displayPrice($product);
     $sale = app(\Modules\Promotion\Services\PromotionService::class)->saleFor($product);
 @endphp
 @if($formatted)
