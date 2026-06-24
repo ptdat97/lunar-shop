@@ -1,6 +1,4 @@
-@php
-    $menus = app(\Modules\Menu\Services\MenuRenderer::class);
-@endphp
+{{-- $menus (MenuRenderer) injected by the Menu view composer (standards §7). --}}
 
 <footer class="bg-dark text-white-50 pt-5 pb-4 mt-5">
     <div class="container">

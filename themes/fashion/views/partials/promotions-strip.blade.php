@@ -1,11 +1,8 @@
 {{-- Active automatic promotions strip (SSR, crawlable). Shows flash sale +
-     quantity/combo/membership deals the shopper benefits from without a code.
-     Self-contained: resolves PromotionService directly (like product-card does
-     with MediaUrl), so no controller wiring is needed to drop it on a page. --}}
-@php
-    $promotions = app(\Modules\Promotion\Services\PromotionService::class);
-    $list = $promotions->activeAutomatic();
-@endphp
+     quantity/combo deals the shopper benefits from without a code.
+     $promotionsList + $describePromotion are injected by the Promotion view
+     composer (standards §7) — no service resolution in the view. --}}
+@php($list = $promotionsList ?? collect())
 
 @if($list->isNotEmpty())
 <section class="promotions-strip py-4 bg-light">
@@ -26,7 +23,7 @@
                             @endif
                             <span class="fw-semibold">{{ $promo->name }}</span>
                         </div>
-                        <div class="text-muted small">{{ $promotions->describe($promo) }}</div>
+                        <div class="text-muted small">{{ $describePromotion($promo) }}</div>
                         @if($promo->ends_at)
                             <div class="small text-warning-emphasis mt-1">
                                 Ends {{ $promo->ends_at->format('M j, H:i') }}

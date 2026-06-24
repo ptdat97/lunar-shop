@@ -1,28 +1,22 @@
 @extends('theme::layouts.app')
 
 @php
+    // Presentation data is injected by view composers (standards §7):
+    //   Media   → $zoomSize, $ogImage, $galleryImages
+    //   Pricing → $displayPrice, $lowestPriceAmount, $currencyCode
+    //   Promotion → $sale
     $name = $product->translateAttribute('name');
     $description = $product->translateAttribute('description');
-    // Hydration payload for the variant island (Bước 4) — same ProductResource
-    // shape as GET /api/v1/products/{slug}. SSR below renders without it.
+    // Hydration payload for the variant enhancer — same ProductResource shape as
+    // GET /api/v1/products/{slug} (SSR-first §8). resolve() serialises a Resource,
+    // it isn't a business-service call.
     $state = (new \Modules\Product\Http\Resources\ProductResource(
         $product->loadMissing(['variants.values.option', 'variants.images', 'media'])
     ))->resolve();
 
-    $media = $product->media ?? collect();
     $firstVariant = $product->variants->first();
-
-    // PhotoSwipe needs the pixel dimensions of the full-size (zoom) image.
-    // Every conversion is Fit::Crop to the configured size, so all zoom images
-    // share the admin-configured zoom width/height.
-    $zoomSize = app(\Modules\Media\Services\MediaSettings::class)->sizes()['zoom'];
-
-    // OG image: first media's `large` conversion, generated on demand if missing.
-    $ogImage = app(\Modules\Media\Services\MediaUrl::class)->conversion($media->first(), 'large');
-
-    // Lowest variant price for structured data (JSON-LD Offer), via the Pricing
-    // presentation service — the same engine the API uses. No price logic here.
-    $priceAmount = app(\Modules\Pricing\Services\PricingService::class)->lowestPriceAmount($product);
+    $priceAmount = $lowestPriceAmount;   // alias for the JSON-LD block below
+    $currency = $currencyCode;
     $inStock = $product->variants->sum('stock') > 0;
 @endphp
 
@@ -60,15 +54,8 @@
             {{-- Swiper gallery: main slider + thumbnail strip. enhance/_gallery.js
                  inits Swiper and binds PhotoSwipe to the main slides (click → zoom),
                  and re-renders this when the chosen variant changes. The structure
-                 below is the SSR fallback (a plain swiper, usable with no JS). --}}
-            @php
-                $urls = app(\Modules\Media\Services\MediaUrl::class);
-                $galleryImages = $media->map(fn ($image) => [
-                    'small' => $urls->conversion($image, 'small') ?? $urls->conversion($image, 'large'),
-                    'large' => $urls->conversion($image, 'large'),
-                    'zoom' => $urls->conversion($image, 'zoom') ?? $urls->conversion($image, 'large'),
-                ])->filter(fn ($i) => $i['large']);
-            @endphp
+                 below is the SSR fallback (a plain swiper, usable with no JS).
+                 $galleryImages injected by the Media view composer (standards §7). --}}
 
             {{-- Thumbs strip sits to the LEFT of the main image (vertical on
                  desktop, horizontal under the main on mobile). --}}
@@ -113,11 +100,7 @@
         </div>
 
         <div class="col-12 col-lg-5">
-            @php
-                $pricing = app(\Modules\Pricing\Services\PricingService::class);
-                $sale = app(\Modules\Promotion\Services\PromotionService::class)->saleFor($product);
-            @endphp
-
+            {{-- $sale (Promotion) + $displayPrice (Pricing) injected by composers. --}}
             <div class="d-flex align-items-start gap-2">
                 <div class="flex-grow-1">
                     @if($brand = $product->brand?->name)
@@ -142,7 +125,7 @@
                     <span class="text-danger me-2" data-price-sale>{{ $sale['sale'] }}</span>
                     <span class="text-muted text-decoration-line-through fs-6" data-price-original>{{ $sale['original'] }}</span>
                 @else
-                    <span data-price-sale>{{ $pricing->displayPrice($product) }}</span>
+                    <span data-price-sale>{{ $displayPrice }}</span>
                 @endif
             </div>
 
@@ -224,7 +207,7 @@
 
 @push('head')
 @php
-    $currency = app(\Modules\Pricing\Services\PricingService::class)->defaultCurrencyCode();
+    $currency = $currencyCode; // injected by the Pricing view composer (standards §7)
     $jsonLd = [
         '@context' => 'https://schema.org',
         '@type' => 'Product',

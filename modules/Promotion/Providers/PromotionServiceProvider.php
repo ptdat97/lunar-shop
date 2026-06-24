@@ -38,16 +38,48 @@ class PromotionServiceProvider extends ServiceProvider
     }
 
     /**
-     * Expose the current flash sale to the storefront layout (SSR) so the promo
-     * bar renders server-side and is crawlable, without the theme depending on
-     * this module. Resolved lazily per render of the promo bar partial only.
+     * Feed promotion data into storefront views so Blade never resolves this
+     * service itself (coding standards §7). Each composer reads the model/cart
+     * already in the view and adds the promotion view-data:
+     *  - promo bar          → $flashSale
+     *  - promotions strip    → $promotions list + a describe() closure
+     *  - product card/price  → $sale (badge + price break)
+     *  - checkout summary    → $appliedDiscounts
      */
     protected function shareFlashSale(): void
     {
-        View::composer('theme::partials.promo-bar', function ($view): void {
-            $promotions = $this->app->make(PromotionService::class);
+        $promotions = fn () => $this->app->make(PromotionService::class);
 
-            $view->with('flashSale', $promotions->currentFlashSale());
+        View::composer('theme::partials.promo-bar', function ($view) use ($promotions): void {
+            $svc = $promotions();
+            $flashSale = $svc->currentFlashSale();
+            $view->with([
+                'flashSale' => $flashSale,
+                'flashSaleDescription' => $flashSale ? $svc->describe($flashSale) : null,
+            ]);
+        });
+
+        View::composer('theme::partials.promotions-strip', function ($view) use ($promotions): void {
+            $svc = $promotions();
+            $view->with([
+                'promotionsList' => $svc->activeAutomatic(),
+                'describePromotion' => fn ($discount) => $svc->describe($discount),
+            ]);
+        });
+
+        // $sale for the product card + price component + product page (badge +
+        // struck price). All three read $product already in the view.
+        View::composer(
+            ['theme::components.product-card', 'theme::components.price', 'theme::pages.product'],
+            function ($view) use ($promotions): void {
+                $product = $view->getData()['product'] ?? null;
+                $view->with('sale', $product ? $promotions()->saleFor($product) : null);
+            },
+        );
+
+        View::composer('theme::pages.checkout', function ($view) use ($promotions): void {
+            $cart = $view->getData()['cart'] ?? null;
+            $view->with('appliedDiscounts', $cart ? $promotions()->appliedTo($cart) : []);
         });
     }
 

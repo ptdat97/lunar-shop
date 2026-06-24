@@ -1,13 +1,9 @@
 {{-- Display price for a product. Included with ['product' => $product].
-     Price + promotion come from presentation services (no pricing/discount
-     logic in the view) — the same engines the API uses, so SSR matches the API.
+     $formatted (Pricing) + $sale (Promotion) are injected by view composers
+     (no service resolution / pricing logic in the view — standards §7).
 
      When an automatic promotion gives this product a price break, the original
      price is struck through and the discounted price shown beside it. --}}
-@php
-    $formatted = app(\Modules\Pricing\Services\PricingService::class)->displayPrice($product);
-    $sale = app(\Modules\Promotion\Services\PromotionService::class)->saleFor($product);
-@endphp
 @if($formatted)
     @if($sale && ($sale['has_price_break'] ?? false))
         <span class="product-card__price fw-semibold text-danger me-1">{{ $sale['sale'] }}</span>

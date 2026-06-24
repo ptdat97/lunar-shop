@@ -1,8 +1,4 @@
-@php
-    /** @var \Modules\Menu\Services\MenuRenderer $menus */
-    $menus = app(\Modules\Menu\Services\MenuRenderer::class);
-@endphp
-
+{{-- $menus (MenuRenderer) injected by the Menu view composer (standards §7). --}}
 @if($topbar = $theme->get('topbar'))
     <div class="bg-dark text-white small text-center py-2 px-3">
         {{ collect($topbar)->pluck('text')->first() }}

@@ -20,7 +20,8 @@
             <div class="row g-4">
                 @foreach($lookbooks as $lookbook)
                     @php
-                        $cover = app(\Modules\FileManager\Services\FileManager::class)->url($lookbook->cover_image, 'large');
+                        // $fileUrl resolver injected by the FileManager composer (§7).
+                        $cover = $fileUrl($lookbook->cover_image, 'large');
                     @endphp
                     <div class="col-12 col-sm-6 col-lg-4">
                         <a href="{{ route('storefront.lookbook', $lookbook->slug) }}"

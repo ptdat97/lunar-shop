@@ -1,16 +1,12 @@
 {{-- Product card. Included with ['product' => $product].
-     This markup is the canonical card; Bước 2's enhance/_card.js will render the
-     exact same structure from JSON so the SSR grid and JS-rendered grid match. --}}
+     $image (Media) + $sale (Promotion) are injected by view composers — no
+     service resolution in the view (standards §7). This markup is the canonical
+     card; enhance/_card.js renders the same structure from JSON so the SSR grid
+     and JS-rendered grid match. --}}
 @php
     $slug = $product->defaultUrl?->slug;
     $url = $slug ? route('storefront.product', $slug) : '#';
     $name = $product->translateAttribute('name');
-
-    // Resolves the `medium` URL, generating the conversion on demand if missing.
-    $image = app(\Modules\Media\Services\MediaUrl::class)->conversion($product->thumbnail, 'medium');
-
-    // Best automatic promotion for this product (badge + optional price break).
-    $sale = app(\Modules\Promotion\Services\PromotionService::class)->saleFor($product);
 @endphp
 
 <article class="product-card h-100 position-relative">

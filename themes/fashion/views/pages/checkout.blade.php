@@ -147,9 +147,9 @@
                 </div>
 
                 {{-- Applied promotions (SSR — the cart is already calculated).
-                     enhance/checkout-coupon.js refreshes this list when a coupon
-                     is applied/removed without a full reload. --}}
-                @php($appliedDiscounts = app(\Modules\Promotion\Services\PromotionService::class)->appliedTo($cart))
+                     $appliedDiscounts injected by the Promotion view composer
+                     (standards §7). enhance/checkout-coupon.js refreshes this
+                     list when a coupon is applied/removed without a full reload. --}}
                 <div class="border-top pt-2 mt-2" data-checkout-discounts>
                     @foreach($appliedDiscounts as $promo)
                         <div class="d-flex justify-content-between small text-success mb-1">

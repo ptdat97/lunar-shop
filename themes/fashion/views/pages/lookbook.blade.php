@@ -6,8 +6,8 @@
 
 @section('content')
     @php
-        $fileManager = app(\Modules\FileManager\Services\FileManager::class);
-        $cover = $fileManager->url($lookbook->cover_image, 'large');
+        // $fileUrl resolver injected by the FileManager view composer (§7).
+        $cover = $fileUrl($lookbook->cover_image, 'large');
         $images = $lookbook->images;
         $products = $lookbook->items->map->product->filter()->values();
     @endphp
@@ -39,7 +39,7 @@
         <section class="container mb-5">
             <div class="lookbook-gallery">
                 @foreach($images as $image)
-                    @php $src = $fileManager->url($image->image, 'large'); @endphp
+                    @php $src = $fileUrl($image->image, 'large'); @endphp
                     @if($src)
                         <figure class="lookbook-gallery__item mb-0">
                             <img src="{{ $src }}" alt="{{ $image->caption ?? $lookbook->title }}"

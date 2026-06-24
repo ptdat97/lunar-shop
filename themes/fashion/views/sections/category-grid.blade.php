@@ -9,8 +9,8 @@
                 @php
                     $slug = $collection->defaultUrl?->slug;
                     $url = $slug ? route('storefront.collection', $slug) : '#';
-                    // `small` conversion, generated on demand if its file is missing.
-                    $image = app(\Modules\Media\Services\MediaUrl::class)->conversion($collection->thumbnail, 'small');
+                    // $collectionImage closure injected by the Media view composer.
+                    $image = $collectionImage($collection, 'small');
                 @endphp
                 <div class="col-6 col-md-4 col-lg-2">
                     <a href="{{ $url }}" class="d-block text-center text-decoration-none text-dark">

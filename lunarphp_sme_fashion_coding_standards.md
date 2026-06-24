@@ -16,8 +16,8 @@
 1. **Inherit Lunar, đừng dựng lại** — Lunar là source of truth cho catalog, cart,
    pricing, order, customer, discount, media, payment. Kiểm tra `vendor/lunarphp`
    trước; có → extend, không → mới build (xem §5).
-2. **Service-first** — business logic chỉ sống trong Service. Cấm ở Controller,
-   Blade, JS, Model, Resource (§3, §4, §7).
+2. **Service-first** — business logic, transaction (`DB::transaction`) và cache
+   chỉ sống trong Service. Cấm ở Controller, Blade, JS, Model, Resource (§3, §4, §7).
 3. **SSR-first** — nội dung SEO render HTML thật ở server; JS chỉ *enhance* (§7, §9).
 4. **API-first, một contract** — web SSR và `/api/v1` cùng gọi một service + một
    API Resource; không nhân đôi logic/shape (§6).
@@ -103,6 +103,29 @@ validation nghiệp vụ, dispatch event, tích hợp ngoài.
   `*Hooks` (đăng ký hook). **Cấm** `Helper`/`Utils`/`Common`/`Manager` (dễ thành
   thùng rác) — trừ `*Manager` chính chủ của Lunar/Filament khi extend.
 
+**Transaction — bắt buộc bọc `DB::transaction` cho:** checkout, payment,
+inventory, order (mọi thao tác ghi nhiều bảng liên quan), để tránh bug đồng bộ dữ
+liệu (đặt hàng nửa chừng, trừ kho không khớp, ghi transaction lệch order).
+
+```php
+return DB::transaction(function () use ($data) {
+    $order = $this->createOrder($data);   // ghi order + lines
+    $this->reserveStock($order);          // trừ/giữ kho
+    $this->recordPayment($order);         // ghi transaction
+    return $order;
+});
+```
+
+> Lunar đã bọc transaction cho phần lõi của nó; chỗ ta **thêm** thao tác ghi quanh
+> pipeline (reserve stock, ghi domain record, side-effect) phải tự bọc transaction.
+> Side-effect không-thể-rollback (gửi email, gọi API ngoài) đưa **ra ngoài**
+> transaction — qua Event + Listener (§10), không gọi trong khối transaction.
+
+**Cache — chỉ Service được cache.** Không cache trong Blade, Controller, JS. Tách
+service cache riêng khi cần (`ProductCacheService`, `CollectionCacheService`);
+invalidate qua event (`product.updated`, `order.placed`…). Controller/Blade chỉ
+gọi service, không tự `Cache::remember`.
+
 ---
 
 ## 5. Lunar — kiểm tra trước khi build (BẮT BUỘC)
@@ -138,28 +161,37 @@ code trong `vendor/`.
 
 ## 7. Blade (Presentation Layer)
 
-**Được phép:** hiển thị + format dữ liệu; **resolve một presentation service** qua
-`app(...)` để đọc dữ liệu trình bày.
+**Được phép:** hiển thị + format dữ liệu đã được đưa vào view.
+
+**Dữ liệu trình bày đến từ đâu** (Blade **không** tự resolve service):
+
+* **Controller** đẩy vào view (`return view('theme::…', [...])`), hoặc
+* **View Composer** (đăng ký ở service provider) inject cho partial/layout dùng
+  chung, hoặc
+* **Class-based Blade component** — component class DI service trong PHP, Blade
+  view của component chỉ nhận biến đã tính (mẫu: `<x-theme::price>`,
+  `<x-theme::product-card>`).
+
+**CẤM trong Blade:**
 
 ```blade
-{{-- OK — service đọc-trình-bày, không có business logic trong view --}}
-@php
-    $price = app(\Modules\Pricing\Services\PricingService::class)->displayPrice($product);
-    $sale  = app(\Modules\Promotion\Services\PromotionService::class)->saleFor($product);
-    $img   = app(\Modules\Media\Services\MediaUrl::class)->conversion($product->thumbnail, 'medium');
-@endphp
+@php app(SomeService::class)   {{-- ❌ Blade không resolve service --}}
+@php resolve(...)              {{-- ❌ --}}
+DB::                           {{-- ❌ --}}
+Model::where(...) / ::create() {{-- ❌ query / ghi dữ liệu --}}
+Pricing:: / Discounts:: / Currency::getDefault()  {{-- ❌ facade·model Lunar --}}
 ```
 
-**Cấm trong Blade:** `DB::`, query Eloquent (`Model::where/query/first/get`),
-`::create/save/update/delete`, gọi **facade/model Lunar trực tiếp** (`Pricing::`,
-`Discounts::`, `Currency::getDefault()`), và **tự tính giá / promotion / inventory**.
-→ Mọi phép tính đó nằm trong service; Blade chỉ *gọi và nhận kết quả*.
+…và **tự tính giá / promotion / inventory**. Mọi phép tính + việc lấy data nằm ở
+service (qua controller/composer/component); Blade chỉ *nhận và in ra*.
 
-> Ranh giới: không phải "Blade có nhắc tới giá không", mà "**logic tính giá ở
-> trong view hay trong service**". `->map()/->filter()` để format collection hiển
-> thị (gallery, breadcrumb JSON-LD) là **format dữ liệu** → hợp lệ.
+> Ngoại lệ: helper trình bày thuần của Laravel (`app()->getLocale()`, `__()`,
+> `route()`, `asset()`) vẫn được dùng — đó không phải resolve service nghiệp vụ.
+> `->map()/->filter()` để format collection hiển thị (gallery, breadcrumb JSON-LD)
+> là **format dữ liệu** → hợp lệ.
 
-**Component:** UI lặp ≥ 3 lần phải tách (`<x-price>`, `<x-product-card>`…). Không
+**Component:** UI lặp ≥ 3 lần phải tách (`<x-theme::price>`,
+`<x-theme::product-card>`…). Component có logic lấy data → **class-based**. Không
 copy-paste HTML. **Blade ≤ 300 dòng.**
 
 ---
@@ -186,8 +218,15 @@ cần crawl — cart drawer/page, checkout, wishlist, membership card.
 
 ## 9. JavaScript (theme)
 
-Storefront là **Blade SSR + Vanilla JS**. **Không** Vue/React/**Alpine** (đã bỏ
-Vue hoàn toàn). jQuery chỉ cho plugin/tiện ích nhỏ; Axios gọi `/api/v1/*`.
+Storefront là **Blade SSR + Vanilla JS**:
+
+* **Vanilla JS** — mặc định cho mọi enhancer.
+* **AlpineJS** — được phép cho **tương tác UI nhỏ** (toggle, dropdown, accordion…)
+  khi vanilla quá rườm rà. Không dùng Alpine làm tầng state/data chính.
+* **Vue / React** — **cần kiến trúc phê duyệt riêng** trước khi thêm (storefront
+  đã bỏ Vue hoàn toàn; đừng tự thêm lại).
+
+jQuery chỉ cho plugin/tiện ích nhỏ; Axios gọi `/api/v1/*`.
 
 * Mỗi enhancer: `themes/fashion/js/enhance/*.js`, export `default fn(root=document)`,
   tự target qua `data-*`, auto-bootstrap qua `app.js` (glob). File `_*.js` (gạch
