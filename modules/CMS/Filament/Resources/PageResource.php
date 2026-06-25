@@ -27,49 +27,65 @@ class PageResource extends Resource
         return __('lunarpanel::global.sections.content');
     }
 
+    public static function getModelLabel(): string
+    {
+        return __('admin.page.label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.page.plural');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Page Details')
+                Forms\Components\Section::make(__('admin.page.section_details'))
                     ->schema([
                         Forms\Components\TextInput::make('title')
+                            ->label(__('admin.common.title'))
                             ->required()
                             ->maxLength(255)
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn ($state, Forms\Set $set) => $set('slug', Str::slug($state))
                             ),
                         Forms\Components\TextInput::make('slug')
+                            ->label(__('admin.common.slug'))
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(255),
                         Forms\Components\Toggle::make('published')
+                            ->label(__('admin.common.published'))
                             ->default(false),
                     ])
                     ->columns(3),
 
-                Forms\Components\Section::make('Featured Image')
-                    ->description('Pick from the Media Library.')
+                Forms\Components\Section::make(__('admin.page.section_featured'))
+                    ->description(__('admin.page.featured_pick'))
                     ->schema([
                         MediaPicker::make('featured_image', type: 'image')
-                            ->label('Featured image'),
+                            ->label(__('admin.page.featured_image')),
                     ]),
 
-                Forms\Components\Section::make('Content')
+                Forms\Components\Section::make(__('admin.page.section_content'))
                     ->schema([
                         Forms\Components\RichEditor::make('content')
+                            ->label(__('admin.common.content'))
                             ->columnSpanFull(),
                     ]),
 
-                Forms\Components\Section::make('SEO')
+                Forms\Components\Section::make(__('admin.common.seo'))
                     ->schema([
                         Forms\Components\TextInput::make('meta_title')
+                            ->label(__('admin.common.meta_title'))
                             ->maxLength(255),
                         Forms\Components\Textarea::make('meta_description')
+                            ->label(__('admin.common.meta_description'))
                             ->maxLength(500),
                         Forms\Components\KeyValue::make('og_data')
-                            ->keyLabel('Property')
-                            ->valueLabel('Content'),
+                            ->keyLabel(__('admin.common.property'))
+                            ->valueLabel(__('admin.common.value')),
                     ]),
             ]);
     }
@@ -79,17 +95,22 @@ class PageResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('title')
+                    ->label(__('admin.common.title'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('slug')
+                    ->label(__('admin.common.slug'))
                     ->searchable(),
                 Tables\Columns\IconColumn::make('published')
+                    ->label(__('admin.common.published'))
                     ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('admin.common.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\TextColumn::make('updated_at')
+                    ->label(__('admin.common.updated_at'))
                     ->dateTime()
                     ->sortable(),
             ])

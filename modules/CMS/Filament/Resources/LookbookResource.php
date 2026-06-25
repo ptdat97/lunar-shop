@@ -28,47 +28,63 @@ class LookbookResource extends Resource
         return __('lunarpanel::global.sections.content');
     }
 
+    public static function getModelLabel(): string
+    {
+        return __('admin.lookbook.label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.lookbook.plural');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Lookbook Details')
+                Forms\Components\Section::make(__('admin.lookbook.section_details'))
                     ->schema([
                         Forms\Components\TextInput::make('title')
+                            ->label(__('admin.common.title'))
                             ->required()
                             ->maxLength(255)
                             ->live(onBlur: true)
                             ->afterStateUpdated(fn ($state, Forms\Set $set) => $set('slug', Str::slug($state))
                             ),
                         Forms\Components\TextInput::make('slug')
+                            ->label(__('admin.common.slug'))
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(255),
                         Forms\Components\Toggle::make('published')
+                            ->label(__('admin.common.published'))
                             ->default(false),
-                        Forms\Components\Textarea::make('description'),
+                        Forms\Components\Textarea::make('description')
+                            ->label(__('admin.common.description')),
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Cover Image')
-                    ->description('Pick from the Media Library.')
+                Forms\Components\Section::make(__('admin.lookbook.section_cover'))
+                    ->description(__('admin.lookbook.cover_pick'))
                     ->schema([
                         MediaPicker::make('cover_image', type: 'image')
-                            ->label('Cover image'),
+                            ->label(__('admin.lookbook.cover')),
                     ]),
 
-                Forms\Components\Section::make('Gallery')
-                    ->description('Photo collection shown at the top of the lookbook page.')
+                Forms\Components\Section::make(__('admin.lookbook.section_gallery'))
+                    ->description(__('admin.lookbook.gallery_desc'))
                     ->schema([
                         Forms\Components\Repeater::make('images')
                             ->relationship()
                             ->schema([
                                 MediaPicker::make('image', type: 'image')
-                                    ->label('Image')
+                                    ->label(__('admin.common.image'))
                                     ->required(),
                                 Forms\Components\TextInput::make('caption')
+                                    ->label(__('admin.lookbook.caption'))
                                     ->maxLength(255),
                                 Forms\Components\TextInput::make('sort')
+                                    ->label(__('admin.common.sort'))
                                     ->numeric()
                                     ->default(0),
                             ])
@@ -77,22 +93,24 @@ class LookbookResource extends Resource
                             ->defaultItems(0),
                     ]),
 
-                Forms\Components\Section::make('Products')
-                    ->description('Shown at the bottom of the lookbook page.')
+                Forms\Components\Section::make(__('admin.lookbook.section_products'))
+                    ->description(__('admin.lookbook.products_desc'))
                     ->schema([
                         Forms\Components\Repeater::make('items')
                             ->relationship()
                             ->schema([
                                 Forms\Components\Select::make('product_id')
-                                    ->label('Product')
+                                    ->label(__('admin.lookbook.product'))
                                     ->options(fn () => Product::all()
                                         ->mapWithKeys(fn ($product) => [$product->id => $product->translateAttribute('name')]))
                                     ->getOptionLabelUsing(fn ($value): ?string => Product::find($value)?->translateAttribute('name'))
                                     ->searchable()
                                     ->required(),
                                 Forms\Components\TextInput::make('caption')
+                                    ->label(__('admin.lookbook.caption'))
                                     ->maxLength(255),
                                 Forms\Components\TextInput::make('sort')
+                                    ->label(__('admin.common.sort'))
                                     ->numeric()
                                     ->default(0),
                             ])
@@ -107,16 +125,20 @@ class LookbookResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('title')
+                    ->label(__('admin.common.title'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('slug')
+                    ->label(__('admin.common.slug'))
                     ->searchable(),
                 Tables\Columns\IconColumn::make('published')
+                    ->label(__('admin.common.published'))
                     ->boolean(),
                 Tables\Columns\TextColumn::make('items_count')
                     ->counts('items')
-                    ->label('Products'),
+                    ->label(__('admin.lookbook.product')),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('admin.common.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

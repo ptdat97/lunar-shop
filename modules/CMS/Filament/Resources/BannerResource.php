@@ -26,43 +26,60 @@ class BannerResource extends Resource
         return __('lunarpanel::global.sections.content');
     }
 
+    public static function getModelLabel(): string
+    {
+        return __('admin.banner.label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.banner.plural');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Banner Details')
+                Forms\Components\Section::make(__('admin.banner.section_details'))
                     ->schema([
                         Forms\Components\TextInput::make('title')
+                            ->label(__('admin.common.title'))
                             ->required()
                             ->maxLength(255),
                         Forms\Components\TextInput::make('subtitle')
+                            ->label(__('admin.banner.subtitle'))
                             ->maxLength(255),
                         Forms\Components\TextInput::make('button_text')
+                            ->label(__('admin.banner.button_text'))
                             ->maxLength(255),
                         Forms\Components\TextInput::make('button_url')
+                            ->label(__('admin.banner.button_url'))
                             ->maxLength(255),
                         Forms\Components\Select::make('position')
+                            ->label(__('admin.banner.position'))
                             ->options([
-                                'center' => 'Center',
-                                'left' => 'Left',
-                                'right' => 'Right',
+                                'center' => __('admin.banner.pos_center'),
+                                'left' => __('admin.banner.pos_left'),
+                                'right' => __('admin.banner.pos_right'),
                             ])
                             ->default('center'),
                         Forms\Components\Toggle::make('active')
+                            ->label(__('admin.common.active'))
                             ->default(true),
                         Forms\Components\TextInput::make('sort')
+                            ->label(__('admin.common.sort'))
                             ->numeric()
                             ->default(0),
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make('Images')
-                    ->description('Pick from the Media Library. Upload new files there first if needed.')
+                Forms\Components\Section::make(__('admin.banner.section_images'))
+                    ->description(__('admin.banner.images_pick'))
                     ->schema([
                         MediaPicker::make('image', type: 'image')
-                            ->label('Image'),
+                            ->label(__('admin.banner.image')),
                         MediaPicker::make('mobile_image', type: 'image')
-                            ->label('Mobile image'),
+                            ->label(__('admin.banner.mobile_image')),
                     ]),
             ]);
     }
@@ -72,17 +89,23 @@ class BannerResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('title')
+                    ->label(__('admin.common.title'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('subtitle')
+                    ->label(__('admin.banner.subtitle'))
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 Tables\Columns\IconColumn::make('active')
+                    ->label(__('admin.common.active'))
                     ->boolean(),
-                Tables\Columns\TextColumn::make('position'),
+                Tables\Columns\TextColumn::make('position')
+                    ->label(__('admin.banner.position')),
                 Tables\Columns\TextColumn::make('sort')
+                    ->label(__('admin.common.sort'))
                     ->sortable(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('admin.common.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

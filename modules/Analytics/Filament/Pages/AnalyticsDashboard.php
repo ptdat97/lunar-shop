@@ -26,7 +26,15 @@ class AnalyticsDashboard extends Page
         return __('lunarpanel::global.sections.sales');
     }
 
-    protected static ?string $title = 'Sales Dashboard';
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.analytics.title');
+    }
+
+    public function getTitle(): string
+    {
+        return __('admin.analytics.title');
+    }
 
     protected static ?string $slug = 'sales-dashboard';
 

@@ -24,7 +24,20 @@ class ShippingZoneResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-truck';
 
-    protected static ?string $navigationLabel = 'Shipping Zones';
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.shipping.plural');
+    }
+
+    public static function getModelLabel(): string
+    {
+        return __('admin.shipping.label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.shipping.plural');
+    }
 
     public static function getNavigationGroup(): ?string
     {
@@ -34,15 +47,16 @@ class ShippingZoneResource extends Resource
     public static function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('Zone')
+            Forms\Components\Section::make(__('admin.shipping.section_zone'))
                 ->columns(2)
                 ->schema([
                     Forms\Components\TextInput::make('name')
+                        ->label(__('admin.common.name'))
                         ->required()
                         ->maxLength(255)
-                        ->helperText('Internal label, e.g. "Vietnam — Major cities".'),
+                        ->helperText(__('admin.shipping.name_help')),
                     Forms\Components\Select::make('country_code')
-                        ->label('Country')
+                        ->label(__('admin.shipping.country'))
                         ->required()
                         ->searchable()
                         ->options(fn () => Country::query()
@@ -50,33 +64,35 @@ class ShippingZoneResource extends Resource
                             ->orderBy('name')
                             ->pluck('name', 'iso2')),
                     Forms\Components\TagsInput::make('states')
-                        ->label('States / provinces')
-                        ->placeholder('Add a state…')
-                        ->helperText('Leave empty to cover the whole country. Names must match the address state exactly.')
+                        ->label(__('admin.shipping.states'))
+                        ->placeholder(__('admin.shipping.states_placeholder'))
+                        ->helperText(__('admin.shipping.states_help'))
                         ->columnSpanFull(),
                 ]),
 
-            Forms\Components\Section::make('Rate')
+            Forms\Components\Section::make(__('admin.shipping.section_rate'))
                 ->columns(2)
                 ->schema([
                     Forms\Components\TextInput::make('rate')
-                        ->label('Rate (minor units)')
+                        ->label(__('admin.shipping.rate'))
                         ->numeric()
                         ->minValue(0)
                         ->required()
                         ->default(3000)
-                        ->helperText('e.g. 3000 = 30.00 in the store currency.'),
+                        ->helperText(__('admin.shipping.rate_help')),
                     Forms\Components\TextInput::make('free_threshold')
-                        ->label('Free shipping over (minor units)')
+                        ->label(__('admin.shipping.free_threshold'))
                         ->numeric()
                         ->minValue(0)
                         ->default(0)
-                        ->helperText('0 disables free shipping for this zone.'),
+                        ->helperText(__('admin.shipping.free_threshold_help')),
                     Forms\Components\TextInput::make('priority')
+                        ->label(__('admin.shipping.priority'))
                         ->numeric()
                         ->default(0)
-                        ->helperText('Lower wins when several zones match.'),
+                        ->helperText(__('admin.shipping.priority_help')),
                     Forms\Components\Toggle::make('enabled')
+                        ->label(__('admin.common.enabled'))
                         ->default(true),
                 ]),
         ]);
@@ -86,16 +102,16 @@ class ShippingZoneResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('country_code')->label('Country')->sortable(),
+                Tables\Columns\TextColumn::make('name')->label(__('admin.common.name'))->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('country_code')->label(__('admin.shipping.country'))->sortable(),
                 Tables\Columns\TextColumn::make('states')
-                    ->label('States')
+                    ->label(__('admin.shipping.states'))
                     ->badge()
-                    ->placeholder('Whole country'),
-                Tables\Columns\TextColumn::make('rate')->numeric()->sortable(),
-                Tables\Columns\TextColumn::make('free_threshold')->label('Free over')->numeric()->sortable(),
-                Tables\Columns\IconColumn::make('enabled')->boolean(),
-                Tables\Columns\TextColumn::make('priority')->numeric()->sortable()->toggleable(),
+                    ->placeholder(__('admin.shipping.whole_country')),
+                Tables\Columns\TextColumn::make('rate')->label(__('admin.shipping.rate'))->numeric()->sortable(),
+                Tables\Columns\TextColumn::make('free_threshold')->label(__('admin.shipping.free_over'))->numeric()->sortable(),
+                Tables\Columns\IconColumn::make('enabled')->label(__('admin.common.enabled'))->boolean(),
+                Tables\Columns\TextColumn::make('priority')->label(__('admin.shipping.priority'))->numeric()->sortable()->toggleable(),
             ])
             ->defaultSort('country_code')
             ->actions([

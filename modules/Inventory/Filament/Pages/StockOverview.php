@@ -28,7 +28,15 @@ class StockOverview extends Page implements HasTable
 
     protected static ?string $navigationIcon = 'heroicon-o-exclamation-triangle';
 
-    protected static ?string $title = 'Stock Levels';
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.inventory.title');
+    }
+
+    public function getTitle(): string
+    {
+        return __('admin.inventory.title');
+    }
 
     public static function getNavigationGroup(): ?string
     {
@@ -49,7 +57,7 @@ class StockOverview extends Page implements HasTable
             ->defaultSort('stock', 'asc')
             ->columns([
                 TextColumn::make('product.attribute_data.name')
-                    ->label('Product')
+                    ->label(__('admin.inventory.product'))
                     ->getStateUsing(fn (ProductVariant $r) => $r->product?->translateAttribute('name'))
                     ->searchable(query: fn (Builder $q, string $search) => $q->whereHas(
                         'product',
@@ -57,10 +65,10 @@ class StockOverview extends Page implements HasTable
                     ))
                     ->wrap(),
                 TextColumn::make('sku')
-                    ->label('SKU')
+                    ->label(__('admin.inventory.sku'))
                     ->searchable(),
                 TextColumn::make('status')
-                    ->label('Status')
+                    ->label(__('admin.inventory.status'))
                     ->badge()
                     ->state(fn (ProductVariant $r) => $this->status($r))
                     ->color(fn (string $state): string => match ($state) {
@@ -70,30 +78,30 @@ class StockOverview extends Page implements HasTable
                         default => 'success',
                     }),
                 TextColumn::make('stock')
-                    ->label('Stock')
+                    ->label(__('admin.inventory.stock'))
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('backorder')
-                    ->label('Backorder')
+                    ->label(__('admin.inventory.backorder'))
                     ->numeric()
                     ->toggleable(),
                 TextColumn::make('purchasable')
-                    ->label('Mode')
+                    ->label(__('admin.inventory.mode'))
                     ->badge()
                     ->toggleable(),
                 TextColumn::make('waiting')
-                    ->label('Waiting')
+                    ->label(__('admin.inventory.waiting'))
                     ->badge()
                     ->color('info')
-                    ->tooltip('Shoppers waiting for a back-in-stock email'),
+                    ->tooltip(__('admin.inventory.waiting_tip')),
             ])
             ->filters([
                 SelectFilter::make('availability')
-                    ->label('Stock status')
+                    ->label(__('admin.inventory.stock_status'))
                     ->options([
-                        'out' => 'Out of stock',
-                        'low' => 'Low stock',
-                        'tracked' => 'Tracked (not unlimited)',
+                        'out' => __('admin.inventory.filter_out'),
+                        'low' => __('admin.inventory.filter_low'),
+                        'tracked' => __('admin.inventory.filter_tracked'),
                     ])
                     ->query(fn (Builder $q, array $data): Builder => match ($data['value'] ?? null) {
                         'out' => $q->where('purchasable', '!=', 'always')->where('stock', '<=', 0),

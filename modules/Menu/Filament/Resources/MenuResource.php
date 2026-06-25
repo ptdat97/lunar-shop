@@ -24,30 +24,41 @@ class MenuResource extends Resource
 
     protected static ?string $navigationIcon = 'heroicon-o-bars-3';
 
-    protected static ?string $navigationLabel = 'Menus';
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.menu.plural');
+    }
 
     public static function getNavigationGroup(): ?string
     {
         return __('lunarpanel::global.sections.content');
     }
 
-    protected static ?string $modelLabel = 'Menu';
+    public static function getModelLabel(): string
+    {
+        return __('admin.menu.label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.menu.plural');
+    }
 
     public static function form(Form $form): Form
     {
         return $form->schema([
             FormSection::make()->columns(2)->schema([
-                TextInput::make('name')->required(),
-                TextInput::make('handle')->required()->helperText('e.g. header, footer'),
+                TextInput::make('name')->label(__('admin.common.name'))->required(),
+                TextInput::make('handle')->label(__('admin.menu.handle'))->required()->helperText(__('admin.menu.handle_help')),
             ]),
 
             // The whole tree lives under `tree` (built on fill, flattened on save).
             Repeater::make('tree')
-                ->label('Menu items')
+                ->label(__('admin.menu.items'))
                 ->schema(static::itemSchema())
                 ->collapsible()
                 ->reorderable()
-                ->itemLabel(fn (array $state) => ($state['label'] ?? 'Item').' ['.($state['type'] ?? 'link').']')
+                ->itemLabel(fn (array $state) => ($state['label'] ?? __('admin.menu.item')).' ['.($state['type'] ?? 'link').']')
                 ->columnSpanFull()
                 ->defaultItems(0),
         ]);
@@ -63,50 +74,57 @@ class MenuResource extends Resource
         return [
             FormSection::make()->columns(3)->schema([
                 Select::make('type')
-                    ->options(['link' => 'Link', 'dropdown' => 'Dropdown', 'mega' => 'Mega menu', 'footer-column' => 'Footer column'])
+                    ->label(__('admin.menu.type'))
+                    ->options([
+                        'link' => __('admin.menu.type_link'),
+                        'dropdown' => __('admin.menu.type_dropdown'),
+                        'mega' => __('admin.menu.type_mega'),
+                        'footer-column' => __('admin.menu.type_footer_column'),
+                    ])
                     ->default('link')->required()->live(),
-                TextInput::make('label')->required(),
-                TextInput::make('badge')->placeholder('New / Hot'),
+                TextInput::make('label')->label(__('admin.menu.item_label'))->required(),
+                TextInput::make('badge')->label(__('admin.menu.badge'))->placeholder('New / Hot'),
             ]),
 
             // Destination (shared by link/dropdown/mega top-level)
             FormSection::make()->columns(2)->schema([
-                TextInput::make('url')->label('URL')->placeholder('/search or https://…'),
-                Select::make('collection_id')->label('Or link a collection')
+                TextInput::make('url')->label(__('admin.menu.url'))->placeholder('/search or https://…'),
+                Select::make('collection_id')->label(__('admin.menu.link_collection'))
                     ->options(fn () => static::collectionOptions())->searchable(),
             ]),
 
             // Dropdown → flat list of links
             Repeater::make('children')
-                ->label('Links')
+                ->label(__('admin.menu.links'))
                 ->visible(fn (Get $get) => in_array($get('type'), ['dropdown', 'footer-column']))
                 ->schema(static::linkSchema())
                 ->collapsible()->reorderable()
-                ->itemLabel(fn (array $state) => $state['label'] ?? 'Link'),
+                ->itemLabel(fn (array $state) => $state['label'] ?? __('admin.menu.type_link')),
 
             // Mega → columns (each with its own links) + optional banners
             Repeater::make('children')
-                ->label('Columns & banners')
+                ->label(__('admin.menu.columns_banners'))
                 ->visible(fn (Get $get) => $get('type') === 'mega')
                 ->schema([
                     Select::make('type')
-                        ->options(['mega-column' => 'Column', 'banner' => 'Banner'])
+                        ->label(__('admin.menu.type'))
+                        ->options(['mega-column' => __('admin.menu.type_column'), 'banner' => __('admin.menu.type_banner')])
                         ->default('mega-column')->required()->live(),
-                    TextInput::make('label')->label('Heading / alt'),
-                    FileUpload::make('image')->label('Banner image')
+                    TextInput::make('label')->label(__('admin.menu.heading_alt')),
+                    FileUpload::make('image')->label(__('admin.menu.banner_image'))
                         ->image()->disk('media')->directory('menus/banners')
                         ->visible(fn (Get $get) => $get('type') === 'banner'),
-                    TextInput::make('url')->label('Banner link')
+                    TextInput::make('url')->label(__('admin.menu.banner_link'))
                         ->visible(fn (Get $get) => $get('type') === 'banner'),
                     Repeater::make('children')
-                        ->label('Links')
+                        ->label(__('admin.menu.links'))
                         ->visible(fn (Get $get) => $get('type') === 'mega-column')
                         ->schema(static::linkSchema())
                         ->collapsible()->reorderable()
-                        ->itemLabel(fn (array $state) => $state['label'] ?? 'Link'),
+                        ->itemLabel(fn (array $state) => $state['label'] ?? __('admin.menu.type_link')),
                 ])
                 ->collapsible()->reorderable()
-                ->itemLabel(fn (array $state) => ($state['label'] ?? 'Column').' ['.($state['type'] ?? 'mega-column').']'),
+                ->itemLabel(fn (array $state) => ($state['label'] ?? __('admin.menu.type_column')).' ['.($state['type'] ?? 'mega-column').']'),
         ];
     }
 
@@ -118,11 +136,11 @@ class MenuResource extends Resource
     protected static function linkSchema(): array
     {
         return [
-            TextInput::make('label')->required(),
-            TextInput::make('url')->label('URL'),
-            Select::make('collection_id')->label('Collection')
+            TextInput::make('label')->label(__('admin.menu.item_label'))->required(),
+            TextInput::make('url')->label(__('admin.menu.url')),
+            Select::make('collection_id')->label(__('admin.menu.collection'))
                 ->options(fn () => static::collectionOptions())->searchable(),
-            TextInput::make('badge')->placeholder('New'),
+            TextInput::make('badge')->label(__('admin.menu.badge'))->placeholder('New'),
         ];
     }
 
@@ -139,9 +157,9 @@ class MenuResource extends Resource
     public static function table(Table $table): Table
     {
         return $table->columns([
-            TextColumn::make('name'),
-            TextColumn::make('handle')->badge(),
-            TextColumn::make('items_count')->counts('items')->label('Items'),
+            TextColumn::make('name')->label(__('admin.common.name')),
+            TextColumn::make('handle')->label(__('admin.menu.handle'))->badge(),
+            TextColumn::make('items_count')->counts('items')->label(__('admin.menu.items_count')),
         ])->actions([
             EditAction::make(),
         ]);

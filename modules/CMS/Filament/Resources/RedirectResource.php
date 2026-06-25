@@ -25,28 +25,42 @@ class RedirectResource extends Resource
         return __('lunarpanel::global.sections.content');
     }
 
+    public static function getModelLabel(): string
+    {
+        return __('admin.redirect.label');
+    }
+
+    public static function getPluralModelLabel(): string
+    {
+        return __('admin.redirect.plural');
+    }
+
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Redirect Details')
+                Forms\Components\Section::make(__('admin.redirect.section'))
                     ->schema([
                         Forms\Components\TextInput::make('old_url')
+                            ->label(__('admin.redirect.from'))
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->placeholder('/old-page')
-                            ->helperText('The URL to redirect from (e.g. /old-page)'),
+                            ->helperText(__('admin.redirect.from_help')),
                         Forms\Components\TextInput::make('new_url')
+                            ->label(__('admin.redirect.to'))
                             ->placeholder('/new-page')
-                            ->helperText('The URL to redirect to. Leave empty to return 410 Gone.'),
+                            ->helperText(__('admin.redirect.to_help')),
                         Forms\Components\Select::make('status_code')
+                            ->label(__('admin.redirect.status_code'))
                             ->options([
-                                301 => '301 - Permanent',
-                                302 => '302 - Temporary',
-                                410 => '410 - Gone',
+                                301 => __('admin.redirect.code_301'),
+                                302 => __('admin.redirect.code_302'),
+                                410 => __('admin.redirect.code_410'),
                             ])
                             ->default(301),
                         Forms\Components\Toggle::make('active')
+                            ->label(__('admin.common.active'))
                             ->default(true),
                     ])
                     ->columns(2),
@@ -58,15 +72,20 @@ class RedirectResource extends Resource
         return $table
             ->columns([
                 Tables\Columns\TextColumn::make('old_url')
+                    ->label(__('admin.redirect.from'))
                     ->searchable()
                     ->sortable(),
                 Tables\Columns\TextColumn::make('new_url')
+                    ->label(__('admin.redirect.to'))
                     ->searchable()
-                    ->placeholder('(gone)'),
-                Tables\Columns\TextColumn::make('status_code'),
+                    ->placeholder(__('admin.redirect.gone')),
+                Tables\Columns\TextColumn::make('status_code')
+                    ->label(__('admin.redirect.status_code')),
                 Tables\Columns\IconColumn::make('active')
+                    ->label(__('admin.common.active'))
                     ->boolean(),
                 Tables\Columns\TextColumn::make('created_at')
+                    ->label(__('admin.common.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
