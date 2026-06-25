@@ -23,7 +23,7 @@ class ManageProductVariants extends BaseManageProductVariants
             ->recordTitleAttribute('sku')
             ->columns([
                 Tables\Columns\TextColumn::make('sku')
-                    ->label('SKU')
+                    ->label(__('admin.inventory.sku'))
                     ->searchable(),
             ])
             ->headerActions([

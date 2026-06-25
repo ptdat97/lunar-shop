@@ -29,7 +29,15 @@ class MediaLibrary extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-photo';
 
-    protected static ?string $title = 'Media Library';
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.media.library');
+    }
+
+    public function getTitle(): string
+    {
+        return __('admin.media.library');
+    }
 
     public static function getNavigationGroup(): ?string
     {
@@ -91,7 +99,7 @@ class MediaLibrary extends Page implements HasForms
         return $form
             ->schema([
                 FileUpload::make('files')
-                    ->label('Upload files')
+                    ->label(__('admin.media.upload'))
                     ->multiple()
                     ->acceptedFileTypes([
                         'image/*',
@@ -102,7 +110,7 @@ class MediaLibrary extends Page implements HasForms
                     ->storeFiles(false)
                     ->helperText('Images, video (mp4/webm) and PDF. Max 50MB each.'),
                 TextInput::make('folder')
-                    ->label('Folder (optional)')
+                    ->label(__('admin.media.folder'))
                     ->placeholder('e.g. banners, lookbooks')
                     ->maxLength(255),
             ])
@@ -126,7 +134,7 @@ class MediaLibrary extends Page implements HasForms
         );
 
         if (empty($files)) {
-            Notification::make()->title('No files selected')->warning()->send();
+            Notification::make()->title(__('admin.media.no_files'))->warning()->send();
 
             return;
         }
@@ -143,7 +151,7 @@ class MediaLibrary extends Page implements HasForms
         $this->uploadForm->fill();
 
         Notification::make()
-            ->title($count.' file(s) uploaded')
+            ->title(__('admin.media.uploaded', ['count' => $count]))
             ->success()
             ->send();
     }
@@ -199,7 +207,7 @@ class MediaLibrary extends Page implements HasForms
         $this->reset(['editingId', 'editName', 'editAlt', 'editTitle', 'editFolder', 'replaceUpload']);
         $this->dispatch('close-modal', id: 'edit-file');
 
-        Notification::make()->title('File updated')->success()->send();
+        Notification::make()->title(__('admin.media.file_updated'))->success()->send();
     }
 
     /**
@@ -212,7 +220,7 @@ class MediaLibrary extends Page implements HasForms
         if ($asset) {
             $this->manager()->delete($asset);
             $this->selected = array_values(array_diff($this->selected, [$id]));
-            Notification::make()->title('File deleted')->success()->send();
+            Notification::make()->title(__('admin.media.file_deleted'))->success()->send();
         }
     }
 
@@ -222,7 +230,7 @@ class MediaLibrary extends Page implements HasForms
     public function deleteSelected(): void
     {
         if (empty($this->selected)) {
-            Notification::make()->title('No files selected')->warning()->send();
+            Notification::make()->title(__('admin.media.no_files'))->warning()->send();
 
             return;
         }

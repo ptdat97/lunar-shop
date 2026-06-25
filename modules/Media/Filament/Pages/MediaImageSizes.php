@@ -28,7 +28,15 @@ class MediaImageSizes extends Page implements HasForms
 
     protected static ?string $navigationIcon = 'heroicon-o-photo';
 
-    protected static ?string $title = 'Image Sizes';
+    public static function getNavigationLabel(): string
+    {
+        return __('admin.media.image_sizes');
+    }
+
+    public function getTitle(): string
+    {
+        return __('admin.media.image_sizes');
+    }
 
     public static function getNavigationGroup(): ?string
     {
@@ -60,8 +68,8 @@ class MediaImageSizes extends Page implements HasForms
     {
         return $form
             ->schema([
-                Section::make('Conversion sizes')
-                    ->description('Width and height (px) for each generated image size. Larger sizes mean sharper images but bigger files — keep them as small as the design allows for fast page loads.')
+                Section::make(__('admin.media.conversion_sizes'))
+                    ->description(__('admin.media.sizes_desc'))
                     ->schema($this->sizeFields()),
             ])
             ->statePath('data');
@@ -79,13 +87,13 @@ class MediaImageSizes extends Page implements HasForms
                 ->columns(2)
                 ->schema([
                     TextInput::make("{$key}.width")
-                        ->label('Width (px)')
+                        ->label(__('admin.media.width'))
                         ->numeric()
                         ->minValue(self::MIN_DIMENSION)
                         ->maxValue(self::MAX_DIMENSION)
                         ->required(),
                     TextInput::make("{$key}.height")
-                        ->label('Height (px)')
+                        ->label(__('admin.media.height'))
                         ->numeric()
                         ->minValue(self::MIN_DIMENSION)
                         ->maxValue(self::MAX_DIMENSION)
@@ -104,8 +112,8 @@ class MediaImageSizes extends Page implements HasForms
         app(MediaSettings::class)->save($this->form->getState());
 
         Notification::make()
-            ->title('Image sizes saved')
-            ->body('New sizes apply to newly generated images. Use “Regenerate all” to rebuild existing media with the new sizes.')
+            ->title(__('admin.media.saved'))
+            ->body(__('admin.media.saved_body'))
             ->success()
             ->send();
     }

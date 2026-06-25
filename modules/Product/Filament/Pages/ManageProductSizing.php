@@ -22,53 +22,59 @@ class ManageProductSizing extends BaseEditRecord
 {
     protected static string $resource = ProductResource::class;
 
-    protected static ?string $title = 'Size & Fit';
-
     public static function getNavigationIcon(): ?string
     {
         return FilamentIcon::resolve('lunar::product-shipping') ?? 'heroicon-o-table-cells';
     }
 
+    public function getTitle(): string
+    {
+        return __('admin.sizing.title');
+    }
+
     public static function getNavigationLabel(): string
     {
-        return 'Size & Fit';
+        return __('admin.sizing.title');
     }
 
     public function form(Form $form): Form
     {
         return $form->schema([
-            Forms\Components\Section::make('Size chart')
-                ->description('Pick a reusable chart. Manage charts under Catalog → Size Charts.')
+            Forms\Components\Section::make(__('admin.sizing.chart_section'))
+                ->description(__('admin.sizing.chart_desc'))
                 ->icon('heroicon-o-table-cells')
                 ->schema([
                     Forms\Components\Select::make('size_chart_id')
-                        ->label('Assigned size chart')
+                        ->label(__('admin.sizing.assigned_chart'))
                         ->options(fn () => SizeChart::where('active', true)->orderBy('name')->pluck('name', 'id'))
                         ->searchable()
                         ->preload()
                         ->native(false)
-                        ->placeholder('No size chart')
-                        ->helperText('Drives the storefront size chart and the size recommender.'),
+                        ->placeholder(__('admin.sizing.no_chart'))
+                        ->helperText(__('admin.sizing.chart_help')),
                 ]),
 
-            Forms\Components\Section::make('Material & Care')
-                ->description('Fabric and care details shown on the product page.')
+            Forms\Components\Section::make(__('admin.sizing.material_section'))
+                ->description(__('admin.sizing.material_desc'))
                 ->icon('heroicon-o-sparkles')
                 ->schema([
                     Forms\Components\TextInput::make('material.material')
-                        ->label('Main material')->placeholder('e.g. Cotton, Linen, Wool')->maxLength(255),
+                        ->label(__('admin.sizing.main_material'))->placeholder('e.g. Cotton, Linen, Wool')->maxLength(255),
                     Forms\Components\TextInput::make('material.composition')
-                        ->placeholder('e.g. 95% Cotton, 5% Elastane')->maxLength(255),
+                        ->label(__('admin.sizing.composition'))->placeholder('e.g. 95% Cotton, 5% Elastane')->maxLength(255),
                     Forms\Components\Select::make('material.stretch')
-                        ->options(['none' => 'No stretch', 'slight' => 'Slight stretch', 'stretchy' => 'Stretchy'])->native(false),
+                        ->label(__('admin.sizing.stretch'))
+                        ->options(['none' => __('admin.sizing.stretch_none'), 'slight' => __('admin.sizing.stretch_slight'), 'stretchy' => __('admin.sizing.stretch_stretchy')])->native(false),
                     Forms\Components\Select::make('material.transparency')
-                        ->options(['opaque' => 'Opaque', 'semi' => 'Semi-sheer', 'sheer' => 'Sheer'])->native(false),
+                        ->label(__('admin.sizing.transparency'))
+                        ->options(['opaque' => __('admin.sizing.trans_opaque'), 'semi' => __('admin.sizing.trans_semi'), 'sheer' => __('admin.sizing.trans_sheer')])->native(false),
                     Forms\Components\TextInput::make('material.fabric_weight')
-                        ->label('Fabric weight')->placeholder('e.g. 220 gsm')->maxLength(255),
+                        ->label(__('admin.sizing.fabric_weight'))->placeholder('e.g. 220 gsm')->maxLength(255),
                     Forms\Components\Select::make('material.lining')
-                        ->options(['none' => 'Unlined', 'partial' => 'Partially lined', 'full' => 'Fully lined'])->native(false),
+                        ->label(__('admin.sizing.lining'))
+                        ->options(['none' => __('admin.sizing.lining_none'), 'partial' => __('admin.sizing.lining_partial'), 'full' => __('admin.sizing.lining_full')])->native(false),
                     Forms\Components\Textarea::make('material.care_instruction')
-                        ->label('Care instructions')
+                        ->label(__('admin.sizing.care'))
                         ->placeholder('e.g. Machine wash cold, do not bleach, iron low')
                         ->columnSpanFull(),
                 ])

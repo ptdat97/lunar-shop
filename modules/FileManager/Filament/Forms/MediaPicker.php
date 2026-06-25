@@ -33,7 +33,7 @@ class MediaPicker
             ->preload()
             ->native(false)
             ->live()
-            ->placeholder('Select from Media Library…')
+            ->placeholder(__('admin.media.pick'))
             ->options(fn () => static::optionsQuery($type)->limit(50)->get()
                 ->mapWithKeys(fn (Asset $a) => [$a->id => static::optionLabel($a)])
                 ->all())
