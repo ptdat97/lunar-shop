@@ -20,6 +20,7 @@ class PageSection extends Model
         'hero-slider' => 'Hero Slider',
         'category-grid' => 'Category Grid',
         'product-tabs' => 'Product Tabs',
+        'promotion-slider' => 'Promotion Slider',
         'lookbook' => 'Lookbook',
         'testimonial' => 'Testimonial',
         'iconbox' => 'Icon Box',

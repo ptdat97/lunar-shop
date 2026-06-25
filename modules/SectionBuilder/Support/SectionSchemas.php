@@ -57,6 +57,15 @@ class SectionSchemas
                 ],
             ],
 
+            'promotion-slider' => [
+                'heading' => 'On Sale Now',
+                'subheading' => 'Grab these deals before they’re gone.',
+                // How many product cards the slider holds (configurable in admin).
+                'limit' => 12,
+                // Optional: pin to one promotion by handle; empty = all on-sale.
+                'promotion' => '',
+            ],
+
             'iconbox' => [
                 'items' => [
                     ['icon' => 'icon-return', 'heading' => '14-Day Returns', 'text' => 'Risk-free shopping with easy returns.'],
@@ -137,6 +146,6 @@ class SectionSchemas
      */
     public static function isDynamic(string $type): bool
     {
-        return in_array($type, ['category-grid', 'product-tabs'], true);
+        return in_array($type, ['category-grid', 'product-tabs', 'promotion-slider'], true);
     }
 }

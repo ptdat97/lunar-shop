@@ -140,6 +140,24 @@ class PageSectionResource extends Resource
                     TextInput::make('settings.limit')->label('Item limit')->numeric()->minValue(1)
                         ->visible(fn (Get $get) => in_array($get('type'), ['category-grid', 'product-tabs'])),
                 ]),
+
+            FormSection::make('Promotion slider')
+                ->visible(fn (Get $get) => $get('type') === 'promotion-slider')
+                ->columns(2)
+                ->schema([
+                    TextInput::make('settings.heading')->label('Heading'),
+                    TextInput::make('settings.subheading')->label('Subheading'),
+                    TextInput::make('settings.limit')->label('Number of products')
+                        ->numeric()->minValue(1)->maxValue(50)->default(12)
+                        ->helperText('How many product cards the slider shows.'),
+                    Select::make('settings.promotion')->label('Promotion')
+                        ->options(fn () => app(\Modules\Promotion\Services\PromotionService::class)
+                            ->displayablePromotions()
+                            ->mapWithKeys(fn ($d) => [$d->handle => $d->name])
+                            ->all())
+                        ->placeholder('All on-sale products')
+                        ->helperText('Pin to one promotion, or leave empty for all on-sale.'),
+                ]),
         ]);
     }
 

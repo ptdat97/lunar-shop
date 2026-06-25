@@ -27,18 +27,5 @@
             <div class="swiper-pagination"></div>
         </div>
     </section>
-
-    @once
-        @push('scripts')
-            <script>
-                document.querySelectorAll('[data-hero-swiper]').forEach((el) => {
-                    new Swiper(el, {
-                        loop: true,
-                        autoplay: { delay: 5000 },
-                        pagination: { el: el.querySelector('.swiper-pagination'), clickable: true },
-                    });
-                });
-            </script>
-        @endpush
-    @endonce
+    {{-- Swiper init lives in enhance/sliders.js — see note in promotion-slider. --}}
 @endif

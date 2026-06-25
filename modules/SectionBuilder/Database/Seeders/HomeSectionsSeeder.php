@@ -18,6 +18,7 @@ class HomeSectionsSeeder extends Seeder
             'hero-slider',
             'category-grid',
             'product-tabs',
+            'promotion-slider',
             'lookbook',
             'testimonial',
             'iconbox',

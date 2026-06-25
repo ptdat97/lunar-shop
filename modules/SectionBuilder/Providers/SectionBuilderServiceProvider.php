@@ -66,5 +66,22 @@ class SectionBuilderServiceProvider extends ServiceProvider
 
             return ['products' => $result->items];
         });
+
+        // promotion-slider → on-sale products (via the shared PromotionService).
+        // `promotion` setting pins to one promotion handle; empty = all on-sale.
+        $renderer->provide('promotion-slider', function (array $settings) {
+            $promotions = $this->app->make(\Modules\Promotion\Services\PromotionService::class);
+            $limit = (int) ($settings['limit'] ?? 12);
+            $handle = trim((string) ($settings['promotion'] ?? ''));
+
+            $pinned = $handle !== '' ? $promotions->findPromotion($handle) : null;
+
+            return [
+                'products' => $pinned
+                    ? $promotions->productsForPromotion($pinned, $limit)
+                    : $promotions->productsOnSale($limit),
+                'pinnedPromotion' => $pinned,
+            ];
+        });
     }
 }

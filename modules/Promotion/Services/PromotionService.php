@@ -41,6 +41,127 @@ class PromotionService
     }
 
     /**
+     * Public, displayable automatic promotions for the storefront promotions
+     * page/section (flash sale, quantity, combo — the ones we can render a
+     * badge for). Highest priority first.
+     *
+     * @return Collection<int, Discount>
+     */
+    public function displayablePromotions(): Collection
+    {
+        return $this->activeAutomatic()
+            ->filter(fn (Discount $d) => $this->isDisplayablePromotion($d))
+            ->values();
+    }
+
+    /**
+     * Resolve a single displayable promotion by its `handle` (used as the slug
+     * for the promotion detail page), or null.
+     */
+    public function findPromotion(string $handle): ?Discount
+    {
+        return $this->displayablePromotions()
+            ->first(fn (Discount $d) => $d->handle === $handle);
+    }
+
+    /**
+     * Published products covered by a promotion, ready for product cards.
+     * Resolves the discount's targeting (limitations / conditions / combo
+     * collections); a cart-wide flash sale returns the newest products.
+     *
+     * @return \Illuminate\Support\Collection<int, Product>
+     */
+    public function productsForPromotion(Discount $discount, int $limit = 12): \Illuminate\Support\Collection
+    {
+        $query = Product::query()
+            ->where('status', 'published')
+            ->with(['variants', 'thumbnail', 'brand', 'collections']);
+
+        $productIds = $this->targetedProductIds($discount);
+        $collectionIds = $this->targetedCollectionIds($discount);
+
+        if ($productIds->isNotEmpty() || $collectionIds->isNotEmpty()) {
+            $query->where(function ($q) use ($productIds, $collectionIds) {
+                if ($productIds->isNotEmpty()) {
+                    $q->whereIn('id', $productIds);
+                }
+                if ($collectionIds->isNotEmpty()) {
+                    $q->orWhereHas('collections', fn ($c) => $c->whereIn(
+                        $c->getModel()->getTable() . '.id', $collectionIds
+                    ));
+                }
+            });
+        }
+
+        return $query->latest('id')->limit($limit)->get()
+            // Keep only products the badge logic actually applies to.
+            ->filter(fn (Product $p) => $this->appliesToProduct($discount, $p))
+            ->values();
+    }
+
+    /**
+     * Products that currently have any displayable promotion, de-duplicated,
+     * for the homepage "on sale" slider. Cart-wide flash sale dominates.
+     *
+     * @return \Illuminate\Support\Collection<int, Product>
+     */
+    public function productsOnSale(int $limit = 12): \Illuminate\Support\Collection
+    {
+        $promotions = $this->displayablePromotions();
+
+        if ($promotions->isEmpty()) {
+            return collect();
+        }
+
+        $products = collect();
+
+        foreach ($promotions as $promotion) {
+            $products = $products->merge(
+                $this->productsForPromotion($promotion, $limit)
+            );
+
+            if ($products->unique('id')->count() >= $limit) {
+                break;
+            }
+        }
+
+        return $products->unique('id')->take($limit)->values();
+    }
+
+    /**
+     * Collection ids a discount targets (limitations + combo collections).
+     *
+     * @return \Illuminate\Support\Collection<int, int>
+     */
+    protected function targetedCollectionIds(Discount $discount): \Illuminate\Support\Collection
+    {
+        $combo = collect(($discount->data ?? [])['combo_collections'] ?? [])
+            ->map(fn ($id) => (int) $id);
+
+        $limits = $discount->collections->where('pivot.type', 'limitation')->pluck('id');
+
+        return $combo->merge($limits)->filter()->unique()->values();
+    }
+
+    /**
+     * Product ids a discount targets via limitations / quantity conditions.
+     *
+     * @return \Illuminate\Support\Collection<int, int>
+     */
+    protected function targetedProductIds(Discount $discount): \Illuminate\Support\Collection
+    {
+        $discount->loadMissing(['discountableLimitations', 'discountableConditions']);
+
+        return $discount->discountableLimitations
+            ->merge($discount->discountableConditions)
+            ->filter(fn ($d) => $d->discountable_type === Product::morphName())
+            ->pluck('discountable_id')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+    }
+
+    /**
      * Whether a discount is a personalised membership/loyalty perk (flagged via
      * `data.membership`, or scoped to a non-default customer group).
      */
