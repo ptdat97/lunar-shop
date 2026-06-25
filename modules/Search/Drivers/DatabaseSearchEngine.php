@@ -21,7 +21,15 @@ class DatabaseSearchEngine implements SearchEngine
     {
         $builder = Product::query()
             ->where('status', 'published')
-            ->with(['variants', 'thumbnail']);
+            // Eager-load everything a product card renders (url, brand, price,
+            // promotion eligibility) so a 24-card grid stays flat, not N+1.
+            ->with([
+                'variants.prices.currency',
+                'thumbnail',
+                'brand',
+                'defaultUrl',
+                'collections',
+            ]);
 
         $this->applyTerm($builder, $query->term);
         $this->applyScope($builder, $query->scope);

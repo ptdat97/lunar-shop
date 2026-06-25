@@ -27,7 +27,11 @@ class MenuRenderer
 
         // Eager-load the whole tree (2 levels deep covers mega → column → links).
         $roots = $menu->rootItems()
-            ->with(['collection', 'children.collection', 'children.children.collection'])
+            ->with([
+                'collection.defaultUrl',
+                'children.collection.defaultUrl',
+                'children.children.collection.defaultUrl',
+            ])
             ->get();
 
         $html = $roots->map(fn (MenuItem $item) => $this->renderItem($item))->implode("\n");
@@ -60,7 +64,11 @@ class MenuRenderer
         }
 
         $roots = $menu->rootItems()
-            ->with(['collection', 'children.collection', 'children.children.collection'])
+            ->with([
+                'collection.defaultUrl',
+                'children.collection.defaultUrl',
+                'children.children.collection.defaultUrl',
+            ])
             ->get();
 
         $html = $roots->map(function (MenuItem $item, int $i) use ($handle) {

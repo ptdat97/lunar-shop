@@ -33,7 +33,10 @@ class ProductService
         return Product::query()
             ->where('status', 'published')
             ->whereHas('urls', fn ($u) => $u->where('slug', $slug))
-            ->with(['variants.values.option', 'thumbnail', 'brand', 'collections', 'media'])
+            ->with([
+                'variants.values.option', 'variants.prices.currency',
+                'thumbnail', 'brand', 'collections.defaultUrl', 'defaultUrl', 'media',
+            ])
             ->first();
     }
 
@@ -47,7 +50,7 @@ class ProductService
         $query = Product::query()
             ->where('status', 'published')
             ->where('id', '!=', $product->id)
-            ->with(['variants', 'thumbnail', 'brand']);
+            ->with(['variants.prices.currency', 'thumbnail', 'brand', 'defaultUrl', 'collections']);
 
         if ($collectionIds->isNotEmpty()) {
             $query->whereHas('collections', fn ($c) => $c->whereKey($collectionIds));

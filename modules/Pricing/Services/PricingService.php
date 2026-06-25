@@ -20,6 +20,14 @@ class PricingService
     public function matchedPrice(ProductVariant $variant): ?PriceData
     {
         try {
+            // Prime the inverse relation: Lunar's Price cast reads
+            // $price->priceable->unit_quantity, which lazy-loads the variant
+            // again (one query per price) unless we point it back at the variant
+            // we already have. Saves a query per product card on listing pages.
+            if ($variant->relationLoaded('prices')) {
+                $variant->prices->each(fn (Price $price) => $price->setRelation('priceable', $variant));
+            }
+
             return Pricing::for($variant)->get()->matched->price;
         } catch (\Throwable $e) {
             return null;

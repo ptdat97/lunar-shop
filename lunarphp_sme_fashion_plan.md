@@ -816,8 +816,22 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
   trong theme** — hiện vẫn `<img>` 1 size.
 - ⬜ Cân nhắc bật driver `scout` (Meilisearch/Typesense) khi catalog lớn
 
-## Phase 6 — Optimization ⬜ (chưa)
-- ⬜ Redis cache/session, Horizon queue, CDN, query/index tuning
+## Phase 6 — Optimization 🚧 (query N+1 đã làm)
+- ✅ **Tối ưu truy vấn storefront (2026-06-25, đo bằng `DB::listen` per-route).** Diệt
+  N+1 trên mọi trang catalog. Kết quả (queries/request): home **813→69**, collection
+  **1355→38**, search **1352→35**, product **97→47**, api/v1/products **546→10**. Cách làm:
+  - `PromotionService` thành **singleton** + memoize `activeAutomatic()` (eager-load
+    discountables/collections/brands/customerGroups 1 lần) → `saleFor()` mỗi product
+    card không còn re-query discount (≈16 query/sp → 0).
+  - Eager-load **đủ bộ quan hệ product-card** (`variants.prices.currency`, `thumbnail`,
+    `brand`, `defaultUrl`, `collections`) ở `DatabaseSearchEngine`, `PromotionService::
+    productsForPromotion`, `RecommendationService::hydrate`, `ProductService::findBySlug/related`.
+  - **Prime inverse `priceable`** trong `PricingService::matchedPrice()` (Lunar Price
+    cast đọc `$price->priceable->unit_quantity` → lazy-load lại variant; set sẵn để khỏi query).
+  - **Menu**: eager-load `collection.defaultUrl` (header/footer trước đó lazy-load URL
+    mỗi menu item → ×18 query/trang trên MỌI page).
+  - **Zero behavior change**: 113 test xanh (2 fail locale `vi` có sẵn baseline) + browser verify.
+- ⬜ Redis cache/session, Horizon queue, CDN, **index tuning** (DB index cho status/slug/facet)
 - ✅ **Test tự động** (cập nhật 2026-06-21): **8 file Feature / 41 test method** phủ
   auth/cart/address/checkout/order/search/size/VNPay/email + **Location** +
   **on-demand conversion** — xem Phase 7.3. ⬜ Redis/Horizon/CDN/index tuning vẫn chưa.

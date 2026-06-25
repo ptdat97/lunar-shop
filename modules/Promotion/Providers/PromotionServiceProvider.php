@@ -18,6 +18,11 @@ class PromotionServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__ . '/../Config/promotion.php', 'promotion');
+
+        // Singleton so per-request memoization in the service (active automatic
+        // discounts + their eager-loaded relations) is shared across the many
+        // saleFor() calls product cards trigger on a listing page.
+        $this->app->singleton(PromotionService::class);
     }
 
     /**

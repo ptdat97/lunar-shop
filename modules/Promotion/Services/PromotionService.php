@@ -11,6 +11,14 @@ use Modules\Promotion\DiscountTypes\QuantityPercentageOff;
 class PromotionService
 {
     /**
+     * Per-request memo of active automatic discounts (with relations eager
+     * loaded). Product listing pages call saleFor() once per card; without this
+     * each call re-queried the discounts + their pivots → hundreds of queries.
+     * The service is a singleton (see provider) so this lives for the request.
+     */
+    private ?Collection $automaticMemo = null;
+
+    /**
      * Get all active discounts.
      */
     public function active()
@@ -30,11 +38,21 @@ class PromotionService
      */
     public function activeAutomatic(): Collection
     {
-        return Discount::query()
+        if ($this->automaticMemo !== null) {
+            return $this->automaticMemo;
+        }
+
+        return $this->automaticMemo = Discount::query()
             ->where(fn ($q) => $q->whereNull('coupon')->orWhere('coupon', ''))
             ->active()
             ->usable()
             ->orderByDesc('priority')
+            // Eager-load every relation appliesToProduct() / isMembershipDiscount()
+            // reads, so per-product badge checks hit zero extra queries.
+            ->with([
+                'discountableLimitations', 'discountableConditions',
+                'discountableExclusions', 'collections', 'brands', 'customerGroups',
+            ])
             ->get()
             ->reject(fn (Discount $d) => $this->isMembershipDiscount($d))
             ->values();
@@ -75,7 +93,8 @@ class PromotionService
     {
         $query = Product::query()
             ->where('status', 'published')
-            ->with(['variants', 'thumbnail', 'brand', 'collections']);
+            // Eager-load everything a product card renders (flat, not N+1).
+            ->with(['variants.prices.currency', 'thumbnail', 'brand', 'collections', 'defaultUrl']);
 
         $productIds = $this->targetedProductIds($discount);
         $collectionIds = $this->targetedCollectionIds($discount);
