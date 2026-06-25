@@ -135,6 +135,14 @@ class ThemeSettings
             ],
             // Payment badge images are admin-uploaded; none bundled by default.
             'payment' => [],
+            // Storefront language. For a single-market shop, enable one locale and
+            // turn the switcher off. `enabled` is a list of locale codes (subset of
+            // config('theme.locales')); `default` must be one of them.
+            'language' => [
+                'enabled' => array_keys((array) config('theme.locales', ['en' => 'English'])),
+                'default' => (string) (array_key_first((array) config('theme.locales', ['en' => 'English'])) ?? 'en'),
+                'show_switcher' => true,
+            ],
             'copyright' => '© '.date('Y').' Fashion Store. All Rights Reserved.',
         ];
     }

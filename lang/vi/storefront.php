@@ -1,0 +1,151 @@
+<?php
+
+return [
+
+    'nav' => [
+        'home' => 'Trang chủ',
+        'menu' => 'Danh mục',
+        'search' => 'Tìm kiếm',
+        'promotions' => 'Khuyến mãi',
+        'lookbooks' => 'Bộ sưu tập',
+        'wishlist' => 'Yêu thích',
+        'account' => 'Tài khoản',
+        'cart' => 'Giỏ hàng',
+    ],
+
+    'common' => [
+        'apply' => 'Áp dụng',
+        'remove' => 'Xóa',
+        'save' => 'Lưu',
+        'save_changes' => 'Lưu thay đổi',
+        'cancel' => 'Hủy',
+        'view_all' => 'Xem tất cả',
+        'browse_products' => 'Xem sản phẩm',
+        'continue_shopping' => 'Tiếp tục mua sắm',
+        'sort' => 'Sắp xếp',
+        'date' => 'Ngày',
+        'status' => 'Trạng thái',
+        'price' => 'Giá',
+        'name' => 'Tên',
+        'email' => 'Email',
+        'description' => 'Mô tả',
+    ],
+
+    'cart' => [
+        'title' => 'Giỏ hàng của bạn',
+        'empty' => 'Giỏ hàng của bạn đang trống.',
+        'product' => 'Sản phẩm',
+        'subtotal' => 'Tạm tính',
+        'discount' => 'Giảm giá',
+        'tax' => 'Thuế',
+        'total' => 'Tổng cộng',
+        'you_saved' => 'Bạn đã tiết kiệm',
+        'coupon_code' => 'Mã giảm giá',
+        'view_cart' => 'Xem giỏ hàng',
+        'checkout' => 'Thanh toán',
+        'qty' => 'SL',
+        'order_summary' => 'Tóm tắt đơn hàng',
+        'free_shipping_unlocked' => 'Bạn đã được miễn phí vận chuyển!',
+        'free_shipping_remaining' => 'Mua thêm :amount để được miễn phí vận chuyển.',
+        'you_may_also_like' => 'Có thể bạn cũng thích',
+    ],
+
+    'product' => [
+        'add_to_cart' => 'Thêm vào giỏ',
+        'out_of_stock' => 'Hết hàng',
+        'in_stock' => 'Còn :count sản phẩm',
+        'select_options' => 'Chọn phân loại',
+        'description' => 'Mô tả',
+        'size' => 'Kích cỡ',
+        'fit' => 'Dáng',
+        'find_my_size' => 'Tìm size của tôi',
+        'recommended_size' => 'Size gợi ý',
+        'no_products' => 'Không tìm thấy sản phẩm.',
+        'on_sale' => 'Đang giảm giá',
+        'sale_subheading' => 'Nhanh tay kẻo lỡ những ưu đãi này.',
+    ],
+
+    'promotion' => [
+        'title' => 'Khuyến mãi',
+        'ends' => 'Kết thúc :date',
+        'ends_in' => 'Kết thúc sau',
+        'no_products' => 'Chưa có sản phẩm trong khuyến mãi này.',
+        'none_active' => 'Hiện chưa có khuyến mãi nào. Vui lòng quay lại sau!',
+    ],
+
+    'auth' => [
+        'sign_in' => 'Đăng nhập',
+        'sign_out' => 'Đăng xuất',
+        'create_account' => 'Tạo tài khoản',
+        'create_one' => 'Đăng ký ngay',
+        'password' => 'Mật khẩu',
+        'remember_me' => 'Ghi nhớ đăng nhập',
+        'min_chars' => 'Tối thiểu 8 ký tự.',
+    ],
+
+    'account' => [
+        'dashboard' => 'Tổng quan',
+        'my_account' => 'Tài khoản của tôi',
+        'profile' => 'Hồ sơ',
+        'orders' => 'Đơn hàng',
+        'order_history' => 'Lịch sử đơn hàng',
+        'addresses' => 'Địa chỉ',
+        'address_book' => 'Sổ địa chỉ',
+        'saved_addresses' => 'Địa chỉ đã lưu',
+        'add_address' => 'Thêm địa chỉ',
+        'no_addresses' => 'Chưa có địa chỉ nào.',
+        'change_password' => 'Đổi mật khẩu',
+        'current_password' => 'Mật khẩu hiện tại',
+        'new_password' => 'Mật khẩu mới',
+        'confirm_new_password' => 'Xác nhận mật khẩu mới',
+        'update_password' => 'Cập nhật mật khẩu',
+        'password_changed' => 'Đã đổi mật khẩu.',
+        'profile_updated' => 'Đã cập nhật hồ sơ.',
+        'membership' => 'Thành viên',
+        'no_orders' => 'Bạn chưa có đơn hàng nào.',
+        'reference' => 'Mã đơn',
+        'use_as_default_shipping' => 'Đặt làm địa chỉ giao hàng mặc định',
+    ],
+
+    'checkout' => [
+        'shipping_address' => 'Địa chỉ giao hàng',
+        'shipping_method' => 'Phương thức vận chuyển',
+        'no_shipping_options' => 'Không có phương thức vận chuyển.',
+        'payment' => 'Thanh toán',
+        'place_order' => 'Đặt hàng',
+        'cod' => 'Thanh toán khi nhận hàng',
+        'bank_transfer' => 'Chuyển khoản ngân hàng',
+        'thank_you' => 'Cảm ơn bạn đã đặt hàng!',
+        'order_reference' => 'Đơn hàng :reference của bạn đã được đặt.',
+    ],
+
+    'wishlist' => [
+        'title' => 'Yêu thích',
+        'empty' => 'Danh sách yêu thích đang trống.',
+        'sign_in_required' => 'Vui lòng đăng nhập để xem danh sách yêu thích.',
+    ],
+
+    'lookbook' => [
+        'title' => 'Bộ sưu tập',
+        'none' => 'Chưa có bộ sưu tập nào.',
+        'shop_this' => 'Mua theo bộ sưu tập',
+    ],
+
+    'search' => [
+        'title' => 'Tìm kiếm',
+        'placeholder' => 'Tìm sản phẩm…',
+        'results_for' => 'Kết quả cho “:query”',
+    ],
+
+    'auth_extra' => [
+        'no_account' => 'Chưa có tài khoản?',
+        'have_account' => 'Đã có tài khoản?',
+    ],
+
+    'language' => [
+        'label' => 'Ngôn ngữ',
+        'en' => 'English',
+        'vi' => 'Tiếng Việt',
+    ],
+
+];

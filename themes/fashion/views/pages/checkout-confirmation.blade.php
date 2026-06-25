@@ -1,20 +1,20 @@
 @extends('theme::layouts.app')
 
-@section('title', 'Order confirmed — '.config('app.name'))
+@section('title', __('storefront.checkout.thank_you').' — '.config('app.name'))
 @section('robots', 'noindex, follow')
 
 @section('content')
 <div class="container py-5">
     <div class="text-center mb-4">
-        <h1 class="h3">Thank you for your order!</h1>
-        <p class="text-muted">Your order <strong>{{ $order->reference }}</strong> has been placed.</p>
+        <h1 class="h3">{{ __('storefront.checkout.thank_you') }}</h1>
+        <p class="text-muted">{!! __('storefront.checkout.order_reference', ['reference' => '<strong>'.e($order->reference).'</strong>']) !!}</p>
     </div>
 
     <div class="row justify-content-center">
         <div class="col-12 col-lg-7">
             <div class="border rounded p-3">
                 <div class="d-flex justify-content-between small text-muted mb-2">
-                    <span>Reference</span><span>{{ $order->reference }}</span>
+                    <span>{{ __('storefront.account.reference') }}</span><span>{{ $order->reference }}</span>
                 </div>
                 <table class="table table-sm align-middle mb-3">
                     <tbody>
@@ -28,11 +28,11 @@
                     </tbody>
                 </table>
                 <div class="d-flex justify-content-between fw-bold border-top pt-2">
-                    <span>Total</span><span>{{ $order->total?->formatted() }}</span>
+                    <span>{{ __('storefront.cart.total') }}</span><span>{{ $order->total?->formatted() }}</span>
                 </div>
             </div>
             <div class="text-center mt-4">
-                <a href="{{ route('storefront.home') }}" class="btn btn-dark">Continue shopping</a>
+                <a href="{{ route('storefront.home') }}" class="btn btn-dark">{{ __('storefront.common.continue_shopping') }}</a>
             </div>
         </div>
     </div>

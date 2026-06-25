@@ -1,21 +1,21 @@
 @extends('theme::layouts.app')
 
-@section('title', 'Wishlist — '.config('app.name'))
+@section('title', __('storefront.wishlist.title').' — '.config('app.name'))
 @section('robots', 'noindex, follow')
 
 @section('content')
 <div class="container py-4" data-wishlist-page>
-    <h1 class="h3 mb-4">Wishlist</h1>
+    <h1 class="h3 mb-4">{{ __('storefront.wishlist.title') }}</h1>
 
     @if(!$authed)
         <div class="text-center text-muted py-5">
-            <p class="mb-3">Please sign in to view your wishlist.</p>
-            <a href="{{ route('storefront.login') }}" class="btn btn-dark">Sign in</a>
+            <p class="mb-3">{{ __('storefront.wishlist.sign_in_required') }}</p>
+            <a href="{{ route('storefront.login') }}" class="btn btn-dark">{{ __('storefront.auth.sign_in') }}</a>
         </div>
     @elseif($products->isEmpty())
         <div class="text-center text-muted py-5" data-wishlist-empty>
-            <p class="mb-3">Your wishlist is empty.</p>
-            <a href="{{ route('storefront.search') }}" class="btn btn-dark">Browse products</a>
+            <p class="mb-3">{{ __('storefront.wishlist.empty') }}</p>
+            <a href="{{ route('storefront.search') }}" class="btn btn-dark">{{ __('storefront.common.browse_products') }}</a>
         </div>
     @else
         {{-- SSR grid (crawlable). JS only enhances remove/toggle. --}}
@@ -25,7 +25,7 @@
                     @include('theme::components.product-card', ['product' => $product])
                     <button class="btn btn-outline-danger btn-sm w-100 mt-2"
                             data-wishlist-toggle data-product-id="{{ $product->id }}">
-                        Remove
+                        {{ __('storefront.common.remove') }}
                     </button>
                 </div>
             @endforeach

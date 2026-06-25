@@ -31,7 +31,7 @@
 <div class="container py-4">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb small">
-            <li class="breadcrumb-item"><a href="{{ route('storefront.home') }}" class="text-decoration-none">Home</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('storefront.home') }}" class="text-decoration-none">{{ __('storefront.nav.home') }}</a></li>
             @if($collection = $product->collections->first())
                 <li class="breadcrumb-item">
                     <a href="{{ $collection->defaultUrl?->slug ? route('storefront.collection', $collection->defaultUrl->slug) : '#' }}"
@@ -49,6 +49,17 @@
          `large` conversion; clicking opens `zoom`. --}}
     <div class="row g-4" data-product-detail data-slug="{{ $slug }}">
         <script type="application/json" data-product-state>@json($state)</script>
+        {{-- Translated labels the variant enhancer writes on option change, so
+             JS stays in the visitor's language (no hardcoded English in JS). --}}
+        @php
+            $productI18n = [
+                'add_to_cart' => __('storefront.product.add_to_cart'),
+                'out_of_stock' => __('storefront.product.out_of_stock'),
+                'select_options' => __('storefront.product.select_options'),
+                'in_stock' => __('storefront.product.in_stock', ['count' => '%d']),
+            ];
+        @endphp
+        <script type="application/json" data-product-i18n>@json($productI18n)</script>
 
         <div class="col-12 col-lg-7">
             {{-- Swiper gallery: main slider + thumbnail strip. enhance/_gallery.js
@@ -159,7 +170,7 @@
                 @endforeach
 
                 <div class="small text-muted mb-3" data-product-stock>
-                    @if($firstVariant && $firstVariant->stock > 0){{ $firstVariant->stock }} in stock @elseif($firstVariant)Out of stock @endif
+                    @if($firstVariant && $firstVariant->stock > 0){{ __('storefront.product.in_stock', ['count' => $firstVariant->stock]) }}@elseif($firstVariant){{ __('storefront.product.out_of_stock') }}@endif
                 </div>
 
                 <form method="POST" action="{{ route('storefront.cart') }}" data-add-to-cart>
@@ -167,14 +178,14 @@
                     <input type="hidden" name="variant_id" value="{{ $firstVariant?->id }}" data-variant-input>
                     <button class="btn btn-dark btn-lg w-100" type="submit" data-add-to-cart-btn
                             @disabled(!$firstVariant || $firstVariant->stock <= 0)>
-                        {{ $firstVariant && $firstVariant->stock > 0 ? 'Add to cart' : 'Out of stock' }}
+                        {{ $firstVariant && $firstVariant->stock > 0 ? __('storefront.product.add_to_cart') : __('storefront.product.out_of_stock') }}
                     </button>
                 </form>
             </div>
 
             @if($description)
                 <div class="mt-4">
-                    <h2 class="h6 text-uppercase">Description</h2>
+                    <h2 class="h6 text-uppercase">{{ __('storefront.product.description') }}</h2>
                     <div class="text-muted" data-product-description>{!! $description !!}</div>
                 </div>
             @endif

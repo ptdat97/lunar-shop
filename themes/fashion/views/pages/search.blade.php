@@ -1,6 +1,6 @@
 @extends('theme::layouts.app')
 
-@section('title', ($query ? 'Search: '.$query : 'Search').' — '.config('app.name'))
+@section('title', ($query ? __('storefront.search.title').': '.$query : __('storefront.search.title')).' — '.config('app.name'))
 {{-- Search results are not index-worthy (thin/duplicate); keep them out. --}}
 @section('robots', 'noindex, follow')
 
@@ -9,12 +9,12 @@
         <form method="GET" action="{{ route('storefront.search') }}" class="mb-2">
             <div class="input-group input-group-lg">
                 <input type="search" name="q" value="{{ $query }}" class="form-control"
-                       placeholder="Search products…" autofocus>
+                       placeholder="{{ __('storefront.search.placeholder') }}" autofocus>
                 <button class="btn btn-dark" type="submit"><i class="bi bi-search"></i></button>
             </div>
         </form>
         @if($query)
-            <h1 class="h5 text-muted">Results for “{{ $query }}”</h1>
+            <h1 class="h5 text-muted">{{ __('storefront.search.results_for', ['query' => $query]) }}</h1>
         @endif
     </div>
 

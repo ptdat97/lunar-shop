@@ -4,8 +4,8 @@
      links to the promotion page(s). --}}
 @php
     $products = $products ?? collect();
-    $heading = $settings['heading'] ?? 'On Sale Now';
-    $subheading = $settings['subheading'] ?? null;
+    $heading = $settings['heading'] ?? __('storefront.product.on_sale');
+    $subheading = $settings['subheading'] ?? __('storefront.product.sale_subheading');
     // Pinned to one promotion → link straight to its detail page; else the index.
     $viewAllUrl = ($pinnedPromotion ?? null)
         ? route('storefront.promotion', $pinnedPromotion->handle)
@@ -24,7 +24,7 @@
                 @endif
             </div>
             <a href="{{ $viewAllUrl }}" class="btn btn-outline-dark btn-sm flex-shrink-0">
-                View all <i class="bi bi-arrow-right"></i>
+                {{ __('storefront.common.view_all') }} <i class="bi bi-arrow-right"></i>
             </a>
         </div>
 

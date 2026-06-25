@@ -1,21 +1,21 @@
 @extends('theme::layouts.app')
 
-@section('title', 'Lookbooks — '.config('app.name'))
+@section('title', __('storefront.lookbook.title').' — '.config('app.name'))
 @section('meta_description', 'Browse our curated lookbooks — shop the looks you love.')
 
 @section('content')
     <div class="container py-4">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb small">
-                <li class="breadcrumb-item"><a href="{{ route('storefront.home') }}" class="text-decoration-none">Home</a></li>
-                <li class="breadcrumb-item active" aria-current="page">Lookbooks</li>
+                <li class="breadcrumb-item"><a href="{{ route('storefront.home') }}" class="text-decoration-none">{{ __('storefront.nav.home') }}</a></li>
+                <li class="breadcrumb-item active" aria-current="page">{{ __('storefront.lookbook.title') }}</li>
             </ol>
         </nav>
 
-        <h1 class="h3 mb-4">Lookbooks</h1>
+        <h1 class="h3 mb-4">{{ __('storefront.lookbook.title') }}</h1>
 
         @if(empty($lookbooks))
-            <p class="text-muted">No lookbooks published yet.</p>
+            <p class="text-muted">{{ __('storefront.lookbook.none') }}</p>
         @else
             <div class="row g-4">
                 @foreach($lookbooks as $lookbook)

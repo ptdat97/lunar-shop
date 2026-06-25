@@ -15,6 +15,18 @@ function readState(root) {
     try { return JSON.parse(tag.textContent); } catch { return null; }
 }
 
+// Translated labels embedded by the Blade view (data-product-i18n). Falls back
+// to English so the enhancer still works if the block is absent.
+function readI18n(root) {
+    const tag = root.querySelector('[data-product-i18n]');
+    const fallback = {
+        add_to_cart: 'Add to cart', out_of_stock: 'Out of stock',
+        select_options: 'Select options', in_stock: '%d in stock',
+    };
+    if (!tag) return fallback;
+    try { return { ...fallback, ...JSON.parse(tag.textContent) }; } catch { return fallback; }
+}
+
 function esc(v) {
     return String(v ?? '').replace(/[&<>"']/g, (c) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -66,6 +78,7 @@ export default function (root = document) {
 
     const state = readState(panel);
     if (!state || !Array.isArray(state.variants) || !state.variants.length) return;
+    const t = readI18n(panel);
 
     const variants = state.variants;
     const groups = buildOptionGroups(variants);
@@ -121,13 +134,13 @@ export default function (root = document) {
         const inStock = (variant?.stock ?? 0) > 0;
 
         if (priceEl && variant?.price?.formatted) renderPrice(priceEl, variant, state.promotion);
-        if (stockEl) stockEl.textContent = variant ? (inStock ? `${variant.stock} in stock` : 'Out of stock') : '';
+        if (stockEl) stockEl.textContent = variant ? (inStock ? t.in_stock.replace('%d', variant.stock) : t.out_of_stock) : '';
         if (variantInput && variant) variantInput.value = variant.id;
 
         if (addBtn) {
             const canAdd = variant && inStock && allChosen;
             addBtn.disabled = !canAdd;
-            addBtn.textContent = !allChosen ? 'Select options' : (!inStock ? 'Out of stock' : 'Add to cart');
+            addBtn.textContent = !allChosen ? t.select_options : (!inStock ? t.out_of_stock : t.add_to_cart);
         }
 
         if (variant && variant.id !== lastGalleryVariantId) {

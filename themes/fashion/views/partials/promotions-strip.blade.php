@@ -8,7 +8,7 @@
 <section class="promotions-strip py-4 bg-light">
     <div class="container">
         <h2 class="h5 text-uppercase mb-3">
-            <i class="bi bi-tags-fill"></i> Today's deals
+            <i class="bi bi-tags-fill"></i> {{ __('storefront.product.on_sale') }}
         </h2>
         <div class="row g-3">
             @foreach($list as $promo)
@@ -26,7 +26,7 @@
                         <div class="text-muted small">{{ $describePromotion($promo) }}</div>
                         @if($promo->ends_at)
                             <div class="small text-warning-emphasis mt-1">
-                                Ends {{ $promo->ends_at->format('M j, H:i') }}
+                                {{ __('storefront.promotion.ends', ['date' => $promo->ends_at->format('M j, H:i')]) }}
                             </div>
                         @endif
                     </div>

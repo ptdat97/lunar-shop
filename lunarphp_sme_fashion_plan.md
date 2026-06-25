@@ -816,6 +816,31 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
   trong theme** — hiện vẫn `<img>` 1 size.
 - ⬜ Cân nhắc bật driver `scout` (Meilisearch/Typesense) khi catalog lớn
 
+## i18n storefront (song ngữ EN/VI) — ✅ (2026-06-25)
+- ✅ **Frontend song ngữ Anh/Việt.** Trước đây UI hardcode English dù `APP_LOCALE=vi`.
+  - **Lang files** `lang/{en,vi}/storefront.php` (nhóm nav/common/cart/product/promotion/
+    auth/account/checkout/wishlist/lookbook/search/language) — thay `__()` cho **toàn bộ**
+    theme views (header/footer/cart-drawer/product/cart/checkout/account/auth/wishlist/
+    search/promotions/lookbooks/confirmation) + chuỗi JS product (`data-product-i18n` →
+    `product-variant.js`).
+  - **Backend** (module Theme): `LocaleService` (supported locales ở `config/theme.locales`,
+    resolve session→browser→default), `SetStorefrontLocale` middleware (thêm vào group
+    `storefront`), route `GET /locale/{locale}` (`LocaleController`, lưu session, redirect back).
+  - **Language switcher** dropdown ở header (desktop + mobile offcanvas), data inject qua
+    view composer (`$storefrontLocales`/`$currentLocale`) — không resolve service trong Blade (§7).
+  - **Verify**: 115 test xanh; smoke-render 12 trang × 2 locale OK; **browser thật**
+    (Chrome CDP) xác nhận đổi VI↔EN: "Giỏ hàng của bạn"↔"Your cart", "ĐANG GIẢM GIÁ"↔
+    "ON SALE NOW", `<html lang>` + session persist.
+  - ✅ **Cấu hình ngôn ngữ trong admin (2026-06-25)** — Filament Theme Settings thêm
+    section **Language**: chọn ngôn ngữ bật (`enabled` CheckboxList), ngôn ngữ mặc định
+    (`default` Select), bật/tắt switcher (`show_switcher` Toggle). Lưu vào `theme_settings`
+    (DB, cached). `LocaleService` đọc từ `ThemeSettings` thay config cứng; switcher tự ẩn khi
+    chỉ 1 ngôn ngữ bật hoặc admin tắt. **Single-market**: bật 1 ngôn ngữ → locale khoá cứng
+    (route `/locale/{other}` bị từ chối, `<html lang>` không đổi), switcher biến mất. Verify:
+    115 test xanh + render single-market (chỉ vi, no switcher, locale locked).
+  - ⬜ Còn: dịch các chuỗi JS động ở `account.js` (edit/error states) + nội dung sản phẩm
+    (tên/mô tả) cần bản dịch `vi` trong Lunar `translateAttribute` (hạ tầng sẵn, data chưa).
+
 ## Phase 6 — Optimization 🚧 (query N+1 đã làm)
 - ✅ **Tối ưu truy vấn storefront (2026-06-25, đo bằng `DB::listen` per-route).** Diệt
   N+1 trên mọi trang catalog. Kết quả (queries/request): home **813→69**, collection

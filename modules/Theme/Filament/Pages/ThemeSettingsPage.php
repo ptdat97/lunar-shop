@@ -2,13 +2,17 @@
 
 namespace Modules\Theme\Filament\Pages;
 
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Modules\Theme\Services\ThemeSettings;
@@ -80,6 +84,30 @@ class ThemeSettingsPage extends Page implements HasForms
                         ->image()->multiple()->reorderable()
                         ->disk('media')->directory('theme/payment'),
                 ]),
+
+                Section::make('Language')
+                    ->description('Storefront languages. For a single market, enable one language and turn the switcher off.')
+                    ->columns(2)
+                    ->schema([
+                        CheckboxList::make('language.enabled')
+                            ->label('Enabled languages')
+                            ->options(config('theme.locales', ['en' => 'English']))
+                            ->columns(2)
+                            ->live()
+                            ->minItems(1)
+                            ->required()
+                            ->columnSpanFull(),
+                        Select::make('language.default')
+                            ->label('Default language')
+                            ->options(fn (Get $get) => collect($get('language.enabled') ?: array_keys(config('theme.locales', [])))
+                                ->mapWithKeys(fn ($code) => [$code => config("theme.locales.{$code}", strtoupper($code))])
+                                ->all())
+                            ->required(),
+                        Toggle::make('language.show_switcher')
+                            ->label('Show language switcher')
+                            ->helperText('Hidden automatically when only one language is enabled.')
+                            ->default(true),
+                    ]),
             ]);
     }
 
@@ -88,7 +116,7 @@ class ThemeSettingsPage extends Page implements HasForms
         $data = $this->form->getState();
         $settings = app(ThemeSettings::class);
 
-        foreach (['general', 'topbar', 'social', 'contact', 'newsletter', 'payment'] as $group) {
+        foreach (['general', 'topbar', 'social', 'contact', 'newsletter', 'payment', 'language'] as $group) {
             if (array_key_exists($group, $data)) {
                 $settings->set($group, (array) $data[$group]);
             }

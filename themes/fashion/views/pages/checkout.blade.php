@@ -1,11 +1,11 @@
 @extends('theme::layouts.app')
 
-@section('title', 'Checkout — '.config('app.name'))
+@section('title', __('storefront.cart.checkout').' — '.config('app.name'))
 @section('robots', 'noindex, follow')
 
 @section('content')
 <div class="container py-4">
-    <h1 class="h3 mb-4">Checkout</h1>
+    <h1 class="h3 mb-4">{{ __('storefront.cart.checkout') }}</h1>
 
     @if(session('error'))
         <div class="alert alert-danger">{{ session('error') }}</div>
@@ -27,7 +27,7 @@
         <div class="col-12 col-lg-7">
             {{-- Address --}}
             <section class="border rounded p-3 mb-3">
-                <h2 class="h6 text-uppercase">Shipping address</h2>
+                <h2 class="h6 text-uppercase">{{ __('storefront.checkout.shipping_address') }}</h2>
                 <div class="row g-2">
                     <div class="col-6">
                         <input name="first_name" value="{{ old('first_name') }}" class="form-control" placeholder="Họ" required>
@@ -79,7 +79,7 @@
 
             {{-- Shipping --}}
             <section class="border rounded p-3 mb-3">
-                <h2 class="h6 text-uppercase">Shipping method</h2>
+                <h2 class="h6 text-uppercase">{{ __('storefront.checkout.shipping_method') }}</h2>
                 @forelse($shippingOptions as $opt)
                     <div class="form-check">
                         <input class="form-check-input" type="radio" name="shipping_option"
@@ -96,16 +96,16 @@
 
             {{-- Payment --}}
             <section class="border rounded p-3">
-                <h2 class="h6 text-uppercase">Payment</h2>
+                <h2 class="h6 text-uppercase">{{ __('storefront.checkout.payment') }}</h2>
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="payment_type" id="pay-cod" value="cod"
                            @checked(old('payment_type', 'cod') === 'cod') required>
-                    <label class="form-check-label" for="pay-cod">Cash on delivery</label>
+                    <label class="form-check-label" for="pay-cod">{{ __('storefront.checkout.cod') }}</label>
                 </div>
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="payment_type" id="pay-bank" value="bank-transfer"
                            @checked(old('payment_type') === 'bank-transfer')>
-                    <label class="form-check-label" for="pay-bank">Bank transfer</label>
+                    <label class="form-check-label" for="pay-bank">{{ __('storefront.checkout.bank_transfer') }}</label>
                 </div>
                 @if($vnpayEnabled)
                     <div class="form-check">
@@ -120,7 +120,7 @@
         {{-- Order summary --}}
         <div class="col-12 col-lg-5">
             <div class="border rounded p-3" data-checkout-summary>
-                <h2 class="h6 text-uppercase">Order summary</h2>
+                <h2 class="h6 text-uppercase">{{ __('storefront.cart.order_summary') }}</h2>
                 @foreach($cart->lines as $line)
                     <div class="d-flex justify-content-between small py-1">
                         <span>{{ $line->purchasable->getDescription() }} × {{ $line->quantity }}</span>
@@ -133,14 +133,14 @@
                      placeOrder() picks it up automatically; the summary lines
                      below just update from the response without reloading. --}}
                 <div class="border-top pt-2 mt-2">
-                    <label class="form-label small mb-1">Coupon code</label>
+                    <label class="form-label small mb-1">{{ __('storefront.cart.coupon_code') }}</label>
                     <div class="input-group input-group-sm" data-coupon-form>
-                        <input class="form-control" placeholder="Enter code" data-coupon-input
+                        <input class="form-control" placeholder="{{ __('storefront.cart.coupon_code') }}" data-coupon-input
                                value="{{ $cart->coupon_code }}">
                         @if($cart->coupon_code)
-                            <button class="btn btn-outline-danger" type="button" data-coupon-remove>Remove</button>
+                            <button class="btn btn-outline-danger" type="button" data-coupon-remove>{{ __('storefront.common.remove') }}</button>
                         @else
-                            <button class="btn btn-outline-dark" type="button" data-coupon-apply>Apply</button>
+                            <button class="btn btn-outline-dark" type="button" data-coupon-apply>{{ __('storefront.common.apply') }}</button>
                         @endif
                     </div>
                     <div class="small mt-1" data-coupon-status></div>
@@ -166,14 +166,14 @@
                 </div>
 
                 <dl class="row small border-top pt-2 mt-2 mb-0">
-                    <dt class="col-7 fw-normal">Subtotal</dt><dd class="col-5 text-end" data-sum-subtotal>{{ $cart->subTotal?->formatted() }}</dd>
+                    <dt class="col-7 fw-normal">{{ __('storefront.cart.subtotal') }}</dt><dd class="col-5 text-end" data-sum-subtotal>{{ $cart->subTotal?->formatted() }}</dd>
                     <div class="col-12 p-0 d-flex" data-discount-row @class(['d-none' => ! $cart->discountTotal?->value])>
-                        <dt class="col-7 fw-normal">Discount</dt><dd class="col-5 text-end text-success" data-sum-discount>−{{ $cart->discountTotal?->formatted() }}</dd>
+                        <dt class="col-7 fw-normal">{{ __('storefront.cart.discount') }}</dt><dd class="col-5 text-end text-success" data-sum-discount>−{{ $cart->discountTotal?->formatted() }}</dd>
                     </div>
-                    <dt class="col-7 fw-normal">Tax</dt><dd class="col-5 text-end" data-sum-tax>{{ $cart->taxTotal?->formatted() }}</dd>
-                    <dt class="col-7 fw-bold">Total</dt><dd class="col-5 text-end fw-bold" data-sum-total>{{ $cart->total?->formatted() }}</dd>
+                    <dt class="col-7 fw-normal">{{ __('storefront.cart.tax') }}</dt><dd class="col-5 text-end" data-sum-tax>{{ $cart->taxTotal?->formatted() }}</dd>
+                    <dt class="col-7 fw-bold">{{ __('storefront.cart.total') }}</dt><dd class="col-5 text-end fw-bold" data-sum-total>{{ $cart->total?->formatted() }}</dd>
                 </dl>
-                <button class="btn btn-dark w-100 mt-3" type="submit">Place order</button>
+                <button class="btn btn-dark w-100 mt-3" type="submit">{{ __('storefront.checkout.place_order') }}</button>
             </div>
         </div>
     </form>

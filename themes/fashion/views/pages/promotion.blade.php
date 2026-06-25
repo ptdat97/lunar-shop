@@ -7,8 +7,8 @@
 <div class="container py-4">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb small">
-            <li class="breadcrumb-item"><a href="{{ route('storefront.home') }}" class="text-decoration-none">Home</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('storefront.promotions') }}" class="text-decoration-none">Promotions</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('storefront.home') }}" class="text-decoration-none">{{ __('storefront.nav.home') }}</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('storefront.promotions') }}" class="text-decoration-none">{{ __('storefront.promotion.title') }}</a></li>
             <li class="breadcrumb-item active" aria-current="page">{{ $discount->name }}</li>
         </ol>
     </nav>
@@ -24,7 +24,7 @@
         <p class="mb-0 opacity-75">{{ $description }}</p>
         @if($discount->ends_at)
             <div class="mt-2 d-inline-flex align-items-center gap-2 small">
-                <span class="opacity-75">Ends in</span>
+                <span class="opacity-75">{{ __('storefront.promotion.ends_in') }}</span>
                 <span class="badge bg-light text-dark font-monospace" data-flash-countdown>—</span>
             </div>
         @endif
@@ -39,7 +39,7 @@
             @endforeach
         </div>
     @else
-        <p class="text-muted py-5 text-center">No products in this promotion yet.</p>
+        <p class="text-muted py-5 text-center">{{ __('storefront.promotion.no_products') }}</p>
     @endif
 </div>
 @endsection

@@ -53,10 +53,24 @@ class ThemeServiceProvider extends ServiceProvider
             $view->with('theme', $this->app->make(ThemeSettings::class));
         });
 
-        // `storefront` middleware group = stateful web + Lunar storefront session.
+        // Language switcher data for the header (no service resolution in Blade).
+        View::composer('theme::partials.header', function ($view) {
+            $locales = $this->app->make(\Modules\Theme\Services\LocaleService::class);
+            $view->with([
+                'storefrontLocales' => $locales->supported(),
+                'currentLocale' => $this->app->getLocale(),
+                'showLanguageSwitcher' => $locales->showSwitcher(),
+            ]);
+        });
+
+        // `storefront` middleware group = stateful web + storefront locale +
+        // Lunar storefront session. SetStorefrontLocale runs after `web` (it
+        // reads the session) so __() + translateAttribute() use the visitor's
+        // chosen language.
         $router = $this->app->make(Router::class);
         $router->middlewareGroup('storefront', [
             'web',
+            \Modules\Theme\Http\Middleware\SetStorefrontLocale::class,
             InitStorefrontSession::class,
         ]);
     }
