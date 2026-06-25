@@ -144,9 +144,13 @@ class PromotionService
      */
     public function saleFor(Product $product): ?array
     {
-        $applicable = $this->activeAutomatic()->filter(
-            fn (Discount $d) => $this->appliesToProduct($d, $product)
-        );
+        $applicable = $this->activeAutomatic()
+            ->filter(fn (Discount $d) => $this->appliesToProduct($d, $product))
+            // Only promotions we can render a meaningful badge for. Excludes
+            // Lunar's BuyXGetY (a gift deal, not a per-product %), and any
+            // discount with no usable percentage (e.g. legacy rows with
+            // data = null) — those caused a bare "Sale" label with no price cut.
+            ->filter(fn (Discount $d) => $this->isDisplayablePromotion($d));
 
         if ($applicable->isEmpty()) {
             return null;
@@ -185,6 +189,30 @@ class PromotionService
             'original' => (string) $price->formatted(),
             'sale' => (string) (new \Lunar\DataTypes\Price($saleValue, $price->currency, 1))->formatted(),
         ]);
+    }
+
+    /**
+     * Whether a discount can be shown as a storefront sale badge — i.e. we can
+     * render a meaningful label for it (flash/percentage/quantity/combo with a
+     * positive percentage). Excludes Lunar's BuyXGetY and degenerate rows
+     * (data = null, 0%, fixed-amount with no per-product break).
+     */
+    public function isDisplayablePromotion(Discount $discount): bool
+    {
+        $data = $discount->data ?? [];
+
+        // Our typed promos: show only when the percentage is > 0.
+        if (in_array($discount->type, [QuantityPercentageOff::class, ComboPercentageOff::class], true)) {
+            return (float) ($data['percentage'] ?? 0) > 0;
+        }
+
+        // Simple percentage AmountOff (flash sale / sale).
+        if (! empty($data['percentage']) && empty($data['fixed_value'])) {
+            return (float) $data['percentage'] > 0;
+        }
+
+        // Everything else (BuyXGetY, fixed-amount, empty data) → no badge.
+        return false;
     }
 
     /**

@@ -262,6 +262,31 @@ class PromotionAdvancedTest extends TestCase
         $this->assertSame('Flash Sale — 20% Off', $payload['applied_discounts'][0]['name']);
     }
 
+    public function test_sale_for_ignores_buy_x_get_y_and_empty_discounts(): void
+    {
+        $product = $this->createProduct(['price' => 10000]);
+
+        // A BuyXGetY (gift deal) and a typed promo with no data — both active +
+        // applicable, but neither yields a per-product percentage badge.
+        $bxgy = Discount::create([
+            'name' => 'aa', 'handle' => 'aa-bxgy',
+            'type' => \Lunar\DiscountTypes\BuyXGetY::class,
+            'starts_at' => now()->subDay(), 'uses' => 0, 'priority' => 9, 'stop' => false,
+            'data' => null,
+        ]);
+        $empty = Discount::create([
+            'name' => 'aab', 'handle' => 'aab-qty',
+            'type' => QuantityPercentageOff::class,
+            'starts_at' => now()->subDay(), 'uses' => 0, 'priority' => 8, 'stop' => false,
+            'data' => null,
+        ]);
+        $this->enableForAll($bxgy);
+        $this->enableForAll($empty);
+
+        // No meaningful badge → no bare "Sale" label with no price cut.
+        $this->assertNull(app(PromotionService::class)->saleFor($product->fresh()));
+    }
+
     public function test_membership_discount_is_excluded_from_public_promotions(): void
     {
         $this->seed(DemoPromotionSeeder::class);
