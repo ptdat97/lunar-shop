@@ -72,20 +72,7 @@
                  desktop, horizontal under the main on mobile). --}}
             <div id="product-gallery" data-product-gallery class="product-gallery">
                 @if($galleryImages->isNotEmpty())
-                    @if($galleryImages->count() > 1)
-                        <div class="swiper product-gallery__thumbs" data-gallery-thumbs>
-                            <div class="swiper-wrapper">
-                                @foreach($galleryImages as $img)
-                                    <div class="swiper-slide">
-                                        <img src="{{ $img['small'] }}" alt="{{ $name }}"
-                                             class="img-fluid rounded" loading="lazy">
-                                    </div>
-                                @endforeach
-                            </div>
-                        </div>
-                    @endif
-
-                    <div class="swiper product-gallery__main" data-gallery-main>
+                                    <div class="swiper product-gallery__main" data-gallery-main>
                         <div class="swiper-wrapper">
                             @foreach($galleryImages as $img)
                                 <div class="swiper-slide">
@@ -102,6 +89,20 @@
                         <div class="swiper-button-prev"></div>
                         <div class="swiper-button-next"></div>
                     </div>
+                    @if($galleryImages->count() > 1)
+                        <div class="swiper product-gallery__thumbs" data-gallery-thumbs>
+                            <div class="swiper-wrapper">
+                                @foreach($galleryImages as $img)
+                                    <div class="swiper-slide">
+                                        <img src="{{ $img['small'] }}" alt="{{ $name }}"
+                                             class="img-fluid rounded" loading="lazy">
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
+
+
                 @else
                     <div class="ratio ratio-4x3 bg-light rounded d-flex align-items-center justify-content-center text-muted">
                         No image

@@ -106,7 +106,7 @@
         .product-gallery__thumbs {
             order: -1;            // keep thumbs first (left)
             width: 88px;
-            max-height: 560px;    // vertical scroll within this height
+            min-height: 690px;    // vertical scroll within this height
             flex: 0 0 88px;
         }
 
@@ -120,6 +120,7 @@
     &__main {
         border-radius: v.$radius;
         overflow: hidden;
+        width: 100%;
 
         .swiper-button-prev,
         .swiper-button-next {
