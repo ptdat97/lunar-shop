@@ -68,7 +68,7 @@ class CheckoutController extends Controller
     public function place(Request $request): OrderResource
     {
         $data = $request->validate([
-            'payment_type' => ['nullable', 'string', 'in:cod,bank-transfer,vnpay'],
+            'payment_type' => ['nullable', 'string', \Illuminate\Validation\Rule::in($this->checkout->paymentMethods())],
         ]);
 
         $order = $this->checkout->placeOrder($data['payment_type'] ?? 'cod');

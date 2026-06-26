@@ -1,0 +1,8 @@
+{
+  "id": "acme/preorder",
+  "name": "Pre-order",
+  "version": "1.0.0",
+  "provider": "Acme\\Preorder\\PreorderPlugin",
+  "requires": { "core": "^1.0" },
+  "hooks": ["product.purchasable", "product.resource"]
+}

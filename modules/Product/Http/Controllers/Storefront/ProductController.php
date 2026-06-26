@@ -25,6 +25,13 @@ class ProductController extends Controller
 
         abort_if($product === null, 404);
 
+        // A genuine product-page view (not every findBySlug) → drives
+        // also-viewed recommendations and analytics.
+        \Modules\Hook\Facades\Hook::doAction(
+            \Modules\Hook\Support\Hooks::PRODUCT_VIEWED,
+            [$product],
+        );
+
         return view('theme::pages.product', [
             'product' => $product,
             // "You may also like" — curated associations first, collection fallback.

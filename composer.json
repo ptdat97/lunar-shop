@@ -26,6 +26,8 @@
         "psr-4": {
             "App\\": "app/",
             "Modules\\": "modules/",
+            "Acme\\Reviews\\": "plugins/acme/reviews/src/",
+            "Acme\\Preorder\\": "plugins/acme/preorder/src/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
         }

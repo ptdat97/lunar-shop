@@ -32,6 +32,9 @@ class ProductServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
 
         $this->registerSizeRelationships();
+
+        // Broadcast product create/update on the shared hook plane.
+        Product::observe(\Modules\Product\Observers\ProductObserver::class);
     }
 
     /**

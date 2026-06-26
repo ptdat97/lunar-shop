@@ -37,6 +37,15 @@ class OrderObserver
             [$order, $previous],
         );
 
+        // Semantic shortcut for the dispatch transition so fulfilment/tracking
+        // listeners don't have to match on the raw status string.
+        if ($order->status === 'dispatched') {
+            \Modules\Hook\Facades\Hook::doAction(
+                \Modules\Hook\Support\Hooks::ORDER_SHIPPED,
+                [$order, $previous],
+            );
+        }
+
         if (in_array($order->status, self::SKIP, true)) {
             return;
         }

@@ -62,7 +62,7 @@ class CheckoutController extends Controller
             'contact_email' => ['required', 'email', 'max:255'],
             'contact_phone' => ['required', 'string', 'max:32'],
             'shipping_option' => ['required', 'string'],
-            'payment_type' => ['required', 'string', 'in:cod,bank-transfer,vnpay'],
+            'payment_type' => ['required', 'string', \Illuminate\Validation\Rule::in($this->checkout->paymentMethods())],
         ]);
 
         $cart = CartSession::current();

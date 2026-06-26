@@ -100,7 +100,14 @@ class CartService
             ]);
         }
 
-        return $this->current()->add($variant, $quantity)->calculate();
+        $cart = $this->current()->add($variant, $quantity)->calculate();
+
+        \Modules\Hook\Facades\Hook::doAction(
+            \Modules\Hook\Support\Hooks::CART_LINE_ADDED,
+            [$cart, $variant, $quantity],
+        );
+
+        return $cart;
     }
 
     /**
@@ -108,7 +115,14 @@ class CartService
      */
     public function updateLine(int $lineId, int $quantity): Cart
     {
-        return $this->current()->updateLine($lineId, $quantity)->calculate();
+        $cart = $this->current()->updateLine($lineId, $quantity)->calculate();
+
+        \Modules\Hook\Facades\Hook::doAction(
+            \Modules\Hook\Support\Hooks::CART_LINE_UPDATED,
+            [$cart, $lineId, $quantity],
+        );
+
+        return $cart;
     }
 
     /**
@@ -116,7 +130,14 @@ class CartService
      */
     public function remove(int $lineId): Cart
     {
-        return $this->current()->remove($lineId)->calculate();
+        $cart = $this->current()->remove($lineId)->calculate();
+
+        \Modules\Hook\Facades\Hook::doAction(
+            \Modules\Hook\Support\Hooks::CART_LINE_REMOVED,
+            [$cart, $lineId],
+        );
+
+        return $cart;
     }
 
     /**
@@ -125,6 +146,10 @@ class CartService
     public function forget(): void
     {
         CartSession::forget();
+
+        \Modules\Hook\Facades\Hook::doAction(
+            \Modules\Hook\Support\Hooks::CART_EMPTIED,
+        );
     }
 
     /**
@@ -163,6 +188,11 @@ class CartService
                 'code' => 'This coupon does not apply to the items in your cart.',
             ]);
         }
+
+        \Modules\Hook\Facades\Hook::doAction(
+            \Modules\Hook\Support\Hooks::CART_COUPON_APPLIED,
+            [$cart, $code],
+        );
 
         return $cart;
     }

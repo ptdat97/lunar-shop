@@ -22,12 +22,33 @@ class CheckoutService
         protected CustomerResolver $customers,
     ) {}
 
+    /** Payment method identifiers built into the app. */
+    protected const DEFAULT_PAYMENT_METHODS = ['cod', 'bank-transfer', 'vnpay'];
+
     /**
      * Available shipping options for the current cart.
      */
     public function shippingOptions(): Collection
     {
         return ShippingManifest::getOptions($this->carts->current());
+    }
+
+    /**
+     * The payment method identifiers offered at checkout — the single source for
+     * both the storefront and API validation rules. Passed through the
+     * `checkout.payment_methods` filter so a plugin can add a gateway without
+     * editing core (it appends its identifier; the built-ins stay the default).
+     *
+     * @return list<string>
+     */
+    public function paymentMethods(): array
+    {
+        return array_values(array_unique(
+            \Modules\Hook\Facades\Hook::applyFilters(
+                \Modules\Hook\Support\Hooks::CHECKOUT_PAYMENT_METHODS,
+                self::DEFAULT_PAYMENT_METHODS,
+            )
+        ));
     }
 
     /**
@@ -62,6 +83,11 @@ class CheckoutService
             $cart = $this->setShipping($previousOption);
         }
 
+        \Modules\Hook\Facades\Hook::doAction(
+            \Modules\Hook\Support\Hooks::CHECKOUT_ADDRESS_SET,
+            [$cart],
+        );
+
         return $cart;
     }
 
@@ -91,7 +117,14 @@ class CheckoutService
 
         abort_if($option === null, 422, "Unknown shipping option [{$identifier}].");
 
-        return $cart->setShippingOption($option)->calculate();
+        $cart = $cart->setShippingOption($option)->calculate();
+
+        \Modules\Hook\Facades\Hook::doAction(
+            \Modules\Hook\Support\Hooks::CHECKOUT_SHIPPING_SELECTED,
+            [$cart, $identifier],
+        );
+
+        return $cart;
     }
 
     /**

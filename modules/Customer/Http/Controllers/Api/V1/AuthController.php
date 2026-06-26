@@ -3,6 +3,7 @@
 namespace Modules\Customer\Http\Controllers\Api\V1;
 
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -33,6 +34,8 @@ class AuthController extends Controller
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
+
+        event(new Registered($user));
 
         Auth::login($user);
         $request->session()->regenerate();

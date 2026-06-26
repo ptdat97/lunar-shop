@@ -59,7 +59,20 @@ class ModulesServiceProvider extends ServiceProvider
             }
         }
 
+        // Plugins register AFTER the core modules (so they hook into a fully-
+        // wired app) but BEFORE the Lunar panel, so a plugin can contribute
+        // Filament pages via AdminPages just like a module.
+        $this->app->make(\Modules\Hook\Plugin\PluginManager::class)->load();
+
         $this->registerLunarPanel();
+    }
+
+    /**
+     * Boot loaded plugins (their boot() runs after all modules have registered).
+     */
+    public function boot(): void
+    {
+        $this->app->make(\Modules\Hook\Plugin\PluginManager::class)->boot();
     }
 
     /**

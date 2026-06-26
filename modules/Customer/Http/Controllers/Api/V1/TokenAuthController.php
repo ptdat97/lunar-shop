@@ -3,6 +3,7 @@
 namespace Modules\Customer\Http\Controllers\Api\V1;
 
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -62,6 +63,8 @@ class TokenAuthController extends Controller
             'email' => $data['email'],
             'password' => Hash::make($data['password']),
         ]);
+
+        event(new Registered($user));
 
         return $this->respondWithToken($user, $data['device_name'] ?? null, 201);
     }

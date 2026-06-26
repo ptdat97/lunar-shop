@@ -86,6 +86,14 @@ class ProductService
             $query->whereHas('collections', fn ($c) => $c->whereKey($collectionIds));
         }
 
-        return $query->latest('id')->limit($limit)->get();
+        $related = $query->latest('id')->limit($limit)->get();
+
+        // Let a plugin re-rank or swap the related set (e.g. a personalised
+        // recommender) without the caller knowing.
+        return \Modules\Hook\Facades\Hook::applyFilters(
+            \Modules\Hook\Support\Hooks::PRODUCT_RELATED,
+            $related,
+            [$product, $limit],
+        );
     }
 }
