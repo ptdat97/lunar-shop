@@ -39,8 +39,26 @@ function initPromotionSliders(root) {
     });
 }
 
+function initTestimonialSliders(root) {
+    root.querySelectorAll('[data-testimonial-swiper]').forEach((el) => {
+        if (el.dataset.swiperInit) return;
+        el.dataset.swiperInit = '1';
+        new window.Swiper(el, {
+            slidesPerView: 1,
+            spaceBetween: 24,
+            autoHeight: false,
+            pagination: { el: el.querySelector('.swiper-pagination'), clickable: true },
+            breakpoints: {
+                768: { slidesPerView: 2 },
+                992: { slidesPerView: 3 },
+            },
+        });
+    });
+}
+
 export default function (root = document) {
     if (!window.Swiper) return; // vendor not loaded → nothing to enhance
     initHeroSliders(root);
     initPromotionSliders(root);
+    initTestimonialSliders(root);
 }

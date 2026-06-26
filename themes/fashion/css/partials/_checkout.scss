@@ -1,0 +1,224 @@
+// Shopify-style checkout. Distraction-free shell (logo + step breadcrumb), a
+// two-column body where the form sits on white and a sticky grey order summary
+// sits on the right. Collapses to a single column on mobile with the summary on
+// top (matching Shopify's responsive behaviour).
+
+@use 'variables' as v;
+@use 'mixins' as m;
+
+$checkout-grey: #f5f5f5;
+$checkout-border: #e3e3e3;
+
+// ── Shell ──────────────────────────────────────────────────────────────────
+.checkout-container {
+    max-width: 1100px;
+    margin-inline: auto;
+    padding-inline: 1rem;
+}
+
+.checkout-header {
+    .checkout-steps {
+        &__step--current { color: v.$accent; }
+    }
+}
+
+// ── Body grid ────────────────────────────────────────────────────────────────
+.checkout {
+    display: grid;
+    max-width: 1100px;
+    margin-inline: auto;
+    grid-template-columns: 1fr;
+
+    // Right (summary) above the form on mobile — same as Shopify.
+    .checkout__aside { order: -1; }
+
+    @include m.up(lg) {
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+
+        .checkout__aside { order: 0; }
+    }
+}
+
+.checkout__main {
+    padding: 2rem 1rem;
+
+    @include m.up(lg) {
+        padding: 2.5rem 3rem 3rem 1.5rem;
+        // Subtle divider between the two columns, like Shopify.
+        border-right: 1px solid $checkout-border;
+    }
+}
+
+.checkout__form { max-width: 520px; margin-inline: auto; }
+
+.checkout__aside {
+    background: $checkout-grey;
+    padding: 2rem 1rem;
+
+    @include m.up(lg) {
+        padding: 2.5rem 1.5rem 3rem 3rem;
+        border-left: 1px solid $checkout-border;
+        margin-left: -1px; // collapse with the form's right border
+        min-height: calc(100vh - #{v.$header-height});
+    }
+}
+
+// ── Form blocks ──────────────────────────────────────────────────────────────
+.checkout-block {
+    margin-bottom: 1.75rem;
+
+    &__title {
+        font-size: 1.05rem;
+        font-weight: 600;
+        margin-bottom: .85rem;
+    }
+}
+
+// ── Radio "cards" (shipping + payment) ───────────────────────────────────────
+.checkout-options {
+    border: 1px solid $checkout-border;
+    border-radius: v.$radius;
+    overflow: hidden;
+}
+
+.checkout-option {
+    display: flex;
+    align-items: center;
+    gap: .85rem;
+    padding: .9rem 1rem;
+    margin: 0;
+    cursor: pointer;
+    border-bottom: 1px solid $checkout-border;
+    transition: background v.$transition;
+
+    &:last-child { border-bottom: 0; }
+    &:hover { background: rgba(0, 0, 0, .015); }
+
+    &__label {
+        flex: 1 1 auto;
+        font-weight: 500;
+        line-height: 1.3;
+
+        small { font-weight: 400; }
+    }
+
+    &__price { font-weight: 600; white-space: nowrap; }
+    &__icon { font-size: 1.25rem; color: v.$muted; }
+
+    // Selected card: accent outline + tint (JS toggles --active; falls back to
+    // :has() so it still highlights with no JS on modern browsers).
+    &--active,
+    &:has(input:checked) {
+        background: rgba(v.$accent, .04);
+        box-shadow: inset 0 0 0 2px v.$accent;
+    }
+}
+
+// ── Order summary ────────────────────────────────────────────────────────────
+.checkout-summary {
+    max-width: 460px;
+
+    @include m.up(lg) {
+        position: sticky;
+        top: calc(v.$header-height + 1.5rem);
+    }
+
+    &__lines { display: flex; flex-direction: column; gap: 1rem; }
+
+    &__line {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    &__media {
+        position: relative;
+        flex: 0 0 auto;
+        width: 56px;
+        height: 56px;
+        border: 1px solid $checkout-border;
+        border-radius: v.$radius;
+        background: #fff;
+        overflow: visible;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: v.$radius;
+        }
+    }
+
+    &__qty {
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 5px;
+        border-radius: 999px;
+        background: v.$muted;
+        color: #fff;
+        font-size: .72rem;
+        line-height: 20px;
+        text-align: center;
+        font-weight: 600;
+    }
+
+    &__info { flex: 1 1 auto; min-width: 0; }
+
+    &__name {
+        display: block;
+        font-size: .9rem;
+        font-weight: 500;
+        line-height: 1.3;
+    }
+
+    &__price { font-weight: 600; white-space: nowrap; }
+
+    &__coupon {
+        margin-top: 1.25rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid $checkout-border;
+    }
+
+    &__discounts:not(:empty) {
+        margin-top: 1rem;
+    }
+
+    &__totals {
+        margin-top: 1.25rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid $checkout-border;
+    }
+
+    &__row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        margin-bottom: .5rem;
+
+        dt { font-weight: 400; color: v.$muted; margin: 0; }
+        dd { margin: 0; }
+
+        &--total {
+            margin-top: .75rem;
+            padding-top: .75rem;
+            border-top: 1px solid $checkout-border;
+
+            dt { color: v.$accent; font-weight: 600; font-size: 1.05rem; }
+            dd { font-weight: 700; font-size: 1.25rem; }
+        }
+    }
+}
+
+// ── Footer actions ───────────────────────────────────────────────────────────
+.checkout__back {
+    color: v.$accent;
+    font-size: .9rem;
+
+    &:hover { text-decoration: underline; }
+}
+
+.checkout__submit { min-width: 180px; }

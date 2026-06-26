@@ -61,6 +61,14 @@ class MediaServiceProvider extends ServiceProvider
                 $urls->conversion($collection?->thumbnail, $size));
         });
 
+        // Checkout: expose a per-line thumbnail resolver so the order summary can
+        // show product images (Shopify-style) without resolving a service inline.
+        View::composer('theme::pages.checkout', function ($view): void {
+            $urls = app(MediaUrl::class);
+            $view->with('lineImage', fn ($line, string $size = 'small') =>
+                $urls->conversion($line?->purchasable?->product?->thumbnail, $size));
+        });
+
         // Product page: zoom dimensions, OG image, and the gallery image set.
         View::composer('theme::pages.product', function ($view): void {
             $product = $view->getData()['product'] ?? null;

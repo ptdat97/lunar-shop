@@ -30,13 +30,35 @@
     -webkit-font-smoothing: antialiased;
 }
 
+// Codepoints verified against the shipped bootstrap-icons.woff2 (1.x). Only
+// glyphs declared here render — any bi-* class used in a view must be listed.
 .bi-search::before { content: '\F52A'; }
 .bi-heart::before { content: '\F417'; }
-.bi-person::before { content: '\F4DA'; }
-.bi-bag::before { content: '\F2F5'; }
+.bi-heart-fill::before { content: '\F415'; }
+.bi-person::before { content: '\F4E1'; }
+.bi-bag::before { content: '\F179'; }
 .bi-list::before { content: '\F479'; }
 .bi-chevron-down::before { content: '\F282'; }
 .bi-chevron-right::before { content: '\F285'; }
+.bi-arrow-right::before { content: '\F138'; }
+.bi-arrow-counterclockwise::before { content: '\F117'; }
+.bi-check2::before { content: '\F272'; }
+.bi-gift::before { content: '\F3EC'; }
+.bi-globe2::before { content: '\F3EF'; }
+.bi-lightning-charge-fill::before { content: '\F46C'; }
+.bi-tag::before { content: '\F5B0'; }
+.bi-tags-fill::before { content: '\F5B1'; }
+.bi-star::before { content: '\F588'; }
+.bi-star-fill::before { content: '\F586'; }
+.bi-instagram::before { content: '\F437'; }
+.bi-truck::before { content: '\F5EA'; }
+.bi-headset::before { content: '\F414'; }
+.bi-patch-check::before { content: '\F4B6'; }
+.bi-chevron-left::before { content: '\F284'; }
+.bi-lock-fill::before { content: '\F47A'; }
+.bi-cash-coin::before { content: '\F632'; }
+.bi-bank::before { content: '\F62E'; }
+.bi-credit-card::before { content: '\F2DC'; }
 
 // Keep sticky header above Bootstrap offcanvas/backdrop content.
 .site-header {

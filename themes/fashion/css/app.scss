@@ -9,6 +9,7 @@
 @use 'partials/mixins' as m;
 @use 'partials/base';
 @use 'partials/lookbook';
+@use 'partials/checkout';
 @use 'partials/custom';
 
 // Expose tokens as runtime CSS custom properties (keeps the old
