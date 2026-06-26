@@ -135,7 +135,7 @@ return [
         'phone' => 'Số điện thoại',
         'vnpay' => 'VNPay (thanh toán online)',
         'cod_hint' => 'Thanh toán bằng tiền mặt khi nhận hàng.',
-        'bank_transfer_hint' => 'Chuyển khoản tới tài khoản của chúng tôi; giao hàng sau khi xác nhận thanh toán.',
+        'bank_transfer_hint' => 'Thanh toán bằng chuyển khoản; giao hàng sau khi xác nhận thanh toán.',
         'vnpay_hint' => 'Bạn sẽ được chuyển tới VNPay để hoàn tất thanh toán an toàn.',
     ],
 
