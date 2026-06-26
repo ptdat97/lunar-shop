@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use Modules\Hook\Facades\Hook;
-use Modules\Hook\Support\Hooks;
-use Modules\Hook\Support\PayloadContract;
+use Modules\Platform\Facades\Hook;
+use Modules\Platform\Support\Hooks;
+use Modules\Platform\Support\PayloadContract;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 

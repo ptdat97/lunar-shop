@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Hook\Support;
+namespace Modules\Platform\Support;
 
 /**
  * Canonical names of the cross-module hooks fired in this app. Referencing these
@@ -46,7 +46,8 @@ final class Hooks
 
     /**
      * FILTER — the `{ data, facets, meta }` search/listing payload.
-     * Value: array. Args: [\Modules\Search\Data\SearchResult $result].
+     * Value: array. Args: [object $result] — the search-result value object the
+     * producer passes (Core stays agnostic of the producing module's types).
      */
     public const SEARCH_RESULTS = 'search.results';
 

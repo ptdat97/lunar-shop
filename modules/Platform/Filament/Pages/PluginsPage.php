@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Hook\Filament\Pages;
+namespace Modules\Platform\Filament\Pages;
 
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Tabs;
@@ -9,8 +9,8 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
-use Modules\Hook\Plugin\PluginConfig;
-use Modules\Hook\Plugin\PluginManager;
+use Modules\Platform\Plugin\PluginConfig;
+use Modules\Platform\Plugin\PluginManager;
 
 /**
  * Admin Plugins page: a management table of every discovered plugin (enabled /
@@ -27,7 +27,7 @@ class PluginsPage extends Page implements HasForms
 
     protected static ?string $slug = 'plugins';
 
-    protected static string $view = 'hook::filament.plugins';
+    protected static string $view = 'platform::filament.plugins';
 
     public static function getNavigationLabel(): string
     {

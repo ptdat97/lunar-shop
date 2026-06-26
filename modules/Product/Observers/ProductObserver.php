@@ -3,8 +3,8 @@
 namespace Modules\Product\Observers;
 
 use Lunar\Models\Product;
-use Modules\Hook\Facades\Hook;
-use Modules\Hook\Support\Hooks;
+use Modules\Platform\Facades\Hook;
+use Modules\Platform\Support\Hooks;
 
 /**
  * Bridges Lunar's Product model lifecycle onto the shared hook plane so other

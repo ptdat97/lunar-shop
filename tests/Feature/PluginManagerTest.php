@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Log;
-use Modules\Hook\Plugin\PluginManager;
+use Modules\Platform\Plugin\PluginManager;
 use Tests\Fixtures\Plugins\DemoPlugin;
 use Tests\TestCase;
 
@@ -107,7 +107,7 @@ class PluginManagerTest extends TestCase
         $this->assertContains('boot:acme/demo', DemoPlugin::$trace);
 
         // The listener the plugin registered in boot() is live.
-        app(\Modules\Hook\Services\HookManager::class)->doAction('demo.ping');
+        app(\Modules\Platform\Services\HookManager::class)->doAction('demo.ping');
         $this->assertContains('ping:acme/demo', DemoPlugin::$trace);
     }
 
@@ -133,7 +133,7 @@ class PluginManagerTest extends TestCase
         $this->assertTrue($ok2);
         $this->assertNotContains('install:acme/demo', DemoPlugin::$trace);
         $this->assertContains('activate:acme/demo', DemoPlugin::$trace);
-        $this->assertSame(1, \Modules\Hook\Models\PluginState::where('plugin_id', 'acme/demo')->count());
+        $this->assertSame(1, \Modules\Platform\Models\PluginState::where('plugin_id', 'acme/demo')->count());
     }
 
     public function test_installing_an_unknown_plugin_fails_cleanly(): void

@@ -37,8 +37,8 @@ class SearchResultResource
         // Let other modules adjust the facets/meta envelope (e.g. inject a
         // promoted-results facet) without this resource depending on them. The
         // `data` items are already hooked via ProductResource.
-        $additional = \Modules\Hook\Facades\Hook::applyFilters(
-            \Modules\Hook\Support\Hooks::SEARCH_RESULTS,
+        $additional = \Modules\Platform\Facades\Hook::applyFilters(
+            \Modules\Platform\Support\Hooks::SEARCH_RESULTS,
             $additional,
             [$result],
         );

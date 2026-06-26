@@ -1,11 +1,11 @@
 <?php
 
-namespace Modules\Hook\Plugin;
+namespace Modules\Platform\Plugin;
 
 use Composer\Semver\Semver;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Log;
-use Modules\Hook\Services\HookManager;
+use Modules\Platform\Services\HookManager;
 use Throwable;
 
 /**
@@ -100,7 +100,7 @@ class PluginManager
      * Enabled, config-providing plugins resolved on demand (independent of the
      * boot-time load) — so the admin page reflects the CURRENT allow-list.
      *
-     * @return array<string, \Modules\Hook\Plugin\PluginConfig>
+     * @return array<string, \Modules\Platform\Plugin\PluginConfig>
      */
     public function configPlugins(): array
     {
@@ -191,7 +191,7 @@ class PluginManager
             return [false, "Plugin [{$id}] was not found (check it's on disk / discoverable)."];
         }
 
-        $state = \Modules\Hook\Models\PluginState::firstOrNew(['plugin_id' => $id]);
+        $state = \Modules\Platform\Models\PluginState::firstOrNew(['plugin_id' => $id]);
         $firstInstall = ! $state->exists;
 
         if ($firstInstall) {
@@ -218,7 +218,7 @@ class PluginManager
     public function disable(string $id): array
     {
         $plugin = $this->resolve($id);
-        $state = \Modules\Hook\Models\PluginState::where('plugin_id', $id)->first();
+        $state = \Modules\Platform\Models\PluginState::where('plugin_id', $id)->first();
 
         if (! $state) {
             return [false, "Plugin [{$id}] is not installed."];
@@ -239,7 +239,7 @@ class PluginManager
     public function uninstall(string $id): array
     {
         $plugin = $this->resolve($id);
-        $state = \Modules\Hook\Models\PluginState::where('plugin_id', $id)->first();
+        $state = \Modules\Platform\Models\PluginState::where('plugin_id', $id)->first();
 
         if (! $state) {
             return [false, "Plugin [{$id}] is not installed."];
@@ -265,7 +265,7 @@ class PluginManager
         // Before the plugins table is migrated, treat everything as not-installed
         // rather than crashing `plugin:list` on a fresh app.
         $states = \Illuminate\Support\Facades\Schema::hasTable('plugins')
-            ? \Modules\Hook\Models\PluginState::all()->keyBy('plugin_id')
+            ? \Modules\Platform\Models\PluginState::all()->keyBy('plugin_id')
             : collect();
 
         return collect($this->discover())->map(function (Plugin $plugin) use ($enabled, $available, $states) {

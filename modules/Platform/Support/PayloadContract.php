@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Hook\Support;
+namespace Modules\Platform\Support;
 
 /**
  * The stable shape of each hookable payload — the contract plugins and clients

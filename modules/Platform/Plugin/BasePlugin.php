@@ -1,9 +1,9 @@
 <?php
 
-namespace Modules\Hook\Plugin;
+namespace Modules\Platform\Plugin;
 
 use Illuminate\Contracts\Foundation\Application;
-use Modules\Hook\Services\HookManager;
+use Modules\Platform\Services\HookManager;
 
 /**
  * Convenience base so a plugin only overrides what it needs. Sensible defaults:

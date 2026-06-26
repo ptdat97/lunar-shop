@@ -1,12 +1,15 @@
 <?php
 
-namespace Modules\Theme\Support;
+namespace Modules\Platform\Support;
 
 /**
- * Collects custom Filament pages and resources contributed by modules, so they
- * can be registered into Lunar's admin panel in one place (after all modules
- * have registered). Modules call AdminPages::add(...) / addResource(...) in
- * their register().
+ * Platform extension registry for the admin panel: collects Filament pages and
+ * resources contributed by modules AND plugins, so they're registered into
+ * Lunar's panel in one place (after everything has registered). Callers do
+ * AdminPages::add(...) / addResource(...) in their register().
+ *
+ * Lives in Platform (core) rather than a business module — it's an extension
+ * point, not presentation. Knows nothing about any specific page/resource.
  */
 class AdminPages
 {

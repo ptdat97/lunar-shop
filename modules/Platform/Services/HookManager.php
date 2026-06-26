@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Hook\Services;
+namespace Modules\Platform\Services;
 
 /**
  * Lightweight WordPress/Eventy-style action & filter hooks for cross-module

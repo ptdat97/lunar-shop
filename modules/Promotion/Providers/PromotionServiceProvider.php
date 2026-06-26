@@ -5,8 +5,8 @@ namespace Modules\Promotion\Providers;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Facades\Discounts;
-use Modules\Hook\Facades\Hook;
-use Modules\Hook\Support\Hooks;
+use Modules\Platform\Facades\Hook;
+use Modules\Platform\Support\Hooks;
 use Modules\Promotion\Services\MembershipService;
 use Modules\Promotion\Services\PromotionService;
 

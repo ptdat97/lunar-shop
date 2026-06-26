@@ -88,8 +88,8 @@ class CartService
     {
         $variant = ProductVariant::findOrFail($variantId);
 
-        $purchasable = \Modules\Hook\Facades\Hook::applyFilters(
-            \Modules\Hook\Support\Hooks::PRODUCT_PURCHASABLE,
+        $purchasable = \Modules\Platform\Facades\Hook::applyFilters(
+            \Modules\Platform\Support\Hooks::PRODUCT_PURCHASABLE,
             $variant->canBeFulfilledAtQuantity($quantity),
             [$variant, $quantity],
         );
@@ -102,8 +102,8 @@ class CartService
 
         $cart = $this->current()->add($variant, $quantity)->calculate();
 
-        \Modules\Hook\Facades\Hook::doAction(
-            \Modules\Hook\Support\Hooks::CART_LINE_ADDED,
+        \Modules\Platform\Facades\Hook::doAction(
+            \Modules\Platform\Support\Hooks::CART_LINE_ADDED,
             [$cart, $variant, $quantity],
         );
 
@@ -117,8 +117,8 @@ class CartService
     {
         $cart = $this->current()->updateLine($lineId, $quantity)->calculate();
 
-        \Modules\Hook\Facades\Hook::doAction(
-            \Modules\Hook\Support\Hooks::CART_LINE_UPDATED,
+        \Modules\Platform\Facades\Hook::doAction(
+            \Modules\Platform\Support\Hooks::CART_LINE_UPDATED,
             [$cart, $lineId, $quantity],
         );
 
@@ -132,8 +132,8 @@ class CartService
     {
         $cart = $this->current()->remove($lineId)->calculate();
 
-        \Modules\Hook\Facades\Hook::doAction(
-            \Modules\Hook\Support\Hooks::CART_LINE_REMOVED,
+        \Modules\Platform\Facades\Hook::doAction(
+            \Modules\Platform\Support\Hooks::CART_LINE_REMOVED,
             [$cart, $lineId],
         );
 
@@ -147,8 +147,8 @@ class CartService
     {
         CartSession::forget();
 
-        \Modules\Hook\Facades\Hook::doAction(
-            \Modules\Hook\Support\Hooks::CART_EMPTIED,
+        \Modules\Platform\Facades\Hook::doAction(
+            \Modules\Platform\Support\Hooks::CART_EMPTIED,
         );
     }
 
@@ -189,8 +189,8 @@ class CartService
             ]);
         }
 
-        \Modules\Hook\Facades\Hook::doAction(
-            \Modules\Hook\Support\Hooks::CART_COUPON_APPLIED,
+        \Modules\Platform\Facades\Hook::doAction(
+            \Modules\Platform\Support\Hooks::CART_COUPON_APPLIED,
             [$cart, $code],
         );
 

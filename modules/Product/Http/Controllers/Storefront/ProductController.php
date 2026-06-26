@@ -27,8 +27,8 @@ class ProductController extends Controller
 
         // A genuine product-page view (not every findBySlug) → drives
         // also-viewed recommendations and analytics.
-        \Modules\Hook\Facades\Hook::doAction(
-            \Modules\Hook\Support\Hooks::PRODUCT_VIEWED,
+        \Modules\Platform\Facades\Hook::doAction(
+            \Modules\Platform\Support\Hooks::PRODUCT_VIEWED,
             [$product],
         );
 

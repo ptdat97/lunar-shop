@@ -2,8 +2,8 @@
 
 namespace Modules\Search\Http\Concerns;
 
-use Modules\Hook\Facades\Hook;
-use Modules\Hook\Support\Hooks;
+use Modules\Platform\Facades\Hook;
+use Modules\Platform\Support\Hooks;
 use Modules\Search\Data\SearchQuery;
 use Modules\Search\Data\SearchResult;
 

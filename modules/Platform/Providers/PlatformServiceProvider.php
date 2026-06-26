@@ -1,17 +1,19 @@
 <?php
 
-namespace Modules\Hook\Providers;
+namespace Modules\Platform\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Modules\Hook\Plugin\PluginManager;
-use Modules\Hook\Services\HookManager;
+use Modules\Platform\Events\EventBridge;
+use Modules\Platform\Plugin\PluginManager;
+use Modules\Platform\Services\HookManager;
 
-class HookServiceProvider extends ServiceProvider
+class PlatformServiceProvider extends ServiceProvider
 {
     /**
      * Register the shared HookManager. Singleton so every module sees the same
-     * listener registry. Registered first (Hook is top of ModulesServiceProvider)
-     * so later modules can add filters/actions in their own register().
+     * listener registry. Registered first (Platform is top of
+     * ModulesServiceProvider) so later modules can add filters/actions in their
+     * own register().
      *
      * The PluginManager singleton is defined here too, but its load()/boot() are
      * driven by ModulesServiceProvider AFTER the core modules — plugins extend a
@@ -23,11 +25,13 @@ class HookServiceProvider extends ServiceProvider
 
         $this->app->singleton(PluginManager::class, fn ($app) => new PluginManager($app));
 
+        $this->app->singleton(EventBridge::class, fn ($app) => new EventBridge($app->make(HookManager::class)));
+
         $this->mergeConfigFrom(base_path('config/plugins.php'), 'plugins');
 
         // Contribute the Plugins admin page to Lunar's panel (collected during
         // register, before the panel is built).
-        \Modules\Theme\Support\AdminPages::add(\Modules\Hook\Filament\Pages\PluginsPage::class);
+        \Modules\Platform\Support\AdminPages::add(\Modules\Platform\Filament\Pages\PluginsPage::class);
     }
 
     /**
@@ -36,18 +40,18 @@ class HookServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
-        $this->loadViewsFrom(__DIR__ . '/../Resources/views', 'hook');
+        $this->loadViewsFrom(__DIR__ . '/../Resources/views', 'platform');
 
         $this->loadRoutesFrom(__DIR__ . '/../Routes/web.php');
         $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
 
         if ($this->app->runningInConsole()) {
             $this->commands([
-                \Modules\Hook\Console\PluginListCommand::class,
-                \Modules\Hook\Console\PluginInstallCommand::class,
-                \Modules\Hook\Console\PluginDisableCommand::class,
-                \Modules\Hook\Console\PluginUninstallCommand::class,
-                \Modules\Hook\Console\PluginDoctorCommand::class,
+                \Modules\Platform\Console\PluginListCommand::class,
+                \Modules\Platform\Console\PluginInstallCommand::class,
+                \Modules\Platform\Console\PluginDisableCommand::class,
+                \Modules\Platform\Console\PluginUninstallCommand::class,
+                \Modules\Platform\Console\PluginDoctorCommand::class,
             ]);
         }
     }

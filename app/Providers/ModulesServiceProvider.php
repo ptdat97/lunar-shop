@@ -10,7 +10,7 @@ use Lunar\Admin\LunarPanelManager;
 use Lunar\Admin\Support\Facades\LunarPanel;
 use Modules\Product\Filament\Extensions\ProductSizeExtension;
 use Modules\Theme\Filament\Resources as Custom;
-use Modules\Theme\Support\AdminPages;
+use Modules\Platform\Support\AdminPages;
 
 class ModulesServiceProvider extends ServiceProvider
 {
@@ -19,12 +19,12 @@ class ModulesServiceProvider extends ServiceProvider
      *
      * Each module lives in modules/<Name> with namespace Modules\<Name>
      * and a Providers\<Name>ServiceProvider. Order matters when one module
-     * depends on bindings from another (e.g. Hook before others).
+     * depends on bindings from another (e.g. Platform before others).
      *
      * @var list<string>
      */
     protected array $modules = [
-        'Hook',
+        'Platform',
         'Theme',
         'Catalog',
         'Location',
@@ -62,7 +62,7 @@ class ModulesServiceProvider extends ServiceProvider
         // Plugins register AFTER the core modules (so they hook into a fully-
         // wired app) but BEFORE the Lunar panel, so a plugin can contribute
         // Filament pages via AdminPages just like a module.
-        $this->app->make(\Modules\Hook\Plugin\PluginManager::class)->load();
+        $this->app->make(\Modules\Platform\Plugin\PluginManager::class)->load();
 
         $this->registerLunarPanel();
     }
@@ -72,7 +72,7 @@ class ModulesServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->app->make(\Modules\Hook\Plugin\PluginManager::class)->boot();
+        $this->app->make(\Modules\Platform\Plugin\PluginManager::class)->boot();
     }
 
     /**

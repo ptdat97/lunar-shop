@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use Modules\Hook\Plugin\PluginManager;
+use Modules\Platform\Plugin\PluginManager;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 

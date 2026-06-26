@@ -44,8 +44,8 @@ class CheckoutService
     public function paymentMethods(): array
     {
         return array_values(array_unique(
-            \Modules\Hook\Facades\Hook::applyFilters(
-                \Modules\Hook\Support\Hooks::CHECKOUT_PAYMENT_METHODS,
+            \Modules\Platform\Facades\Hook::applyFilters(
+                \Modules\Platform\Support\Hooks::CHECKOUT_PAYMENT_METHODS,
                 self::DEFAULT_PAYMENT_METHODS,
             )
         ));
@@ -83,8 +83,8 @@ class CheckoutService
             $cart = $this->setShipping($previousOption);
         }
 
-        \Modules\Hook\Facades\Hook::doAction(
-            \Modules\Hook\Support\Hooks::CHECKOUT_ADDRESS_SET,
+        \Modules\Platform\Facades\Hook::doAction(
+            \Modules\Platform\Support\Hooks::CHECKOUT_ADDRESS_SET,
             [$cart],
         );
 
@@ -119,8 +119,8 @@ class CheckoutService
 
         $cart = $cart->setShippingOption($option)->calculate();
 
-        \Modules\Hook\Facades\Hook::doAction(
-            \Modules\Hook\Support\Hooks::CHECKOUT_SHIPPING_SELECTED,
+        \Modules\Platform\Facades\Hook::doAction(
+            \Modules\Platform\Support\Hooks::CHECKOUT_SHIPPING_SELECTED,
             [$cart, $identifier],
         );
 
@@ -165,8 +165,8 @@ class CheckoutService
         // Broadcast the placement on the shared hook so any module can react
         // (analytics, fulfilment, notifications) without Checkout depending on
         // them. Stock is already reserved by the DecrementStock pipeline.
-        \Modules\Hook\Facades\Hook::doAction(
-            \Modules\Hook\Support\Hooks::ORDER_PLACED,
+        \Modules\Platform\Facades\Hook::doAction(
+            \Modules\Platform\Support\Hooks::ORDER_PLACED,
             [$order],
         );
 

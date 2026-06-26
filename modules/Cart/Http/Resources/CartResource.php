@@ -47,8 +47,8 @@ class CartResource extends JsonResource
 
         // Let other modules enrich the cart payload (e.g. Recommend adds
         // cross-sell suggestions) without this resource depending on them.
-        return \Modules\Hook\Facades\Hook::applyFilters(
-            \Modules\Hook\Support\Hooks::CART_RESOURCE,
+        return \Modules\Platform\Facades\Hook::applyFilters(
+            \Modules\Platform\Support\Hooks::CART_RESOURCE,
             $data,
             [$this->resource],
         );

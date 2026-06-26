@@ -4,10 +4,9 @@ namespace Modules\Customer\Providers;
 
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Registered;
-use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
-use Modules\Hook\Facades\Hook;
-use Modules\Hook\Support\Hooks;
+use Modules\Platform\Events\EventBridge;
+use Modules\Platform\Support\Hooks;
 
 class CustomerServiceProvider extends ServiceProvider
 {
@@ -33,19 +32,16 @@ class CustomerServiceProvider extends ServiceProvider
     }
 
     /**
-     * Re-broadcast Laravel's framework auth events onto the shared hook plane so
-     * other modules/plugins react via Hooks::* without coupling to Laravel's
-     * event classes. One central producer for every auth path (web SPA + API
-     * token) — controllers stay free of cross-cutting side effects.
+     * Declare which Laravel auth events map onto the shared hook plane. The
+     * Platform EventBridge owns the listen→doAction mechanism; we only state the
+     * mapping (business knowledge). Covers every auth path (web SPA + API token),
+     * so controllers stay free of cross-cutting side effects.
      */
     protected function bridgeAuthEvents(): void
     {
-        Event::listen(Registered::class, function (Registered $event): void {
-            Hook::doAction(Hooks::CUSTOMER_REGISTERED, [$event->user]);
-        });
+        $bridge = $this->app->make(EventBridge::class);
 
-        Event::listen(Login::class, function (Login $event): void {
-            Hook::doAction(Hooks::CUSTOMER_LOGGED_IN, [$event->user]);
-        });
+        $bridge->bridge(Registered::class, Hooks::CUSTOMER_REGISTERED, fn (Registered $e) => [$e->user]);
+        $bridge->bridge(Login::class, Hooks::CUSTOMER_LOGGED_IN, fn (Login $e) => [$e->user]);
     }
 }

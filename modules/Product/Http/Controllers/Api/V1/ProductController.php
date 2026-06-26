@@ -63,8 +63,8 @@ class ProductController extends Controller
         abort_if($product === null, 404);
 
         // Headless product view — same signal as the SSR page.
-        \Modules\Hook\Facades\Hook::doAction(
-            \Modules\Hook\Support\Hooks::PRODUCT_VIEWED,
+        \Modules\Platform\Facades\Hook::doAction(
+            \Modules\Platform\Support\Hooks::PRODUCT_VIEWED,
             [$product],
         );
 

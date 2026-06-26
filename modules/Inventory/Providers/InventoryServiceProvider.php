@@ -7,7 +7,7 @@ use Lunar\Models\ProductVariant;
 use Modules\Inventory\Filament\Pages\StockOverview;
 use Modules\Inventory\Observers\ProductVariantObserver;
 use Modules\Inventory\Support\InventoryHooks;
-use Modules\Theme\Support\AdminPages;
+use Modules\Platform\Support\AdminPages;
 use Modules\Theme\Support\LunarConfigOverride;
 
 class InventoryServiceProvider extends ServiceProvider

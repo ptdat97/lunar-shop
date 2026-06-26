@@ -4,7 +4,7 @@ namespace Modules\Analytics\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Modules\Analytics\Filament\Pages\AnalyticsDashboard;
-use Modules\Theme\Support\AdminPages;
+use Modules\Platform\Support\AdminPages;
 
 class AnalyticsServiceProvider extends ServiceProvider
 {

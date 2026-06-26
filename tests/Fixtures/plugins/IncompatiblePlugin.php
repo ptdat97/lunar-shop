@@ -3,7 +3,7 @@
 namespace Tests\Fixtures\Plugins;
 
 use Illuminate\Contracts\Foundation\Application;
-use Modules\Hook\Plugin\BasePlugin;
+use Modules\Platform\Plugin\BasePlugin;
 
 /** Test fixture: needs core ^2.0 — must be skipped on a 1.x app. */
 class IncompatiblePlugin extends BasePlugin

@@ -5,7 +5,7 @@ namespace Acme\Preorder;
 use Acme\Preorder\Models\Preorder;
 use Illuminate\Support\Facades\Cache;
 use Lunar\Models\Product;
-use Modules\Hook\Plugin\PluginSettings;
+use Modules\Platform\Plugin\PluginSettings;
 
 /**
  * Single source of pre-order state. Used by both the purchasable filter and the

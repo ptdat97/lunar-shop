@@ -16,7 +16,7 @@ class ProductServiceProvider extends ServiceProvider
     {
         // Standalone Size Charts resource (Catalog group). Registered here
         // because ModulesServiceProvider collects resources during register().
-        \Modules\Theme\Support\AdminPages::addResource(
+        \Modules\Platform\Support\AdminPages::addResource(
             \Modules\Product\Filament\Resources\SizeChartResource::class,
         );
     }

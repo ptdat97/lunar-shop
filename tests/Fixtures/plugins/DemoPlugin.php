@@ -3,8 +3,8 @@
 namespace Tests\Fixtures\Plugins;
 
 use Illuminate\Contracts\Foundation\Application;
-use Modules\Hook\Plugin\BasePlugin;
-use Modules\Hook\Services\HookManager;
+use Modules\Platform\Plugin\BasePlugin;
+use Modules\Platform\Services\HookManager;
 
 /**
  * Test fixture: a minimal plugin that records when it registers/boots and adds

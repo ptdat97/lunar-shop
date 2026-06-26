@@ -1,9 +1,9 @@
 <?php
 
-namespace Modules\Hook\Console;
+namespace Modules\Platform\Console;
 
 use Illuminate\Console\Command;
-use Modules\Hook\Plugin\PluginManager;
+use Modules\Platform\Plugin\PluginManager;
 
 class PluginUninstallCommand extends Command
 {

@@ -6,11 +6,11 @@ use Filament\Forms\Components\TextInput;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Artisan;
 use Lunar\Models\Product;
-use Modules\Hook\Plugin\BasePlugin;
-use Modules\Hook\Plugin\PluginConfig;
-use Modules\Hook\Plugin\PluginSettings;
-use Modules\Hook\Services\HookManager;
-use Modules\Hook\Support\Hooks;
+use Modules\Platform\Plugin\BasePlugin;
+use Modules\Platform\Plugin\PluginConfig;
+use Modules\Platform\Plugin\PluginSettings;
+use Modules\Platform\Services\HookManager;
+use Modules\Platform\Support\Hooks;
 
 /**
  * Pre-order plugin (second reference plugin): lets shoppers buy a flagged

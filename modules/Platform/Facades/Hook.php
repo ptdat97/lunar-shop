@@ -1,9 +1,9 @@
 <?php
 
-namespace Modules\Hook\Facades;
+namespace Modules\Platform\Facades;
 
 use Illuminate\Support\Facades\Facade;
-use Modules\Hook\Services\HookManager;
+use Modules\Platform\Services\HookManager;
 
 /**
  * @method static void addFilter(string $hook, callable $callback, int $priority = 50)
@@ -13,7 +13,7 @@ use Modules\Hook\Services\HookManager;
  * @method static bool has(string $hook)
  * @method static void forget(string $hook)
  *
- * @see \Modules\Hook\Services\HookManager
+ * @see \Modules\Platform\Services\HookManager
  */
 class Hook extends Facade
 {

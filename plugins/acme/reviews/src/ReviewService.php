@@ -3,7 +3,7 @@
 namespace Acme\Reviews;
 
 use Acme\Reviews\Models\Review;
-use Modules\Hook\Plugin\PluginSettings;
+use Modules\Platform\Plugin\PluginSettings;
 
 /**
  * Single source of review logic — used by the API controller AND the

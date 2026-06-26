@@ -45,8 +45,8 @@ class ProductResource extends JsonResource
 
         // Let other modules enrich the product payload (e.g. Inventory adds
         // availability) without this resource depending on them.
-        return \Modules\Hook\Facades\Hook::applyFilters(
-            \Modules\Hook\Support\Hooks::PRODUCT_RESOURCE,
+        return \Modules\Platform\Facades\Hook::applyFilters(
+            \Modules\Platform\Support\Hooks::PRODUCT_RESOURCE,
             $data,
             [$this->resource],
         );

@@ -1,8 +1,8 @@
 <?php
 
-namespace Modules\Hook\Plugin;
+namespace Modules\Platform\Plugin;
 
-use Modules\Hook\Models\PluginState;
+use Modules\Platform\Models\PluginState;
 
 /**
  * Tiny per-plugin key-value store, backed by the `plugins.settings` JSON bag.

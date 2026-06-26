@@ -1,10 +1,10 @@
 <?php
 
-namespace Modules\Hook\Console;
+namespace Modules\Platform\Console;
 
 use Illuminate\Console\Command;
-use Modules\Hook\Plugin\PluginManager;
-use Modules\Hook\Support\PayloadContract;
+use Modules\Platform\Plugin\PluginManager;
+use Modules\Platform\Support\PayloadContract;
 
 class PluginDoctorCommand extends Command
 {

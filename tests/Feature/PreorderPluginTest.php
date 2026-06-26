@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use Acme\Preorder\PreorderService;
-use Modules\Hook\Plugin\PluginManager;
+use Modules\Platform\Plugin\PluginManager;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 

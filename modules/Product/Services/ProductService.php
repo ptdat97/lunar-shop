@@ -90,8 +90,8 @@ class ProductService
 
         // Let a plugin re-rank or swap the related set (e.g. a personalised
         // recommender) without the caller knowing.
-        return \Modules\Hook\Facades\Hook::applyFilters(
-            \Modules\Hook\Support\Hooks::PRODUCT_RELATED,
+        return \Modules\Platform\Facades\Hook::applyFilters(
+            \Modules\Platform\Support\Hooks::PRODUCT_RELATED,
             $related,
             [$product, $limit],
         );

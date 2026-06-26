@@ -21,8 +21,8 @@ class CollectionResource extends JsonResource
             'description' => $this->translateAttribute('description'),
         ];
 
-        return \Modules\Hook\Facades\Hook::applyFilters(
-            \Modules\Hook\Support\Hooks::COLLECTION_RESOURCE,
+        return \Modules\Platform\Facades\Hook::applyFilters(
+            \Modules\Platform\Support\Hooks::COLLECTION_RESOURCE,
             $data,
             [$this->resource],
         );

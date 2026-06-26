@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use Livewire\Livewire;
-use Modules\Hook\Filament\Pages\PluginsPage;
-use Modules\Hook\Plugin\PluginManager;
-use Modules\Hook\Plugin\PluginSettings;
+use Modules\Platform\Filament\Pages\PluginsPage;
+use Modules\Platform\Plugin\PluginManager;
+use Modules\Platform\Plugin\PluginSettings;
 use Tests\TestCase;
 
 /**

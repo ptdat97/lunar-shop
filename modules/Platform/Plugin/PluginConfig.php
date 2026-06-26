@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Hook\Plugin;
+namespace Modules\Platform\Plugin;
 
 /**
  * Optional capability: a plugin that implements this contributes a config tab to
