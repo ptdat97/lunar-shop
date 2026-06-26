@@ -38,12 +38,15 @@ class CheckoutSsrTest extends TestCase
         $product = $this->createProduct();
         $this->postJson('/api/v1/cart', ['variant_id' => $product->variants->first()->id, 'quantity' => 1]);
 
+        // Shopify-style two-column SSR checkout: Contact + Delivery + Shipping +
+        // Payment on the left, grey order summary on the right.
         $this->get('/checkout')
             ->assertOk()
-            ->assertSee('Shipping address')
-            ->assertSee('Order summary')
-            ->assertSee('Standard Delivery')         // shipping option renders
-            ->assertSee('Thành phố Hồ Chí Minh')     // province options are SSR
+            ->assertSee('Delivery')                   // address section title
+            ->assertSee('Shipping method')            // shipping section title
+            ->assertSee('Standard Delivery')          // shipping option renders
+            ->assertSee('Thành phố Hồ Chí Minh')      // province options are SSR
+            ->assertSee('checkout-summary', false)    // order summary panel
             ->assertSee('Place order');
     }
 

@@ -72,6 +72,11 @@ return [
         'items' => 'Outfit items',
         'product' => 'Product',
         'images' => 'Images',
+        'pin_image' => 'Pin on image',
+        'pin_image_help' => 'Place this product as a shoppable hotspot on the chosen photo.',
+        'pin_cover' => 'Cover image',
+        'pos_x' => 'Pin X',
+        'pos_y' => 'Pin Y',
     ],
 
     'redirect' => [

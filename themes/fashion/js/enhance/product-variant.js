@@ -147,6 +147,13 @@ export default function (root = document) {
             lastGalleryVariantId = variant.id;
             swapGallery(variant);
         }
+
+        // Let other enhancers (e.g. notify-me) react to the selected variant
+        // without coupling to this module's internals.
+        panel.dispatchEvent(new CustomEvent('variant:changed', {
+            bubbles: true,
+            detail: { variant, inStock, allChosen },
+        }));
     }
 
     // Swap the gallery to the variant's images (fall back to product images).

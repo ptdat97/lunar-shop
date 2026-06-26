@@ -74,6 +74,11 @@ return [
         'items' => 'Sản phẩm trong bộ',
         'product' => 'Sản phẩm',
         'images' => 'Hình ảnh',
+        'pin_image' => 'Ghim lên ảnh',
+        'pin_image_help' => 'Đặt sản phẩm này thành điểm mua hàng (hotspot) trên ảnh đã chọn.',
+        'pin_cover' => 'Ảnh bìa',
+        'pos_x' => 'Vị trí X',
+        'pos_y' => 'Vị trí Y',
     ],
 
     'redirect' => [

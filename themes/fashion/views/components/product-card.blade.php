@@ -21,7 +21,13 @@
         <i class="bi bi-heart"></i>
     </button>
     <a href="{{ $url }}" class="d-block product-card__media rounded mb-2">
-        @if($image)
+        @if($picture ?? false)
+            @include('theme::components.picture', [
+                'picture' => $picture,
+                'alt' => $name,
+                'sizes' => '(min-width: 992px) 25vw, (min-width: 576px) 33vw, 50vw',
+            ])
+        @elseif($image)
             <img src="{{ $image }}" alt="{{ $name }}" loading="lazy">
         @else
             <span class="d-flex h-100 align-items-center justify-content-center text-muted small">

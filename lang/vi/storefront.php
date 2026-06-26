@@ -64,6 +64,9 @@ return [
         'no_products' => 'Không tìm thấy sản phẩm.',
         'on_sale' => 'Đang giảm giá',
         'sale_subheading' => 'Nhanh tay kẻo lỡ những ưu đãi này.',
+        'notify_me' => 'Báo cho tôi',
+        'notify_intro' => 'Hết hàng — nhận email khi có hàng lại.',
+        'recently_viewed' => 'Đã xem gần đây',
     ],
 
     'promotion' => [
@@ -149,12 +152,19 @@ return [
         'title' => 'Bộ sưu tập',
         'none' => 'Chưa có bộ sưu tập nào.',
         'shop_this' => 'Mua theo bộ sưu tập',
+        'shop_the_set' => 'Mua cả set',
     ],
 
     'search' => [
         'title' => 'Tìm kiếm',
         'placeholder' => 'Tìm sản phẩm…',
         'results_for' => 'Kết quả cho “:query”',
+        'facet_size' => 'Kích cỡ',
+        'facet_color' => 'Màu sắc',
+        'facet_brand' => 'Thương hiệu',
+        'facet_price' => 'Giá',
+        'price_min' => 'Giá thấp nhất',
+        'price_max' => 'Giá cao nhất',
     ],
 
     'auth_extra' => [

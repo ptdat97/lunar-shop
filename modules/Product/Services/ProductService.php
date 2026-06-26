@@ -41,6 +41,36 @@ class ProductService
     }
 
     /**
+     * Published products for a list of URL slugs, returned IN THE GIVEN ORDER
+     * (used by "recently viewed" — the client stores slugs newest-first). One
+     * query; unknown/unpublished slugs are simply dropped.
+     *
+     * @param  array<int, string>  $slugs
+     * @return \Illuminate\Support\Collection<int, Product>
+     */
+    public function bySlugs(array $slugs, int $limit = 12): \Illuminate\Support\Collection
+    {
+        $slugs = array_slice(array_values(array_unique(array_filter($slugs))), 0, $limit);
+
+        if (empty($slugs)) {
+            return collect();
+        }
+
+        $products = Product::query()
+            ->where('status', 'published')
+            ->whereHas('urls', fn ($u) => $u->whereIn('slug', $slugs))
+            ->with(['variants.prices.currency', 'thumbnail', 'brand', 'defaultUrl', 'collections'])
+            ->get();
+
+        // Re-order to match the requested slug order (DB returns arbitrary order).
+        $order = array_flip($slugs);
+
+        return $products
+            ->sortBy(fn (Product $p) => $order[$p->defaultUrl?->slug] ?? PHP_INT_MAX)
+            ->values();
+    }
+
+    /**
      * Products related to the given one (same collections), excluding itself.
      */
     public function related(Product $product, int $limit = 8)

@@ -25,3 +25,34 @@
         'currentSort' => $currentSort ?? request('sort'),
     ])
 @endsection
+
+@push('head')
+@php
+    // ItemList of the SSR-rendered products (crawlable list) + breadcrumb trail.
+    $collName = $collection->translateAttribute('name');
+    $itemListLd = [
+        '@context' => 'https://schema.org',
+        '@type' => 'ItemList',
+        'name' => $collName,
+        'itemListElement' => collect($products)->values()
+            ->map(fn ($p, $i) => array_filter([
+                '@type' => 'ListItem',
+                'position' => $i + 1,
+                'url' => $p->defaultUrl?->slug ? route('storefront.product', $p->defaultUrl->slug) : null,
+                'name' => $p->translateAttribute('name'),
+            ]))
+            ->filter(fn ($el) => isset($el['url']))
+            ->values()->all(),
+    ];
+    $collBreadcrumbLd = [
+        '@context' => 'https://schema.org',
+        '@type' => 'BreadcrumbList',
+        'itemListElement' => [
+            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => route('storefront.home')],
+            ['@type' => 'ListItem', 'position' => 2, 'name' => $collName, 'item' => url()->current()],
+        ],
+    ];
+@endphp
+<script type="application/ld+json">@json($itemListLd, JSON_UNESCAPED_SLASHES)</script>
+<script type="application/ld+json">@json($collBreadcrumbLd, JSON_UNESCAPED_SLASHES)</script>
+@endpush

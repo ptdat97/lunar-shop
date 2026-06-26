@@ -22,13 +22,38 @@
 >   **Analytics** (mới vài hàm tổng hợp, chưa có dashboard), **Promotion** (mới wrap
 >   Discount đọc, chưa có UI áp dụng nâng cao), **Inventory** (đọc stock/low/out;
 >   chưa reserve/oversell/notify-me).
-> - ❌ **Chưa có:** ảnh responsive `<picture>`/`srcset` ở storefront (hạ tầng
->   conversion đã xong, theme vẫn render `<img>` 1 size), sitemap.xml + JSON-LD
->   collection/CMS, invoice PDF, RMA/đổi-trả.
+> - ❌ **Chưa có:** invoice PDF, RMA/đổi-trả, MoMo gateway.
 >
-> **Test:** từ 0 → **hiện 60 test / 251 assertion** (auth, cart, address, checkout
-> API + **checkout SSR**, search/size, VNPay, Location, on-demand conversion, token
-> auth, recommendations) chạy trên MySQL `lunar_testing`.
+> **Cập nhật rà soát 2026-06-26:** lấp 4 lỗ hổng ROI cao có-hạ-tầng-thiếu-UI:
+> - ✅ **Ảnh responsive `<picture>`/`srcset` (AVIF/WebP)** — `MediaUrl::responsive()`
+>   + `theme::components.picture` (WebP `<source>` + width-srcset + dimensions +
+>   `fetchpriority`), nhúng vào `product-card` (grid) và gallery main (LCP).
+> - ✅ **Search autocomplete** — header search icon mở panel (`enhance/search-panel.js`)
+>   gọi `/api/v1/search/suggest` (debounce, no-JS fallback = form GET `/search`).
+> - ✅ **Notify-me / back-in-stock UI** — form ở product page khi variant hết hàng
+>   (`enhance/notify-me.js` nghe `variant:changed` → POST `/api/v1/inventory/notify-me`).
+> - ✅ **sitemap.xml + JSON-LD collection** — `SitemapService` (Catalog) + route
+>   `/sitemap.xml` (product/collection/CMS, cache 1h, morph-alias-aware) + robots.txt;
+>   collection page thêm JSON-LD `ItemList` + `BreadcrumbList`.
+> - ✅ **Checkout Shopify-style** (2026-06-26) — bố cục 2 cột + order summary nền xám
+>   sticky (thumbnail + qty badge), header tối giản chỉ logo + breadcrumb 3 bước
+>   (`layouts/checkout.blade.php`); giữ nguyên single-POST + mọi data-* hook enhancer.
+>
+> **Cập nhật rà soát 2026-06-26 (đợt 2) — 3 feature fashion-specific:**
+> - ✅ **Facet brand + price range** — engine `computeFacets` trả thêm `brand` (value+count)
+>   và `price` ({min,max}); `applyFilters` lọc theo brand name + giá variant rẻ nhất; UI
+>   sidebar có 2 input giá (debounce), `_shop.js` parse cả list + object facet.
+> - ✅ **Recently viewed** — localStorage slug → `GET /api/v1/products?slugs=…` (giữ thứ tự
+>   qua `ProductService::bySlugs`) → render `_card.js`; strip cuối product page.
+> - ✅ **Lookbook shoppable** — hotspot pins (`pos_x/pos_y/image_id` nullable + Filament) +
+>   "Shop the set" (thêm cả set vào giỏ 1 lần); no-JS vẫn liệt kê đủ sản phẩm.
+>   (+`SeoTest`, `FacetAndRecentlyViewedTest`).
+>
+> **Test:** từ 0 → **hiện 120 test / 436 assertion, all green** (auth, cart, address,
+> checkout API + **checkout SSR Shopify-style**, search/size, VNPay, Location,
+> on-demand conversion, token auth, recommendations, i18n) chạy trên MySQL
+> `lunar_testing`. (2026-06-26: sửa 2 test cũ — gallery source-order khớp `_gallery.js`,
+> checkout assert nhãn mới.)
 >
 > ⭐ **Cập nhật kiến trúc 2026-06-21 — BỎ HOÀN TOÀN VUE, storefront 100% Blade SSR +
 > vanilla JS.** Lý do: luồng checkout multi-step bằng Vue island gây lỗi "Enter your
@@ -789,7 +814,9 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
 - ✅ Cart drawer + cart page + coupon, add-to-cart, wishlist toggle — **vanilla**
 - ✅ Search (driver `database`) + suggest **API**; ✅ **collection/search filters + facets**
   (SSR-first: `computeFacets` ở `DatabaseSearchEngine` + facet sidebar + `enhance/_shop.js`,
-  fallback no-JS bằng GET). ⬜ search autocomplete/modal (suggest API có, chưa gắn UI)
+  fallback no-JS bằng GET). ✅ **search autocomplete panel (2026-06-26)** — header search
+  icon mở panel + type-ahead từ `/api/v1/search/suggest` (`enhance/search-panel.js`), form
+  GET `/search` thật làm no-JS fallback.
 - ✅ **Fashion Size Intelligence trên storefront**: size chart modal + "find my size"
   (`enhance/size-finder.js` → `recommend-size`, áp size vào variant picker)
 - ✅ **SEO storefront**: canonical, robots (noindex trang riêng tư), OpenGraph/Twitter,
@@ -798,8 +825,9 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
 ## Phase 3 — CMS + Sections ✅ (xong khung)
 - ✅ Pages, Banners, Lookbooks, Redirects, Menu, SectionBuilder (Filament + render)
 - ✅ Section partial storefront: hero-slider, category-grid, product-tabs, iconbox
-- 🚧 Bổ sung section type còn lại (lookbook/testimonial/instagram chưa có partial → render comment),
-  preview cho admin, và **trỏ ảnh seed/demo khỏi `/themes/modave/*` (đã 404)**
+- ✅ **Section type đầy đủ (2026-06-26):** lookbook/testimonial/instagram đã có partial
+  (home render đủ 8 section, hết `missing partial`); iconbox render icon (map sang BI glyph).
+  ✅ Ảnh seed/demo đã trỏ `/demo/*` (không còn ref `/themes/modave/*`). ⬜ preview cho admin.
 
 ## Phase 4 — Checkout 🚧 (đang làm)
 - ✅ Shipping cơ bản, đặt hàng COD/Bank qua Lunar, order history + order detail
@@ -808,12 +836,20 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
 - ✅ **Email giao dịch** (xác nhận / thanh toán / cập nhật trạng thái, queued) — xem Phase 7.2; ⬜ invoice
 - 🚧 Promotion: áp dụng coupon nâng cao, hiển thị tiết kiệm
 
-## Phase 5 — Media + Search nâng cao 🚧 (đang làm)
-- 🚧 Media on-demand: ✅ hạ tầng sinh conversion khi request (`MediaUrl` +
+## Phase 5 — Media + Search nâng cao ✅ (picture xong; scout sau)
+- ✅ Media on-demand: hạ tầng sinh conversion khi request (`MediaUrl` +
   `ConversionGenerator`, dùng trong `ProductResource`/`CartResource`/`MediaImageResource`)
   + sizes cấu hình qua Filament (`MediaSettings` + page `MediaImageSizes`) +
-  `OnDemandConversionTest`. ⬜ **Còn: render `<picture>`/`srcset` (AVIF/WebP) ở card/gallery
-  trong theme** — hiện vẫn `<img>` 1 size.
+  `OnDemandConversionTest`.
+- ✅ **Render `<picture>`/`srcset` (WebP) ở card/gallery (2026-06-26).**
+  `MediaUrl::responsive()` trả `{src, srcset, webp, width, height}` (mỗi size self-heal
+  qua on-demand) → `theme::components.picture` (WebP `<source>` + width-srcset + `sizes`
+  + dimensions chống CLS + `fetchpriority="high"` cho LCP). Nhúng `product-card` (grid)
+  và gallery main (ảnh LCP product page). View composer inject `$picture` (giữ `$image`
+  cho parity `_card.js`). Fallback `<img>` khi không có payload (no-JS OK).
+- ✅ **Search autocomplete (2026-06-26)** — header search mở panel
+  (`enhance/search-panel.js`) gọi `/api/v1/search/suggest` (debounce 220ms, guard
+  out-of-order, Esc/click-outside đóng); form là GET `/search` thật → no-JS vẫn chạy.
 - ⬜ Cân nhắc bật driver `scout` (Meilisearch/Typesense) khi catalog lớn
 
 ## i18n storefront (song ngữ EN/VI) — ✅ (2026-06-25)
@@ -857,9 +893,9 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
     mỗi menu item → ×18 query/trang trên MỌI page).
   - **Zero behavior change**: 113 test xanh (2 fail locale `vi` có sẵn baseline) + browser verify.
 - ⬜ Redis cache/session, Horizon queue, CDN, **index tuning** (DB index cho status/slug/facet)
-- ✅ **Test tự động** (cập nhật 2026-06-21): **8 file Feature / 41 test method** phủ
-  auth/cart/address/checkout/order/search/size/VNPay/email + **Location** +
-  **on-demand conversion** — xem Phase 7.3. ⬜ Redis/Horizon/CDN/index tuning vẫn chưa.
+- ✅ **Test tự động** (cập nhật 2026-06-26): **120 test / 436 assertion, all green** phủ
+  auth/cart/address/checkout SSR+API/order/search/size/VNPay/email + **Location** +
+  **on-demand conversion** + i18n — xem Phase 7.3. ⬜ Redis/Horizon/CDN/index tuning vẫn chưa.
 
 ## Phase 7 — Go-live readiness 🎯 (ĐỀ XUẤT — phase tiếp theo)
 
@@ -885,8 +921,8 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
     `OrderPaid` (VNPay callback), status-update qua `OrderObserver` (bỏ qua status thanh toán).
   - ✅ Verify với `MAIL_MAILER=log`. ⬜ Còn: template đẹp/branding, đa ngôn ngữ, invoice PDF.
 
-**7.3 — Test an toàn hồi quy** — *toàn repo* — ✅ **đã làm (mở rộng 2026-06-21)**
-  - ✅ **8 file Feature / 41 test method, all green.** Bao phủ: auth (register/login/logout
+**7.3 — Test an toàn hồi quy** — *toàn repo* — ✅ **đã làm (mở rộng 2026-06-26)**
+  - ✅ **120 test / 436 assertion, all green.** Bao phủ: auth (register/login/logout
     + profile/password), cart (add/update/remove/coupon), address book CRUD (+ ownership),
     checkout→order COD (+ order history/detail + cách ly theo customer), search+facets+suggest,
     size-chart + recommend-size, **VNPay** (chữ ký + tamper, callback paid/idempotent/invalid/
@@ -899,15 +935,16 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
     route-model-binding inject `Address` → đã sửa nhận model + kiểm tra ownership.
   - ⬜ Mở rộng sau: storefront Blade pages (smoke render), wishlist toggle, MoMo khi thêm.
 
-**7.4 — Media responsive `<picture>`** — *Media + theme* — 🚧 **hạ tầng xong, theme chưa**
+**7.4 — Media responsive `<picture>`** — *Media + theme* — ✅ **đã làm (2026-06-26)**
   - ✅ `FashionMediaDefinitions` + on-demand generation (`MediaUrl`/`ConversionGenerator`) +
     sizes cấu hình qua Filament (`MediaSettings`); API Resource đã trả URL theo conversion.
-  - ⬜ **Còn lại (đúng phần chặn Core Web Vitals/mobile):** render `<picture>` + `srcset`
-    (AVIF/WebP) ở `product-card` và gallery — theme hiện vẫn `<img>` 1 conversion.
+  - ✅ Render `<picture>` + `srcset` (WebP) ở `product-card` (grid) và gallery main (LCP)
+    qua `MediaUrl::responsive()` + `theme::components.picture` (WebP source + width-srcset
+    + dimensions + `fetchpriority`). Verify: collection grid render `<picture>` end-to-end.
 
-**7.5 — Dọn dữ liệu seed/demo modave** — *SectionBuilder/Seeders* — 🟡 nhanh, gọn
-  - Ảnh hero/lookbook/testimonial trong `SectionSchemas` + seeders vẫn trỏ
-    `/themes/modave/*` (đã xoá → 404). Thay bằng ảnh thật hoặc placeholder, re-seed.
+**7.5 — Dọn dữ liệu seed/demo modave** — *SectionBuilder/Seeders* — ✅ **đã xong**
+  - Ảnh hero/lookbook/testimonial trong `SectionSchemas` + seeders đã trỏ `/demo/*`
+    (file tồn tại trong `public/demo/`); không còn ref `/themes/modave/*`.
 
 **7.6 — Hạ tầng production** — *Optimization* — 🟡 khi chuẩn bị deploy
   - Redis cache/session, Horizon queue (email/job stock), CDN cho `public/`, rà index DB.
@@ -942,23 +979,39 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
 
 ## P1 — Tăng chuyển đổi / AOV (fashion-specific)
 
-4. **Bộ lọc & facets cho collection/search** — ✅ **đã làm (2026-06-19)** (size + color)
-   - `DatabaseSearchEngine::computeFacets` trả `{size,color}` (value+count); theme có
-     facet sidebar SSR + `enhance/_shop.js` (đọc `$state`, fetch khi đổi filter/sort/page,
+4. **Bộ lọc & facets cho collection/search** — ✅ **đã làm (size/color/brand/price)**
+   - `DatabaseSearchEngine::computeFacets` trả `{size,color,brand,price}`; size/color/brand
+     là value+count (checkbox), **price là {min,max}** (range 2 input). Theme có facet
+     sidebar SSR + `enhance/_shop.js` (đọc `$state`, fetch khi đổi filter/sort/page,
      `history.replaceState`), fallback no-JS bằng GET. **Zero** đổi contract.
-   - ⬜ Mở rộng facet: **giá (range), brand, material, availability** — engine mới có size/color.
+   - ✅ **Mở rộng (2026-06-26):** brand (lọc theo tên thương hiệu) + price range (lọc
+     theo giá variant rẻ nhất, `filters[price][min|max]`). `_shop.js` parse cả list facet
+     (`filters[k][]`) lẫn object facet (`filters[price][min]`), price input debounce 500ms.
+   - ⬜ Còn: facet material, availability.
 
-5. **Back-in-stock / Notify me** — *Inventory + Customer*
-   - Sản phẩm fashion hay hết size hot. Cho khách đăng ký email khi có hàng lại.
-   - Bảng `stock_notifications(variant_id, email)`; job quét khi stock>0 → gửi mail.
+5. **Back-in-stock / Notify me** — *Inventory + Customer* — ✅ **đã làm (UI 2026-06-26)**
+   - ✅ Backend: bảng `stock_notifications`, API `POST /api/v1/inventory/notify-me`,
+     `BackInStockNotifier` + email queued khi restock (đã có trước).
+   - ✅ UI: form "Báo khi có hàng" ở product page, hiện khi variant hết hàng
+     (`enhance/notify-me.js` nghe event `variant:changed` từ `product-variant.js` →
+     POST notify-me). No-JS: nút add-to-cart đã hiện "Hết hàng" (trạng thái thật).
 
-6. **Gợi ý phối đồ "Complete the look" / Lookbook shoppable** — *CMS (đã có Lookbook/Outfit)*
-   - Lookbook model đã tồn tại → bổ sung render shoppable (hotspot sản phẩm) + block
-     "mua cả set" thêm vào giỏ một lần. Tận dụng `outfits` đã thiết kế trong plan.
+6. **Gợi ý phối đồ "Complete the look" / Lookbook shoppable** — ✅ **đã làm (2026-06-26)**
+   - ✅ **Hotspot pins:** migration thêm `pos_x/pos_y/image_id` (nullable, additive) vào
+     `lookbook_items` + field trong Filament `LookbookResource` (ghim sản phẩm lên ảnh tại
+     toạ độ %). Theme render pin (dot pulse + popover mini-card có add-to-cart) trên
+     cover/gallery (`partials/lookbook-pins.blade.php`); pin mồ côi (không cover) fallback
+     lên ảnh gallery đầu. Item không đặt toạ độ → không hiện pin (vẫn liệt kê đủ bên dưới).
+   - ✅ **"Shop the set" / mua cả set:** nút thêm toàn bộ variant của lookbook vào giỏ 1 lần
+     (`enhance/lookbook.js`, dùng chung `cart:updated`); no-JS vẫn có grid sản phẩm đầy đủ.
 
-7. **Recently viewed + "You may also like"** — *Catalog/Product*
-   - Recently viewed lưu localStorage (Vue island) — đã có markup trong theme fashion.
-   - Related đã có ở product page; mở rộng sang "frequently bought together" (gợi ý theo collection).
+7. **Recently viewed + "You may also like"** — *Catalog/Product* (✅ recently-viewed 2026-06-26)
+   - ✅ **Recently viewed (2026-06-26):** lưu slug ở localStorage (vanilla `enhance/recently-viewed.js`),
+     fetch 1 call `GET /api/v1/products?slugs=…` (giữ thứ tự, qua `ProductService::bySlugs`),
+     render card bằng `_card.js` (khớp SSR grid), loại sản phẩm đang xem. Strip ở cuối
+     product page (`partials/recently-viewed.blade.php`, ẩn khi rỗng).
+   - ✅ Related/"You may also like" đã có (module Recommend). ⬜ "frequently bought together"
+     (CoPurchase strategy) chưa làm.
 
 8. **Size Intelligence v2** — *Product* (✅ **base đã ra storefront 2026-06-19**)
    - ✅ Size chart modal + "find my size" (`size-finder.js` → `recommend-size`, áp size
@@ -984,21 +1037,31 @@ Pricing, Inventory, SEO, Collections, Attributes, Related Products,
     - Fashion tỉ lệ đổi trả cao. Quy trình yêu cầu đổi size/hoàn tiền + trạng thái.
     - Build mới (Lunar không có RMA): bảng `return_requests` + Filament resource + email.
 
-12. **SEO kỹ thuật** — *Catalog/CMS* (🚧 **phần lớn đã làm 2026-06-19**)
+12. **SEO kỹ thuật** — *Catalog/CMS* (✅ **gần hoàn tất 2026-06-26**)
     - ✅ schema.org Product/Offer/BreadcrumbList, OG/Twitter, canonical (strip query ở
-      collection), robots noindex cho trang riêng tư. ⬜ Còn: **sitemap.xml**, JSON-LD cho
-      collection (ItemList) + CMS page, OG image cho home/collection.
+      collection), robots noindex cho trang riêng tư.
+    - ✅ **sitemap.xml (2026-06-26):** `SitemapService` (module Catalog) gom product
+      (published) + collection + CMS page qua Lunar `Url` (morph-alias-aware) → route
+      `/sitemap.xml` (XML chuẩn sitemaps.org, lastmod/changefreq/priority, cache 1h);
+      `robots.txt` trỏ sitemap + disallow trang riêng tư.
+    - ✅ **JSON-LD collection (2026-06-26):** `ItemList` (sản phẩm SSR) + `BreadcrumbList`
+      ở collection page.
+    - ⬜ Còn: JSON-LD CMS page, OG image cho home/collection.
 
-13. **Ảnh responsive AVIF/WebP `<picture>`** — *Media* (🚧 hạ tầng xong)
-    - ✅ Conversions + on-demand generation + sizes cấu hình admin đã có; ⬜ chỉ còn render
-      `<picture>` với srcset ở product card + gallery để tăng tốc mobile (Core Web Vitals → SEO).
+13. **Ảnh responsive AVIF/WebP `<picture>`** — *Media* — ✅ **đã làm (2026-06-26)**
+    - ✅ Conversions + on-demand generation + sizes cấu hình admin; ✅ render `<picture>`
+      với WebP source + width-srcset ở product card + gallery (LCP có `fetchpriority`),
+      dimensions chống CLS. Xem Phase 7.4.
 
 ## Nợ kỹ thuật xuyên suốt (không phải feature nhưng chặn chất lượng)
 
-- **Test tự động:** ✅ đã có **8 file Feature / 41 test method** ở `tests/Feature` (cart→
-  checkout→order, auth, search, VNPay, email, Location, on-demand conversion) chạy trên
-  MySQL `lunar_testing`. ⬜ Còn: smoke render Blade storefront, wishlist toggle, MoMo, và
-  test sống cạnh module (`modules/*/Tests` vẫn 0).
+- **Test tự động:** ✅ đã có **120 test / 436 assertion** ở `tests/Feature` (cart→
+  checkout SSR+API→order, auth, search, VNPay, email, Location, on-demand conversion,
+  i18n, product/collection page smoke render) chạy trên MySQL `lunar_testing`.
+  ✅ `SeoTest` (sitemap + collection JSON-LD) + `FacetAndRecentlyViewedTest`
+  (price/brand facet + price filter + `?slugs=` giữ thứ tự). ⬜ Còn: test cho
+  picture/search-panel/notify-me/lookbook-shoppable (JS-heavy), MoMo, test sống
+  cạnh module (`modules/*/Tests` vẫn 0).
 - **Hook/event wiring:** module Hook mới có routes; chuẩn hóa event domain (order.placed,
   stock.low, product.viewed) để Email/Analytics/Notify-me cắm vào, tránh coupling.
 

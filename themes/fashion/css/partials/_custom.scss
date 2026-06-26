@@ -153,6 +153,24 @@
     }
 }
 
+// ── Header search panel + autocomplete ──────────────────────────────────────
+.search-panel {
+    background: #fff;
+
+    .search-suggestions {
+        max-height: 60vh;
+        overflow-y: auto;
+
+        &__item {
+            border-radius: v.$radius;
+            transition: background v.$transition;
+
+            &:hover,
+            &:focus { background: rgba(0, 0, 0, .04); }
+        }
+    }
+}
+
 // ── Home: Instagram grid ───────────────────────────────────────────────────
 .instagram__grid {
     display: grid;

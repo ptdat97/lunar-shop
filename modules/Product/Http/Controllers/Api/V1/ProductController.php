@@ -24,6 +24,16 @@ class ProductController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
+        // `slugs` (CSV or array) → ordered lookup for "recently viewed". Returns
+        // a plain ordered collection (no pagination) via the same ProductResource.
+        if ($request->filled('slugs')) {
+            $slugs = is_array($request->input('slugs'))
+                ? $request->input('slugs')
+                : explode(',', (string) $request->input('slugs'));
+
+            return ProductResource::collection($this->products->bySlugs($slugs));
+        }
+
         $result = $this->products->list(SearchQuery::fromRequest($request));
 
         $result->items->loadMissing(['variants', 'thumbnail', 'brand']);

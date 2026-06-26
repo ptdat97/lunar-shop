@@ -46,7 +46,17 @@ class CMSService
     public function lookbook(string $slug): ?Lookbook
     {
         return Lookbook::published()
-            ->with(['images', 'items.product'])
+            ->with([
+                'images',
+                // Eager-load everything the shoppable hotspots + "shop the set"
+                // button and product cards render (variants for add-to-cart, the
+                // card relations, and which image each pin sits on).
+                'items.product.variants.prices.currency',
+                'items.product.thumbnail',
+                'items.product.brand',
+                'items.product.defaultUrl',
+                'items.image',
+            ])
             ->where('slug', $slug)
             ->first();
     }

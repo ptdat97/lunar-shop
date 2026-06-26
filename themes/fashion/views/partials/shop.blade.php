@@ -26,7 +26,10 @@
     $total = data_get($state, 'meta.total', $products->count());
 @endphp
 
-<div class="container my-4" data-shop="{{ $shopType }}" @if($scope) data-scope="{{ $scope }}" @endif>
+<div class="container my-4" data-shop="{{ $shopType }}" @if($scope) data-scope="{{ $scope }}" @endif
+     data-facet-label-size="{{ __('storefront.search.facet_size') }}"
+     data-facet-label-color="{{ __('storefront.search.facet_color') }}"
+     data-facet-label-brand="{{ __('storefront.search.facet_brand') }}">
     {{-- Hydration payload: one contract for SSR + enhancer (no fetch on load). --}}
     <script type="application/json" data-island-state>@json($state)</script>
 
@@ -38,10 +41,17 @@
                     <input type="hidden" name="q" value="{{ request('q') }}">
                 @endif
                 <div data-facets>
-                    @foreach($facets as $key => $buckets)
+                    @php
+                        // Price is a {min,max} range, not a bucket list — render its
+                        // own UI below. Everything else (size/color/brand) is checkboxes.
+                        $priceFacet = $facets['price'] ?? null;
+                        $bucketFacets = collect($facets)->except('price');
+                        $priceFilter = (array) ($activeFilters['price'] ?? []);
+                    @endphp
+                    @foreach($bucketFacets as $key => $buckets)
                         @continue(empty($buckets))
                         <div class="mb-4">
-                            <h6 class="text-uppercase small mb-2">{{ $key }}</h6>
+                            <h6 class="text-uppercase small mb-2">{{ __('storefront.search.facet_'.$key) }}</h6>
                             @foreach($buckets as $bucket)
                                 @php $id = 'f-'.$key.'-'.\Illuminate\Support\Str::slug($bucket['value']); @endphp
                                 <div class="form-check">
@@ -57,6 +67,30 @@
                             @endforeach
                         </div>
                     @endforeach
+
+                    {{-- Price range — two number inputs bounded by the facet min/max.
+                         Real GET names so it filters with no JS; _shop.js debounces
+                         and refetches in place. --}}
+                    @if($priceFacet && ($priceFacet['max'] ?? 0) > ($priceFacet['min'] ?? 0))
+                        <div class="mb-4" data-price-facet
+                             data-price-min="{{ $priceFacet['min'] }}" data-price-max="{{ $priceFacet['max'] }}">
+                            <h6 class="text-uppercase small mb-2">{{ __('storefront.search.facet_price') }}</h6>
+                            <div class="d-flex align-items-center gap-2">
+                                <input type="number" class="form-control form-control-sm" inputmode="decimal"
+                                       name="filters[price][min]" data-price-input="min"
+                                       min="{{ floor($priceFacet['min']) }}" max="{{ ceil($priceFacet['max']) }}"
+                                       placeholder="{{ floor($priceFacet['min']) }}"
+                                       value="{{ $priceFilter['min'] ?? '' }}" aria-label="{{ __('storefront.search.price_min') }}">
+                                <span class="text-muted">—</span>
+                                <input type="number" class="form-control form-control-sm" inputmode="decimal"
+                                       name="filters[price][max]" data-price-input="max"
+                                       min="{{ floor($priceFacet['min']) }}" max="{{ ceil($priceFacet['max']) }}"
+                                       placeholder="{{ ceil($priceFacet['max']) }}"
+                                       value="{{ $priceFilter['max'] ?? '' }}" aria-label="{{ __('storefront.search.price_max') }}">
+                            </div>
+                            <noscript><button class="btn btn-dark btn-sm w-100 mt-2">{{ __('storefront.common.apply') }}</button></noscript>
+                        </div>
+                    @endif
                 </div>
                 <noscript><button class="btn btn-dark btn-sm w-100">Apply</button></noscript>
             </form>

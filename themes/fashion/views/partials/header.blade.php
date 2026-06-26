@@ -30,7 +30,10 @@
 
             <div class="d-flex align-items-center gap-3">
                 @include('theme::partials.language-switcher')
-                <a href="{{ route('storefront.search') }}" class="text-dark fs-5" aria-label="{{ __('storefront.nav.search') }}">
+                {{-- Search: a real link with no JS; the enhancer upgrades it to open
+                     the search panel (autocomplete) instead of navigating. --}}
+                <a href="{{ route('storefront.search') }}" class="text-dark fs-5" aria-label="{{ __('storefront.nav.search') }}"
+                   data-search-toggle aria-expanded="false" aria-controls="searchPanel">
                     <i class="bi bi-search"></i>
                 </a>
                 <a href="{{ route('storefront.wishlist') }}" class="text-dark fs-5 position-relative" aria-label="{{ __('storefront.nav.wishlist') }}">
@@ -51,6 +54,7 @@
             </div>
         </div>
     </nav>
+    @include('theme::partials.search-panel')
 </header>
 
 {{-- Mobile off-canvas menu --}}

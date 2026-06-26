@@ -13,13 +13,26 @@ class LookbookItem extends Model
         'product_id',
         'caption',
         'sort',
+        'pos_x',
+        'pos_y',
+        'image_id',
     ];
 
     protected function casts(): array
     {
         return [
             'sort' => 'integer',
+            'pos_x' => 'float',
+            'pos_y' => 'float',
         ];
+    }
+
+    /**
+     * Whether this item is placed as a hotspot pin on a photo.
+     */
+    public function isHotspot(): bool
+    {
+        return $this->pos_x !== null && $this->pos_y !== null;
     }
 
     public function lookbook(): BelongsTo
@@ -30,5 +43,10 @@ class LookbookItem extends Model
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function image(): BelongsTo
+    {
+        return $this->belongsTo(LookbookImage::class);
     }
 }

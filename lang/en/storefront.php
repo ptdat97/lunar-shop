@@ -64,6 +64,9 @@ return [
         'no_products' => 'No products found.',
         'on_sale' => 'On Sale Now',
         'sale_subheading' => 'Grab these deals before they’re gone.',
+        'notify_me' => 'Notify me',
+        'notify_intro' => 'Out of stock — get an email when it’s back.',
+        'recently_viewed' => 'Recently viewed',
     ],
 
     'promotion' => [
@@ -149,12 +152,19 @@ return [
         'title' => 'Lookbooks',
         'none' => 'No lookbooks published yet.',
         'shop_this' => 'Shop this lookbook',
+        'shop_the_set' => 'Shop the set',
     ],
 
     'search' => [
         'title' => 'Search',
         'placeholder' => 'Search products…',
         'results_for' => 'Results for “:query”',
+        'facet_size' => 'Size',
+        'facet_color' => 'Color',
+        'facet_brand' => 'Brand',
+        'facet_price' => 'Price',
+        'price_min' => 'Min price',
+        'price_max' => 'Max price',
     ],
 
     'auth_extra' => [

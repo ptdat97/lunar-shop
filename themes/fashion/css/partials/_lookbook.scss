@@ -89,3 +89,70 @@
         flex: 0 0 auto;
     }
 }
+
+// --- Detail page shoppable hotspots (lookbook-pins.blade.php) ------------
+[data-lookbook-stage] { position: relative; }
+
+.lookbook-pin {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+
+    &__dot {
+        width: 26px;
+        height: 26px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, .55);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .3);
+        cursor: pointer;
+        padding: 0;
+        position: relative;
+        animation: lookbook-pin-pulse 2s infinite;
+
+        &::before {
+            content: '+';
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 16px;
+            line-height: 1;
+        }
+    }
+
+    &__card {
+        position: absolute;
+        bottom: calc(100% + 10px);
+        left: 50%;
+        transform: translateX(-50%);
+        width: max-content;
+        max-width: 240px;
+        padding: 10px 12px;
+        background: #fff;
+        border-radius: 8px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, .2);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity .2s ease, visibility .2s ease;
+        z-index: 3;
+    }
+
+    &__name {
+        font-size: .85rem;
+        font-weight: 600;
+        line-height: 1.2;
+    }
+
+    // Reveal the card on hover or keyboard focus within the pin.
+    &:hover &__card,
+    &:focus-within &__card { opacity: 1; visibility: visible; }
+}
+
+@keyframes lookbook-pin-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, .6); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}

@@ -113,6 +113,24 @@ class LookbookResource extends Resource
                                     ->label(__('admin.common.sort'))
                                     ->numeric()
                                     ->default(0),
+                                // Optional hotspot placement: pin the product on a
+                                // photo at (x%, y%). Leave blank for "shop the set"
+                                // only (no pin rendered).
+                                Forms\Components\Select::make('image_id')
+                                    ->label(__('admin.lookbook.pin_image'))
+                                    ->relationship('image', 'caption')
+                                    ->getOptionLabelFromRecordUsing(fn ($record) => $record->caption ?: ('#'.$record->id))
+                                    ->helperText(__('admin.lookbook.pin_image_help'))
+                                    ->placeholder(__('admin.lookbook.pin_cover'))
+                                    ->nullable(),
+                                Forms\Components\TextInput::make('pos_x')
+                                    ->label(__('admin.lookbook.pos_x'))
+                                    ->numeric()->minValue(0)->maxValue(100)->suffix('%')
+                                    ->nullable(),
+                                Forms\Components\TextInput::make('pos_y')
+                                    ->label(__('admin.lookbook.pos_y'))
+                                    ->numeric()->minValue(0)->maxValue(100)->suffix('%')
+                                    ->nullable(),
                             ])
                             ->columns(3)
                             ->orderable('sort'),

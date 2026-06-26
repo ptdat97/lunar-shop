@@ -48,9 +48,14 @@ class MediaServiceProvider extends ServiceProvider
     {
         View::composer('theme::components.product-card', function ($view): void {
             $product = $view->getData()['product'] ?? null;
-            $view->with('image', $product
-                ? app(MediaUrl::class)->conversion($product->thumbnail, 'medium')
-                : null);
+            $urls = app(MediaUrl::class);
+            // $image kept for parity with the JS-rendered grid (_card.js, which
+            // gets a single thumbnail URL from the API). $picture adds the
+            // responsive <picture> payload for the SSR card.
+            $view->with([
+                'image' => $product ? $urls->conversion($product->thumbnail, 'medium') : null,
+                'picture' => $product ? $urls->responsive($product->thumbnail) : null,
+            ]);
         });
 
         View::composer('theme::sections.category-grid', function ($view): void {
@@ -79,6 +84,8 @@ class MediaServiceProvider extends ServiceProvider
                 'small' => $urls->conversion($image, 'small') ?? $urls->conversion($image, 'large'),
                 'large' => $urls->conversion($image, 'large'),
                 'zoom' => $urls->conversion($image, 'zoom') ?? $urls->conversion($image, 'large'),
+                // Responsive payload for the main slide <picture> (LCP image).
+                'picture' => $urls->responsive($image, ['small', 'medium', 'large'], 'large'),
             ])->filter(fn ($i) => $i['large'])->values();
 
             $view->with([

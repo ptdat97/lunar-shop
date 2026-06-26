@@ -166,6 +166,40 @@ class DatabaseSearchEngine implements SearchEngine
                     });
             });
         }
+
+        // Brand facet — filter by brand name (the value shown in the sidebar).
+        $brands = array_filter((array) ($filters['brand'] ?? []));
+        if (! empty($brands)) {
+            $builder->whereHas('brand', fn ($b) => $b->whereIn('name', $brands));
+        }
+
+        // Price range — filters['price'] = ['min' => x, 'max' => y] in major units.
+        $this->applyPriceFilter($builder, (array) ($filters['price'] ?? []));
+    }
+
+    /**
+     * Constrain to products whose cheapest variant price falls in [min, max].
+     * Prices are stored in minor units; the facet UI works in major units.
+     *
+     * @param  array{min?:mixed, max?:mixed}  $range
+     */
+    protected function applyPriceFilter(Builder $builder, array $range): void
+    {
+        $min = isset($range['min']) && $range['min'] !== '' ? (int) round((float) $range['min'] * 100) : null;
+        $max = isset($range['max']) && $range['max'] !== '' ? (int) round((float) $range['max'] * 100) : null;
+
+        if ($min === null && $max === null) {
+            return;
+        }
+
+        $builder->whereHas('variants.prices', function ($q) use ($min, $max) {
+            if ($min !== null) {
+                $q->where('price', '>=', $min);
+            }
+            if ($max !== null) {
+                $q->where('price', '<=', $max);
+            }
+        });
     }
 
     /**
@@ -178,7 +212,7 @@ class DatabaseSearchEngine implements SearchEngine
         $productIds = (clone $base)->pluck('lunar_products.id');
 
         if ($productIds->isEmpty()) {
-            return ['size' => [], 'color' => []];
+            return ['size' => [], 'color' => [], 'brand' => [], 'price' => null];
         }
 
         $rows = \Illuminate\Support\Facades\DB::table('lunar_product_option_values as ov')
@@ -201,6 +235,56 @@ class DatabaseSearchEngine implements SearchEngine
             }
         }
 
+        $facets['brand'] = $this->brandFacet($productIds);
+        $facets['price'] = $this->priceFacet($productIds);
+
         return $facets;
+    }
+
+    /**
+     * Brand buckets (name => product count) over the result set.
+     *
+     * @param  \Illuminate\Support\Collection<int, int>  $productIds
+     * @return array<int, array{value:string, count:int}>
+     */
+    protected function brandFacet($productIds): array
+    {
+        return \Illuminate\Support\Facades\DB::table('lunar_products as p')
+            ->join('lunar_brands as b', 'b.id', '=', 'p.brand_id')
+            ->whereIn('p.id', $productIds)
+            ->selectRaw('b.name as value, COUNT(DISTINCT p.id) as count')
+            ->groupBy('b.name')
+            ->orderBy('b.name')
+            ->get()
+            ->map(fn ($r) => ['value' => $r->value, 'count' => (int) $r->count])
+            ->all();
+    }
+
+    /**
+     * Price bounds (min/max cheapest-variant price) over the result set, in major
+     * units — the range the facet slider/inputs default to.
+     *
+     * @param  \Illuminate\Support\Collection<int, int>  $productIds
+     * @return array{min:float, max:float}|null
+     */
+    protected function priceFacet($productIds): ?array
+    {
+        $row = \Illuminate\Support\Facades\DB::table('lunar_product_variants as pv')
+            ->join('lunar_prices as pr', function ($join) {
+                $join->on('pr.priceable_id', '=', 'pv.id')
+                    ->where('pr.priceable_type', '=', 'product_variant');
+            })
+            ->whereIn('pv.product_id', $productIds)
+            ->selectRaw('MIN(pr.price) as min_price, MAX(pr.price) as max_price')
+            ->first();
+
+        if (! $row || $row->min_price === null) {
+            return null;
+        }
+
+        return [
+            'min' => round((int) $row->min_price / 100, 2),
+            'max' => round((int) $row->max_price / 100, 2),
+        ];
     }
 }

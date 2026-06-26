@@ -2,6 +2,7 @@
 
 namespace Modules\Media\Services;
 
+use Modules\Media\Services\MediaSettings;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -31,5 +32,62 @@ class MediaUrl
         }
 
         return $media->getUrl();
+    }
+
+    /**
+     * Build a responsive image payload for a <picture>/srcset in the theme.
+     *
+     * Returns the same self-healing conversion URLs (each ensured on demand) as
+     * a width-descriptor srcset plus a WebP source, so the browser can pick the
+     * smallest sufficient file (mobile data + Core Web Vitals). `$base` is the
+     * conversion used for the <img src> fallback (no-srcset / oldest browsers).
+     *
+     * Shape (null when no media):
+     *   ['src','srcset','webp','width','height']
+     *
+     * @param  list<string>  $widths  conversion names to include, small→large
+     * @return array{src:string, srcset:string, webp:?string, width:int, height:int}|null
+     */
+    public function responsive(?Media $media, array $widths = ['small', 'medium', 'large'], string $base = 'medium'): ?array
+    {
+        if (! $media) {
+            return null;
+        }
+
+        $sizes = app(MediaSettings::class)->sizes();
+
+        // Build "<url> <w>w" entries for each requested conversion that resolves.
+        $entries = [];
+        foreach ($widths as $name) {
+            $w = $sizes[$name]['width'] ?? null;
+            $url = $this->conversion($media, $name);
+            if ($w && $url) {
+                $entries[$w] = "{$url} {$w}w";
+            }
+        }
+
+        if (empty($entries)) {
+            // No conversions available — fall back to the original as a 1x src.
+            $src = $media->getUrl();
+
+            return ['src' => $src, 'srcset' => '', 'webp' => null, 'width' => 0, 'height' => 0];
+        }
+
+        ksort($entries);
+
+        $src = $this->conversion($media, $base) ?? reset($entries);
+        $baseSize = $sizes[$base] ?? $sizes['large'] ?? ['width' => 0, 'height' => 0];
+
+        // Single WebP source at the largest configured size (the `webp`
+        // conversion is registered at the `large` box in FashionMediaDefinitions).
+        $webp = $this->conversion($media, 'webp');
+
+        return [
+            'src' => $src,
+            'srcset' => implode(', ', $entries),
+            'webp' => $webp,
+            'width' => (int) ($baseSize['width'] ?? 0),
+            'height' => (int) ($baseSize['height'] ?? 0),
+        ];
     }
 }

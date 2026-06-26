@@ -72,23 +72,9 @@
                  desktop, horizontal under the main on mobile). --}}
             <div id="product-gallery" data-product-gallery class="product-gallery">
                 @if($galleryImages->isNotEmpty())
-                                    <div class="swiper product-gallery__main" data-gallery-main>
-                        <div class="swiper-wrapper">
-                            @foreach($galleryImages as $img)
-                                <div class="swiper-slide">
-                                    <a href="{{ $img['zoom'] }}" class="d-block product-gallery__item rounded"
-                                       data-pswp-width="{{ $zoomSize['width'] }}"
-                                       data-pswp-height="{{ $zoomSize['height'] }}"
-                                       target="_blank" rel="noreferrer">
-                                        <img src="{{ $img['large'] }}" alt="{{ $name }}" class="img-fluid rounded w-100"
-                                             loading="{{ $loop->first ? 'eager' : 'lazy' }}">
-                                    </a>
-                                </div>
-                            @endforeach
-                        </div>
-                        <div class="swiper-button-prev"></div>
-                        <div class="swiper-button-next"></div>
-                    </div>
+                    {{-- Thumbs strip first in source (sits LEFT on desktop / above on
+                         mobile) — mirrors enhance/_gallery.js so the SSR markup and the
+                         JS-rendered gallery match (same data-* order). --}}
                     @if($galleryImages->count() > 1)
                         <div class="swiper product-gallery__thumbs" data-gallery-thumbs>
                             <div class="swiper-wrapper">
@@ -102,7 +88,34 @@
                         </div>
                     @endif
 
-
+                    <div class="swiper product-gallery__main" data-gallery-main>
+                        <div class="swiper-wrapper">
+                            @foreach($galleryImages as $img)
+                                <div class="swiper-slide">
+                                    <a href="{{ $img['zoom'] }}" class="d-block product-gallery__item rounded"
+                                       data-pswp-width="{{ $zoomSize['width'] }}"
+                                       data-pswp-height="{{ $zoomSize['height'] }}"
+                                       target="_blank" rel="noreferrer">
+                                        @if($img['picture'] ?? false)
+                                            @include('theme::components.picture', [
+                                                'picture' => $img['picture'],
+                                                'alt' => $name,
+                                                'class' => 'img-fluid rounded w-100',
+                                                'sizes' => '(min-width: 992px) 58vw, 100vw',
+                                                'loading' => $loop->first ? 'eager' : 'lazy',
+                                                'fetchpriority' => $loop->first ? 'high' : null,
+                                            ])
+                                        @else
+                                            <img src="{{ $img['large'] }}" alt="{{ $name }}" class="img-fluid rounded w-100"
+                                                 loading="{{ $loop->first ? 'eager' : 'lazy' }}">
+                                        @endif
+                                    </a>
+                                </div>
+                            @endforeach
+                        </div>
+                        <div class="swiper-button-prev"></div>
+                        <div class="swiper-button-next"></div>
+                    </div>
                 @else
                     <div class="ratio ratio-4x3 bg-light rounded d-flex align-items-center justify-content-center text-muted">
                         No image
@@ -182,6 +195,28 @@
                         {{ $firstVariant && $firstVariant->stock > 0 ? __('storefront.product.add_to_cart') : __('storefront.product.out_of_stock') }}
                     </button>
                 </form>
+
+                {{-- Back-in-stock: shown only when the selected variant is out of
+                     stock. Subscribes via POST /api/v1/inventory/notify-me. The
+                     variant id is kept in sync by notify-me.js (variant:changed).
+                     Hidden by default; revealed by JS (no JS → add-to-cart above
+                     already shows "Out of stock", which is the honest no-JS state). --}}
+                <div class="notify-me mt-3" data-notify-me hidden
+                     @if($firstVariant && $firstVariant->stock <= 0) data-initial-out="1" @endif>
+                    <p class="small text-muted mb-2">
+                        <i class="bi bi-bell me-1"></i>{{ __('storefront.product.notify_intro') }}
+                    </p>
+                    <form class="input-group" data-notify-form>
+                        <input type="hidden" name="variant_id" value="{{ $firstVariant?->id }}" data-notify-variant>
+                        <input type="email" name="email" class="form-control" required
+                               placeholder="{{ __('storefront.checkout.email') }}" data-notify-email
+                               value="{{ optional(auth()->user())->email }}">
+                        <button class="btn btn-outline-dark" type="submit" data-notify-submit>
+                            {{ __('storefront.product.notify_me') }}
+                        </button>
+                    </form>
+                    <div class="small mt-1" data-notify-status></div>
+                </div>
             </div>
 
             @if($description)
@@ -204,7 +239,7 @@
     {{-- Related / You may also like --}}
     @if($related->isNotEmpty())
         <section class="mt-5">
-            <h2 class="h4 mb-3">You may also like</h2>
+            <h2 class="h4 mb-3">{{ __('storefront.cart.you_may_also_like') }}</h2>
             <div class="row g-4">
                 @foreach($related as $item)
                     <div class="col-6 col-md-4 col-lg-3">
@@ -214,6 +249,11 @@
             </div>
         </section>
     @endif
+
+    {{-- Recently viewed — personalised (localStorage), so it's an enhancer that
+         records this product then renders the rest. Records `$slug`; the strip
+         excludes the current product. Hidden until JS finds ≥1 other item. --}}
+    @include('theme::partials.recently-viewed', ['currentSlug' => $slug])
 </div>
 @endsection
 

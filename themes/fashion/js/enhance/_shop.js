@@ -19,9 +19,16 @@ function readParams(root, extra = {}) {
     const url = new URL(window.location.href);
     const filters = {};
     url.searchParams.forEach((value, key) => {
-        const m = key.match(/^filters\[(\w+)\]\[?\]?$/);
-        if (m) {
-            (filters[m[1]] ||= []).push(value);
+        // Array facets: filters[size][] → { size: [...] }
+        const arr = key.match(/^filters\[(\w+)\]\[\]$/);
+        if (arr) {
+            (filters[arr[1]] ||= []).push(value);
+            return;
+        }
+        // Object facets: filters[price][min] → { price: { min, max } }
+        const obj = key.match(/^filters\[(\w+)\]\[(\w+)\]$/);
+        if (obj && value !== '') {
+            (filters[obj[1]] ||= {})[obj[2]] = value;
         }
     });
 
@@ -35,24 +42,58 @@ function readParams(root, extra = {}) {
     };
 }
 
-// Serialise params back into a URLSearchParams (Laravel array syntax).
+// Serialise params back into a URLSearchParams (Laravel array syntax). Supports
+// both list facets (filters[key][]) and object facets like price (filters[price][min]).
 function toSearchParams(params) {
     const sp = new URLSearchParams();
     if (params.q) sp.set('q', params.q);
     if (params.sort) sp.set('sort', params.sort);
     if (params.page && params.page > 1) sp.set('page', String(params.page));
-    Object.entries(params.filters || {}).forEach(([key, values]) => {
-        (values || []).forEach((v) => sp.append(`filters[${key}][]`, v));
+    Object.entries(params.filters || {}).forEach(([key, val]) => {
+        if (Array.isArray(val)) {
+            val.forEach((v) => sp.append(`filters[${key}][]`, v));
+        } else if (val && typeof val === 'object') {
+            Object.entries(val).forEach(([k, v]) => {
+                if (v !== '' && v != null) sp.append(`filters[${key}][${k}]`, v);
+            });
+        }
     });
     return sp;
+}
+
+function facetLabel(root, key) {
+    // Read the localized label from the SSR heading if present, else Title-case.
+    return root.dataset[`facetLabel${key}`] || (key.charAt(0).toUpperCase() + key.slice(1));
+}
+
+function priceFacetHtml(facet, active) {
+    if (!facet || !(facet.max > facet.min)) return '';
+    const lo = Math.floor(facet.min);
+    const hi = Math.ceil(facet.max);
+    const min = active?.min ?? '';
+    const max = active?.max ?? '';
+    return `
+<div class="mb-4" data-price-facet data-price-min="${facet.min}" data-price-max="${facet.max}">
+    <h6 class="text-uppercase small mb-2" data-price-heading></h6>
+    <div class="d-flex align-items-center gap-2">
+        <input type="number" class="form-control form-control-sm" inputmode="decimal"
+               data-price-input="min" min="${lo}" max="${hi}" placeholder="${lo}" value="${min}">
+        <span class="text-muted">—</span>
+        <input type="number" class="form-control form-control-sm" inputmode="decimal"
+               data-price-input="max" min="${lo}" max="${hi}" placeholder="${hi}" value="${max}">
+    </div>
+</div>`;
 }
 
 function renderFacets(root, facets, activeFilters) {
     const host = root.querySelector('[data-facets]');
     if (!host) return;
 
-    host.innerHTML = Object.entries(facets || {})
-        .filter(([, buckets]) => buckets.length)
+    // Preserve the price heading text rendered by the SSR before we replace it.
+    const priceHeading = host.querySelector('[data-price-facet] h6')?.textContent || '';
+
+    const buckets = Object.entries(facets || {})
+        .filter(([key, buckets]) => key !== 'price' && Array.isArray(buckets) && buckets.length)
         .map(([key, buckets]) => {
             const active = new Set(activeFilters[key] || []);
             const items = buckets.map((b) => {
@@ -67,8 +108,14 @@ function renderFacets(root, facets, activeFilters) {
     </label>
 </div>`;
             }).join('');
-            return `<div class="mb-4"><h6 class="text-uppercase small mb-2">${key}</h6>${items}</div>`;
+            return `<div class="mb-4"><h6 class="text-uppercase small mb-2">${facetLabel(root, key)}</h6>${items}</div>`;
         }).join('');
+
+    host.innerHTML = buckets + priceFacetHtml(facets?.price, activeFilters.price);
+
+    // Restore the localized price heading.
+    const ph = host.querySelector('[data-price-heading]');
+    if (ph) ph.textContent = priceHeading;
 }
 
 function renderPagination(root, meta) {
@@ -143,6 +190,27 @@ export function initShop(root) {
         params.filters[key] = [...set];
         params.page = 1;
         refresh(params);
+    });
+
+    // Price range inputs (delegated + debounced — survives re-render).
+    let priceTimer = null;
+    root.addEventListener('input', (e) => {
+        const input = e.target.closest('[data-price-input]');
+        if (!input) return;
+        clearTimeout(priceTimer);
+        priceTimer = setTimeout(() => {
+            const wrap = input.closest('[data-price-facet]');
+            const min = wrap?.querySelector('[data-price-input="min"]')?.value.trim() ?? '';
+            const max = wrap?.querySelector('[data-price-input="max"]')?.value.trim() ?? '';
+            const params = readParams(root);
+            const price = {};
+            if (min !== '') price.min = min;
+            if (max !== '') price.max = max;
+            if (Object.keys(price).length) params.filters.price = price;
+            else delete params.filters.price;
+            params.page = 1;
+            refresh(params);
+        }, 500);
     });
 
     // Pagination (delegated)
