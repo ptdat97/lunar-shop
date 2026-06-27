@@ -1,0 +1,8 @@
+{
+  "id": "acme/workflow",
+  "name": "Workflow Automation",
+  "version": "1.0.0",
+  "provider": "Acme\\Workflow\\WorkflowPlugin",
+  "requires": { "core": "^1.0" },
+  "hooks": ["order.paid"]
+}

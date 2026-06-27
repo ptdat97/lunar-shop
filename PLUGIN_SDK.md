@@ -221,7 +221,14 @@ nhật danh sách **có chủ đích** (được review, không lặng lẽ).
   qua `SearchManager::extend('scout', ScoutSearchEngine::class)` trong `boot()`. Bật plugin +
   `SEARCH_DRIVER=scout` → storefront/API search đổi engine, caller (contract `SearchEngine`)
   **không đổi**. ZERO sửa Search module/config. Test `ScoutSearchPluginTest`/`SearchManagerTest`.
+- **`plugins/acme/wishlist/`**, **`acme/recommend/`**, **`acme/analytics/`** — feature
+  first-party **bóc khỏi module** (Phase 4), enabled mặc định: giữ route/bảng/tên, gỡ coupling
+  qua hook (Recommend↔Product dùng `product.related`). Bằng chứng plugin gánh được cả feature
+  storefront/admin, không chỉ tiện ích nhỏ.
+- **`plugins/acme/workflow/`** — đăng ký **trigger/action/rule-field thật** cho Workflow engine:
+  `order.paid` → điều kiện `order.total ≥ N` → action `notify.email`/`webhook.post`. Cho phép
+  "khi đơn ≥ N → gửi email" cấu hình qua admin **không code**. Test `WorkflowPluginTest`.
 
-Cả ba dựng **hoàn toàn trên SDK + extension point, ZERO sửa lõi** — bằng chứng contract đủ
-dùng cho cả 3 kiểu mở rộng: enrich payload (reviews), can thiệp commerce (preorder), thay
-driver (scout).
+7 plugin tham chiếu dựng **hoàn toàn trên SDK + extension point, ZERO sửa lõi** — phủ mọi kiểu
+mở rộng: enrich payload (reviews), can thiệp commerce (preorder), thay driver (scout), bóc
+feature (wishlist/recommend/analytics), automation (workflow).

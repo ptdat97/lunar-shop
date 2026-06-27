@@ -19,6 +19,7 @@ return [
         'acme/wishlist',
         'acme/recommend',
         'acme/analytics',
+        'acme/workflow',
 
         // Optional plugins: enable per-deploy, then `php artisan plugin:install <id>`:
         // 'acme/reviews',

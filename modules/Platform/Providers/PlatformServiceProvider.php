@@ -5,7 +5,10 @@ namespace Modules\Platform\Providers;
 use Illuminate\Support\ServiceProvider;
 use Modules\Platform\Events\EventBridge;
 use Modules\Platform\Plugin\PluginManager;
+use Modules\Platform\Rule\RuleRegistry;
 use Modules\Platform\Services\HookManager;
+use Modules\Platform\Workflow\WorkflowEngine;
+use Modules\Platform\Workflow\WorkflowRegistry;
 
 class PlatformServiceProvider extends ServiceProvider
 {
@@ -27,11 +30,32 @@ class PlatformServiceProvider extends ServiceProvider
 
         $this->app->singleton(EventBridge::class, fn ($app) => new EventBridge($app->make(HookManager::class)));
 
+        // Rule engine registry — modules/plugins register fields (cart.subtotal…);
+        // Core ships none (stays business-free).
+        $this->app->singleton(RuleRegistry::class, fn () => new RuleRegistry);
+
+        // Workflow engine: registry of triggers/actions + the orchestrator.
+        $this->app->singleton(WorkflowRegistry::class, fn () => new WorkflowRegistry);
+        $this->app->singleton(WorkflowEngine::class, fn ($app) => new WorkflowEngine(
+            $app->make(WorkflowRegistry::class),
+            $app->make(RuleRegistry::class),
+            $app->make(HookManager::class),
+        ));
+
+        // Subscribe to trigger hooks once EVERYTHING (modules + plugins) has
+        // booted and registered its triggers — booted() fires after all boot().
+        $this->app->booted(function (): void {
+            $this->app->make(WorkflowEngine::class)->listen();
+        });
+
         $this->mergeConfigFrom(base_path('config/plugins.php'), 'plugins');
 
-        // Contribute the Plugins admin page to Lunar's panel (collected during
+        // Contribute the Platform admin pages to Lunar's panel (collected during
         // register, before the panel is built).
-        \Modules\Platform\Support\AdminPages::add(\Modules\Platform\Filament\Pages\PluginsPage::class);
+        \Modules\Platform\Support\AdminPages::add(
+            \Modules\Platform\Filament\Pages\PluginsPage::class,
+            \Modules\Platform\Filament\Pages\WorkflowsPage::class,
+        );
     }
 
     /**
@@ -52,6 +76,7 @@ class PlatformServiceProvider extends ServiceProvider
                 \Modules\Platform\Console\PluginDisableCommand::class,
                 \Modules\Platform\Console\PluginUninstallCommand::class,
                 \Modules\Platform\Console\PluginDoctorCommand::class,
+                \Modules\Platform\Console\PlatformDoctorCommand::class,
             ]);
         }
     }

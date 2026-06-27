@@ -305,22 +305,62 @@ Hiện chỉ `SearchEngine`/`RecommendationStrategy` có. → §6 bước D1.
 
 ### Giai đoạn 5 — Workflow Engine + Rule Engine (Core framework MỚI, generic)
 > Đây là phần Core **chưa có**, build mới — nhưng **generic, nhỏ**, không business logic.
-- **W.1** **Rule Engine**: `Rule` (condition contract) + `RuleSet` + registry condition
-  (`cart.subtotal >= X`, `customer.group == gold`, `product.in_collection`). Đánh giá thuần,
-  không side-effect. Promotion **dùng lại** engine này thay vì điều kiện hardcode.
-- **W.2** **Workflow Engine**: `Trigger (event/hook) → Conditions (Rule) → Actions (registry)`.
-  Lưu định nghĩa workflow (DB/JSON), chạy async qua queue. Trigger = chính các `Hooks::*`
-  domain event đã có (E0). Action đầu tiên: gửi notification / set tag / gọi webhook.
-- **W.3** Admin UI: Filament **form/list** page (chọn trigger từ dropdown, điều kiện + action
-  bằng form). Định nghĩa workflow lưu JSON, render server-side — giống cách SectionBuilder làm
-  (không phải canvas builder).
-- *Giá trị thật:* "khi order.paid + total>2tr → gửi email VIP + add tag" cấu hình qua form,
-  **không viết code**.
+- **W.1** ✅ **Đã làm (2026-06-27).** Rule Engine trong Platform core (`Modules\Platform\Rule\`):
+  `Operator` (enum `== != > >= < <= in not_in contains`, so sánh thuần), `RuleRegistry` (đăng
+  ký **field resolver** `key => fn(context)` — Core **không** ship field nào, module/plugin
+  đăng ký `cart.subtotal`…), `Rule` (`{field, operator, value}`, `fromArray/toArray`), `RuleSet`
+  (combine `all`/`any`, empty = pass, serialisable JSON). **Đánh giá thuần, không side-effect,
+  fail-closed** với field lạ. `RuleRegistry` singleton trong PlatformServiceProvider. +8 test
+  `RuleEngineTest` (operator / single rule / unknown-fail-closed / all / any / empty-pass /
+  **JSON round-trip** / singleton). **203 test xanh**, Core vẫn business-free (chưa đăng ký
+  field nào — Promotion sẽ dùng lại engine này ở bước sau). Đây là nền cho Workflow conditions (W.2).
+- **W.2** ✅ **Đã làm (2026-06-27).** Workflow Engine trong Platform core
+  (`Modules\Platform\Workflow\` + model `Workflow` + bảng `workflows`): `Trigger (Hooks::* event)
+  → Conditions (RuleSet JSON) → Action (queued)`. **`WorkflowRegistry`** (module/plugin đăng ký
+  *trigger* = hook + context-builder, và *action* = `WorkflowAction` theo id — Core ship 0);
+  **`WorkflowEngine::listen()`** subscribe mọi trigger hook (gọi qua `app->booted()` sau khi
+  mọi module/plugin đăng ký, **idempotent** không double-subscribe); khi trigger fire → build
+  context → lọc workflow enabled theo trigger → eval `RuleSet` → **dispatch `RunWorkflowAction`
+  (ShouldQueue)** chạy async. Workflow lưu JSON (`conditions`/`action_config`) → cấu hình được
+  không-code. **Business-free:** engine chỉ wire + dispatch, trigger/action/field do business
+  đăng ký. +6 test `WorkflowEngineTest` (match→dispatch / fail→no-dispatch / disabled skip /
+  empty-pass / queued job chạy action / **idempotent listen 1 lần**). **209 test xanh**, Core sạch.
+  ⬜ Trigger/action **thật** (`order.paid` + webhook/email/tag) để dành W.3 (plugin workflow +
+  admin) — đúng boundary: build context từ `Order` là business, không thuộc Core.
+- **W.3** ✅ **Đã làm (2026-06-27).** (a) **Plugin `acme/workflow`** đăng ký trigger/action/field
+  **thật** lên engine generic: trigger `order.paid` (context builder → `{order_total, order_reference,
+  customer_email,…}` phẳng, queue-safe), rule field `order.total`/`order.reference`/`customer.id`,
+  action `notify.email` (Mail::raw + interpolate `{token}`) + `webhook.post` (Http POST). Business
+  knowledge (Order total/email) ở plugin → Core vẫn generic. (b) **Admin UI** `WorkflowsPage`
+  (Filament, group Settings): bảng list + **form** (trigger/action dropdown từ registry, conditions
+  = repeater field/operator/value, action_config = key/value, enabled toggle) — lưu JSON, **không
+  drag-drop** (đúng plan). +3 test `WorkflowPluginTest` (đăng ký trigger/action / order ≥N →
+  dispatch email / order <N → no dispatch) với **`order.paid` hook thật**. **212 test xanh**;
+  verify WorkflowsPage trong AdminPages + view resolve; Core sạch.
 
-### Giai đoạn 6 — Hardening platform
-- Versioning cho workflow/rule definition (như `PayloadContract`).
-- `platform:doctor` mở rộng (kiểm tra extension point trùng, decorator cycle).
-- Tài liệu `PLATFORM.md` (gộp `PLUGIN_SDK.md`).
+> ✅ **Giai đoạn 5 xong (2026-06-27)** — Workflow + Rule Engine: Core có 2 engine **generic**
+> (Rule: field/operator/RuleSet JSON; Workflow: trigger→conditions→action queued), 0 business.
+> Plugin `acme/workflow` wire `order.paid`→email/webhook thật + admin form. **"Khi order.paid +
+> total ≥ N → gửi email" cấu hình qua admin, không viết code.** `195 → 212 test`.
+
+### Giai đoạn 6 — Hardening platform ✅ **Đã làm (2026-06-27)**
+- ✅ **Versioning:** `Workflow\WorkflowContract` (`VERSION` + `validate()`/`validateConditions()`
+  thuần — match all/any, operator hợp lệ, field/trigger/action bắt buộc), cạnh `PayloadContract`.
+  `WorkflowsPage::save()` validate trước khi lưu.
+- ✅ **`platform:doctor`** (`Support\PlatformDoctor` + command): phát hiện **drift** giữa workflow
+  đã lưu và registry sống — trigger/action/rule-field không còn đăng ký (plugin bị tắt) hoặc
+  definition sai cấu trúc. Read-only, in cả 2 contract VERSION. Verify thật: "Platform healthy".
+- ✅ **`PLATFORM.md`** — tài liệu tổng Core (capability table, extension points, CLI, versioning,
+  7 plugin tham chiếu), trỏ qua `PLUGIN_SDK.md` cho chi tiết viết plugin.
+- +6 test `PlatformHardeningTest` (contract valid/invalid / empty-conditions / doctor clean /
+  doctor flag orphan / command exit codes). **218 test xanh**, Core sạch.
+
+> ✅ **TOÀN BỘ REFACTOR XONG (GĐ1–6, 2026-06-27).** Core (`Platform`) tối giản + business-free:
+> Hook/Event/Plugin SDK/Decorator/Rule/Workflow + AdminPages + Contract versioning + doctor.
+> 4 module business bóc thành plugin (Nhóm A) + 3 plugin tiện ích → **7 plugin tham chiếu**,
+> zero-core-edit. Lunar vẫn là commerce engine (catalog/cart/order/pricing wrap, không viết lại).
+> **120 → 218 test**, toàn bộ additive/non-breaking, mỗi bước verify Core purity. Tài liệu:
+> `PLATFORM.md` + `PLUGIN_SDK.md` + doc này.
 
 ---
 

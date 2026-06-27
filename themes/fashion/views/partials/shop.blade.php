@@ -35,7 +35,9 @@
 
     <div class="row">
         {{-- Facet sidebar — real GET form so filtering works without JS. --}}
+        
         <aside class="col-12 col-lg-3 mb-4">
+            <h6 class="text-uppercase mb-4">Bộ lọc</h6>
             <form method="GET" data-facet-form>
                 @if($shopType === 'search' && request('q'))
                     <input type="hidden" name="q" value="{{ request('q') }}">
@@ -120,7 +122,7 @@
             @else
                 <div class="row g-4" data-grid>
                     @foreach($products as $product)
-                        <div class="col-6 col-md-4 col-lg-3">
+                        <div class="col-6 col-md-4 col-lg-4">
                             @include('theme::components.product-card', ['product' => $product])
                         </div>
                     @endforeach
