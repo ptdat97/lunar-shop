@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Analytics\Services;
+namespace Acme\Analytics;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;

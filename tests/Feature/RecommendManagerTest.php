@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Collection;
 use Lunar\Models\Product;
-use Modules\Recommend\Contracts\RecommendationStrategy;
-use Modules\Recommend\Services\RecommendManager;
+use Acme\Recommend\RecommendationStrategy;
+use Acme\Recommend\RecommendManager;
 use Tests\TestCase;
 
 /**

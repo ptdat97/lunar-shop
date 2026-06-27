@@ -1,11 +1,11 @@
 <?php
 
-namespace Modules\Recommend\Strategies;
+namespace Acme\Recommend\Strategies;
 
 use Illuminate\Support\Collection;
 use Lunar\Models\Product;
 use Modules\Product\Services\ProductService;
-use Modules\Recommend\Contracts\RecommendationStrategy;
+use Acme\Recommend\RecommendationStrategy;
 
 /**
  * Fallback recommendations: other published products in the same collection(s).

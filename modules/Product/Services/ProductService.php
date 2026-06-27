@@ -86,14 +86,10 @@ class ProductService
             $query->whereHas('collections', fn ($c) => $c->whereKey($collectionIds));
         }
 
-        $related = $query->latest('id')->limit($limit)->get();
-
-        // Let a plugin re-rank or swap the related set (e.g. a personalised
-        // recommender) without the caller knowing.
-        return \Modules\Platform\Facades\Hook::applyFilters(
-            \Modules\Platform\Support\Hooks::PRODUCT_RELATED,
-            $related,
-            [$product, $limit],
-        );
+        // Plain collection-similarity fallback. The `product.related` filter is
+        // applied by the CALLER (controllers), not here — so a recommender plugin
+        // can enrich the result using this as its baseline without re-entering
+        // related() (which would recurse).
+        return $query->latest('id')->limit($limit)->get();
     }
 }

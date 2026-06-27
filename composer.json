@@ -30,6 +30,8 @@
             "Acme\\Preorder\\": "plugins/acme/preorder/src/",
             "Acme\\ScoutSearch\\": "plugins/acme/scout-search/src/",
             "Acme\\Wishlist\\": "plugins/acme/wishlist/src/",
+            "Acme\\Recommend\\": "plugins/acme/recommend/src/",
+            "Acme\\Analytics\\": "plugins/acme/analytics/src/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
         }

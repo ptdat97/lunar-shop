@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use Lunar\Models\Currency;
 use Lunar\Models\Order;
-use Modules\Analytics\Services\AnalyticsService;
+use Acme\Analytics\AnalyticsService;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 

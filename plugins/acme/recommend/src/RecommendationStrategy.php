@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Recommend\Contracts;
+namespace Acme\Recommend;
 
 use Illuminate\Support\Collection;
 use Lunar\Models\Product;

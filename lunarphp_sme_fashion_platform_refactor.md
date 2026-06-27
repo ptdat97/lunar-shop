@@ -273,9 +273,35 @@ Hiện chỉ `SearchEngine`/`RecommendationStrategy` có. → §6 bước D1.
   migration + comment trong route). +4 test `WishlistPluginTest` (guest empty / toggle cần
   auth / add+list+toggle-off / page render) — trước đây **chưa có** test wishlist. **192 test
   xanh**, `route:list` xác nhận 3 route do `Acme\Wishlist\*` phục vụ.
-- **B.2** **Recommend** → plugin (đã sẵn sàng nhất). Call-site đổi sang hook/`Recommend::extend`.
-- **B.3** **Analytics** → plugin (đọc qua `order.paid`, Filament dashboard qua `AdminPages`).
-- *Sau mỗi bước:* enable plugin trong `config/plugins.php`, `plugin:install`, verify storefront.
+- **B.2** ✅ **Đã làm (2026-06-27).** Bóc **Recommend** khỏi module → plugin
+  `plugins/acme/recommend/` (namespace `Acme\Recommend`): `git mv` contracts/strategies/2
+  service/controller/routes/config; module `Recommend` xoá hẳn (khỏi `ModulesServiceProvider`).
+  **Gỡ coupling Product→Recommend (mấu chốt):** bỏ filter `product.related` khỏi
+  `ProductService::related()` (giờ là **fallback collection thuần**, không recurse); 2
+  controller Product **thôi type-hint `RecommendationService`**, thay bằng
+  `Hook::applyFilters(PRODUCT_RELATED, $products->related($product), …)`. Plugin hook
+  `product.related` → trả `forProduct` (curated-first). **Product giờ 0 coupling tới Recommend**
+  (grep `Modules\Recommend|RecommendationService` trong Product = rỗng; `Recommend` trong size
+  là feature khác). **Graceful degradation:** tắt plugin → không listener → controller dùng
+  fallback collection, trang product vẫn render. First-party plugin enabled mặc định. +3 test
+  `RecommendPluginTest` (fallback thuần / page render không recommender / listener enrich) +
+  endpoint cũ (`RecommendationTest`) vẫn xanh. **195 test xanh**, Core sạch.
+- **B.3** ✅ **Đã làm (2026-06-27).** Bóc **Analytics** khỏi module → plugin
+  `plugins/acme/analytics/` (namespace `Acme\Analytics`): `git mv` service + Filament dashboard
+  + config + view; module `Analytics` xoá hẳn (routes rỗng nên bỏ). Plugin góp dashboard qua
+  `AdminPages::add` trong **`register()`** (panel gom page ở pha register, trước khi Lunar panel
+  build — `PluginManager::load` chạy đúng lúc). Đọc thẳng order data của Lunar (không bảng
+  riêng). Coupling = **0** (chỉ test ref nó → đổi namespace). First-party plugin enabled mặc
+  định (dashboard hiện out-of-the-box). +0 test mới (`AnalyticsTest` cũ đổi namespace, 5 case
+  vẫn xanh). **195 test xanh**; verify dashboard trong `AdminPages`, view + config resolve.
+- *Sau mỗi bước:* enable plugin trong `config/plugins.php`, verify storefront/admin.
+
+> ✅ **Giai đoạn 4 xong (2026-06-27)** — Nhóm A bóc hết: **Wishlist / Recommend / Analytics**
+> giờ là plugin first-party (enabled mặc định), `modules/` giảm còn business core wrap Lunar.
+> Mẫu nhất quán: `git mv` → namespace `Acme\*` → plugin class (register binding/AdminPages +
+> boot routes/views/hooks) → enable mặc định → giữ bảng/route/tên. Gỡ coupling qua hook
+> (Product↔Recommend dùng `product.related`). `120 → 195 test`, Core sạch, 6 plugin tham chiếu
+> (reviews/preorder/scout-search/wishlist/recommend/analytics).
 
 ### Giai đoạn 5 — Workflow Engine + Rule Engine (Core framework MỚI, generic)
 > Đây là phần Core **chưa có**, build mới — nhưng **generic, nhỏ**, không business logic.

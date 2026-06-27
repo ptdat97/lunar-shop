@@ -1,10 +1,10 @@
 <?php
 
-namespace Modules\Recommend\Strategies;
+namespace Acme\Recommend\Strategies;
 
 use Illuminate\Support\Collection;
 use Lunar\Models\Product;
-use Modules\Recommend\Contracts\RecommendationStrategy;
+use Acme\Recommend\RecommendationStrategy;
 
 /**
  * Curated recommendations from Lunar's ProductAssociation (cross-sell / up-sell /

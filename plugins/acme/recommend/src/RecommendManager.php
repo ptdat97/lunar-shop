@@ -1,9 +1,9 @@
 <?php
 
-namespace Modules\Recommend\Services;
+namespace Acme\Recommend;
 
 use Illuminate\Contracts\Foundation\Application;
-use Modules\Recommend\Contracts\RecommendationStrategy;
+use Acme\Recommend\RecommendationStrategy;
 
 /**
  * Registry of recommendation strategies. Seeds from config('recommend.strategies')

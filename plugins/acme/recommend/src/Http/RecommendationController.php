@@ -1,13 +1,13 @@
 <?php
 
-namespace Modules\Recommend\Http\Controllers\Api\V1;
+namespace Acme\Recommend\Http;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Cart\Services\CartService;
 use Modules\Product\Http\Resources\ProductResource;
 use Modules\Product\Services\ProductService;
-use Modules\Recommend\Services\RecommendationService;
+use Acme\Recommend\RecommendationService;
 
 class RecommendationController extends Controller
 {

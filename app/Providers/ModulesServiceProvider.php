@@ -42,11 +42,11 @@ class ModulesServiceProvider extends ServiceProvider
         'Media',
         'FileManager',
         'Search',
-        'Recommend',
+        // Recommend extracted to the acme/recommend plugin (Phase 4 / B.2).
         'Promotion',
         'Shipping',
         'Payment',
-        'Analytics',
+        // Analytics extracted to the acme/analytics plugin (Phase 4 / B.3).
     ];
 
     public function register(): void

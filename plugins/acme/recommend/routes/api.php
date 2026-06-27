@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Recommend\Http\Controllers\Api\V1\RecommendationController;
+use Acme\Recommend\Http\RecommendationController;
 
 // Recommend API. Product recommendations are stateless (api); cart
 // recommendations need the storefront session for the current cart.

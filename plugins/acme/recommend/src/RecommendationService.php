@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Recommend\Services;
+namespace Acme\Recommend;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
