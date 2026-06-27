@@ -8,13 +8,12 @@ use Lunar\Models\Cart;
 use Lunar\Models\CartLine;
 use Lunar\Models\Product;
 use Lunar\Models\ProductVariant;
-use Modules\Cart\Contracts\CartContract;
 
 /**
  * Thin wrapper over Lunar's CartSession (inherited — not reimplemented).
  * Cart state is server-side; this is the single entry point for web + API.
  */
-class CartService implements CartContract
+class CartService
 {
     /**
      * Get the current cart, calculated (line + cart totals populated).

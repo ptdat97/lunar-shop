@@ -3,7 +3,6 @@
 namespace Modules\Cart\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Modules\Cart\Contracts\CartContract;
 use Modules\Cart\Services\CartService;
 use Modules\Theme\Support\LunarConfigOverride;
 
@@ -11,13 +10,11 @@ class CartServiceProvider extends ServiceProvider
 {
     /**
      * Cart state is server-side (Lunar CartSession); the service is a singleton
-     * so one instance serves the request. CartContract aliases to it so callers
-     * may type-hint either.
+     * so one instance serves the request.
      */
     public function register(): void
     {
         $this->app->singleton(CartService::class);
-        $this->app->alias(CartService::class, CartContract::class);
     }
 
     /**

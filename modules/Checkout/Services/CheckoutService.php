@@ -9,14 +9,13 @@ use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Cart;
 use Lunar\Models\Order;
 use Modules\Cart\Services\CartService;
-use Modules\Checkout\Contracts\CheckoutContract;
 use Modules\Customer\Services\CustomerResolver;
 
 /**
  * Orchestrates checkout over Lunar's engine (addresses → shipping → payment →
  * order). Every step delegates to Lunar — nothing reimplemented.
  */
-class CheckoutService implements CheckoutContract
+class CheckoutService
 {
     public function __construct(
         protected CartService $carts,

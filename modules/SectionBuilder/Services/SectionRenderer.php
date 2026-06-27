@@ -7,50 +7,23 @@ use Illuminate\Support\HtmlString;
 use Modules\SectionBuilder\Models\PageSection;
 
 /**
- * Renders a page's sections (from the DB) into HTML. Each section `type` maps to
- * a Blade view (default `theme::sections.{type}`) plus an optional data provider.
+ * Renders a page's sections (from the DB) into HTML by mapping each section
+ * `type` to a Blade partial in the active theme (theme::sections.{type}).
  *
- * A type registry lets modules AND plugins contribute new section types — with
- * their own view and/or data — without editing this renderer or shipping a theme
- * partial. Backward-compatible: types without an explicit registration still
- * resolve to `theme::sections.{type}` as before, and the old provide() API keeps
- * working. The `section.render` filter lets a plugin post-process the HTML.
+ * Dynamic sections register a data provider (provide()) that returns view data
+ * pulled from module services, so the Blade partial stays presentation-only.
  */
 class SectionRenderer
 {
-    /**
-     * Registered types: type => ['view' => ?string, 'provider' => ?callable].
-     * A type need not be registered — unknown types fall back to the theme
-     * partial convention.
-     *
-     * @var array<string, array{view: ?string, provider: ?callable}>
-     */
-    protected array $types = [];
+    /** @var array<string, callable> type => fn(array $settings): array view data */
+    protected array $providers = [];
 
     /**
-     * Register a section type with an optional custom view and/or data provider.
-     * This is how a plugin adds a brand-new section type (its own view) that the
-     * active theme doesn't ship a partial for.
-     *
-     * @param  string  $type      the section type handle (matches PageSection.type)
-     * @param  ?string  $view     Blade view name; null = theme::sections.{type}
-     * @param  ?callable  $provider  fn(array $settings): array<string,mixed> view data
-     */
-    public function registerType(string $type, ?string $view = null, ?callable $provider = null): void
-    {
-        $this->types[$type] = [
-            'view' => $view,
-            'provider' => $provider ?? ($this->types[$type]['provider'] ?? null),
-        ];
-    }
-
-    /**
-     * Register a data provider for a section type (backward-compatible API).
-     * Equivalent to registerType($type, view: existing, provider: $provider).
+     * Register a data provider for a section type.
      */
     public function provide(string $type, callable $provider): void
     {
-        $this->registerType($type, $this->types[$type]['view'] ?? null, $provider);
+        $this->providers[$type] = $provider;
     }
 
     /**
@@ -67,20 +40,17 @@ class SectionRenderer
 
     protected function renderSection(PageSection $section): string
     {
-        $type = $section->type;
-        $view = $this->types[$type]['view'] ?? "theme::sections.{$type}";
+        $view = "theme::sections.{$section->type}";
 
         if (! View::exists($view)) {
-            return "<!-- section: missing partial [{$type}] -->";
+            return "<!-- section: missing partial [{$section->type}] -->";
         }
 
         $settings = $section->settings ?? [];
         $data = ['settings' => $settings, 'section' => $section];
 
-        $provider = $this->types[$type]['provider'] ?? null;
-
-        if ($provider) {
-            $data += $provider($settings);
+        if (isset($this->providers[$section->type])) {
+            $data += ($this->providers[$section->type])($settings);
         }
 
         return View::make($view, $data)->render();

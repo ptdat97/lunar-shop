@@ -4,20 +4,13 @@ namespace Modules\Pricing\Providers;
 
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
-use Modules\Pricing\Contracts\PricingContract;
 use Modules\Pricing\Services\PricingService;
 
 class PricingServiceProvider extends ServiceProvider
 {
-    /**
-     * Register module bindings. Bind PricingContract to the concrete service
-     * (singleton) + alias concrete → contract, so callers that type-hint
-     * PricingService get the same (decoratable) instance. No caller change (D1).
-     */
     public function register(): void
     {
         $this->app->singleton(PricingService::class);
-        $this->app->alias(PricingService::class, PricingContract::class);
     }
 
     /**

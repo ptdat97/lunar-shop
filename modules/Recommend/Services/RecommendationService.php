@@ -11,8 +11,6 @@ use Lunar\Models\Product;
  * list. Curated associations come first, the collection fallback fills the rest.
  * Results are cached per (product, context). Strategies come from
  * config('recommend.strategies').
- *
- * @phpstan-import-type Strategy from \Modules\Recommend\Contracts\RecommendationStrategy
  */
 class RecommendationService
 {

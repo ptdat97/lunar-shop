@@ -7,9 +7,8 @@ use Lunar\Facades\Pricing;
 use Lunar\Models\Price;
 use Lunar\Models\Product;
 use Lunar\Models\ProductVariant;
-use Modules\Pricing\Contracts\PricingContract;
 
-class PricingService implements PricingContract
+class PricingService
 {
     /**
      * The matched price for a variant via Lunar's Pricing engine (honours

@@ -5,8 +5,8 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * Reviews plugin — its own table. Run by the plugin's install() via
- * `php artisan plugin:install acme/reviews`, not by the app's global migrate.
+ * Product reviews: author, 1–5 rating, optional body. `approved` gates public
+ * visibility (config review.auto_approve controls the default on submit).
  */
 return new class extends Migration
 {

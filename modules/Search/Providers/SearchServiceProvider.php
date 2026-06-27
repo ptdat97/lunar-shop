@@ -4,22 +4,17 @@ namespace Modules\Search\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Modules\Search\Contracts\SearchEngine;
-use Modules\Search\Services\SearchManager;
+use Modules\Search\Drivers\DatabaseSearchEngine;
 
 class SearchServiceProvider extends ServiceProvider
 {
     /**
-     * Register the driver registry + bind the active SearchEngine through it.
-     * Plugins can SearchManager::extend(...) a driver at boot; the active one
-     * (config('search.driver')) is resolved lazily when SearchEngine is needed.
+     * Storefront/API talk only to the SearchEngine contract, so swapping the
+     * implementation later (e.g. Meilisearch) is a one-line binding change.
      */
     public function register(): void
     {
-        $this->mergeConfigFrom(base_path('config/search.php'), 'search');
-
-        $this->app->singleton(SearchManager::class, fn ($app) => new SearchManager($app));
-
-        $this->app->singleton(SearchEngine::class, fn ($app) => $app->make(SearchManager::class)->driver());
+        $this->app->singleton(SearchEngine::class, DatabaseSearchEngine::class);
     }
 
     /**

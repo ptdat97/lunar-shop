@@ -8,9 +8,9 @@ use Modules\Search\Data\SearchResult;
 /**
  * Engine-agnostic search contract.
  *
- * Controllers / Vue islands talk only to this interface (via the service),
- * never to a concrete engine. Swapping database → Scout/Meilisearch later
- * means writing one driver + flipping config('search.driver') — no caller change.
+ * Controllers talk only to this interface, never to a concrete engine. Swapping
+ * the database driver for Scout/Meilisearch later means writing one driver and
+ * re-binding SearchEngine in SearchServiceProvider — no caller change.
  */
 interface SearchEngine
 {
