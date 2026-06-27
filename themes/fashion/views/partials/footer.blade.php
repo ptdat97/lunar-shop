@@ -1,6 +1,6 @@
 {{-- $menus (MenuRenderer) injected by the Menu view composer (standards §7). --}}
 
-<footer class="bg-dark text-white-50 pt-5 pb-4 mt-5">
+<footer class="site-footer bg-dark text-white-50 pt-5 pb-4 mt-5">
     <div class="container">
         <div class="row g-4">
             <div class="col-12 col-lg-4">

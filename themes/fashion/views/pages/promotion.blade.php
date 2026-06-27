@@ -1,4 +1,5 @@
 @extends('theme::layouts.app')
+@section('body_class', 'page-promotion')
 
 @section('title', $discount->name.' — '.config('app.name'))
 @section('meta_description', $description)

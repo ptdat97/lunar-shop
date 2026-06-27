@@ -1,0 +1,10 @@
+// Register page — scoped to <body class="page-register">.
+// Custom this page's styles here. Tokens: `v.$accent`, `v.$muted`, `v.$radius`;
+// responsive helper: `@include m.up(lg) { ... }`.
+
+@use '../partials/variables' as v;
+@use '../partials/mixins' as m;
+
+.page-register {
+    // Your overrides for: Register page
+}

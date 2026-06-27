@@ -1,4 +1,5 @@
 @extends('theme::layouts.app')
+@section('body_class', 'page-account')
 
 @section('title', __('storefront.account.my_account').' — '.config('app.name'))
 @section('robots', 'noindex, follow')

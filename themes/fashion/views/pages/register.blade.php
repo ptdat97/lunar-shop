@@ -1,4 +1,5 @@
 @extends('theme::layouts.app')
+@section('body_class', 'page-register')
 
 @section('title', __('storefront.auth.create_account').' — '.config('app.name'))
 @section('robots', 'noindex, follow')

@@ -1,4 +1,5 @@
 @extends('theme::layouts.app')
+@section('body_class', 'page-promotions')
 
 @section('title', __('storefront.promotion.title').' — '.config('app.name'))
 

@@ -1,4 +1,5 @@
 @extends('theme::layouts.app')
+@section('body_class', 'page-product')
 
 @php
     // Presentation data is injected by view composers (standards §7):

@@ -1,4 +1,5 @@
 @extends('theme::layouts.app')
+@section('body_class', 'page-lookbooks')
 
 @section('title', __('storefront.lookbook.title').' — '.config('app.name'))
 @section('meta_description', 'Browse our curated lookbooks — shop the looks you love.')

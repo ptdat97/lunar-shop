@@ -1,4 +1,5 @@
 @extends('theme::layouts.app')
+@section('body_class', 'page-cart')
 
 @section('title', __('storefront.cart.title').' — '.config('app.name'))
 @section('robots', 'noindex, follow')

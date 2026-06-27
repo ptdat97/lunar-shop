@@ -1,0 +1,9 @@
+// Site footer — scoped to `.site-footer`.
+// Tokens: `v.$accent`, `v.$muted`, `v.$radius`; responsive: `@include m.up(lg) { ... }`.
+
+@use '../partials/variables' as v;
+@use '../partials/mixins' as m;
+
+.site-footer {
+    // Your overrides for: Site footer
+}

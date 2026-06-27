@@ -4,6 +4,12 @@
 // Bootstrap (grid/components/utilities) and the Bootstrap Icons webfont ship
 // prebuilt from public/vendor and are loaded via <link> in the layout — these
 // styles layer theme tokens + custom components on top of Bootstrap.
+//
+// ── How to customise ────────────────────────────────────────────────────────
+//  • Design tokens (colours, radius, breakpoints) → partials/_variables.scss
+//  • Per-PAGE styles → css/pages/_<page>.scss   (scoped to <body class="page-…">)
+//  • Per-FEATURE styles → css/features/_<feature>.scss (scoped to its class)
+// Add a partial, then @use it in the matching block below.
 
 @use 'partials/variables' as v;
 @use 'partials/mixins' as m;
@@ -11,6 +17,40 @@
 @use 'partials/lookbook';
 @use 'partials/checkout';
 @use 'partials/custom';
+
+// ── Pages (scoped to body.page-*) ───────────────────────────────────────────
+@use 'pages/home' as page-home;
+@use 'pages/product' as page-product;
+@use 'pages/collection' as page-collection;
+@use 'pages/search' as page-search;
+@use 'pages/cart' as page-cart;
+@use 'pages/checkout' as page-checkout;
+@use 'pages/checkout-confirmation' as page-checkout-confirmation;
+@use 'pages/account' as page-account;
+@use 'pages/login' as page-login;
+@use 'pages/register' as page-register;
+@use 'pages/wishlist' as page-wishlist;
+@use 'pages/lookbook' as page-lookbook;
+@use 'pages/lookbooks' as page-lookbooks;
+@use 'pages/promotion' as page-promotion;
+@use 'pages/promotions' as page-promotions;
+
+// ── Features / components (scoped to component classes) ──────────────────────
+@use 'features/header' as feat-header;
+@use 'features/footer' as feat-footer;
+@use 'features/mini-cart' as feat-mini-cart;
+@use 'features/product-card' as feat-product-card;
+@use 'features/price' as feat-price;
+@use 'features/promo-bar' as feat-promo-bar;
+@use 'features/promotions-strip' as feat-promotions-strip;
+@use 'features/recently-viewed' as feat-recently-viewed;
+@use 'features/search-panel' as feat-search-panel;
+@use 'features/language-switcher' as feat-language-switcher;
+@use 'features/lookbook-pins' as feat-lookbook-pins;
+@use 'features/size-chart' as feat-size-chart;
+@use 'features/shop' as feat-shop;
+@use 'features/wishlist-button' as feat-wishlist-button;
+@use 'features/reviews' as feat-reviews;
 
 // Expose tokens as runtime CSS custom properties (keeps the old
 // --fashion-* contract the rest of the theme/JS relies on).

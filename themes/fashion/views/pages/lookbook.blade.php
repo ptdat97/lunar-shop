@@ -1,4 +1,5 @@
 @extends('theme::layouts.app')
+@section('body_class', 'page-lookbook')
 
 @section('title', $lookbook->title.' — '.config('app.name'))
 @section('meta_description', \Illuminate\Support\Str::limit(strip_tags((string) $lookbook->description), 155))

@@ -1,0 +1,9 @@
+// Price component — scoped to `.product-card__price`.
+// Tokens: `v.$accent`, `v.$muted`, `v.$radius`; responsive: `@include m.up(lg) { ... }`.
+
+@use '../partials/variables' as v;
+@use '../partials/mixins' as m;
+
+.product-card__price {
+    // Your overrides for: Price component
+}

@@ -1,0 +1,9 @@
+// Header search autocomplete panel — scoped to `.search-panel`.
+// Tokens: `v.$accent`, `v.$muted`, `v.$radius`; responsive: `@include m.up(lg) { ... }`.
+
+@use '../partials/variables' as v;
+@use '../partials/mixins' as m;
+
+.search-panel {
+    // Your overrides for: Header search autocomplete panel
+}

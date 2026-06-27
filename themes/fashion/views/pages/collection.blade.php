@@ -1,4 +1,5 @@
 @extends('theme::layouts.app')
+@section('body_class', 'page-collection')
 
 @section('title', $collection->translateAttribute('name').' — '.config('app.name'))
 @section('meta_description', \Illuminate\Support\Str::limit(strip_tags((string) $collection->translateAttribute('description')), 155))

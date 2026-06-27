@@ -1,7 +1,7 @@
 {{-- Mini-cart drawer (Bootstrap offcanvas). Personalised + session-scoped, so
      it fetches /api/v1/cart on open (allowed exception to SSR-first — not SEO
      content). enhance/cart.js renders into [data-cart-body]. --}}
-<div class="offcanvas offcanvas-end" tabindex="-1" id="shoppingCart" aria-labelledby="shoppingCartLabel">
+<div class="offcanvas offcanvas-end mini-cart" tabindex="-1" id="shoppingCart" aria-labelledby="shoppingCartLabel">
     <div class="offcanvas-header border-bottom">
         <h5 class="offcanvas-title" id="shoppingCartLabel">{{ __('storefront.cart.title') }}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="{{ __('storefront.common.cancel') }}"></button>

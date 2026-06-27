@@ -1,0 +1,10 @@
+// Product detail page — scoped to <body class="page-product">.
+// Custom this page's styles here. Tokens: `v.$accent`, `v.$muted`, `v.$radius`;
+// responsive helper: `@include m.up(lg) { ... }`.
+
+@use '../partials/variables' as v;
+@use '../partials/mixins' as m;
+
+.page-product {
+    // Your overrides for: Product detail page
+}

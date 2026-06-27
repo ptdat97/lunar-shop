@@ -1,4 +1,5 @@
 @extends('theme::layouts.checkout')
+@section('body_class', 'page-checkout')
 
 @section('title', __('storefront.cart.checkout').' — '.config('app.name'))
 

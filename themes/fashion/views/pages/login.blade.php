@@ -1,4 +1,5 @@
 @extends('theme::layouts.app')
+@section('body_class', 'page-login')
 
 @section('title', __('storefront.auth.sign_in').' — '.config('app.name'))
 @section('robots', 'noindex, follow')

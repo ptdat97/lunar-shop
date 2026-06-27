@@ -1,4 +1,5 @@
 @extends('theme::layouts.app')
+@section('body_class', 'page-wishlist')
 
 @section('title', __('storefront.wishlist.title').' — '.config('app.name'))
 @section('robots', 'noindex, follow')

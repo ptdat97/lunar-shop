@@ -1,4 +1,5 @@
 @extends('theme::layouts.app')
+@section('body_class', 'page-search')
 
 @section('title', ($query ? __('storefront.search.title').': '.$query : __('storefront.search.title')).' — '.config('app.name'))
 {{-- Search results are not index-worthy (thin/duplicate); keep them out. --}}

@@ -1,0 +1,9 @@
+// Promo bar / countdown — scoped to `.promo-bar`.
+// Tokens: `v.$accent`, `v.$muted`, `v.$radius`; responsive: `@include m.up(lg) { ... }`.
+
+@use '../partials/variables' as v;
+@use '../partials/mixins' as m;
+
+.promo-bar {
+    // Your overrides for: Promo bar / countdown
+}

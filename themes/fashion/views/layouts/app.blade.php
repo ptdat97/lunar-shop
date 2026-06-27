@@ -39,7 +39,7 @@
 
     @stack('head')
 </head>
-<body class="d-flex flex-column min-vh-100">
+<body class="d-flex flex-column min-vh-100 @yield('body_class')">
     <a href="#main-content" class="visually-hidden-focusable position-absolute top-0 start-0 m-2 btn btn-dark btn-sm">
         Skip to content
     </a>

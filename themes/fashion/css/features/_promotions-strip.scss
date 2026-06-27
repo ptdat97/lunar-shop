@@ -1,0 +1,9 @@
+// Today's deals strip — scoped to `.promotions-strip`.
+// Tokens: `v.$accent`, `v.$muted`, `v.$radius`; responsive: `@include m.up(lg) { ... }`.
+
+@use '../partials/variables' as v;
+@use '../partials/mixins' as m;
+
+.promotions-strip {
+    // Your overrides for: Today's deals strip
+}

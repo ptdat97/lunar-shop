@@ -1,4 +1,5 @@
 @extends('theme::layouts.app')
+@section('body_class', 'page-checkout-confirmation')
 
 @section('title', __('storefront.checkout.thank_you').' — '.config('app.name'))
 @section('robots', 'noindex, follow')

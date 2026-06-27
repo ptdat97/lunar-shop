@@ -20,7 +20,7 @@
 
     @stack('head')
 </head>
-<body class="checkout-shell d-flex flex-column min-vh-100">
+<body class="checkout-shell d-flex flex-column min-vh-100 @yield('body_class')">
     <header class="checkout-header border-bottom bg-white">
         <div class="checkout-container py-3 d-flex flex-column align-items-center gap-2">
             <a class="navbar-brand fw-bold text-uppercase m-0 fs-4" href="{{ route('storefront.home') }}">
