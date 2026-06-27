@@ -10,12 +10,9 @@ use Modules\Theme\Support\LunarConfigOverride;
 class CartServiceProvider extends ServiceProvider
 {
     /**
-     * Register module bindings.
-     *
-     * Make the concrete service a singleton and resolve the CartContract to it
-     * (alias) — so callers that type-hint either CartService or CartContract get
-     * the SAME instance, and decorating it (Decorator::wrap) reaches both. No
-     * caller change needed (D1).
+     * Cart state is server-side (Lunar CartSession); the service is a singleton
+     * so one instance serves the request. CartContract aliases to it so callers
+     * may type-hint either.
      */
     public function register(): void
     {

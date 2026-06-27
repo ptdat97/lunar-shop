@@ -35,11 +35,7 @@ class OrderResource extends JsonResource
             'billing_address' => $this->whenLoaded('billingAddress', fn () => $this->address($this->billingAddress)),
         ];
 
-        return \Modules\Platform\Facades\Hook::applyFilters(
-            \Modules\Platform\Support\Hooks::ORDER_RESOURCE,
-            $data,
-            [$this->resource],
-        );
+        return $data;
     }
 
     /**

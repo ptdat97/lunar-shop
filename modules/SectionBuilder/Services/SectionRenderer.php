@@ -4,8 +4,6 @@ namespace Modules\SectionBuilder\Services;
 
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\HtmlString;
-use Modules\Platform\Facades\Hook;
-use Modules\Platform\Support\Hooks;
 use Modules\SectionBuilder\Models\PageSection;
 
 /**
@@ -73,9 +71,7 @@ class SectionRenderer
         $view = $this->types[$type]['view'] ?? "theme::sections.{$type}";
 
         if (! View::exists($view)) {
-            $html = "<!-- section: missing partial [{$type}] -->";
-
-            return $this->filter($html, $section);
+            return "<!-- section: missing partial [{$type}] -->";
         }
 
         $settings = $section->settings ?? [];
@@ -87,15 +83,6 @@ class SectionRenderer
             $data += $provider($settings);
         }
 
-        return $this->filter(View::make($view, $data)->render(), $section);
-    }
-
-    /**
-     * Let a plugin post-process a section's rendered HTML (wrap, inject, replace)
-     * via the section.render filter. Pass-through when no listener.
-     */
-    protected function filter(string $html, PageSection $section): string
-    {
-        return Hook::applyFilters(Hooks::SECTION_RENDER, $html, [$section]);
+        return View::make($view, $data)->render();
     }
 }

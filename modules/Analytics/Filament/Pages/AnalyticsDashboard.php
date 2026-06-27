@@ -1,6 +1,6 @@
 <?php
 
-namespace Acme\Analytics\Filament;
+namespace Modules\Analytics\Filament\Pages;
 
 use Filament\Pages\Page;
 use Illuminate\Support\Carbon;
@@ -8,7 +8,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Number;
 use Lunar\Models\Currency;
 use Lunar\Models\Order;
-use Acme\Analytics\AnalyticsService;
+use Modules\Analytics\Services\AnalyticsService;
 
 /**
  * Admin sales dashboard: headline KPIs (revenue, orders, AOV, catalogue size),

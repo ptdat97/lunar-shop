@@ -6,13 +6,10 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Search\Contracts\SearchEngine;
 use Modules\Search\Data\SearchQuery;
-use Modules\Search\Http\Concerns\BroadcastsSearch;
 use Modules\Search\Http\Resources\SearchResultResource;
 
 class SearchController extends Controller
 {
-    use BroadcastsSearch;
-
     public function __construct(
         protected SearchEngine $search,
     ) {}
@@ -22,12 +19,9 @@ class SearchController extends Controller
      */
     public function index(Request $request)
     {
-        $query = SearchQuery::fromRequest($request);
-        $result = $this->search->search($query);
+        $result = $this->search->search(SearchQuery::fromRequest($request));
 
         $result->items->loadMissing(['variants', 'thumbnail', 'brand']);
-
-        $this->broadcastSearch($query, $result);
 
         return SearchResultResource::collection($result);
     }

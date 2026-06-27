@@ -5,11 +5,10 @@ namespace Modules\Product\Http\Controllers\Api\V1;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
-use Modules\Platform\Facades\Hook;
-use Modules\Platform\Support\Hooks;
 use Modules\Product\Http\Resources\ProductResource;
 use Modules\Product\Services\ProductService;
 use Modules\Product\Services\SizeChartService;
+use Modules\Recommend\Services\RecommendationService;
 use Modules\Search\Data\SearchQuery;
 
 class ProductController extends Controller
@@ -17,6 +16,7 @@ class ProductController extends Controller
     public function __construct(
         protected ProductService $products,
         protected SizeChartService $sizeChart,
+        protected RecommendationService $recommend,
     ) {}
 
     /**
@@ -62,12 +62,6 @@ class ProductController extends Controller
 
         abort_if($product === null, 404);
 
-        // Headless product view — same signal as the SSR page.
-        \Modules\Platform\Facades\Hook::doAction(
-            \Modules\Platform\Support\Hooks::PRODUCT_VIEWED,
-            [$product],
-        );
-
         $include = array_filter(array_map(
             'trim',
             explode(',', (string) $request->query('include', ''))
@@ -80,14 +74,7 @@ class ProductController extends Controller
         }
 
         if (in_array('related', $include, true)) {
-            // Plain fallback through the product.related filter — a recommender
-            // plugin enriches it; without one, the collection fallback is used.
-            $related = Hook::applyFilters(
-                Hooks::PRODUCT_RELATED,
-                $this->products->related($product),
-                [$product, 8],
-            );
-            $resource->withRelated($related);
+            $resource->withRelated($this->recommend->forProduct($product));
         }
 
         return $resource;

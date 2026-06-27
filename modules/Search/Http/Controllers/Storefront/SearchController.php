@@ -7,13 +7,10 @@ use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Search\Contracts\SearchEngine;
 use Modules\Search\Data\SearchQuery;
-use Modules\Search\Http\Concerns\BroadcastsSearch;
 use Modules\Search\Http\Resources\SearchResultResource;
 
 class SearchController extends Controller
 {
-    use BroadcastsSearch;
-
     public function __construct(
         protected SearchEngine $search,
     ) {}
@@ -27,11 +24,8 @@ class SearchController extends Controller
     {
         $query = (string) $request->string('q', '');
 
-        $searchQuery = SearchQuery::fromRequest($request);
-        $result = $this->search->search($searchQuery);
+        $result = $this->search->search(SearchQuery::fromRequest($request));
         $result->items->loadMissing(['variants', 'thumbnail', 'brand']);
-
-        $this->broadcastSearch($searchQuery, $result);
 
         // Same contract as GET /api/v1/search — one shape for SSR + island.
         $state = SearchResultResource::toState($result, $request);

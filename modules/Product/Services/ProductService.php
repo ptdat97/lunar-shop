@@ -86,10 +86,8 @@ class ProductService
             $query->whereHas('collections', fn ($c) => $c->whereKey($collectionIds));
         }
 
-        // Plain collection-similarity fallback. The `product.related` filter is
-        // applied by the CALLER (controllers), not here — so a recommender plugin
-        // can enrich the result using this as its baseline without re-entering
-        // related() (which would recurse).
+        // Collection-similarity fallback used by RecommendationService's
+        // CollectionStrategy when curated associations don't fill the slots.
         return $query->latest('id')->limit($limit)->get();
     }
 }

@@ -2,10 +2,32 @@
 
 namespace Modules\Inventory\Services;
 
+use Lunar\Models\Product;
 use Lunar\Models\ProductVariant;
 
 class InventoryService
 {
+    /**
+     * Availability summary for a product (used in the product API payload):
+     * whether any variant is purchasable, and the total tracked stock. An
+     * "always" variant makes the product unconditionally in stock.
+     *
+     * @return array{in_stock: bool, total_quantity: int}
+     */
+    public function availabilityFor(Product $product): array
+    {
+        $variants = $product->relationLoaded('variants')
+            ? $product->variants
+            : $product->variants()->get();
+
+        return [
+            'in_stock' => $variants->contains(fn (ProductVariant $v) => $v->canBeFulfilledAtQuantity(1)),
+            'total_quantity' => (int) $variants->sum(fn (ProductVariant $v) => $v->purchasable === 'always'
+                ? 0
+                : max(0, (int) $v->getTotalInventory())),
+        ];
+    }
+
     /**
      * Get stock level for a variant.
      */

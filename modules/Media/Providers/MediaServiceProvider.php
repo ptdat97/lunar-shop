@@ -7,7 +7,7 @@ use Illuminate\Support\ServiceProvider;
 use Modules\Media\Filament\Pages\MediaImageSizes;
 use Modules\Media\Services\MediaSettings;
 use Modules\Media\Services\MediaUrl;
-use Modules\Platform\Support\AdminPages;
+use Modules\Theme\Support\AdminPages;
 use Modules\Theme\Support\LunarConfigOverride;
 
 class MediaServiceProvider extends ServiceProvider

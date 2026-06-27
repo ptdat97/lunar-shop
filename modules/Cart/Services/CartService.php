@@ -89,26 +89,15 @@ class CartService implements CartContract
     {
         $variant = ProductVariant::findOrFail($variantId);
 
-        $purchasable = \Modules\Platform\Facades\Hook::applyFilters(
-            \Modules\Platform\Support\Hooks::PRODUCT_PURCHASABLE,
-            $variant->canBeFulfilledAtQuantity($quantity),
-            [$variant, $quantity],
-        );
-
-        if (! $purchasable) {
+        // Oversell guard: honour the variant's purchasable mode (in_stock /
+        // backorder / always) via Lunar's own check before adding.
+        if (! $variant->canBeFulfilledAtQuantity($quantity)) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'quantity' => 'Sorry, there isn\'t enough stock to add that quantity.',
             ]);
         }
 
-        $cart = $this->current()->add($variant, $quantity)->calculate();
-
-        \Modules\Platform\Facades\Hook::doAction(
-            \Modules\Platform\Support\Hooks::CART_LINE_ADDED,
-            [$cart, $variant, $quantity],
-        );
-
-        return $cart;
+        return $this->current()->add($variant, $quantity)->calculate();
     }
 
     /**
@@ -116,14 +105,7 @@ class CartService implements CartContract
      */
     public function updateLine(int $lineId, int $quantity): Cart
     {
-        $cart = $this->current()->updateLine($lineId, $quantity)->calculate();
-
-        \Modules\Platform\Facades\Hook::doAction(
-            \Modules\Platform\Support\Hooks::CART_LINE_UPDATED,
-            [$cart, $lineId, $quantity],
-        );
-
-        return $cart;
+        return $this->current()->updateLine($lineId, $quantity)->calculate();
     }
 
     /**
@@ -131,14 +113,7 @@ class CartService implements CartContract
      */
     public function remove(int $lineId): Cart
     {
-        $cart = $this->current()->remove($lineId)->calculate();
-
-        \Modules\Platform\Facades\Hook::doAction(
-            \Modules\Platform\Support\Hooks::CART_LINE_REMOVED,
-            [$cart, $lineId],
-        );
-
-        return $cart;
+        return $this->current()->remove($lineId)->calculate();
     }
 
     /**
@@ -147,10 +122,6 @@ class CartService implements CartContract
     public function forget(): void
     {
         CartSession::forget();
-
-        \Modules\Platform\Facades\Hook::doAction(
-            \Modules\Platform\Support\Hooks::CART_EMPTIED,
-        );
     }
 
     /**
@@ -189,11 +160,6 @@ class CartService implements CartContract
                 'code' => 'This coupon does not apply to the items in your cart.',
             ]);
         }
-
-        \Modules\Platform\Facades\Hook::doAction(
-            \Modules\Platform\Support\Hooks::CART_COUPON_APPLIED,
-            [$cart, $code],
-        );
 
         return $cart;
     }

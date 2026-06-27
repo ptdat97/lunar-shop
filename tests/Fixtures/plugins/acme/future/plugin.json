@@ -1,7 +1,0 @@
-{
-  "id": "acme/future",
-  "name": "Acme Future",
-  "version": "1.0.0",
-  "provider": "Tests\\Fixtures\\Plugins\\IncompatiblePlugin",
-  "requires": { "core": "^2.0" }
-}

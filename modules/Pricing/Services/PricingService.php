@@ -43,15 +43,7 @@ class PricingService implements PricingContract
     {
         $variant = $product->variants->first() ?? $product->variants()->first();
 
-        $price = $variant ? (string) $this->matchedPrice($variant)?->formatted() : null;
-
-        // Let a plugin adjust the displayed price (membership price, "from …")
-        // without decorating the whole service.
-        return \Modules\Platform\Facades\Hook::applyFilters(
-            \Modules\Platform\Support\Hooks::PRICE_DISPLAY,
-            $price,
-            [$product],
-        );
+        return $variant ? (string) $this->matchedPrice($variant)?->formatted() : null;
     }
 
     /**

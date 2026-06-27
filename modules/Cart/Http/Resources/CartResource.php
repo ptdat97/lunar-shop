@@ -33,31 +33,19 @@ class CartResource extends JsonResource
             // Promotions actually applied to this cart (flash sale, buy-2,
             // combo, coupon, membership) so the UI can label the savings.
             'applied_discounts' => $this->appliedDiscounts(),
-            // Let a plugin add/adjust a total line (gift-wrap, surcharge) via the
-            // cart.totals filter — CartResource stays unaware of those plugins.
-            'totals' => \Modules\Platform\Facades\Hook::applyFilters(
-                \Modules\Platform\Support\Hooks::CART_TOTALS,
-                [
-                    'sub_total' => $this->subTotal?->formatted(),
-                    'discount_total' => $this->discountTotal?->formatted(),
-                    // Raw minor-unit savings so the UI can decide whether to show a
-                    // "you saved" row without parsing the formatted string.
-                    'discount_value' => $this->discountTotal?->value ?? 0,
-                    'tax_total' => $this->taxTotal?->formatted(),
-                    'total' => $this->total?->formatted(),
-                ],
-                [$this->resource],
-            ),
+            'totals' => [
+                'sub_total' => $this->subTotal?->formatted(),
+                'discount_total' => $this->discountTotal?->formatted(),
+                // Raw minor-unit savings so the UI can decide whether to show a
+                // "you saved" row without parsing the formatted string.
+                'discount_value' => $this->discountTotal?->value ?? 0,
+                'tax_total' => $this->taxTotal?->formatted(),
+                'total' => $this->total?->formatted(),
+            ],
             'free_shipping' => $this->freeShippingInfo(),
         ];
 
-        // Let other modules enrich the cart payload (e.g. Recommend adds
-        // cross-sell suggestions) without this resource depending on them.
-        return \Modules\Platform\Facades\Hook::applyFilters(
-            \Modules\Platform\Support\Hooks::CART_RESOURCE,
-            $data,
-            [$this->resource],
-        );
+        return $data;
     }
 
     /**

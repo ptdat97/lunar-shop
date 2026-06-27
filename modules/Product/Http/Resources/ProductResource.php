@@ -41,15 +41,13 @@ class ProductResource extends JsonResource
             // Opt-in extras (?include=…) — absent unless explicitly attached.
             'size_chart' => $this->when($this->sizeChart !== null, fn () => $this->sizeChart),
             'related' => $this->when($this->related !== null, fn () => static::collection($this->related)),
+            // Cross-module enrichment (single store — direct, no hook layer):
+            'availability' => app(\Modules\Inventory\Services\InventoryService::class)->availabilityFor($this->resource),
+            'promotion' => app(\Modules\Promotion\Services\PromotionService::class)->saleFor($this->resource),
+            'reviews' => app(\Modules\Review\Services\ReviewService::class)->summaryFor($this->id),
         ];
 
-        // Let other modules enrich the product payload (e.g. Inventory adds
-        // availability) without this resource depending on them.
-        return \Modules\Platform\Facades\Hook::applyFilters(
-            \Modules\Platform\Support\Hooks::PRODUCT_RESOURCE,
-            $data,
-            [$this->resource],
-        );
+        return $data;
     }
 
     /**

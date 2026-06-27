@@ -2,11 +2,11 @@
 
 namespace Modules\Promotion\Providers;
 
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Facades\Discounts;
-use Modules\Platform\Facades\Hook;
-use Modules\Platform\Support\Hooks;
+use Modules\Order\Events\OrderPaid;
 use Modules\Promotion\Services\MembershipService;
 use Modules\Promotion\Services\PromotionService;
 
@@ -38,8 +38,6 @@ class PromotionServiceProvider extends ServiceProvider
         $this->registerDiscountTypes();
         $this->registerMembershipSync();
         $this->shareFlashSale();
-
-        \Modules\Promotion\Support\PromotionHooks::register();
     }
 
     /**
@@ -90,13 +88,12 @@ class PromotionServiceProvider extends ServiceProvider
 
     /**
      * Re-evaluate a customer's loyalty tier whenever one of their orders is
-     * paid. Listens on the shared `order.paid` hook (fired by the Order module)
-     * so we don't couple to its events directly.
+     * paid. Listens to the Order module's OrderPaid domain event.
      */
     protected function registerMembershipSync(): void
     {
-        Hook::addAction(Hooks::ORDER_PAID, function ($order): void {
-            $customer = $order?->customer;
+        Event::listen(OrderPaid::class, function (OrderPaid $event): void {
+            $customer = $event->order?->customer;
 
             if ($customer) {
                 app(MembershipService::class)->syncCustomer($customer);

@@ -37,19 +37,13 @@ class CheckoutService implements CheckoutContract
     /**
      * The payment method identifiers offered at checkout — the single source for
      * both the storefront and API validation rules. Passed through the
-     * `checkout.payment_methods` filter so a plugin can add a gateway without
-     * editing core (it appends its identifier; the built-ins stay the default).
+     * Single source of allowed methods, used by checkout validation.
      *
      * @return list<string>
      */
     public function paymentMethods(): array
     {
-        return array_values(array_unique(
-            \Modules\Platform\Facades\Hook::applyFilters(
-                \Modules\Platform\Support\Hooks::CHECKOUT_PAYMENT_METHODS,
-                self::DEFAULT_PAYMENT_METHODS,
-            )
-        ));
+        return self::DEFAULT_PAYMENT_METHODS;
     }
 
     /**
@@ -84,11 +78,6 @@ class CheckoutService implements CheckoutContract
             $cart = $this->setShipping($previousOption);
         }
 
-        \Modules\Platform\Facades\Hook::doAction(
-            \Modules\Platform\Support\Hooks::CHECKOUT_ADDRESS_SET,
-            [$cart],
-        );
-
         return $cart;
     }
 
@@ -118,14 +107,7 @@ class CheckoutService implements CheckoutContract
 
         abort_if($option === null, 422, "Unknown shipping option [{$identifier}].");
 
-        $cart = $cart->setShippingOption($option)->calculate();
-
-        \Modules\Platform\Facades\Hook::doAction(
-            \Modules\Platform\Support\Hooks::CHECKOUT_SHIPPING_SELECTED,
-            [$cart, $identifier],
-        );
-
-        return $cart;
+        return $cart->setShippingOption($option)->calculate();
     }
 
     /**
@@ -150,18 +132,6 @@ class CheckoutService implements CheckoutContract
             abort(422, 'Please choose a shipping method before placing your order.');
         }
 
-        // Let a plugin veto checkout (fraud check, business rule) by appending an
-        // error through the checkout.validate filter. Non-empty → 422.
-        $errors = \Modules\Platform\Facades\Hook::applyFilters(
-            \Modules\Platform\Support\Hooks::CHECKOUT_VALIDATE,
-            [],
-            [$cart],
-        );
-
-        if (! empty($errors)) {
-            throw \Illuminate\Validation\ValidationException::withMessages($errors);
-        }
-
         $authorize = Payments::driver(
             config("lunar.payments.types.{$paymentType}.driver", 'offline')
         )->cart($cart)->withData([
@@ -174,14 +144,6 @@ class CheckoutService implements CheckoutContract
         $this->carts->forget();
 
         $order = Order::findOrFail($authorize->orderId);
-
-        // Broadcast the placement on the shared hook so any module can react
-        // (analytics, fulfilment, notifications) without Checkout depending on
-        // them. Stock is already reserved by the DecrementStock pipeline.
-        \Modules\Platform\Facades\Hook::doAction(
-            \Modules\Platform\Support\Hooks::ORDER_PLACED,
-            [$order],
-        );
 
         return $order;
     }

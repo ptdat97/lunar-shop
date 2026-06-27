@@ -12,7 +12,7 @@ class MenuServiceProvider extends ServiceProvider
     {
         $this->app->singleton(MenuRenderer::class);
 
-        \Modules\Platform\Support\AdminPages::addResource(
+        \Modules\Theme\Support\AdminPages::addResource(
             \Modules\Menu\Filament\Resources\MenuResource::class,
         );
     }

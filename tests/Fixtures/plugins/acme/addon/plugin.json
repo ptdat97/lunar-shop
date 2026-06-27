@@ -1,7 +1,0 @@
-{
-  "id": "acme/addon",
-  "name": "Acme Addon",
-  "version": "0.1.0",
-  "provider": "Tests\\Fixtures\\Plugins\\DependentPlugin",
-  "requires": { "core": "^1.0", "acme/demo": "^1.0" }
-}

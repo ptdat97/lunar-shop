@@ -16,7 +16,7 @@ class ProductServiceProvider extends ServiceProvider
     {
         // Standalone Size Charts resource (Catalog group). Registered here
         // because ModulesServiceProvider collects resources during register().
-        \Modules\Platform\Support\AdminPages::addResource(
+        \Modules\Theme\Support\AdminPages::addResource(
             \Modules\Product\Filament\Resources\SizeChartResource::class,
         );
     }
@@ -32,9 +32,6 @@ class ProductServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
 
         $this->registerSizeRelationships();
-
-        // Broadcast product create/update on the shared hook plane.
-        Product::observe(\Modules\Product\Observers\ProductObserver::class);
     }
 
     /**

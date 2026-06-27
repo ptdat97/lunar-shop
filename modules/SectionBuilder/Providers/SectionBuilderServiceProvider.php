@@ -17,7 +17,7 @@ class SectionBuilderServiceProvider extends ServiceProvider
     {
         $this->app->singleton(SectionRenderer::class);
 
-        \Modules\Platform\Support\AdminPages::addResource(
+        \Modules\Theme\Support\AdminPages::addResource(
             \Modules\SectionBuilder\Filament\Resources\PageSectionResource::class,
         );
     }

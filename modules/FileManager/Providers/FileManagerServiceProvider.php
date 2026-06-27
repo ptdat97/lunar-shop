@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Modules\FileManager\Filament\Pages\MediaLibrary;
 use Modules\FileManager\Services\FileManager;
-use Modules\Platform\Support\AdminPages;
+use Modules\Theme\Support\AdminPages;
 
 class FileManagerServiceProvider extends ServiceProvider
 {

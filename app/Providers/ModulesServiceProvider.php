@@ -10,7 +10,7 @@ use Lunar\Admin\LunarPanelManager;
 use Lunar\Admin\Support\Facades\LunarPanel;
 use Modules\Product\Filament\Extensions\ProductSizeExtension;
 use Modules\Theme\Filament\Resources as Custom;
-use Modules\Platform\Support\AdminPages;
+use Modules\Theme\Support\AdminPages;
 
 class ModulesServiceProvider extends ServiceProvider
 {
@@ -19,12 +19,11 @@ class ModulesServiceProvider extends ServiceProvider
      *
      * Each module lives in modules/<Name> with namespace Modules\<Name>
      * and a Providers\<Name>ServiceProvider. Order matters when one module
-     * depends on bindings from another (e.g. Platform before others).
+     * depends on bindings from another.
      *
      * @var list<string>
      */
     protected array $modules = [
-        'Platform',
         'Theme',
         'Catalog',
         'Location',
@@ -42,11 +41,12 @@ class ModulesServiceProvider extends ServiceProvider
         'Media',
         'FileManager',
         'Search',
-        // Recommend extracted to the acme/recommend plugin (Phase 4 / B.2).
+        'Recommend',
         'Promotion',
         'Shipping',
         'Payment',
-        // Analytics extracted to the acme/analytics plugin (Phase 4 / B.3).
+        'Analytics',
+        'Review',
     ];
 
     public function register(): void
@@ -59,20 +59,7 @@ class ModulesServiceProvider extends ServiceProvider
             }
         }
 
-        // Plugins register AFTER the core modules (so they hook into a fully-
-        // wired app) but BEFORE the Lunar panel, so a plugin can contribute
-        // Filament pages via AdminPages just like a module.
-        $this->app->make(\Modules\Platform\Plugin\PluginManager::class)->load();
-
         $this->registerLunarPanel();
-    }
-
-    /**
-     * Boot loaded plugins (their boot() runs after all modules have registered).
-     */
-    public function boot(): void
-    {
-        $this->app->make(\Modules\Platform\Plugin\PluginManager::class)->boot();
     }
 
     /**
