@@ -1,8 +1,8 @@
 // Product reviews block — scoped to `.product-reviews`.
 // Tokens: `v.$accent`, `v.$muted`, `v.$radius`; responsive: `@include m.up(lg) { ... }`.
 
-@use '../partials/variables' as v;
-@use '../partials/mixins' as m;
+@use '../features/variables' as v;
+@use '../features/mixins' as m;
 
 .product-reviews {
     // Your overrides for: Product reviews block

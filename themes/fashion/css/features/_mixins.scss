@@ -1,6 +1,6 @@
 // Fashion theme — reusable mixins.
 
-@use 'variables' as v;
+@use '../features/variables' as v;
 
 // Media query helper: @include up(lg) { ... }
 @mixin up($bp) {

@@ -1,8 +1,8 @@
 // Wishlist heart button — on product cards (.product-card__wishlist) and any
 // element with [data-wishlist-toggle]. `.is-active` / aria-pressed marks "saved".
 
-@use '../partials/variables' as v;
-@use '../partials/mixins' as m;
+@use '../features/variables' as v;
+@use '../features/mixins' as m;
 
 .product-card__wishlist,
 [data-wishlist-toggle] {

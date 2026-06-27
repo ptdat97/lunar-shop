@@ -1,10 +1,10 @@
 // Your custom styles.
 //
 // This is the place to add overrides and new component styles. Tokens and
-// helpers are available via `v.` and `m.` (each partial @use's them itself):
+// helpers are available via `v.` and `m.` (each file @use's them itself):
 
-@use 'variables' as v;
-@use 'mixins' as m;
+@use '../features/variables' as v;
+@use '../features/mixins' as m;
 
 //
 //   .my-banner {

@@ -6,17 +6,17 @@
 // styles layer theme tokens + custom components on top of Bootstrap.
 //
 // ── How to customise ────────────────────────────────────────────────────────
-//  • Design tokens (colours, radius, breakpoints) → partials/_variables.scss
+//  • Design tokens (colours, radius, breakpoints) → features/_variables.scss
 //  • Per-PAGE styles → css/pages/_<page>.scss   (scoped to <body class="page-…">)
 //  • Per-FEATURE styles → css/features/_<feature>.scss (scoped to its class)
-// Add a partial, then @use it in the matching block below.
+// Add a feature or page, then @use it in the matching block below.
 
-@use 'partials/variables' as v;
-@use 'partials/mixins' as m;
-@use 'partials/base';
-@use 'partials/lookbook';
-@use 'partials/checkout';
-@use 'partials/custom';
+@use 'features/variables' as v;
+@use 'features/mixins' as m;
+@use 'features/base';
+@use 'features/lookbook';
+@use 'pages/checkout';
+@use 'features/custom';
 
 // ── Pages (scoped to body.page-*) ───────────────────────────────────────────
 @use 'pages/home' as page-home;

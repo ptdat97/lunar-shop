@@ -5,8 +5,8 @@
 // prebuilt from public/vendor and are loaded via <link> in the layout — these
 // styles only layer theme tokens + small overrides on top of Bootstrap.
 
-@use 'variables' as v;
-@use 'mixins' as m;
+@use '../features/variables' as v;
+@use '../features/mixins' as m;
 
 // Bootstrap Icons — only the webfont ships in public/vendor (no upstream CSS),
 // so we declare the @font-face and map the handful of glyphs the theme uses.

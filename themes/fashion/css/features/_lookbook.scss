@@ -1,7 +1,7 @@
 // Lookbook — index cards, hero, photo gallery and home "shop the look" pins.
 
-@use 'variables' as v;
-@use 'mixins' as m;
+@use '../features/variables' as v;
+@use '../features/mixins' as m;
 
 // --- Index page cards ---------------------------------------------------
 .lookbook-card {

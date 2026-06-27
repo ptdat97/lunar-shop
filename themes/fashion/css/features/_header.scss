@@ -1,8 +1,8 @@
 // Site header / navbar — scoped to `.site-header`.
 // Tokens: `v.$accent`, `v.$muted`, `v.$radius`; responsive: `@include m.up(lg) { ... }`.
 
-@use '../partials/variables' as v;
-@use '../partials/mixins' as m;
+@use '../features/variables' as v;
+@use '../features/mixins' as m;
 
 .site-header {
     // Your overrides for: Site header / navbar

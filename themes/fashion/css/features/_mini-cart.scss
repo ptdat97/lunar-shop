@@ -1,8 +1,8 @@
 // Mini-cart offcanvas drawer — scoped to `.mini-cart`.
 // Tokens: `v.$accent`, `v.$muted`, `v.$radius`; responsive: `@include m.up(lg) { ... }`.
 
-@use '../partials/variables' as v;
-@use '../partials/mixins' as m;
+@use '../features/variables' as v;
+@use '../features/mixins' as m;
 
 .mini-cart {
     // Your overrides for: Mini-cart offcanvas drawer

@@ -1,8 +1,8 @@
 // Collection/search shop UI — [data-shop] wrapper: facet sidebar, sort bar,
 // product grid, pagination. Shared by collection + search pages.
 
-@use '../partials/variables' as v;
-@use '../partials/mixins' as m;
+@use '../features/variables' as v;
+@use '../features/mixins' as m;
 
 [data-shop] {
     // Your overrides for: filters + grid (facets / sort / pagination)

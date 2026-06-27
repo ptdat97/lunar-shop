@@ -1,7 +1,7 @@
 // Language switcher dropdown — [data-language-switcher] (header desktop + mobile).
 
-@use '../partials/variables' as v;
-@use '../partials/mixins' as m;
+@use '../features/variables' as v;
+@use '../features/mixins' as m;
 
 [data-language-switcher] {
     // Your overrides for: language switcher

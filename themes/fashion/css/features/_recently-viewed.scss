@@ -1,8 +1,8 @@
 // Recently viewed strip — scoped to `.recently-viewed`.
 // Tokens: `v.$accent`, `v.$muted`, `v.$radius`; responsive: `@include m.up(lg) { ... }`.
 
-@use '../partials/variables' as v;
-@use '../partials/mixins' as m;
+@use '../features/variables' as v;
+@use '../features/mixins' as m;
 
 .recently-viewed {
     // Your overrides for: Recently viewed strip
