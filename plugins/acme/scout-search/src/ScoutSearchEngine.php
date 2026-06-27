@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Search\Drivers;
+namespace Acme\ScoutSearch;
 
 use Lunar\Models\Product;
 use Modules\Search\Contracts\SearchEngine;

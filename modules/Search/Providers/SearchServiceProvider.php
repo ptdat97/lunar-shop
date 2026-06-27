@@ -4,24 +4,22 @@ namespace Modules\Search\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Modules\Search\Contracts\SearchEngine;
+use Modules\Search\Services\SearchManager;
 
 class SearchServiceProvider extends ServiceProvider
 {
     /**
-     * Bind the active SearchEngine driver from config.
+     * Register the driver registry + bind the active SearchEngine through it.
+     * Plugins can SearchManager::extend(...) a driver at boot; the active one
+     * (config('search.driver')) is resolved lazily when SearchEngine is needed.
      */
     public function register(): void
     {
         $this->mergeConfigFrom(base_path('config/search.php'), 'search');
 
-        $this->app->singleton(SearchEngine::class, function ($app) {
-            $driver = config('search.driver', 'database');
-            $class = config("search.drivers.{$driver}");
+        $this->app->singleton(SearchManager::class, fn ($app) => new SearchManager($app));
 
-            abort_unless($class, 500, "Unknown search driver [{$driver}].");
-
-            return $app->make($class);
-        });
+        $this->app->singleton(SearchEngine::class, fn ($app) => $app->make(SearchManager::class)->driver());
     }
 
     /**

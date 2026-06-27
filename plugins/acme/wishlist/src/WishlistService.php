@@ -1,11 +1,11 @@
 <?php
 
-namespace Modules\Customer\Services;
+namespace Acme\Wishlist;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Lunar\Models\Product;
-use Modules\Customer\Models\WishlistItem;
+use Acme\Wishlist\WishlistItem;
 
 /**
  * Single source for wishlist reads/writes. Both the storefront page and the API

@@ -83,6 +83,38 @@ final class Hooks
      */
     public const PRODUCT_RELATED = 'product.related';
 
+    /**
+     * FILTER — the serialised cart `totals` block before it ships in the cart
+     * payload. Value: array<string, mixed> (sub_total/discount_total/tax_total/
+     * total + raw values). Args: [\Lunar\Models\Cart $cart]. Lets a plugin add or
+     * adjust a total line (gift-wrap fee, surcharge) without touching CartResource.
+     */
+    public const CART_TOTALS = 'cart.totals';
+
+    /**
+     * FILTER — checkout validation errors, collected before an order is placed.
+     * Value: array<string, string> (field => message; empty = ok). Args:
+     * [\Lunar\Models\Cart $cart]. A plugin appends a message to veto checkout
+     * (fraud check, business rule); a non-empty result aborts placeOrder (422).
+     */
+    public const CHECKOUT_VALIDATE = 'checkout.validate';
+
+    /**
+     * FILTER — a product's formatted display price string before it's shown.
+     * Value: ?string (e.g. "$60.00"). Args: [\Lunar\Models\Product $product].
+     * Lets a plugin adjust the displayed price (e.g. "from …", membership price)
+     * without decorating the whole pricing service.
+     */
+    public const PRICE_DISPLAY = 'price.display';
+
+    /**
+     * FILTER — a section's rendered HTML before it joins the page.
+     * Value: string (HTML). Args: [object $section] — the section model the
+     * producer passes. Lets a plugin wrap/inject/replace a section's output
+     * without editing the renderer. Pass-through when no listener.
+     */
+    public const SECTION_RENDER = 'section.render';
+
     // ─── Actions: domain events ──────────────────────────────────────────────
 
     /**

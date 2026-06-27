@@ -28,6 +28,8 @@
             "Modules\\": "modules/",
             "Acme\\Reviews\\": "plugins/acme/reviews/src/",
             "Acme\\Preorder\\": "plugins/acme/preorder/src/",
+            "Acme\\ScoutSearch\\": "plugins/acme/scout-search/src/",
+            "Acme\\Wishlist\\": "plugins/acme/wishlist/src/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
         }

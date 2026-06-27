@@ -14,8 +14,12 @@ return [
     */
     'driver' => env('SEARCH_DRIVER', 'database'),
 
+    /*
+    | Built-in drivers (class strings). Additional drivers are registered at
+    | runtime via SearchManager::extend(...) — e.g. the `scout` driver is shipped
+    | by the acme/scout-search plugin, not hardcoded here.
+    */
     'drivers' => [
         'database' => \Modules\Search\Drivers\DatabaseSearchEngine::class,
-        'scout' => \Modules\Search\Drivers\ScoutSearchEngine::class,
     ],
 ];

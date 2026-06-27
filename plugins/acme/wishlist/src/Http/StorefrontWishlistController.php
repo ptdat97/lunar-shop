@@ -1,14 +1,14 @@
 <?php
 
-namespace Modules\Customer\Http\Controllers\Storefront;
+namespace Acme\Wishlist\Http;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
-use Modules\Customer\Services\WishlistService;
+use Acme\Wishlist\WishlistService;
 
-class WishlistController extends Controller
+class StorefrontWishlistController extends Controller
 {
     public function __construct(
         protected WishlistService $wishlist,

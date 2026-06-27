@@ -217,5 +217,11 @@ nhật danh sách **có chủ đích** (được review, không lặng lẽ).
   khối `preorder` (enabled + expected_at) vào payload qua FILTER `product.resource`. Test
   `PreorderPluginTest` (mua hết-hàng bị chặn nếu không pre-order; bật pre-order → mua được +
   có badge; sản phẩm thường không bị ảnh hưởng).
+- **`plugins/acme/scout-search/`** — **driver-as-plugin**: đăng ký search driver `scout`
+  qua `SearchManager::extend('scout', ScoutSearchEngine::class)` trong `boot()`. Bật plugin +
+  `SEARCH_DRIVER=scout` → storefront/API search đổi engine, caller (contract `SearchEngine`)
+  **không đổi**. ZERO sửa Search module/config. Test `ScoutSearchPluginTest`/`SearchManagerTest`.
 
-Cả hai dựng **hoàn toàn trên SDK + hooks, ZERO sửa lõi** — bằng chứng contract đủ dùng.
+Cả ba dựng **hoàn toàn trên SDK + extension point, ZERO sửa lõi** — bằng chứng contract đủ
+dùng cho cả 3 kiểu mở rộng: enrich payload (reviews), can thiệp commerce (preorder), thay
+driver (scout).

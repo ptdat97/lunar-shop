@@ -157,13 +157,13 @@ Hiện chỉ `SearchEngine`/`RecommendationStrategy` có. → §6 bước D1.
 
 | Hook/Event mới | Loại | Cho |
 |---|---|---|
-| `cart.totals` | FILTER | plugin chỉnh tổng (gift-wrap, surcharge) — generic hơn `free_shipping` |
-| `checkout.validate` | FILTER (bool/errors) | fraud/rule check trước khi đặt |
+| `cart.totals` | FILTER | ✅ **D2** — plugin chỉnh tổng (gift-wrap, surcharge) |
+| `checkout.validate` | FILTER (errors[]) | ✅ **D2** — fraud/rule check veto trước khi đặt (→422) |
+| `price.display` | FILTER | ✅ **D2** — đổi giá hiển thị (không cần decorate cả service) |
 | `order.refunded` / `order.cancelled` / `order.completed` | ACTION | khi cấu hình status tương ứng (đã chừa trong plan E0) |
 | `product.indexing` | FILTER | plugin enrich document trước khi index (scout) |
 | `customer.group_changed` | ACTION | membership/loyalty react |
-| `price.display` | FILTER | decorate giá hiển thị (thay vì decorate cả service) |
-| `section.render` | FILTER | SectionBuilder cho plugin chèn/đổi section |
+| `section.render` | FILTER | ✅ **E.1** — plugin wrap/inject/replace HTML section (+ type registry) |
 | `workflow.*` / `rule.*` | ACTION/FILTER | Core engine (§6) |
 
 > Tất cả thêm vào registry `Hooks::*` với docblock payload (giữ kỷ luật E0). Ưu tiên **bắc
@@ -214,20 +214,65 @@ Hiện chỉ `SearchEngine`/`RecommendationStrategy` có. → §6 bước D1.
   **0 thay đổi hành vi** (120→166 test, toàn additive).
 
 ### Giai đoạn 2 — Contract hoá service trục (mở đường Decorator)
-- **D1.** Trích interface cho `PricingService`, `CartService`, `CheckoutService`,
-  `SearchEngine` (đã có). Bind interface → impl hiện tại. **Caller không đổi** (đã DI qua type).
-- **D2.** Thêm FILTER `cart.totals`, `checkout.validate`, `price.display` (§5) — additive.
-- *Kết quả:* mọi service trục decorate được; chưa ai decorate (an toàn).
+- **D1.** ✅ **Đã làm (2026-06-26).** Trích interface khớp-100%-API: `Pricing\Contracts\
+  PricingContract`, `Cart\Contracts\CartContract`, `Checkout\Contracts\CheckoutContract`
+  (`SearchEngine` đã có sẵn → D1 không phải làm gì). Mỗi service `implements` contract; provider
+  bind **concrete singleton + alias contract→concrete** → caller type-hint **concrete HAY
+  contract đều ra cùng 1 instance**, decorate được. **Caller không đổi** (thuần additive).
+  *(Bẫy đã tránh: `singleton(Contract, Concrete) + alias(Contract, Concrete)` gây đệ quy vô tận
+  — đúng cách là `singleton(Concrete) + alias(Concrete, Contract)`.)* +3 test `ServiceContractTest`
+  (implements / same-singleton / **decorate contract chạm tới caller type-hint concrete**).
+  **169 test xanh.**
+- **D2.** ✅ **Đã làm (2026-06-26).** Thêm 3 FILTER vào `Hooks::*` (docblock payload đầy đủ):
+  `cart.totals` (CartResource — plugin thêm/sửa dòng tổng vd gift-wrap), `price.display`
+  (PricingService::displayPrice — plugin đổi giá hiển thị vd "from …", membership),
+  `checkout.validate` (CheckoutService::placeOrder — plugin append lỗi để veto checkout →
+  422 ValidationException; rỗng = qua). Thuần additive (không listener = pass-through).
+  +4 test `CommerceFiltersTest` (thêm total line / rewrite giá / veto order / pass-through).
+  **173 test xanh.** Core vẫn 0 reference business.
+- *Kết quả:* **Giai đoạn 2 xong** — service trục có Contract (decorate được) + 3 điểm móc
+  filter cho commerce; chưa ai decorate/veto thật (an toàn, mở đường cho plugin).
 
 ### Giai đoạn 3 — Section/Search/Recommend registry (Extension Point §3)
-- **E.1** `SectionBuilder`: registry `type → resolver` (plugin `addSectionType`). Section
-  hiện tại đăng ký qua chính registry → tương thích ngược.
-- **E.2** `SearchManager::extend('scout', …)` + tách `scout` driver thành **plugin** (dogfood
-  thứ 3, chứng minh driver-as-plugin).
-- **E.3** `Recommend::extend($strategy)` runtime (bổ sung cho config registry).
+- **E.1** ✅ **Đã làm (2026-06-26).** `SectionRenderer` thành **type registry**:
+  `registerType($type, ?view, ?provider)` cho phép plugin thêm section type **mới hoàn toàn**
+  với **view riêng** (không cần theme partial) + data provider. **Tương thích ngược:**
+  `provide()` cũ vẫn chạy (chỉ set provider); type chưa đăng ký vẫn fallback
+  `theme::sections.{type}` (hành vi legacy + "missing partial" marker không đổi). Thêm FILTER
+  **`section.render`** (post-process HTML mỗi section — wrap/inject/replace; docblock generic,
+  Core không ref SectionBuilder). +3 test `SectionRegistryTest` (custom type dùng view+provider
+  riêng / filter post-process / fallback theme partial). **176 test xanh**, Core vẫn sạch.
+- **E.2** ✅ **Đã làm (2026-06-27).** `Search\Services\SearchManager` = **registry driver
+  runtime**: `extend($name, class|closure)` + `driver(?$name)` resolve (runtime registry thắng
+  config). `SearchEngine` binding đi qua manager. **Tách `scout` thành plugin**
+  `plugins/acme/scout-search/` (`ScoutSearchEngine` + `ScoutSearchPlugin::boot` gọi
+  `SearchManager::extend('scout', …)`) → bỏ `scout` khỏi config hardcode (giờ plugin cấp).
+  **Driver-as-plugin, ZERO sửa Search module/config.** Tương thích ngược: `database` (config)
+  vẫn resolve qua manager. +6 test `SearchManagerTest` + 2 `ScoutSearchPluginTest` (plugin
+  extend driver / SearchEngine resolve scout khi `SEARCH_DRIVER=scout`). **184 test xanh**,
+  `plugin:list` thấy `acme/scout-search`, Core sạch.
+- **E.3** ✅ **Đã làm (2026-06-27).** `Recommend\Services\RecommendManager` = registry
+  strategy: seed từ `config('recommend.strategies')` (priority 0..n theo thứ tự khai báo →
+  curated vẫn đầu) + plugin `extend($strategy, $priority)` runtime (class hoặc closure).
+  `RecommendationService` đọc strategies **lazily per-call** từ manager (plugin extend ở boot
+  được nhận). **Tương thích ngược:** thứ tự config giữ nguyên (test "curated association first"
+  vẫn xanh). +4 test `RecommendManagerTest` (seed config order / plugin sau config / priority
+  override / closure). **188 test xanh**, Core sạch.
+- *Kết quả:* **Giai đoạn 3 xong** — 3 extension point registry (Section type / Search driver /
+  Recommend strategy) đều cho plugin mở rộng runtime, không sửa core/config; Search có thêm
+  **plugin driver thật** (scout). Tổng `120 → 188 test`.
 
 ### Giai đoạn 4 — Bóc business module → plugin (Nhóm A trước)
-- **B.1** **Wishlist** (bóc khỏi Customer) → plugin `acme/wishlist`. Giữ route/API/bảng.
+- **B.1** ✅ **Đã làm (2026-06-27).** Bóc **Wishlist** khỏi Customer → plugin
+  `plugins/acme/wishlist/` (namespace `Acme\Wishlist`): `git mv` model + service + 2 controller
+  (storefront `__invoke` + API index/toggle), route tách khỏi Customer sang plugin **giữ
+  nguyên path/name/middleware** (`storefront.wishlist`, `api.v1.wishlist.index|toggle`).
+  **First-party plugin, enabled mặc định** trong `config/plugins.php` (storefront feature
+  default-on). Bảng `wishlist_items` **giữ migration ở Customer** (đã provision, không xoá
+  data → plugin tái dùng, `install()` no-op). Customer giờ **0 file PHP wishlist** (chỉ còn
+  migration + comment trong route). +4 test `WishlistPluginTest` (guest empty / toggle cần
+  auth / add+list+toggle-off / page render) — trước đây **chưa có** test wishlist. **192 test
+  xanh**, `route:list` xác nhận 3 route do `Acme\Wishlist\*` phục vụ.
 - **B.2** **Recommend** → plugin (đã sẵn sàng nhất). Call-site đổi sang hook/`Recommend::extend`.
 - **B.3** **Analytics** → plugin (đọc qua `order.paid`, Filament dashboard qua `AdminPages`).
 - *Sau mỗi bước:* enable plugin trong `config/plugins.php`, `plugin:install`, verify storefront.

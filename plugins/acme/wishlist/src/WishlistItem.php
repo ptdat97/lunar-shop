@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Customer\Models;
+namespace Acme\Wishlist;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;

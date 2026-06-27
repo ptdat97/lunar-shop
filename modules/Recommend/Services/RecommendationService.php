@@ -5,21 +5,20 @@ namespace Modules\Recommend\Services;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Lunar\Models\Product;
-use Modules\Recommend\Contracts\RecommendationStrategy;
 
 /**
  * Combines recommendation strategies (in priority order) into a single, de-duped
  * list. Curated associations come first, automated/fallback strategies fill the
  * rest. Results are cached per (product, context) and invalidated on catalog or
  * order changes (see RecommendServiceProvider event wiring).
+ *
+ * Strategies come from the RecommendManager (config + plugin-registered), read
+ * lazily per call so a plugin that extend()s at boot is picked up.
  */
 class RecommendationService
 {
-    /**
-     * @param  list<RecommendationStrategy>  $strategies  priority order (first = highest)
-     */
     public function __construct(
-        protected array $strategies,
+        protected RecommendManager $manager,
         protected int $cacheTtl = 3600,
     ) {}
 
@@ -83,7 +82,7 @@ class RecommendationService
         $excludeIds = array_merge([$product->id], $exclude);
         $out = collect();
 
-        foreach ($this->strategies as $strategy) {
+        foreach ($this->manager->strategies() as $strategy) {
             if ($out->count() >= $limit) {
                 break;
             }

@@ -1,14 +1,14 @@
 <?php
 
-namespace Modules\Customer\Http\Controllers\Api\V1;
+namespace Acme\Wishlist\Http;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Modules\Customer\Services\WishlistService;
+use Acme\Wishlist\WishlistService;
 use Modules\Product\Http\Resources\ProductResource;
 
-class WishlistController extends Controller
+class ApiWishlistController extends Controller
 {
     public function __construct(
         protected WishlistService $wishlist,

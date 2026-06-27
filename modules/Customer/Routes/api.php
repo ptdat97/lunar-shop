@@ -5,7 +5,6 @@ use Modules\Customer\Http\Controllers\Api\V1\AddressController;
 use Modules\Customer\Http\Controllers\Api\V1\AuthController;
 use Modules\Customer\Http\Controllers\Api\V1\CustomerController;
 use Modules\Customer\Http\Controllers\Api\V1\TokenAuthController;
-use Modules\Customer\Http\Controllers\Api\V1\WishlistController;
 
 // Token (PAT) auth for native app / headless clients — stateless, no session,
 // so the plain `api` group (not `web`). The SPA cookie flow below is unchanged;
@@ -26,7 +25,7 @@ Route::prefix('api/v1')->middleware('web')->group(function (): void {
     // as a red console error in the browser. They return a guest payload (null /
     // empty) when no user is authenticated; the controllers handle that.
     Route::get('customer', [CustomerController::class, 'show'])->name('api.v1.customer.show');
-    Route::get('wishlist', [WishlistController::class, 'index'])->name('api.v1.wishlist.index');
+    // (Wishlist index moved to the acme/wishlist plugin.)
 });
 
 // Authenticated customer endpoints. Accept either Sanctum token (app/headless)
@@ -42,7 +41,7 @@ Route::prefix('api/v1')->middleware(['web', 'auth:sanctum'])->group(function ():
     Route::patch('customer/addresses/{address}', [AddressController::class, 'update'])->name('api.v1.customer.addresses.update');
     Route::delete('customer/addresses/{address}', [AddressController::class, 'destroy'])->name('api.v1.customer.addresses.destroy');
 
-    Route::post('wishlist', [WishlistController::class, 'toggle'])->name('api.v1.wishlist.toggle');
+    // (Wishlist toggle moved to the acme/wishlist plugin.)
 
     // Token logout (app/headless): revoke the PAT used for this request.
     Route::post('auth/token/revoke', [TokenAuthController::class, 'revoke'])->name('api.v1.auth.token.revoke');

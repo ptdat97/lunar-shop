@@ -14,9 +14,14 @@ return [
     | package in never runs its code until you opt in. Empty = no plugins load.
     */
     'enabled' => [
-        // Enable per-deploy, then run `php artisan plugin:install <id>`:
+        // First-party storefront feature, extracted from the Customer module
+        // (Phase 4) — enabled by default so wishlist works out of the box.
+        'acme/wishlist',
+
+        // Optional plugins: enable per-deploy, then `php artisan plugin:install <id>`:
         // 'acme/reviews',
         // 'acme/preorder',
+        // 'acme/scout-search',
     ],
 
     /*

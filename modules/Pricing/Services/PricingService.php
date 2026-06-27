@@ -7,8 +7,9 @@ use Lunar\Facades\Pricing;
 use Lunar\Models\Price;
 use Lunar\Models\Product;
 use Lunar\Models\ProductVariant;
+use Modules\Pricing\Contracts\PricingContract;
 
-class PricingService
+class PricingService implements PricingContract
 {
     /**
      * The matched price for a variant via Lunar's Pricing engine (honours
@@ -42,11 +43,15 @@ class PricingService
     {
         $variant = $product->variants->first() ?? $product->variants()->first();
 
-        if (! $variant) {
-            return null;
-        }
+        $price = $variant ? (string) $this->matchedPrice($variant)?->formatted() : null;
 
-        return (string) $this->matchedPrice($variant)?->formatted();
+        // Let a plugin adjust the displayed price (membership price, "from …")
+        // without decorating the whole service.
+        return \Modules\Platform\Facades\Hook::applyFilters(
+            \Modules\Platform\Support\Hooks::PRICE_DISPLAY,
+            $price,
+            [$product],
+        );
     }
 
     /**

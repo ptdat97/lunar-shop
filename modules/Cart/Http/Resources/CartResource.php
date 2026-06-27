@@ -33,15 +33,21 @@ class CartResource extends JsonResource
             // Promotions actually applied to this cart (flash sale, buy-2,
             // combo, coupon, membership) so the UI can label the savings.
             'applied_discounts' => $this->appliedDiscounts(),
-            'totals' => [
-                'sub_total' => $this->subTotal?->formatted(),
-                'discount_total' => $this->discountTotal?->formatted(),
-                // Raw minor-unit savings so the UI can decide whether to show a
-                // "you saved" row without parsing the formatted string.
-                'discount_value' => $this->discountTotal?->value ?? 0,
-                'tax_total' => $this->taxTotal?->formatted(),
-                'total' => $this->total?->formatted(),
-            ],
+            // Let a plugin add/adjust a total line (gift-wrap, surcharge) via the
+            // cart.totals filter — CartResource stays unaware of those plugins.
+            'totals' => \Modules\Platform\Facades\Hook::applyFilters(
+                \Modules\Platform\Support\Hooks::CART_TOTALS,
+                [
+                    'sub_total' => $this->subTotal?->formatted(),
+                    'discount_total' => $this->discountTotal?->formatted(),
+                    // Raw minor-unit savings so the UI can decide whether to show a
+                    // "you saved" row without parsing the formatted string.
+                    'discount_value' => $this->discountTotal?->value ?? 0,
+                    'tax_total' => $this->taxTotal?->formatted(),
+                    'total' => $this->total?->formatted(),
+                ],
+                [$this->resource],
+            ),
             'free_shipping' => $this->freeShippingInfo(),
         ];
 

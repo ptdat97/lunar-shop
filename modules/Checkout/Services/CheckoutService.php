@@ -9,13 +9,14 @@ use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Cart;
 use Lunar\Models\Order;
 use Modules\Cart\Services\CartService;
+use Modules\Checkout\Contracts\CheckoutContract;
 use Modules\Customer\Services\CustomerResolver;
 
 /**
  * Orchestrates checkout over Lunar's engine (addresses → shipping → payment →
  * order). Every step delegates to Lunar — nothing reimplemented.
  */
-class CheckoutService
+class CheckoutService implements CheckoutContract
 {
     public function __construct(
         protected CartService $carts,
@@ -147,6 +148,18 @@ class CheckoutService
         // clear message (otherwise Lunar throws a CartException → generic 500).
         if ($cart->isShippable() && ! $cart->getShippingOption()) {
             abort(422, 'Please choose a shipping method before placing your order.');
+        }
+
+        // Let a plugin veto checkout (fraud check, business rule) by appending an
+        // error through the checkout.validate filter. Non-empty → 422.
+        $errors = \Modules\Platform\Facades\Hook::applyFilters(
+            \Modules\Platform\Support\Hooks::CHECKOUT_VALIDATE,
+            [],
+            [$cart],
+        );
+
+        if (! empty($errors)) {
+            throw \Illuminate\Validation\ValidationException::withMessages($errors);
         }
 
         $authorize = Payments::driver(
