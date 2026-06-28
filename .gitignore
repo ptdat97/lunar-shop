@@ -27,3 +27,4 @@ Thumbs.db
 /public/themes/modave/images
 /modave
 /storage/media-library/temp/
+.env
