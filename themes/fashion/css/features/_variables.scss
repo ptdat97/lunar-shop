@@ -102,7 +102,7 @@ $z-toast: 2030 !default;          // Toast notifications
 $z-modal-backdrop: 3000 !default; // Modal backdrop
 $z-modal: 3010 !default;          // Modal dialog
 $z-lightbox: 3020 !default;       // PhotoSwipe / image lightbox
-
+$z-badge: 999 !default;                // Product card badge (top-left)
 // Top-most UI (4000s)
 $z-tooltip: 4000 !default;        // Tooltips, badges on top of modals
 $z-max: 9999 !default;            // Emergency top-layer, avoid using
