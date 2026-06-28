@@ -1,10 +1,86 @@
 // Promotions listing page — scoped to <body class="page-promotions">.
-// Custom this page's styles here. Tokens: `v.$accent`, `v.$muted`, `v.$radius`;
-// responsive helper: `@include m.up(lg) { ... }`.
+// Promotion hero banner, product grid with flash-sale badge highlight.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .page-promotions {
-    // Your overrides for: Promotions listing page
+    .promotions-header {
+        padding: v.$spacing-2xl 0 v.$spacing-xl;
+        text-align: center;
+
+        h1 {
+            font-family: v.$font-display;
+            font-size: v.$font-size-3xl;
+            font-weight: v.$font-weight-normal;
+            margin-bottom: .5rem;
+        }
+
+        p {
+            font-family: v.$font-body;
+            font-size: v.$font-size-sm;
+            color: v.$muted;
+            max-width: 600px;
+            margin-inline: auto;
+            line-height: v.$line-height-relaxed;
+        }
+    }
+
+    .promotions-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+
+        @include m.up(sm) { grid-template-columns: repeat(3, 1fr); }
+        @include m.up(lg) { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .promotion-card {
+        border: v.$border-width solid v.$border-color;
+        border-radius: v.$radius;
+        overflow: hidden;
+        text-decoration: none;
+        color: inherit;
+        background: v.$bg-primary;
+        transition: box-shadow v.$transition-fast, transform v.$transition-fast;
+
+        &:hover {
+            box-shadow: v.$shadow-md;
+            transform: translateY(-2px);
+        }
+
+        &__media {
+            aspect-ratio: 16 / 9;
+            overflow: hidden;
+            background: v.$bg-secondary;
+
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                transition: transform v.$transition-slow;
+            }
+        }
+
+        &:hover &__media img { transform: scale(1.04); }
+
+        &__body {
+            padding: 1rem;
+        }
+
+        &__title {
+            font-family: v.$font-display;
+            font-size: v.$font-size-base;
+            font-weight: v.$font-weight-normal;
+            line-height: v.$line-height-tight;
+            margin-bottom: .35rem;
+        }
+
+        &__meta {
+            font-family: v.$font-body;
+            font-size: v.$font-size-xs;
+            color: v.$muted;
+        }
+    }
 }
+

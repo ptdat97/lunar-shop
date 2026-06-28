@@ -1,10 +1,203 @@
 // Home page — scoped to <body class="page-home">.
-// Custom this page's styles here. Tokens: `v.$accent`, `v.$muted`, `v.$radius`;
-// responsive helper: `@include m.up(lg) { ... }`.
+// Hero slider, iconbox trust strip, category grid, testimonials, instagram grid.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .page-home {
-    // Your overrides for: Home page
+    .hero-slider {
+        position: relative;
+        min-height: 55vh;
+        @include m.up(lg) { min-height: 75vh; }
+
+        &::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(180deg, rgba(0,0,0,.12), rgba(0,0,0,.35));
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .swiper-slide {
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: flex-end;
+            padding-bottom: 4rem;
+        }
+
+        .hero-slide__content {
+            position: relative;
+            z-index: 2;
+            max-width: v.$container-narrow;
+            margin-inline: auto;
+            padding-inline: 1rem;
+            color: #fff;
+            @include m.up(lg) { padding-inline: 2rem; }
+        }
+
+        .hero-slide__kicker {
+            font-family: v.$font-body;
+            font-size: v.$font-size-xs;
+            font-weight: v.$font-weight-semibold;
+            letter-spacing: v.$letter-spacing-wide;
+            text-transform: uppercase;
+            margin-bottom: .75rem;
+            opacity: .9;
+        }
+
+        .hero-slide__title {
+            font-family: v.$font-display;
+            font-size: v.$font-size-3xl;
+            font-weight: v.$font-weight-normal;
+            line-height: v.$line-height-tight;
+            margin-bottom: 1.5rem;
+            max-width: 600px;
+            @include m.up(lg) { font-size: v.$font-size-4xl; }
+        }
+
+        .btn-hero {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            padding: .85rem 2rem;
+            background: #fff;
+            color: v.$accent;
+            font-family: v.$font-body;
+            font-size: v.$font-size-sm;
+            font-weight: v.$font-weight-semibold;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            text-decoration: none;
+            border-radius: v.$radius;
+            transition: all v.$transition-fast;
+
+            &:hover { background: v.$bg-secondary; color: v.$text-primary; }
+        }
+    }
+
+    .iconbox {
+        border-top: v.$border-width solid v.$border-color;
+        border-bottom: v.$border-width solid v.$border-color;
+        background: v.$surface-alt;
+        padding: v.$spacing-2xl 0;
+
+        &__item {
+            text-align: center;
+            padding: 1rem;
+
+            &__icon {
+                font-size: 32px;
+                color: v.$accent;
+                margin-bottom: .75rem;
+                display: block;
+            }
+
+            &__heading {
+                font-family: v.$font-body;
+                font-size: v.$font-size-sm;
+                font-weight: v.$font-weight-semibold;
+                letter-spacing: .02em;
+                text-transform: uppercase;
+                color: v.$text-primary;
+                margin-bottom: .35rem;
+            }
+
+            &__text {
+                font-family: v.$font-body;
+                font-size: v.$font-size-xs;
+                color: v.$muted;
+                line-height: v.$line-height-base;
+                max-width: 220px;
+                margin-inline: auto;
+            }
+        }
+    }
+
+    .category-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        @include m.up(sm) { grid-template-columns: repeat(3, 1fr); }
+        @include m.up(lg) { grid-template-columns: repeat(4, 1fr); }
+
+        a {
+            position: relative;
+            aspect-ratio: 3 / 4;
+            border-radius: 50%;
+            overflow: hidden;
+            display: block;
+            text-decoration: none;
+
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+                transition: transform v.$transition-slow;
+            }
+
+            &:hover img { transform: scale(1.06); }
+
+            .category-grid__label {
+                position: absolute;
+                bottom: 15%;
+                left: 50%;
+                transform: translateX(-50%);
+                font-family: v.$font-display;
+                font-size: v.$font-size-xl;
+                font-weight: v.$font-weight-normal;
+                color: #fff;
+                text-shadow: 0 1px 4px rgba(0,0,0,.5);
+                letter-spacing: .02em;
+                white-space: nowrap;
+            }
+        }
+    }
+
+    .testimonial-section {
+        padding: v.$spacing-3xl 0;
+        background: v.$bg-primary;
+
+        .testimonial-card {
+            max-width: 700px;
+            margin-inline: auto;
+            text-align: center;
+            padding: 2rem;
+
+            &__text {
+                font-family: v.$font-display;
+                font-size: v.$font-size-xl;
+                font-weight: v.$font-weight-normal;
+                font-style: italic;
+                line-height: v.$line-height-relaxed;
+                color: v.$text-primary;
+                margin-bottom: 1.5rem;
+
+                &::before { content: '“'; }
+                &::after { content: '”'; }
+            }
+
+            &__author {
+                font-family: v.$font-body;
+                font-size: v.$font-size-sm;
+                font-weight: v.$font-weight-medium;
+                color: v.$accent;
+            }
+        }
+    }
+
+    .instagram-section {
+        padding: v.$spacing-2xl 0 v.$spacing-3xl;
+        background: v.$bg-primary;
+
+        &__heading {
+            font-family: v.$font-display;
+            font-size: v.$font-size-2xl;
+            font-weight: v.$font-weight-normal;
+            text-align: center;
+            margin-bottom: v.$spacing-lg;
+        }
+    }
 }
+

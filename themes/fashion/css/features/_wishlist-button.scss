@@ -1,10 +1,51 @@
 // Wishlist heart button — on product cards (.product-card__wishlist) and any
-// element with [data-wishlist-toggle]. `.is-active` / aria-pressed marks "saved".
+// element with [data-wishlist-toggle]. `.is-active` (or aria-pressed="true")
+// marks "saved".
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .product-card__wishlist,
 [data-wishlist-toggle] {
-    // Your overrides for: wishlist heart button
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 0;
+    background: rgba(255, 255, 255, .85);
+    color: v.$accent;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all v.$transition-base;
+
+    &:hover {
+        background: #fff;
+        color: v.$error;
+        transform: scale(1.05);
+    }
+
+    &:focus-visible {
+        outline: 2px solid v.$accent;
+        outline-offset: 2px;
+    }
 }
+
+.product-card__wishlist {
+    // Scoped inside product card (positioned absolute in product-card)
+    &.is-active,
+    &[aria-pressed='true'] {
+        color: v.$error;
+        background: #fff;
+    }
+}
+
+[data-wishlist-toggle] {
+    &.is-active,
+    &[aria-pressed='true'] {
+        color: v.$error;
+        background: #fff;
+    }
+}
+

@@ -1,9 +1,149 @@
 // Header search autocomplete panel — scoped to `.search-panel`.
-// Tokens: `v.$accent`, `v.$muted`, `v.$radius`; responsive: `@include m.up(lg) { ... }`.
+// Full-width panel below navbar, white bg with shadow, bottom-border input,
+// suggestions list with hover highlight + product suggestion inline.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .search-panel {
-    // Your overrides for: Header search autocomplete panel
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: v.$z-search;
+    background: v.$bg-primary;
+    border-bottom: v.$border-width solid v.$border-color;
+    box-shadow: v.$shadow-lg;
+    padding: 1.25rem 0;
+    display: none;
+
+    &:not([hidden]) { display: block; }
+
+    // Inner container
+    .container {
+        max-width: v.$container-max;
+        margin-inline: auto;
+        padding-inline: 1rem;
+    }
+
+    // Input styling — bottom-border only (no full box)
+    .search-panel__input {
+        width: 100%;
+        border: 0;
+        border-bottom: v.$border-width solid v.$border-color;
+        border-radius: 0;
+        padding: .75rem 0;
+        font-family: v.$font-body;
+        font-size: v.$font-size-md;
+        color: v.$text-primary;
+        background: transparent;
+        outline: none;
+        transition: border-color v.$transition-fast;
+
+        &::placeholder { color: v.$muted; }
+
+        &:focus {
+            border-bottom-color: v.$accent;
+        }
+    }
+
+    // Suggestions list
+    .search-suggestions {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        max-height: 60vh;
+        overflow-y: auto;
+        margin-top: .5rem;
+
+        &__item {
+            display: flex;
+            align-items: center;
+            gap: .85rem;
+            padding: .65rem .5rem;
+            border-radius: v.$radius;
+            cursor: pointer;
+            transition: background v.$transition-fast;
+
+            &:hover,
+            &:focus { background: rgba(0, 0, 0, .04); }
+        }
+
+        &__thumb {
+            flex: 0 0 auto;
+            width: 44px;
+            height: 56px;
+            border-radius: v.$radius;
+            overflow: hidden;
+            background: v.$bg-secondary;
+
+            img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+        }
+
+        &__meta {
+            flex: 1 1 auto;
+            min-width: 0;
+            display: flex;
+            flex-direction: column;
+            gap: .15rem;
+        }
+
+        &__title {
+            font-family: v.$font-display;
+            font-size: v.$font-size-sm;
+            font-weight: v.$font-weight-normal;
+            color: v.$text-primary;
+            margin: 0;
+
+            display: -webkit-box;
+            -webkit-line-clamp: 1;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        &__price {
+            font-family: v.$font-body;
+            font-size: v.$font-size-xs;
+            font-weight: v.$font-weight-medium;
+            color: v.$accent;
+        }
+
+        &__category {
+            font-family: v.$font-body;
+            font-size: v.$font-size-xs;
+            color: v.$muted;
+        }
+    }
+
+    // Quick links heading
+    .search-panel__quick {
+        font-family: v.$font-body;
+        font-size: v.$font-size-xs;
+        font-weight: v.$font-weight-semibold;
+        letter-spacing: v.$letter-spacing-wide;
+        text-transform: uppercase;
+        color: v.$muted;
+        margin: 1rem .5rem .35rem;
+    }
+
+    .search-panel__links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: .5rem 1rem;
+        padding: 0 .5rem;
+
+        a {
+            font-family: v.$font-body;
+            font-size: v.$font-size-sm;
+            color: v.$text-primary;
+            text-decoration: none;
+
+            &:hover { color: v.$muted; text-decoration: underline; }
+        }
+    }
 }
+

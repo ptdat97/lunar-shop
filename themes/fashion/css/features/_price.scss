@@ -1,9 +1,68 @@
 // Price component — scoped to `.product-card__price`.
-// Tokens: `v.$accent`, `v.$muted`, `v.$radius`; responsive: `@include m.up(lg) { ... }`.
+// Regular price in `v.$accent`, sale price in danger red + line-through on original.
+// Inline membership / VIP badge where applicable.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .product-card__price {
-    // Your overrides for: Price component
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem .6rem;
+    font-family: v.$font-body;
+
+    // Regular price
+    .price--regular {
+        font-size: v.$font-size-sm;
+        font-weight: v.$font-weight-medium;
+        color: v.$accent;
+    }
+
+    // Sale price (current / discounted)
+    .price--sale {
+        font-size: v.$font-size-sm;
+        font-weight: v.$font-weight-semibold;
+        color: v.$error;
+    }
+
+    // Original / compare-at price
+    .price--compare {
+        font-size: v.$font-size-xs;
+        font-weight: v.$font-weight-normal;
+        color: v.$muted;
+        text-decoration: line-through;
+    }
+
+    // Inline membership / VIP badge
+    .price__badge {
+        display: inline-flex;
+        align-items: center;
+        height: 20px;
+        padding: 0 .5rem;
+        border-radius: v.$radius;
+        background: v.$surface-alt;
+        color: v.$accent;
+        font-size: v.$font-size-xs;
+        font-weight: v.$font-weight-semibold;
+        letter-spacing: .02em;
+        line-height: 1;
+        white-space: nowrap;
+    }
+
+    // Savings percentage pill (optional inline helper)
+    .price__savings {
+        font-size: v.$font-size-xs;
+        font-weight: v.$font-weight-semibold;
+        color: v.$success;
+    }
+
+    // Compact alignment for grid cards
+    @include m.down(sm) {
+        gap: .25rem .4rem;
+
+        .price--regular,
+        .price--sale { font-size: v.$font-size-xs; }
+    }
 }
+

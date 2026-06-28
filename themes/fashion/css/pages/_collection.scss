@@ -1,10 +1,38 @@
 // Collection / category listing — scoped to <body class="page-collection">.
-// Custom this page's styles here. Tokens: `v.$accent`, `v.$muted`, `v.$radius`;
-// responsive helper: `@include m.up(lg) { ... }`.
+// Collection header (h1 in serif, description muted), product grid spacing.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .page-collection {
-    // Your overrides for: Collection / category listing
+    .collection-header {
+        padding: v.$spacing-2xl 0 v.$spacing-xl;
+
+        h1 {
+            font-family: v.$font-display;
+            font-size: v.$font-size-3xl;
+            font-weight: v.$font-weight-normal;
+            letter-spacing: -.01em;
+            color: v.$text-primary;
+            margin-bottom: .5rem;
+        }
+
+        .collection-description {
+            font-family: v.$font-body;
+            font-size: v.$font-size-sm;
+            color: v.$muted;
+            max-width: 600px;
+            line-height: v.$line-height-relaxed;
+        }
+    }
+
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+
+        @include m.up(sm) { grid-template-columns: repeat(3, 1fr); }
+        @include m.up(lg) { grid-template-columns: repeat(4, 1fr); }
+    }
 }
+

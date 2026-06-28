@@ -1,10 +1,75 @@
 // Login page — scoped to <body class="page-login">.
-// Custom this page's styles here. Tokens: `v.$accent`, `v.$muted`, `v.$radius`;
-// responsive helper: `@include m.up(lg) { ... }`.
+// Centred card (max-width 420px), bottom-border inputs, auth CTA full-width.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .page-login {
-    // Your overrides for: Login page
+    padding: v.$spacing-3xl 0;
+
+    .auth-card {
+        max-width: 420px;
+        margin-inline: auto;
+        padding: 2rem;
+        border: v.$border-width solid v.$border-color;
+        border-radius: v.$radius;
+        background: v.$bg-primary;
+
+        &__heading {
+            font-family: v.$font-display;
+            font-size: v.$font-size-xl;
+            font-weight: v.$font-weight-normal;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-control {
+            border: 0;
+            border-bottom: v.$border-width solid v.$border-color;
+            border-radius: 0;
+            padding: .6rem 0;
+            font-family: v.$font-body;
+            font-size: v.$font-size-sm;
+            color: v.$text-primary;
+            background: transparent;
+
+            &:focus {
+                outline: none;
+                border-bottom-color: v.$accent;
+            }
+        }
+
+        .form-label {
+            font-family: v.$font-body;
+            font-size: v.$font-size-xs;
+            font-weight: v.$font-weight-semibold;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: v.$muted;
+        }
+
+        .btn {
+            width: 100%;
+            font-family: v.$font-body;
+            font-size: v.$font-size-sm;
+            font-weight: v.$font-weight-semibold;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            padding: .85rem;
+        }
+
+        .auth-links {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: v.$font-size-sm;
+
+            a {
+                color: v.$muted;
+                text-decoration: none;
+
+                &:hover { color: v.$accent; }
+            }
+        }
+    }
 }
+

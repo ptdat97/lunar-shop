@@ -1,9 +1,109 @@
 // Lookbook shoppable hotspot pins — scoped to `.lookbook-pin`.
-// Tokens: `v.$accent`, `v.$muted`, `v.$radius`; responsive: `@include m.up(lg) { ... }`.
+// Pulsing dot hotspot on lookbook image, popover card with product image + name + price.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .lookbook-pin {
-    // Your overrides for: Lookbook shoppable hotspot pins
+    position: absolute;
+    transform: translate(-50%, -50%);
+    z-index: v.$z-popover;
+
+    &__dot {
+        width: 26px;
+        height: 26px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        background: rgba(0, 0, 0, .55);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, .3);
+        cursor: pointer;
+        padding: 0;
+        position: relative;
+        animation: lookbook-pin-pulse 2s infinite;
+
+        &::before {
+            content: '+';
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 16px;
+            line-height: 1;
+        }
+    }
+
+    &__card {
+        position: absolute;
+        bottom: calc(100% + 10px);
+        left: 50%;
+        transform: translateX(-50%);
+        width: max-content;
+        max-width: 240px;
+        padding: 10px 12px;
+        background: v.$bg-primary;
+        border-radius: v.$radius;
+        box-shadow: v.$shadow-lg;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity v.$transition-base, visibility v.$transition-base;
+        z-index: v.$z-popover;
+
+        &::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: v.$bg-primary;
+        }
+    }
+
+    &__thumb {
+        width: 56px;
+        height: 56px;
+        object-fit: cover;
+        border-radius: v.$radius;
+        flex: 0 0 auto;
+    }
+
+    &__name {
+        font-family: v.$font-display;
+        font-size: v.$font-size-sm;
+        font-weight: v.$font-weight-normal;
+        line-height: v.$line-height-tight;
+        color: v.$text-primary;
+        margin: 0 0 .2rem;
+    }
+
+    &__price {
+        font-family: v.$font-body;
+        font-size: v.$font-size-xs;
+        font-weight: v.$font-weight-medium;
+        color: v.$accent;
+    }
+
+    // Reveal the card on hover or keyboard focus within the pin.
+    &:hover &__card,
+    &:focus-within &__card {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    &:focus-visible {
+        outline: none;
+
+        &__dot {
+            box-shadow: 0 0 0 3px v.$accent;
+        }
+    }
 }
+
+@keyframes lookbook-pin-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 255, 255, .6); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 255, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+}
+

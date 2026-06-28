@@ -67,7 +67,7 @@
 .site-header {
     position: sticky;
     top: 0;
-    z-index: 1030;
+    z-index: v.$z-header;
     background: #fff;
 }
 
@@ -191,9 +191,10 @@
 
 .pswp__bottom-bar {
     position: absolute;
-    left: 50%;
+    right: 16px;
     bottom: 24px;
-    transform: translateX(-50%);
+    left: auto;
+    transform: none;
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -203,6 +204,8 @@
     border-radius: 999px;
     z-index: 10;
 
+    // Aligned vertically with the close button (top 16px + 44px/2 = 38px center,
+    // bottom bar height ~40px → bottom 24px aligns well).
     &--single { display: none; }
 
     .pswp__button {
@@ -225,6 +228,13 @@
         min-width: 3.5em;
         text-align: center;
     }
+}
+
+// Hide the bottom bar when PhotoSwipe UI fades out (Photoswipe toggles this class).
+.pswp__hide-on-close .pswp__bottom-bar {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .25s ease, visibility .25s ease;
 }
 
 // Hero slider falls back gracefully before Swiper initialises.

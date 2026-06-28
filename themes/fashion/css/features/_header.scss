@@ -1,9 +1,137 @@
 // Site header / navbar — scoped to `.site-header`.
-// Tokens: `v.$accent`, `v.$muted`, `v.$radius`; responsive: `@include m.up(lg) { ... }`.
+// Tokens: `v.$accent`, `v.$muted`, `v.$border-color`; responsive: `@include m.up(lg)`. 
+// Sticky white bar with editorial typography and restrained iconography.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .site-header {
-    // Your overrides for: Site header / navbar
+    position: sticky;
+    top: 0;
+    z-index: v.$z-header;
+    background: v.$bg-primary;
+    border-bottom: v.$border-width solid v.$border-color;
+    height: v.$header-height;
+
+    @include m.down(md) {
+        height: v.$header-height-mobile;
+    }
+
+    // Brand / logo
+    .navbar-brand {
+        font-family: v.$font-display;
+        font-weight: v.$font-weight-normal;
+        font-size: v.$font-size-xl;
+        letter-spacing: v.$letter-spacing-wide;
+        text-transform: uppercase;
+        color: v.$accent;
+        line-height: 1;
+        padding: 0;
+        text-decoration: none;
+
+        &:hover { color: v.$muted; }
+    }
+
+    // Nav links
+    .navbar-nav {
+        .nav-link {
+            font-family: v.$font-body;
+            font-size: v.$font-size-xs;
+            font-weight: v.$font-weight-semibold;
+            letter-spacing: v.$letter-spacing-wide;
+            text-transform: uppercase;
+            color: v.$accent;
+            padding: .5rem .85rem;
+            text-decoration: none;
+            transition: color v.$transition-fast;
+
+            &:hover,
+            &:focus-visible { color: v.$muted; }
+        }
+    }
+
+    // Icon action group (search / wishlist / account / cart)
+    .header-actions {
+        display: flex;
+        align-items: center;
+        gap: .25rem;
+
+        .btn-icon {
+            @include m.icon-button;
+            width: 38px;
+            height: 38px;
+            font-size: 20px;
+            color: v.$accent;
+            border-radius: v.$radius;
+            background: transparent;
+            border: 0;
+            position: relative;
+
+            &:hover { background: v.$bg-tertiary; }
+            &:focus-visible { outline: 2px solid v.$accent; outline-offset: 2px; }
+        }
+    }
+
+    // Wishlist / cart badge pill
+    [data-wishlist-count],
+    [data-cart-count] {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        min-width: 16px;
+        height: 16px;
+        padding: 0 4px;
+        border-radius: 999px;
+        background: v.$accent;
+        color: v.$accent-contrast;
+        font-family: v.$font-body;
+        font-size: 10px;
+        font-weight: v.$font-weight-semibold;
+        line-height: 16px;
+        text-align: center;
+        border: 1.5px solid v.$bg-primary;
+        pointer-events: none;
+    }
+
+    // Toggler (mobile hamburger)
+    .navbar-toggler {
+        border: 0;
+        padding: .5rem;
+        color: v.$accent;
+        font-size: 22px;
+
+        &:focus-visible { outline: 2px solid v.$accent; outline-offset: 2px; }
+    }
+
+    // Mobile offcanvas header polish (ID lives on #mobileMenu)
+    #mobileMenu {
+        .offcanvas-header {
+            border-bottom: v.$border-width solid v.$border-color;
+            padding: 1rem 1.25rem;
+
+            .offcanvas-title {
+                font-family: v.$font-display;
+                font-weight: v.$font-weight-normal;
+                letter-spacing: v.$letter-spacing-wide;
+                text-transform: uppercase;
+                font-size: v.$font-size-lg;
+            }
+
+            .btn-close {
+                margin: 0;
+                padding: .5rem;
+            }
+        }
+
+        .offcanvas-body {
+            .navbar-nav {
+                .nav-link {
+                    font-size: v.$font-size-base;
+                    padding: .65rem 0;
+                    border-bottom: v.$border-width solid v.$border-color;
+                }
+            }
+        }
+    }
 }
+

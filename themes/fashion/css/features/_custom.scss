@@ -107,7 +107,7 @@
         padding-inline: .85rem;
         border-radius: v.$radius;
         font-weight: 500;
-        transition: all v.$transition;
+        transition: all v.$transition-base;
 
         // Unavailable combination: struck through, dimmed, not clickable.
         &:disabled,
@@ -163,7 +163,7 @@
 
         &__item {
             border-radius: v.$radius;
-            transition: background v.$transition;
+            transition: background v.$transition-base;
 
             &:hover,
             &:focus { background: rgba(0, 0, 0, .04); }
@@ -190,7 +190,7 @@
 
     img {
         @include m.cover;
-        transition: transform v.$transition;
+        transition: transform v.$transition-base;
     }
 
     .instagram__overlay {
@@ -203,7 +203,7 @@
         font-size: 1.5rem;
         background: rgba(0, 0, 0, .35);
         opacity: 0;
-        transition: opacity v.$transition;
+        transition: opacity v.$transition-base;
     }
 
     &:hover {

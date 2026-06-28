@@ -1,10 +1,84 @@
 // Wishlist page — scoped to <body class="page-wishlist">.
-// Custom this page's styles here. Tokens: `v.$accent`, `v.$muted`, `v.$radius`;
-// responsive helper: `@include m.up(lg) { ... }`.
+// Product grid with remove overlay, empty state.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .page-wishlist {
-    // Your overrides for: Wishlist page
+    padding: v.$spacing-2xl 0 v.$spacing-3xl;
+
+    .wishlist-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+
+        @include m.up(sm) { grid-template-columns: repeat(3, 1fr); }
+        @include m.up(lg) { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .product-card {
+        position: relative;
+
+        &__remove-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, .85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity v.$transition-base;
+            z-index: v.$z-overlay;
+        }
+
+        &:hover &__remove-overlay { opacity: 1; }
+
+        .btn-remove-from-wishlist {
+            font-family: v.$font-body;
+            font-size: v.$font-size-xs;
+            font-weight: v.$font-weight-semibold;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            padding: .6rem 1.25rem;
+            background: v.$bg-primary;
+            color: v.$text-primary;
+            border: v.$border-width solid v.$border-color;
+            border-radius: v.$radius;
+            cursor: pointer;
+            transition: all v.$transition-fast;
+
+            &:hover {
+                background: v.$error;
+                color: v.$accent-contrast;
+                border-color: v.$error;
+            }
+        }
+    }
+
+    .wishlist-empty {
+        text-align: center;
+        padding: 4rem 1rem;
+        color: v.$muted;
+
+        &__icon {
+            font-size: 48px;
+            color: v.$border-color;
+            margin-bottom: 1rem;
+        }
+
+        &__title {
+            font-family: v.$font-display;
+            font-size: v.$font-size-xl;
+            font-weight: v.$font-weight-normal;
+            color: v.$text-primary;
+            margin-bottom: .5rem;
+        }
+
+        &__text {
+            font-family: v.$font-body;
+            font-size: v.$font-size-sm;
+            line-height: v.$line-height-base;
+        }
+    }
 }
+

@@ -1,9 +1,131 @@
 // Today's deals strip — scoped to `.promotions-strip`.
-// Tokens: `v.$accent`, `v.$muted`, `v.$radius`; responsive: `@include m.up(lg) { ... }`.
+// Horizontal scrollable strip of deal cards: thumbnail + title + CTA.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .promotions-strip {
-    // Your overrides for: Today's deals strip
+    padding: v.$spacing-lg 0;
+    border-top: v.$border-width solid v.$border-color;
+    border-bottom: v.$border-width solid v.$border-color;
+    background: v.$bg-primary;
+
+    // Section heading
+    &__heading {
+        font-family: v.$font-display;
+        font-size: v.$font-size-2xl;
+        font-weight: v.$font-weight-normal;
+        letter-spacing: -.01em;
+        margin-bottom: v.$spacing-lg;
+        color: v.$text-primary;
+    }
+
+    // Horizontal scroll container
+    &__track {
+        display: flex;
+        gap: v.$spacing-md;
+        overflow-x: auto;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: thin;
+        padding-bottom: v.$spacing-xs;
+
+        &::-webkit-scrollbar { height: 4px; }
+        &::-webkit-scrollbar-thumb {
+            background: v.$muted;
+            border-radius: 999px;
+        }
+
+        @include m.up(lg) {
+            flex-wrap: nowrap;
+            justify-content: space-between;
+        }
+    }
+
+    // Individual promotion card
+    &__card {
+        flex: 0 0 auto;
+        width: 260px;
+        scroll-snap-align: start;
+        display: flex;
+        flex-direction: column;
+        text-decoration: none;
+        color: inherit;
+        border-radius: v.$radius;
+        overflow: hidden;
+        background: v.$bg-primary;
+        border: v.$border-width solid v.$border-color;
+        transition: box-shadow v.$transition-fast, transform v.$transition-fast;
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: v.$shadow-md;
+        }
+
+        @include m.down(md) {
+            width: 220px;
+        }
+    }
+
+    // Deal thumbnail
+    &__thumb {
+        aspect-ratio: 4 / 3;
+        overflow: hidden;
+        background: v.$bg-secondary;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform v.$transition-slow;
+        }
+    }
+
+    &__card:hover &__thumb img { transform: scale(1.04); }
+
+    // Card body
+    &__body {
+        padding: .85rem 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: .35rem;
+    }
+
+    // Title
+    &__title {
+        font-family: v.$font-body;
+        font-size: v.$font-size-sm;
+        font-weight: v.$font-weight-medium;
+        line-height: v.$line-height-tight;
+        color: v.$text-primary;
+        margin: 0;
+
+        // Clamp to 2 lines
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    // CTA link label
+    &__cta {
+        font-family: v.$font-body;
+        font-size: v.$font-size-xs;
+        font-weight: v.$font-weight-semibold;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        color: v.$accent;
+        margin-top: .25rem;
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+
+        .bi-arrow-right {
+            font-size: 12px;
+            transition: transform v.$transition-fast;
+        }
+
+        &:hover .bi-arrow-right { transform: translateX(3px); }
+    }
 }
+

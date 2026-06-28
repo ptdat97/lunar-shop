@@ -1,10 +1,63 @@
 // Search results page — scoped to <body class="page-search">.
-// Custom this page's styles here. Tokens: `v.$accent`, `v.$muted`, `v.$radius`;
-// responsive helper: `@include m.up(lg) { ... }`.
+// Search query heading ("X results for "term""), empty state centred.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .page-search {
-    // Your overrides for: Search results page
+    padding: v.$spacing-2xl 0 v.$spacing-3xl;
+
+    .search-header {
+        margin-bottom: v.$spacing-xl;
+
+        h1 {
+            font-family: v.$font-display;
+            font-size: v.$font-size-2xl;
+            font-weight: v.$font-weight-normal;
+            color: v.$text-primary;
+            margin-bottom: .25rem;
+        }
+
+        .search-query {
+            font-family: v.$font-body;
+            font-size: v.$font-size-sm;
+            color: v.$muted;
+        }
+    }
+
+    .product-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+
+        @include m.up(sm) { grid-template-columns: repeat(3, 1fr); }
+        @include m.up(lg) { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .search-empty {
+        text-align: center;
+        padding: 4rem 1rem;
+        color: v.$muted;
+
+        &__icon {
+            font-size: 48px;
+            color: v.$border-color;
+            margin-bottom: 1rem;
+        }
+
+        &__title {
+            font-family: v.$font-display;
+            font-size: v.$font-size-xl;
+            font-weight: v.$font-weight-normal;
+            color: v.$text-primary;
+            margin-bottom: .5rem;
+        }
+
+        &__text {
+            font-family: v.$font-body;
+            font-size: v.$font-size-sm;
+            line-height: v.$line-height-base;
+        }
+    }
 }
+

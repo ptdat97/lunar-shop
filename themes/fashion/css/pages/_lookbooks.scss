@@ -1,10 +1,62 @@
 // Lookbooks listing page — scoped to <body class="page-lookbooks">.
-// Custom this page's styles here. Tokens: `v.$accent`, `v.$muted`, `v.$radius`;
-// responsive helper: `@include m.up(lg) { ... }`.
+// Editorial mosaic grid, cover image hover overlay with title.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .page-lookbooks {
-    // Your overrides for: Lookbooks listing page
+    padding: v.$spacing-2xl 0 v.$spacing-3xl;
+
+    .lookbooks-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+
+        @include m.up(sm) { grid-template-columns: repeat(3, 1fr); }
+        @include m.up(lg) { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .lookbook-card {
+        position: relative;
+        aspect-ratio: 3 / 4;
+        overflow: hidden;
+        border-radius: v.$radius;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+
+        img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform v.$transition-slow;
+        }
+
+        &:hover img { transform: scale(1.04); }
+
+        &__overlay {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(0deg, rgba(0, 0, 0, .55) 0%, transparent 60%);
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 1.5rem;
+        }
+
+        &__title {
+            font-family: v.$font-display;
+            font-size: v.$font-size-xl;
+            font-weight: v.$font-weight-normal;
+            color: #fff;
+            margin-bottom: .25rem;
+        }
+
+        &__meta {
+            font-family: v.$font-body;
+            font-size: v.$font-size-xs;
+            color: rgba(255, 255, 255, .8);
+        }
+    }
 }
+

@@ -1,9 +1,48 @@
 // Recently viewed strip — scoped to `.recently-viewed`.
-// Tokens: `v.$accent`, `v.$muted`, `v.$radius`; responsive: `@include m.up(lg) { ... }`.
+// Section heading + horizontal Swiper strip of mini product cards.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .recently-viewed {
-    // Your overrides for: Recently viewed strip
+    padding: v.$spacing-3xl 0;
+    border-top: v.$border-width solid v.$border-color;
+    background: v.$bg-primary;
+
+    &__heading {
+        font-family: v.$font-display;
+        font-size: v.$font-size-2xl;
+        font-weight: v.$font-weight-normal;
+        letter-spacing: -.01em;
+        color: v.$text-primary;
+        margin-bottom: v.$spacing-lg;
+    }
+
+    .swiper {
+        overflow: visible;
+
+        &-wrapper { align-items: stretch; }
+
+        &-slide {
+            height: auto;
+        }
+    }
+
+    // Mini product card inside the strip
+    .product-card {
+        max-width: 220px;
+
+        &__media { aspect-ratio: 2 / 3; }
+
+        &__body { padding: 0; }
+
+        &__title {
+            font-size: v.$font-size-sm;
+        }
+
+        &__price {
+            font-size: v.$font-size-xs;
+        }
+    }
 }
+

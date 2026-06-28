@@ -1,8 +1,87 @@
 // Language switcher dropdown — [data-language-switcher] (header desktop + mobile).
+// Compact globe icon + current locale text, dropdown list.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 [data-language-switcher] {
-    // Your overrides for: language switcher
+    position: relative;
+
+    .lang-trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        padding: .35rem .6rem;
+        border-radius: v.$radius;
+        border: v.$border-width solid transparent;
+        background: transparent;
+        color: v.$accent;
+        font-family: v.$font-body;
+        font-size: v.$font-size-xs;
+        font-weight: v.$font-weight-medium;
+        letter-spacing: .02em;
+        cursor: pointer;
+        transition: all v.$transition-fast;
+
+        .bi-globe2 {
+            font-size: 18px;
+            color: v.$muted;
+        }
+
+        &:hover {
+            background: v.$bg-tertiary;
+            border-color: v.$border-color;
+        }
+
+        &:focus-visible {
+            outline: 2px solid v.$accent;
+            outline-offset: 2px;
+        }
+    }
+
+    .lang-menu {
+        position: absolute;
+        top: calc(100% + .35rem);
+        right: 0;
+        min-width: 140px;
+        padding: .35rem 0;
+        background: v.$bg-primary;
+        border: v.$border-width solid v.$border-color;
+        border-radius: v.$radius;
+        box-shadow: v.$shadow-md;
+        list-style: none;
+        margin: 0;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-4px);
+        transition: all v.$transition-base;
+        z-index: v.$z-search;
+    }
+
+    &.is-open .lang-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .lang-item a {
+        display: block;
+        padding: .45rem .85rem;
+        font-family: v.$font-body;
+        font-size: v.$font-size-sm;
+        color: v.$text-primary;
+        text-decoration: none;
+        transition: background v.$transition-fast;
+
+        &:hover {
+            background: v.$bg-secondary;
+            color: v.$accent;
+        }
+    }
+
+    .lang-item.is-active a {
+        font-weight: v.$font-weight-semibold;
+        color: v.$accent;
+    }
 }
+

@@ -1,10 +1,82 @@
 // Single promotion page — scoped to <body class="page-promotion">.
-// Custom this page's styles here. Tokens: `v.$accent`, `v.$muted`, `v.$radius`;
-// responsive helper: `@include m.up(lg) { ... }`.
+// Full-bleed countdown hero, product grid with flash-sale badge highlight.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .page-promotion {
-    // Your overrides for: Single promotion page
+    .promo-hero {
+        position: relative;
+        min-height: 50vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        background-size: cover;
+        background-position: center;
+        padding: 4rem 1rem;
+
+        @include m.up(lg) { min-height: 60vh; }
+
+        &::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(0, 0, 0, .45);
+        }
+
+        &__content {
+            position: relative;
+            z-index: 1;
+            color: #fff;
+            max-width: v.$container-content;
+        }
+
+        &__kicker {
+            font-family: v.$font-body;
+            font-size: v.$font-size-xs;
+            font-weight: v.$font-weight-semibold;
+            letter-spacing: v.$letter-spacing-wide;
+            text-transform: uppercase;
+            margin-bottom: .75rem;
+        }
+
+        &__title {
+            font-family: v.$font-display;
+            font-size: v.$font-size-3xl;
+            font-weight: v.$font-weight-normal;
+            line-height: v.$line-height-tight;
+            margin-bottom: 1rem;
+        }
+
+        &__countdown {
+            display: inline-flex;
+            align-items: center;
+            gap: .5rem;
+            margin-top: 1.5rem;
+            padding: .5rem 1rem;
+            background: rgba(255, 255, 255, .15);
+            border: v.$border-width solid rgba(255, 255, 255, .3);
+            border-radius: v.$radius;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: v.$font-size-lg;
+            font-weight: v.$font-weight-semibold;
+            letter-spacing: .04em;
+        }
+    }
+
+    .product-grid {
+        padding: v.$spacing-2xl 0;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+
+        @include m.up(sm) { grid-template-columns: repeat(3, 1fr); }
+        @include m.up(lg) { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .product-card__badge--sale {
+        background: v.$error;
+    }
 }
+

@@ -59,4 +59,11 @@
     --fashion-accent-contrast: #{v.$accent-contrast};
     --fashion-muted: #{v.$muted};
     --fashion-header-height: #{v.$header-height};
+    --fashion-z-header: #{v.$z-header};
+    --fashion-z-dropdown: #{v.$z-dropdown};
+    --fashion-z-sticky: #{v.$z-sticky};
+    --fashion-z-overlay: #{v.$z-overlay};
+    --fashion-z-modal: #{v.$z-modal};
+    --fashion-z-modal-backdrop: #{v.$z-modal-backdrop};
+    --fashion-z-tooltip: #{v.$z-tooltip};
 }

@@ -5,7 +5,7 @@
 
 // --- Index page cards ---------------------------------------------------
 .lookbook-card {
-    .ratio img { @include m.cover; transition: transform v.$transition; }
+    .ratio img { @include m.cover; transition: transform v.$transition-slow; }
     &:hover .ratio img { transform: scale(1.04); }
 }
 

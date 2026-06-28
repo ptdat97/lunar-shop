@@ -1,10 +1,198 @@
 // Cart page — scoped to <body class="page-cart">.
-// Custom this page's styles here. Tokens: `v.$accent`, `v.$muted`, `v.$radius`;
-// responsive helper: `@include m.up(lg) { ... }`.
+// Cart table, summary sidebar card (bg surface-alt), coupon input row.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .page-cart {
-    // Your overrides for: Cart page
+    .cart-table {
+        width: 100%;
+        border-collapse: collapse;
+
+        th,
+        td {
+            padding: 1rem .5rem;
+            border-bottom: v.$border-width solid v.$border-color;
+            vertical-align: middle;
+        }
+
+        th {
+            font-family: v.$font-body;
+            font-size: v.$font-size-xs;
+            font-weight: v.$font-weight-semibold;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            color: v.$muted;
+        }
+
+        .cart-product {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+
+            &__media {
+                flex: 0 0 auto;
+                width: 80px;
+                height: 100px;
+                border-radius: v.$radius;
+                overflow: hidden;
+                background: v.$bg-secondary;
+
+                img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                }
+            }
+
+            &__info { flex: 1 1 auto; min-width: 0; }
+
+            &__title {
+                font-family: v.$font-display;
+                font-size: v.$font-size-sm;
+                font-weight: v.$font-weight-normal;
+                line-height: v.$line-height-tight;
+                color: v.$text-primary;
+                margin-bottom: .2rem;
+            }
+
+            &__variant {
+                font-family: v.$font-body;
+                font-size: v.$font-size-xs;
+                color: v.$muted;
+            }
+        }
+
+        .cart-price {
+            font-family: v.$font-body;
+            font-size: v.$font-size-sm;
+            font-weight: v.$font-weight-medium;
+            color: v.$accent;
+        }
+
+        .cart-qty .qty-control {
+            display: inline-flex;
+            align-items: center;
+            border: v.$border-width solid v.$border-color;
+            border-radius: v.$radius;
+
+            button {
+                @include m.button-reset;
+                width: 32px;
+                height: 32px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+                color: v.$accent;
+                background: transparent;
+
+                &:hover { background: v.$bg-tertiary; }
+                &:disabled { opacity: .4; cursor: not-allowed; }
+            }
+
+            span {
+                width: 36px;
+                text-align: center;
+                font-family: v.$font-body;
+                font-size: v.$font-size-sm;
+                font-weight: v.$font-weight-medium;
+                color: v.$text-primary;
+                border-left: v.$border-width solid v.$border-color;
+                border-right: v.$border-width solid v.$border-color;
+                line-height: 32px;
+            }
+        }
+
+        .cart-remove {
+            @include m.button-reset;
+            font-family: v.$font-body;
+            font-size: v.$font-size-xs;
+            font-weight: v.$font-weight-medium;
+            color: v.$muted;
+            padding: .35rem;
+
+            &:hover { color: v.$error; }
+        }
+    }
+
+    .cart-summary {
+        background: v.$surface-alt;
+        border-radius: v.$radius;
+        padding: 1.5rem;
+        position: sticky;
+        top: calc(v.$header-height + 1.5rem);
+
+        &__row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            padding: .6rem 0;
+            border-bottom: v.$border-width solid v.$border-color;
+
+            dt {
+                font-family: v.$font-body;
+                font-size: v.$font-size-sm;
+                color: v.$muted;
+                margin: 0;
+            }
+
+            dd {
+                font-family: v.$font-body;
+                font-size: v.$font-size-sm;
+                font-weight: v.$font-weight-medium;
+                color: v.$text-primary;
+                margin: 0;
+            }
+
+            &--total {
+                border-bottom: 0;
+                padding-top: .85rem;
+
+                dt {
+                    font-size: v.$font-size-base;
+                    font-weight: v.$font-weight-semibold;
+                    color: v.$text-primary;
+                }
+
+                dd {
+                    font-size: v.$font-size-xl;
+                    font-weight: v.$font-weight-semibold;
+                    color: v.$accent;
+                }
+            }
+        }
+
+        &__coupon {
+            margin-top: 1.25rem;
+            padding-top: 1.25rem;
+            border-top: v.$border-width solid v.$border-color;
+
+            .form-control {
+                border: 0;
+                border-bottom: v.$border-width solid v.$border-color;
+                border-radius: 0;
+                padding: .5rem 0;
+                font-family: v.$font-body;
+                font-size: v.$font-size-sm;
+                color: v.$text-primary;
+                background: transparent;
+
+                &:focus {
+                    outline: none;
+                    border-bottom-color: v.$accent;
+                }
+            }
+
+            .btn {
+                font-family: v.$font-body;
+                font-size: v.$font-size-xs;
+                font-weight: v.$font-weight-semibold;
+                letter-spacing: .04em;
+                text-transform: uppercase;
+                padding: .55rem 1rem;
+            }
+        }
+    }
 }
+

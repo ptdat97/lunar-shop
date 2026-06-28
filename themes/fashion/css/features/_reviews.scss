@@ -1,9 +1,115 @@
 // Product reviews block — scoped to `.product-reviews`.
-// Tokens: `v.$accent`, `v.$muted`, `v.$radius`; responsive: `@include m.up(lg) { ... }`.
+// Star ratings + review list with avatar initial circles, date muted,
+// verified badge.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .product-reviews {
-    // Your overrides for: Product reviews block
+    padding: v.$spacing-2xl 0;
+    border-top: v.$border-width solid v.$border-color;
+
+    &__heading {
+        font-family: v.$font-display;
+        font-size: v.$font-size-2xl;
+        font-weight: v.$font-weight-normal;
+        letter-spacing: -.01em;
+        margin-bottom: v.$spacing-xl;
+    }
+
+    // Star bar (filled/empty)
+    .reviews-stars {
+        display: inline-flex;
+        align-items: center;
+        gap: .15rem;
+        font-size: 16px;
+        color: #D4D4D4; // empty star colour
+
+        .bi-star-fill { color: #D4AF37; } // filled in gold
+        .bi-star { color: #D4D4D4; }
+    }
+
+    // Average rating number
+    .reviews-average {
+        font-family: v.$font-body;
+        font-size: v.$font-size-sm;
+        font-weight: v.$font-weight-medium;
+        color: v.$text-primary;
+        margin-left: .5rem;
+    }
+
+    // Review card
+    .review-card {
+        padding: 1.25rem 0;
+        border-bottom: v.$border-width solid v.$border-color;
+
+        &:last-child { border-bottom: 0; }
+
+        &__header {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            margin-bottom: .75rem;
+        }
+
+        // Avatar initial circle
+        &__avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: v.$surface-alt;
+            color: v.$accent;
+            font-family: v.$font-display;
+            font-size: v.$font-size-lg;
+            font-weight: v.$font-weight-normal;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex: 0 0 auto;
+            text-transform: uppercase;
+        }
+
+        &__meta {
+            flex: 1 1 auto;
+            min-width: 0;
+        }
+
+        &__author {
+            font-family: v.$font-body;
+            font-size: v.$font-size-sm;
+            font-weight: v.$font-weight-medium;
+            color: v.$text-primary;
+            margin: 0 0 .15rem;
+        }
+
+        &__date {
+            font-family: v.$font-body;
+            font-size: v.$font-size-xs;
+            color: v.$muted;
+        }
+
+        // Verified badge
+        .review-verified {
+            display: inline-flex;
+            align-items: center;
+            gap: .25rem;
+            font-family: v.$font-body;
+            font-size: v.$font-size-xs;
+            font-weight: v.$font-weight-semibold;
+            color: v.$success;
+            margin-left: .5rem;
+
+            .bi-patch-check { font-size: 14px; }
+        }
+
+        // Review body
+        &__body {
+            font-family: v.$font-body;
+            font-size: v.$font-size-sm;
+            line-height: v.$line-height-relaxed;
+            color: v.$text-secondary;
+            margin: 0;
+        }
+    }
 }
+

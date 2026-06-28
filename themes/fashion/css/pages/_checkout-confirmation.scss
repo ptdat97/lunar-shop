@@ -1,10 +1,109 @@
 // Order confirmation page — scoped to <body class="page-checkout-confirmation">.
-// Custom this page's styles here. Tokens: `v.$accent`, `v.$muted`, `v.$radius`;
-// responsive helper: `@include m.up(lg) { ... }`.
+// Success icon circle, order number serif heading, summary card.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .page-checkout-confirmation {
-    // Your overrides for: Order confirmation page
+    padding: v.$spacing-3xl 0;
+
+    .confirmation {
+        max-width: 600px;
+        margin-inline: auto;
+        text-align: center;
+
+        &__icon {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: v.$success;
+            color: v.$accent-contrast;
+            font-size: 32px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        &__heading {
+            font-family: v.$font-display;
+            font-size: v.$font-size-2xl;
+            font-weight: v.$font-weight-normal;
+            color: v.$text-primary;
+            margin-bottom: .5rem;
+        }
+
+        &__order-number {
+            font-family: v.$font-display;
+            font-size: v.$font-size-xl;
+            font-weight: v.$font-weight-normal;
+            color: v.$muted;
+            margin-bottom: 2rem;
+        }
+
+        &__summary {
+            background: v.$bg-secondary;
+            border-radius: v.$radius;
+            padding: 1.5rem;
+            text-align: left;
+
+            &-row {
+                display: flex;
+                justify-content: space-between;
+                padding: .5rem 0;
+                border-bottom: v.$border-width solid v.$border-color;
+
+                dt {
+                    font-family: v.$font-body;
+                    font-size: v.$font-size-sm;
+                    color: v.$muted;
+                    margin: 0;
+                }
+
+                dd {
+                    font-family: v.$font-body;
+                    font-size: v.$font-size-sm;
+                    font-weight: v.$font-weight-medium;
+                    color: v.$text-primary;
+                    margin: 0;
+                }
+
+                &--total {
+                    border-bottom: 0;
+                    padding-top: .75rem;
+                    margin-top: .5rem;
+                    border-top: v.$border-width solid v.$border-color;
+
+                    dt {
+                        font-weight: v.$font-weight-semibold;
+                        color: v.$text-primary;
+                    }
+
+                    dd {
+                        font-size: v.$font-size-xl;
+                        font-weight: v.$font-weight-semibold;
+                        color: v.$accent;
+                    }
+                }
+            }
+        }
+
+        &__actions {
+            margin-top: 2rem;
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+
+            .btn {
+                font-family: v.$font-body;
+                font-size: v.$font-size-sm;
+                font-weight: v.$font-weight-semibold;
+                letter-spacing: .04em;
+                text-transform: uppercase;
+                padding: .85rem 2rem;
+                min-width: 180px;
+            }
+        }
+    }
 }
+

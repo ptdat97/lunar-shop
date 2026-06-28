@@ -1,10 +1,157 @@
 // Customer account — scoped to <body class="page-account">.
-// Custom this page's styles here. Tokens: `v.$accent`, `v.$muted`, `v.$radius`;
-// responsive helper: `@include m.up(lg) { ... }`.
+// Sidebar nav (vertical tab list), order list table, address card grid, profile form.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
 .page-account {
-    // Your overrides for: Customer account
+    .account-sidebar {
+        border-right: v.$border-width solid v.$border-color;
+
+        @include m.down(lg) {
+            border-right: 0;
+            border-bottom: v.$border-width solid v.$border-color;
+            margin-bottom: 2rem;
+        }
+
+        .nav-pills {
+            flex-direction: column;
+            gap: .25rem;
+
+            .nav-link {
+                font-family: v.$font-body;
+                font-size: v.$font-size-sm;
+                font-weight: v.$font-weight-medium;
+                color: v.$text-primary;
+                border-radius: v.$radius;
+                padding: .6rem .85rem;
+                text-align: left;
+
+                &:hover {
+                    background: v.$bg-secondary;
+                    color: v.$accent;
+                }
+
+                &.active {
+                    background: v.$accent;
+                    color: v.$accent-contrast;
+                }
+            }
+        }
+    }
+
+    .account-content {
+        h2 {
+            font-family: v.$font-display;
+            font-size: v.$font-size-xl;
+            font-weight: v.$font-weight-normal;
+            margin-bottom: 1.5rem;
+        }
+    }
+
+    .order-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: v.$font-body;
+        font-size: v.$font-size-sm;
+
+        th,
+        td {
+            padding: .75rem .5rem;
+            border-bottom: v.$border-width solid v.$border-color;
+            text-align: left;
+        }
+
+        th {
+            font-weight: v.$font-weight-semibold;
+            color: v.$muted;
+            text-transform: uppercase;
+            letter-spacing: .04em;
+            font-size: v.$font-size-xs;
+        }
+
+        .order-id {
+            font-weight: v.$font-weight-medium;
+            color: v.$text-primary;
+        }
+
+        .order-status {
+            display: inline-flex;
+            padding: .2rem .6rem;
+            border-radius: v.$radius;
+            font-size: v.$font-size-xs;
+            font-weight: v.$font-weight-semibold;
+
+            &--fulfilled {
+                background: rgba(45, 106, 79, .1);
+                color: v.$success;
+            }
+
+            &--open {
+                background: rgba(154, 154, 142, .1);
+                color: v.$muted;
+            }
+        }
+    }
+
+    .address-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+
+        @include m.down(sm) {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .address-card {
+        border: v.$border-width solid v.$border-color;
+        border-radius: v.$radius;
+        padding: 1.25rem;
+        background: v.$bg-primary;
+
+        &__name {
+            font-family: v.$font-display;
+            font-size: v.$font-size-base;
+            font-weight: v.$font-weight-normal;
+            margin-bottom: .5rem;
+        }
+
+        &__body {
+            font-family: v.$font-body;
+            font-size: v.$font-size-sm;
+            color: v.$muted;
+            line-height: v.$line-height-base;
+        }
+    }
+
+    .profile-form {
+        max-width: 500px;
+
+        .form-control {
+            border: 0;
+            border-bottom: v.$border-width solid v.$border-color;
+            border-radius: 0;
+            padding: .6rem 0;
+            font-family: v.$font-body;
+            font-size: v.$font-size-sm;
+            color: v.$text-primary;
+            background: transparent;
+
+            &:focus {
+                outline: none;
+                border-bottom-color: v.$accent;
+            }
+        }
+
+        .btn {
+            font-family: v.$font-body;
+            font-size: v.$font-size-sm;
+            font-weight: v.$font-weight-semibold;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+            padding: .75rem 1.5rem;
+        }
+    }
 }
+
