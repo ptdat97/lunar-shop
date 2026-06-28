@@ -1,3 +1,5 @@
+@use 'sass:math';
+
 // Fashion theme — design tokens (minimal luxury: COS / ARKET / SSENSE).
 // Emitted as CSS custom properties from app.scss via :root.
 // Keep names stable — partials and JS reference these exact tokens.
@@ -15,6 +17,7 @@ $bg-secondary: #FAFAF8 !default;   // Warm off-white for alternating sections
 $bg-tertiary: #f5f5f5 !default;    // Hover state background
 $error: #C0392B !default;          // Error / destructive / sale
 $success: #2D6A4F !default;        // Success / savings states
+$warning: #E6A817 !default;        // Warning / countdown / flash-sale accent
 $focus-ring: rgba(17, 17, 17, .25) !default; // Focus indicator
 
 // ── Typography ─────────────────────────────────────────────────────────────────
@@ -113,7 +116,7 @@ $container-narrow: 1200px !default;
 $container-content: 800px !default;
 
 // ── Product imagery ────────────────────────────────────────────────────────────
-$product-ratio: 2 / 3;
+$product-ratio: math.div(2, 3);
 $product-thumb-size: 80px !default;
 
 // ── Breakpoints ────────────────────────────────────────────────────────────────

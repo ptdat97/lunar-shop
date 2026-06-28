@@ -10,7 +10,7 @@
     top: 0;
     z-index: v.$z-header;
     background: v.$bg-primary;
-    //border-bottom: v.$border-width solid v.$border-color;
+    border-bottom: v.$border-width solid v.$border-color;
     height: v.$header-height;
 
     @include m.down(md) {

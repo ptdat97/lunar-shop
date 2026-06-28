@@ -17,7 +17,7 @@
 
     // Lightning icon in warning colour
     .bi-lightning-charge-fill {
-        color: #E6A817;
+        color: v.$warning;
         font-size: 14px;
         vertical-align: -.1em;
         margin-right: .35rem;
@@ -32,7 +32,7 @@
         margin-left: .6rem;
         padding: .15rem .55rem;
         border-radius: v.$radius;
-        background: #E6A817;
+        background: v.$warning;
         color: #111;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-size: v.$font-size-xs;
