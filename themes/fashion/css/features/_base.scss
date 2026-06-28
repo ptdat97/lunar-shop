@@ -63,13 +63,7 @@
 .bi-bell::before { content: '\F18A'; }
 .bi-bag-plus::before { content: '\F176'; }
 
-// Keep sticky header above Bootstrap offcanvas/backdrop content.
-.site-header {
-    position: sticky;
-    top: 0;
-    z-index: v.$z-header;
-    background: #fff;
-}
+
 
 // Product card: consistent media box so the SSR grid and the JS-rendered
 // grid (enhance/_card.js) line up pixel-for-pixel.
@@ -92,18 +86,6 @@
         line-height: 1.3;
     }
 
-    // Wishlist heart overlay on cards.
-    &__wishlist {
-        z-index: 2;
-        line-height: 1;
-        opacity: .85;
-
-        &.active {
-            color: #dc3545;
-
-            .bi-heart::before { content: '\F415'; } // heart-fill
-        }
-    }
 }
 
 // Product page gallery: Swiper main slider + thumbnail strip. Clicking the

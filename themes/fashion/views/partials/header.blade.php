@@ -5,7 +5,7 @@
     </div>
 @endif
 
-<header class="site-header border-bottom">
+<header class="site-header">
     <nav class="navbar navbar-expand-lg bg-white">
         <div class="container">
             {{-- Mobile: hamburger toggles the off-canvas menu --}}
