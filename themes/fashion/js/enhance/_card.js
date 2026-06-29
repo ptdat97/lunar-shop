@@ -63,7 +63,7 @@ export function cardHtml(product) {
 
 // Render an array of products into a grid container, each wrapped in the same
 // Bootstrap column the SSR grid uses.
-export function renderGrid(container, products, colClass = 'col-6 col-md-4 col-lg-3') {
+export function renderGrid(container, products, colClass = 'col-6 col-md-4 col-lg-4') {
     container.innerHTML = products
         .map((p) => `<div class="${colClass}">${cardHtml(p)}</div>`)
         .join('');
