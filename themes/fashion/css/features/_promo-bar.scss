@@ -1,5 +1,5 @@
 // Promo bar / countdown — scoped to `.promo-bar`.
-// Dark bg, small centred text, countdown badge in warning + monospace.
+// Animated gradient, pulsing countdown, luxury minimal design.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
@@ -7,37 +7,79 @@
 .promo-bar {
     background: v.$accent;
     color: v.$accent-contrast;
-    padding: .5rem 1rem;
+    padding: .65rem 1rem;
     text-align: center;
     font-family: v.$font-body;
     font-size: v.$font-size-xs;
     font-weight: v.$font-weight-medium;
-    letter-spacing: .02em;
-    line-height: 1.3;
+    letter-spacing: .03em;
+    line-height: 1.4;
+    position: relative;
+    overflow: hidden;
 
-    // Lightning icon in warning colour
+    // Animated gradient shimmer
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg, 
+            transparent 0%, 
+            rgba(255, 255, 255, .05) 50%, 
+            transparent 100%
+        );
+        animation: shimmer 3s infinite;
+    }
+
+    .container {
+        position: relative;
+        z-index: 1;
+    }
+
+    // Lightning icon in warning colour with pulse
     .bi-lightning-charge-fill {
         color: v.$warning;
         font-size: 14px;
         vertical-align: -.1em;
-        margin-right: .35rem;
+        margin-right: .4rem;
+        animation: pulse 2s ease-in-out infinite;
     }
 
-    // Countdown badge — Bootstrap-like utility classes will handle bg/text,
-    // but we scope the monospace treatment here.
+    // Flash sale text
+    .promo-bar__text {
+        display: inline-flex;
+        align-items: center;
+        gap: .5rem;
+
+        .promo-bar__label {
+            font-weight: v.$font-weight-semibold;
+            text-transform: uppercase;
+            letter-spacing: v.$letter-spacing-wide;
+        }
+
+        .promo-bar__description {
+            opacity: .8;
+        }
+    }
+
+    // Countdown badge — modern glass style
     .promo-bar__countdown {
         display: inline-flex;
         align-items: center;
-        gap: .35rem;
-        margin-left: .6rem;
-        padding: .15rem .55rem;
-        border-radius: v.$radius;
+        gap: .4rem;
+        margin-left: .75rem;
+        padding: .25rem .65rem;
+        border-radius: v.$radius-full;
         background: v.$warning;
         color: #111;
         font-family: v.$font-body;
         font-size: v.$font-size-xs;
-        font-weight: v.$font-weight-semibold;
-        letter-spacing: .04em;
+        font-weight: v.$font-weight-bold;
+        letter-spacing: .05em;
+        box-shadow: 0 2px 8px rgba(230, 168, 23, .3);
+        animation: scaleIn v.$transition-bounce;
     }
 
     // Clickable dismiss or CTA link inside the bar
@@ -45,19 +87,29 @@
         color: inherit;
         text-decoration: underline;
         text-underline-offset: 3px;
+        text-decoration-thickness: 1px;
+        transition: all v.$transition-fast;
+        font-weight: v.$font-weight-semibold;
 
-        &:hover { color: rgba(255, 255, 255, .8); }
+        &:hover { 
+            color: rgba(255, 255, 255, .9);
+            text-decoration-thickness: 2px;
+        }
     }
 
     @include m.down(sm) {
+        padding: .5rem .75rem;
         font-size: 10px;
-        padding: .4rem .75rem;
+
+        .promo-bar__text {
+            flex-wrap: wrap;
+            justify-content: center;
+        }
 
         .promo-bar__countdown {
             display: block;
             margin-left: 0;
-            margin-top: .25rem;
+            margin-top: .35rem;
         }
     }
 }
-

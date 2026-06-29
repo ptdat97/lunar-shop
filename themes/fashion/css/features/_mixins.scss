@@ -1,5 +1,5 @@
 // Fashion theme — production-ready mixins.
-// Minimal luxury: COS, ARKET, SSENSE.
+// Modern luxury fashion ecommerce with glass effects, gradients, and smooth animations.
 
 @use '../features/variables' as v;
 
@@ -22,7 +22,7 @@
 }
 
 @mixin between($lo, $hi) {
-    @media (min-width: $lo) and (max-width: $hi - 1px) { @content; }
+    @media (min-width: $lo) and (max-width: calc(#{$hi} - 1px)) { @content; }
 }
 
 // ── Typography ────────────────────────────────────────────────────────────────
@@ -127,6 +127,76 @@
     @include up(lg) { padding-inline: v.$spacing-xl; }
 }
 
+// ── Fashion-specific mixins ────────────────────────────────────────────────────
+
+// Glass morphism effect
+@mixin glass {
+    background: v.$glass-bg;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid v.$glass-border;
+}
+
+// Gradient background
+@mixin gradient-bg($gradient) {
+    background: $gradient;
+}
+
+// Smooth image hover zoom
+@mixin image-zoom($scale: 1.05) {
+    overflow: hidden;
+
+    img {
+        @include cover;
+        transition: transform v.$transition-smooth;
+    }
+
+    &:hover img {
+        transform: scale($scale);
+    }
+}
+
+// Card hover lift effect
+@mixin card-hover {
+    transition: transform v.$transition-base, box-shadow v.$transition-base;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: v.$shadow-lg;
+    }
+}
+
+// Editorial section heading
+@mixin section-heading {
+    font-family: v.$font-display;
+    font-size: v.$font-size-3xl;
+    font-weight: v.$font-weight-normal;
+    letter-spacing: -.02em;
+    color: v.$text-primary;
+    margin-bottom: v.$spacing-xl;
+    text-align: center;
+
+    @include up(lg) {
+        font-size: v.$font-size-4xl;
+    }
+}
+
+// Badge pill
+@mixin badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .35rem .75rem;
+    border-radius: v.$radius-full;
+    font-family: v.$font-body;
+    font-size: v.$font-size-xs;
+    font-weight: v.$font-weight-semibold;
+    letter-spacing: v.$letter-spacing-wide;
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+}
+
 // ── A11y ───────────────────────────────────────────────────────────────────────
 @mixin sr-only {
     position: absolute;
@@ -161,4 +231,24 @@
 @keyframes slideUp {
     from { opacity: 0; transform: translateY(8px); }
     to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+    from { opacity: 0; transform: scale(.95); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+}
+
+// Pulse animation for badges and indicators
+@mixin pulse {
+    animation: pulse 2s cubic-bezier(.4, 0, .6, 1) infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: .5; }
 }

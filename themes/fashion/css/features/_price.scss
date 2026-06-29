@@ -1,6 +1,5 @@
 // Price component — scoped to `.product-card__price`.
-// Regular price in `v.$accent`, sale price in danger red + line-through on original.
-// Inline membership / VIP badge where applicable.
+// Modern luxury: savings badge, membership VIP, elegant typography.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
@@ -38,23 +37,62 @@
     .price__badge {
         display: inline-flex;
         align-items: center;
+        gap: .3rem;
         height: 20px;
-        padding: 0 .5rem;
-        border-radius: v.$radius;
-        background: v.$surface-alt;
+        padding: 0 .6rem;
+        border-radius: v.$radius-full;
+        background: v.$gradient-card;
         color: v.$accent;
         font-size: v.$font-size-xs;
         font-weight: v.$font-weight-semibold;
         letter-spacing: .02em;
         line-height: 1;
         white-space: nowrap;
+        border: 1px solid v.$border-color;
+        transition: all v.$transition-fast;
+
+        &:hover {
+            border-color: v.$accent;
+            transform: translateY(-1px);
+        }
+
+        .bi-patch-check {
+            font-size: 12px;
+            color: v.$success;
+        }
     }
 
     // Savings percentage pill (optional inline helper)
     .price__savings {
+        display: inline-flex;
+        align-items: center;
+        gap: .25rem;
+        padding: .2rem .5rem;
+        background: rgba(45, 106, 79, .1);
+        color: v.$success;
         font-size: v.$font-size-xs;
         font-weight: v.$font-weight-semibold;
-        color: v.$success;
+        border-radius: v.$radius-full;
+        border: 1px solid rgba(45, 106, 79, .2);
+    }
+
+    // Flash sale indicator
+    .price__flash {
+        display: inline-flex;
+        align-items: center;
+        gap: .3rem;
+        padding: .2rem .5rem;
+        background: v.$gradient-sale;
+        color: #fff;
+        font-size: v.$font-size-xs;
+        font-weight: v.$font-weight-bold;
+        letter-spacing: .03em;
+        border-radius: v.$radius-full;
+        animation: pulse 2s ease-in-out infinite;
+
+        .bi-lightning-charge-fill {
+            font-size: 10px;
+        }
     }
 
     // Compact alignment for grid cards
@@ -62,7 +100,27 @@
         gap: .25rem .4rem;
 
         .price--regular,
-        .price--sale { font-size: v.$font-size-xs; }
+        .price--sale { 
+            font-size: v.$font-size-xs; 
+        }
+
+        .price__badge,
+        .price__savings,
+        .price__flash {
+            font-size: 10px;
+            padding: .15rem .4rem;
+        }
+    }
+
+    // Product detail page price (larger)
+    .page-product & {
+        .price--regular,
+        .price--sale {
+            font-size: v.$font-size-xl;
+        }
+
+        .price--compare {
+            font-size: v.$font-size-base;
+        }
     }
 }
-
