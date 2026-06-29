@@ -34,7 +34,7 @@
         border-radius: v.$radius;
         background: v.$warning;
         color: #111;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-family: v.$font-body;
         font-size: v.$font-size-xs;
         font-weight: v.$font-weight-semibold;
         letter-spacing: .04em;

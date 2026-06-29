@@ -8,6 +8,10 @@
 // CSS is a separate Vite entry (themes/fashion/css/app.scss), loaded via @vite
 // in the layout — not imported here.
 
+// Bootstrap JS from npm — provides Bootstrap's JS components (dropdown, modal,
+// collapse, offcanvas, carousel, etc.) via data-bs-* attributes or programmatic API.
+import 'bootstrap';
+
 // Eager-glob so adding a file under enhance/ auto-registers it. The leading
 // underscore convention (e.g. _card.js, _gallery.js) marks render helpers that
 // are imported by other enhancers rather than auto-run on load.

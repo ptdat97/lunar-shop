@@ -22,9 +22,9 @@ $focus-ring: rgba(17, 17, 17, .25) !default; // Focus indicator
 
 // ── Typography ─────────────────────────────────────────────────────────────────
 // Display / headings: light (300) or regular (400), generous letter-spacing
-$font-display: 'Cormorant Garamond', Georgia, 'Times New Roman', serif !default;
+$font-display: 'Anivele','Cormorant Garamond', Georgia, 'Times New Roman', serif !default;
 // Body / UI: 14–15px, weight 400/500
-$font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !default;
+$font-body: 'Anivele', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !default;
 
 // Legacy aliases — kept for backward compatibility with existing mixins.
 $font-serif: $font-display !default;

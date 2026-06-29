@@ -1,0 +1,108 @@
+// Bootstrap SCSS wrapper — imports Bootstrap from npm with theme overrides.
+// This file is @use'd by app.scss to replace the old vendor CSS <link>.
+//
+// Overrides are set as plain SCSS variables BEFORE the Bootstrap import so they
+// take precedence over Bootstrap's !default values.
+
+// ── Colour system ───────────────────────────────────────────────────────────────
+$primary:   #111111;
+$light:     #F4F3F0;
+$dark:      #111111;
+$body-color: #1a1a1a;
+$body-bg:    #ffffff;
+$border-color: #E8E6E1;
+$headings-color: #111111;
+
+// ── Typography ──────────────────────────────────────────────────────────────────
+$font-family-sans-serif:  'Anivele', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+$font-family-serif:       'Anivele','Cormorant Garamond', Georgia, 'Times New Roman', serif;
+$font-family-base:        $font-family-sans-serif;
+$font-family-headings:    $font-family-serif;
+
+$font-size-base:          0.875rem;   // 14px
+$font-size-lg:            0.9375rem;  // 15px
+$font-size-sm:            0.75rem;    // 12px
+
+$headings-font-weight:    400;
+$headings-line-height:    1.2;
+
+// ── Buttons ─────────────────────────────────────────────────────────────────────
+$btn-font-size:           0.75rem;
+$btn-font-size-sm:        0.6875rem;
+$btn-font-size-lg:        0.875rem;
+$btn-font-weight:         500;
+$btn-letter-spacing:      0.08em;
+$btn-border-radius:       0.25rem;
+$btn-border-radius-sm:    0.125rem;
+$btn-border-radius-lg:    0.5rem;
+
+// ── Inputs ──────────────────────────────────────────────────────────────────────
+$input-font-size:         0.875rem;
+$input-btn-font-size:     0.75rem;
+$input-border-color:      #E8E6E1;
+$input-border-radius:     0.25rem;
+$input-focus-border-color: #111111;
+$input-focus-box-shadow:  0 0 0 0.2rem rgba(17, 17, 17, 0.25);
+
+// ── Navbar ──────────────────────────────────────────────────────────────────────
+$navbar-nav-link-padding-x: 1.25rem;
+$navbar-padding-y:         0;
+$nav-link-font-size:       0.6875rem;
+$nav-link-font-weight:     500;
+$nav-link-letter-spacing:  0.08em;
+
+// ── Cards ───────────────────────────────────────────────────────────────────────
+$card-border-color:        #E8E6E1;
+$card-border-radius:       0.25rem;
+$card-cap-bg:              transparent;
+
+// ── Badges ──────────────────────────────────────────────────────────────────────
+$badge-font-size:          0.6875rem;
+$badge-font-weight:        500;
+
+// ── Breadcrumbs ─────────────────────────────────────────────────────────────────
+$breadcrumb-font-size:     0.75rem;
+$breadcrumb-divider-color: #9A9A8E;
+$breadcrumb-active-color:  #9A9A8E;
+
+// ── Modals ──────────────────────────────────────────────────────────────────────
+$modal-header-border-color: #E8E6E1;
+$modal-footer-border-color: #E8E6E1;
+$modal-content-border-radius: 0.25rem;
+
+// ── Close button ────────────────────────────────────────────────────────────────
+$btn-close-color:          #111111;
+
+// ── Tooltips ────────────────────────────────────────────────────────────────────
+$tooltip-font-size:        0.75rem;
+
+// ── Alerts ──────────────────────────────────────────────────────────────────────
+$alert-border-radius:      0.25rem;
+$alert-link-font-weight:   500;
+
+// ── List groups ─────────────────────────────────────────────────────────────────
+$list-group-border-color:  #E8E6E1;
+$list-group-border-radius: 0.25rem;
+
+// ── Dropdowns ───────────────────────────────────────────────────────────────────
+$dropdown-border-color:    #E8E6E1;
+$dropdown-border-radius:   0.25rem;
+$dropdown-link-color:      #1a1a1a;
+$dropdown-link-hover-bg:   #F4F3F0;
+
+// ── Grid ────────────────────────────────────────────────────────────────────────
+$grid-gutter-width:        2rem;
+
+// ── Tables ──────────────────────────────────────────────────────────────────────
+$table-font-size:          0.875rem;
+$table-border-color:       #E8E6E1;
+
+// ── Transitions ─────────────────────────────────────────────────────────────────
+$transition-base:          all 0.25s ease;
+$transition-fade:          opacity 0.25s ease;
+
+// ── Spinners ────────────────────────────────────────────────────────────────────
+$spinner-animation-speed:  0.75s;
+
+// ── Import Bootstrap ────────────────────────────────────────────────────────────
+@import 'bootstrap/scss/bootstrap';

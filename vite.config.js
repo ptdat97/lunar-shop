@@ -17,6 +17,15 @@ export default defineConfig({
             refresh: [`themes/${theme}/**`],
         }),
     ],
+    css: {
+        preprocessorOptions: {
+            scss: {
+                // Bootstrap 5.x uses @import internally (deprecated in Dart Sass 3.0).
+                // Silence known deprecations from node_modules until Bootstrap 6 ships.
+                silenceDeprecations: ['import', 'global-builtin', 'color-functions', 'if-function'],
+            },
+        },
+    },
     server: {
         watch: {
             ignored: ['**/storage/framework/views/**'],

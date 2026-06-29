@@ -13,6 +13,10 @@
 
 @use 'features/variables' as v;
 @use 'features/mixins' as m;
+
+// Bootstrap SCSS — compiled from npm, not from public/vendor.
+// Override Bootstrap variables before import via _bootstrap.scss.
+@use 'features/bootstrap';
 @use 'features/base';
 @use 'features/lookbook';
 @use 'pages/checkout';
@@ -66,4 +70,54 @@
     --fashion-z-modal: #{v.$z-modal};
     --fashion-z-modal-backdrop: #{v.$z-modal-backdrop};
     --fashion-z-tooltip: #{v.$z-tooltip};
+}
+
+@font-face {
+  font-family: "Anivele";
+  src:
+    url("/fonts/anivele/fe7027e3d2f79c7174b0-Regular.woff2") format("woff2"),
+    url("/fonts/anivele/fe7027e3d2f79c7174b0-Regular.woff") format("woff");
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Anivele";
+  src:
+    url("/fonts/anivele/fe7027e3d2f79c7174b0-Regular.woff2") format("woff2"),
+    url("/fonts/anivele/fe7027e3d2f79c7174b0-Regular.woff") format("woff");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Anivele";
+  src:
+    url("/fonts/anivele/fe7027e3d2f79c7174b0-SemiBold.woff2") format("woff2"),
+    url("/fonts/anivele/fe7027e3d2f79c7174b0-SemiBold.woff") format("woff");
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Anivele";
+  src:
+    url("/fonts/anivele/fe7027e3d2f79c7174b0-SemiBold.woff2") format("woff2"),
+    url("/fonts/anivele/fe7027e3d2f79c7174b0-SemiBold.woff") format("woff");
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Anivele";
+  src:
+    url("/fonts/anivele/fe7027e3d2f79c7174b0-SemiBold.woff2") format("woff2"),
+    url("/fonts/anivele/fe7027e3d2f79c7174b0-SemiBold.woff") format("woff");
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
 }

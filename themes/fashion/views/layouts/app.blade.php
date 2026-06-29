@@ -30,11 +30,10 @@
         <link rel="icon" href="{{ $favicon }}">
     @endif
 
-    {{-- Vendor CSS (public/vendor) --}}
-    <link rel="stylesheet" href="{{ asset('vendor/bootstrap/css/bootstrap.min.css') }}">
+    {{-- Swiper CSS (vendor) — keep until migrated to npm --}}
     <link rel="stylesheet" href="{{ asset('vendor/swiper/swiper-bundle.min.css') }}">
 
-    {{-- Theme CSS/JS (Vite) --}}
+    {{-- Theme CSS/JS (Vite) — includes Bootstrap SCSS from npm --}}
     @vite(['themes/fashion/css/app.scss', 'themes/fashion/js/app.js'])
 
     @stack('head')
@@ -58,9 +57,8 @@
 
     @include('theme::partials.cart-drawer')
 
-    {{-- Vendor JS (public/vendor). Vue is imported on demand by app.js. --}}
+    {{-- Vendor JS (public/vendor). Bootstrap is bundled by Vite via app.js. --}}
     <script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script>
-    <script src="{{ asset('vendor/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
     <script src="{{ asset('vendor/swiper/swiper-bundle.min.js') }}"></script>
 
     @stack('scripts')
