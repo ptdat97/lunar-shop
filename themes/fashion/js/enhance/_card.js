@@ -4,6 +4,8 @@
 //
 // Helper module (leading underscore): imported by grid enhancers, not auto-run.
 
+import { gridConfig } from '../config/grid.js';
+
 function esc(value) {
     return String(value ?? '').replace(/[&<>"']/g, (c) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -63,7 +65,7 @@ export function cardHtml(product) {
 
 // Render an array of products into a grid container, each wrapped in the same
 // Bootstrap column the SSR grid uses.
-export function renderGrid(container, products, colClass = 'col-6 col-md-4 col-lg-4') {
+export function renderGrid(container, products, colClass = gridConfig.default) {
     container.innerHTML = products
         .map((p) => `<div class="${colClass}">${cardHtml(p)}</div>`)
         .join('');
