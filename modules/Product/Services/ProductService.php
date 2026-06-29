@@ -27,14 +27,25 @@ class ProductService
 
     /**
      * Resolve a single published product by its URL slug.
+     *
+     * Optimized: joins urls directly instead of using whereHas (subquery),
+     * and eager-loads everything needed for the product page: variants with
+     * their option values + prices, media gallery, brand, collections,
+     * and SEO URLs — all in one query.
      */
     public function findBySlug(string $slug): ?Product
     {
         return Product::query()
-            ->where('status', 'published')
-            ->whereHas('urls', fn ($u) => $u->where('slug', $slug))
+            ->select('lunar_products.*')
+            ->where('lunar_products.status', 'published')
+            ->join('lunar_urls', function ($join) {
+                $join->on('lunar_urls.element_id', '=', 'lunar_products.id')
+                    ->where('lunar_urls.element_type', '=', 'product')
+                    ->where('lunar_urls.default', '=', 1);
+            })
+            ->where('lunar_urls.slug', $slug)
             ->with([
-                'variants.values.option', 'variants.prices.currency',
+                'variants' => fn ($q) => $q->with(['values.option', 'prices.currency']),
                 'thumbnail', 'brand', 'collections.defaultUrl', 'defaultUrl', 'media',
             ])
             ->first();

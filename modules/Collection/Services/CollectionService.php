@@ -10,10 +10,23 @@ use Lunar\Models\Collection;
  */
 class CollectionService
 {
+    /**
+     * Resolve a collection by its URL slug.
+     *
+     * Optimized: uses a direct JOIN instead of whereHas (subquery) to avoid
+     * an extra query execution. The new composite index on (slug, element_type,
+     * default) makes this join instant.
+     */
     public function findBySlug(string $slug): ?Collection
     {
         return Collection::query()
-            ->whereHas('urls', fn ($u) => $u->where('slug', $slug))
+            ->select('lunar_collections.*')
+            ->join('lunar_urls', function ($join) {
+                $join->on('lunar_urls.element_id', '=', 'lunar_collections.id')
+                    ->where('lunar_urls.element_type', '=', 'collection')
+                    ->where('lunar_urls.default', '=', 1);
+            })
+            ->where('lunar_urls.slug', $slug)
             ->first();
     }
 

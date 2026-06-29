@@ -1,5 +1,5 @@
-// Fashion theme — base styles: icon webfont, header, product card/gallery,
-// PhotoSwipe chrome and hero slider. Migrated from the old app.css.
+// Fashion theme — base styles: smooth scroll, selection, scrollbar, icon webfont,
+// product card/gallery, PhotoSwipe chrome and hero slider.
 //
 // Bootstrap 5 (grid/components/utilities) and the Bootstrap Icons webfont ship
 // prebuilt from public/vendor and are loaded via <link> in the layout — these
@@ -8,6 +8,44 @@
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
+// ── Global smooth scroll ───────────────────────────────────────────────────────
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: v.$header-height;
+}
+
+// ── Text selection ─────────────────────────────────────────────────────────────
+::selection {
+    background: v.$accent;
+    color: v.$accent-contrast;
+}
+
+::-moz-selection {
+    background: v.$accent;
+    color: v.$accent-contrast;
+}
+
+// ── Custom scrollbar (Webkit) ──────────────────────────────────────────────────
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: v.$bg-secondary;
+}
+
+::-webkit-scrollbar-thumb {
+    background: v.$muted;
+    border-radius: v.$radius-full;
+    transition: background v.$transition-fast;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: v.$accent;
+}
+
+// ── Bootstrap Icons ────────────────────────────────────────────────────────────
 // Bootstrap Icons — only the webfont ships in public/vendor (no upstream CSS),
 // so we declare the @font-face and map the handful of glyphs the theme uses.
 // Codepoints are the stable Bootstrap Icons 1.x values.
@@ -63,19 +101,16 @@
 .bi-bell::before { content: '\F18A'; }
 .bi-bag-plus::before { content: '\F176'; }
 
-
-
-// Product card: consistent media box so the SSR grid and the JS-rendered
-// grid (enhance/_card.js) line up pixel-for-pixel.
+// ── Product card: consistent media box ────────────────────────────────────────
 .product-card {
     &__media {
-        aspect-ratio: 2 / 3;
+        aspect-ratio: v.$product-ratio;
         overflow: hidden;
-        background: #f5f5f5;
+        background: v.$bg-secondary;
 
         img {
             @include m.cover;
-            transition: transform .4s ease;
+            transition: transform v.$transition-slow;
         }
     }
 
@@ -85,11 +120,9 @@
         font-size: .95rem;
         line-height: 1.3;
     }
-
 }
 
-// Product page gallery: Swiper main slider + thumbnail strip. Clicking the
-// main image opens the PhotoSwipe lightbox (zoom image).
+// ── Product page gallery: Swiper main slider + thumbnail strip ────────────────
 .product-gallery {
     display: flex;
     flex-direction: column;
@@ -100,7 +133,7 @@
         overflow: hidden;
         cursor: zoom-in;
 
-        img { transition: transform .4s ease; }
+        img { transition: transform v.$transition-slow; }
         &:hover img { transform: scale(1.03); }
     }
 
@@ -143,7 +176,7 @@
         .swiper-slide {
             cursor: pointer;
             opacity: .5;
-            transition: opacity .2s ease;
+            transition: opacity v.$transition-fast;
 
             &:hover,
             &.swiper-slide-thumb-active { opacity: 1; }
@@ -156,7 +189,7 @@
     }
 }
 
-// PhotoSwipe custom chrome (default UI is disabled in the init config).
+// ── PhotoSwipe custom chrome ───────────────────────────────────────────────────
 .pswp__button--bls--close {
     position: absolute;
     top: 16px;
@@ -219,7 +252,7 @@
     transition: opacity .25s ease, visibility .25s ease;
 }
 
-// Hero slider falls back gracefully before Swiper initialises.
+// ── Hero slider fallback ───────────────────────────────────────────────────────
 .hero-slider .swiper-slide {
     min-height: 420px;
     background-size: cover;

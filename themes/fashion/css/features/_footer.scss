@@ -1,6 +1,5 @@
 // Site footer — scoped to `.site-footer`.
-// Dark ground (#111), light text, 4-column grid desktop / stacked mobile.
-// Thin 1px #2A2A2A divider before the copyright row.
+// Editorial 4-column layout, newsletter signup, social icons, gradient accents.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
@@ -8,17 +7,48 @@
 .site-footer {
     background: v.$accent;
     color: v.$accent-contrast;
-    padding: v.$spacing-3xl 0 v.$spacing-xl;
+    padding: v.$spacing-4xl 0 v.$spacing-2xl;
+    position: relative;
+    overflow: hidden;
+
+    // Subtle gradient overlay
+    &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, 
+            v.$accent 0%, 
+            v.$muted 50%, 
+            v.$accent 100%
+        );
+    }
 
     // Column headings
     .footer-heading {
         font-family: v.$font-body;
         font-size: v.$font-size-xs;
         font-weight: v.$font-weight-semibold;
-        letter-spacing: v.$letter-spacing-wide;
+        letter-spacing: v.$letter-spacing-wider;
         text-transform: uppercase;
         color: v.$accent-contrast;
-        margin-bottom: v.$spacing-md;
+        margin-bottom: v.$spacing-lg;
+        position: relative;
+        padding-bottom: v.$spacing-sm;
+
+        // Underline accent
+        &::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 40px;
+            height: 2px;
+            background: v.$accent-contrast;
+            opacity: .5;
+        }
     }
 
     // Link list reset
@@ -28,16 +58,21 @@
         margin: 0;
         display: flex;
         flex-direction: column;
-        gap: .55rem;
+        gap: .65rem;
 
         a {
             color: rgba(255, 255, 255, .7);
             text-decoration: none;
             font-size: v.$font-size-sm;
             line-height: v.$line-height-base;
-            transition: color v.$transition-fast;
+            transition: all v.$transition-fast;
+            position: relative;
+            display: inline-block;
 
-            &:hover { color: v.$accent-contrast; }
+            &:hover { 
+                color: v.$accent-contrast;
+                transform: translateX(4px);
+            }
         }
     }
 
@@ -51,19 +86,79 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            width: 38px;
-            height: 38px;
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
             border: v.$border-width solid rgba(255, 255, 255, .25);
             color: rgba(255, 255, 255, .8);
             font-size: 18px;
             text-decoration: none;
-            transition: all v.$transition-fast;
+            transition: all v.$transition-base;
 
             &:hover {
                 border-color: v.$accent-contrast;
                 color: v.$accent-contrast;
-                background: rgba(255, 255, 255, .08);
+                background: rgba(255, 255, 255, .1);
+                transform: translateY(-3px);
+            }
+        }
+    }
+
+    // Newsletter signup
+    .footer-newsletter {
+        margin-top: v.$spacing-lg;
+
+        &__text {
+            font-size: v.$font-size-sm;
+            color: rgba(255, 255, 255, .7);
+            margin-bottom: v.$spacing-md;
+            line-height: v.$line-height-base;
+        }
+
+        &__form {
+            display: flex;
+            gap: v.$spacing-sm;
+
+            .form-control {
+                flex: 1;
+                background: rgba(255, 255, 255, .1);
+                border: v.$border-width solid rgba(255, 255, 255, .2);
+                border-radius: v.$radius;
+                color: v.$accent-contrast;
+                font-family: v.$font-body;
+                font-size: v.$font-size-sm;
+                padding: .65rem .85rem;
+                transition: all v.$transition-fast;
+
+                &::placeholder {
+                    color: rgba(255, 255, 255, .5);
+                }
+
+                &:focus {
+                    outline: none;
+                    background: rgba(255, 255, 255, .15);
+                    border-color: v.$accent-contrast;
+                }
+            }
+
+            .btn {
+                padding: .65rem 1.25rem;
+                background: v.$accent-contrast;
+                color: v.$accent;
+                border: 0;
+                border-radius: v.$radius;
+                font-family: v.$font-body;
+                font-size: v.$font-size-sm;
+                font-weight: v.$font-weight-semibold;
+                letter-spacing: v.$letter-spacing-wide;
+                text-transform: uppercase;
+                transition: all v.$transition-fast;
+                white-space: nowrap;
+
+                &:hover {
+                    background: v.$bg-secondary;
+                    transform: translateY(-2px);
+                }
             }
         }
     }
@@ -71,10 +166,26 @@
     // Copyright row divider
     .footer-bottom {
         margin-top: v.$spacing-3xl;
-        padding-top: v.$spacing-lg;
+        padding-top: v.$spacing-xl;
         border-top: v.$border-width solid #2A2A2A;
         font-size: v.$font-size-xs;
         color: rgba(255, 255, 255, .55);
+
+        .footer-bottom__links {
+            display: flex;
+            gap: v.$spacing-lg;
+            flex-wrap: wrap;
+
+            a {
+                color: rgba(255, 255, 255, .55);
+                text-decoration: none;
+                transition: color v.$transition-fast;
+
+                &:hover {
+                    color: v.$accent-contrast;
+                }
+            }
+        }
     }
 
     // Responsive column layout
@@ -83,5 +194,12 @@
             margin-bottom: 0;
         }
     }
-}
 
+    @include m.down(md) {
+        padding: v.$spacing-3xl 0 v.$spacing-xl;
+
+        .footer-newsletter__form {
+            flex-direction: column;
+        }
+    }
+}

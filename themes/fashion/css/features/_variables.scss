@@ -1,24 +1,28 @@
 @use 'sass:math';
 
-// Fashion theme — design tokens (minimal luxury: COS / ARKET / SSENSE).
+// Fashion theme — design tokens (modern luxury fashion ecommerce).
 // Emitted as CSS custom properties from app.scss via :root.
 // Keep names stable — partials and JS reference these exact tokens.
 
 // ── Colour palette ──────────────────────────────────────────────────────────────
-$accent: #111111 !default;          // Near-black for text / primary actions
+$accent: #0a0a0a !default;          // Rich black for text / primary actions
 $accent-contrast: #ffffff !default; // White on accent
-$text-primary: #111111 !default;    // Primary text (WCAG AAA on white)
-$text-secondary: #1a1a1a !default;  // Secondary body text
-$muted: #9A9A8E !default;          // Labels, metadata, secondary text
-$border-color: #E8E6E1 !default;   // Section dividers and borders
-$surface-alt: #F4F3F0 !default;    // Cards, sidebar hover, iconbox bg
+$text-primary: #0a0a0a !default;    // Primary text (WCAG AAA on white)
+$text-secondary: #2d2d2d !default;  // Secondary body text
+$muted: #8a8a82 !default;          // Labels, metadata, secondary text
+$border-color: #e8e6e1 !default;   // Section dividers and borders
+$surface-alt: #f4f3f0 !default;    // Cards, sidebar hover, iconbox bg
 $bg-primary: #ffffff !default;     // Primary background
-$bg-secondary: #FAFAF8 !default;   // Warm off-white for alternating sections
+$bg-secondary: #fafaf8 !default;   // Warm off-white for alternating sections
 $bg-tertiary: #f5f5f5 !default;    // Hover state background
-$error: #C0392B !default;          // Error / destructive / sale
-$success: #2D6A4F !default;        // Success / savings states
-$warning: #E6A817 !default;        // Warning / countdown / flash-sale accent
-$focus-ring: rgba(17, 17, 17, .25) !default; // Focus indicator
+$bg-gradient-start: #f8f7f4 !default; // Gradient start
+$bg-gradient-end: #f0efe9 !default;   // Gradient end
+$error: #c0392b !default;          // Error / destructive / sale
+$success: #2d6a4f !default;        // Success / savings states
+$warning: #e6a817 !default;        // Warning / countdown / flash-sale accent
+$focus-ring: rgba(10, 10, 10, .25) !default; // Focus indicator
+$glass-bg: rgba(255, 255, 255, .85) !default; // Glass effect background
+$glass-border: rgba(255, 255, 255, .3) !default; // Glass border
 
 // ── Typography ─────────────────────────────────────────────────────────────────
 // Display / headings: light (300) or regular (400), generous letter-spacing
@@ -39,6 +43,7 @@ $font-size-xl: 1.125rem !default;   // 18px
 $font-size-2xl: 1.5rem !default;    // 24px
 $font-size-3xl: 2rem !default;      // 32px
 $font-size-4xl: 3rem !default;      // 48px — hero headlines
+$font-size-5xl: 4rem !default;      // 64px — mega hero headlines
 
 $font-weight-normal: 400 !default;
 $font-weight-medium: 500 !default;
@@ -52,6 +57,7 @@ $line-height-relaxed: 1.65 !default;
 $letter-spacing-tight: -.02em !default;
 $letter-spacing-normal: 0 !default;
 $letter-spacing-wide: .08em !default; // Uppercase labels / nav links
+$letter-spacing-wider: .12em !default; // More dramatic uppercase
 
 // ── Spacing ────────────────────────────────────────────────────────────────────
 $spacing-xs: .25rem !default;    // 4px
@@ -62,6 +68,7 @@ $spacing-xl: 2rem !default;      // 32px
 $spacing-2xl: 3rem !default;     // 48px
 $spacing-3xl: 5rem !default;     // 80px — section gaps
 $spacing-4xl: 8rem !default;     // 128px — hero spacing
+$spacing-5xl: 10rem !default;    // 160px — mega hero spacing
 
 // ── Components ─────────────────────────────────────────────────────────────────
 $header-height: 72px !default;
@@ -69,6 +76,9 @@ $header-height-mobile: 64px !default;
 $radius: .25rem !default;        // 4px — minimal luxury radius
 $radius-sm: .125rem !default;    // 2px
 $radius-lg: .5rem !default;      // 8px
+$radius-xl: .75rem !default;     // 12px
+$radius-2xl: 1rem !default;      // 16px
+$radius-full: 9999px !default;   // Pills, circles
 $border-width: 1px !default;
 $border-width-thick: 2px !default;
 
@@ -77,11 +87,14 @@ $transition-fast: .2s ease !default;
 $transition-base: .25s ease !default;  // Hover states
 $transition-slow: .4s ease !default;   // Image scale
 $transition-smooth: .4s cubic-bezier(.4, 0, .2, 1) !default;
+$transition-bounce: .5s cubic-bezier(.68, -.55, .265, 1.55) !default;
 
 // ── Shadows (minimal — only where needed) ─────────────────────────────────────
 $shadow-sm: 0 1px 2px rgba(0, 0, 0, .04) !default;
 $shadow-md: 0 4px 12px rgba(0, 0, 0, .06) !default;
 $shadow-lg: 0 8px 24px rgba(0, 0, 0, .08) !default;
+$shadow-xl: 0 12px 32px rgba(0, 0, 0, .12) !default;
+$shadow-glow: 0 0 20px rgba(10, 10, 10, .15) !default;
 
 // ── Z-index scale ──────────────────────────────────────────────────────────────
 // Systematic z-index levels. Always use these tokens — never hardcode numbers.
@@ -126,3 +139,13 @@ $bp-lg: 992px !default;
 $bp-xl: 1200px !default;
 $bp-2xl: 1400px !default;
 
+// ── Fashion-specific tokens ────────────────────────────────────────────────────
+$gradient-hero: linear-gradient(180deg, rgba(0,0,0,.15) 0%, rgba(0,0,0,.45) 100%) !default;
+$gradient-card: linear-gradient(135deg, #f8f7f4 0%, #f0efe9 100%) !default;
+$gradient-sale: linear-gradient(135deg, #c0392b 0%, #e74c3c 100%) !default;
+$gradient-success: linear-gradient(135deg, #2d6a4f 0%, #40916c 100%) !default;
+
+// Animation keyframes
+$animation-fade-in: fadeIn .4s ease forwards !default;
+$animation-slide-up: slideUp .5s ease forwards !default;
+$animation-scale-in: scaleIn .3s ease forwards !default;

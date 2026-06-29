@@ -13,6 +13,23 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  */
 class MediaUrl
 {
+    /**
+     * Per-request memo of resolved conversion URLs, keyed by "mediaId:conversion".
+     * The view composer calls conversion() once per product card per conversion
+     * name; without memoization a 24-card grid would re-resolve the same media
+     * item 24+ times, each triggering a filesystem stat in ensure().
+     *
+     * @var array<string, string|null>
+     */
+    private array $conversionMemo = [];
+
+    /**
+     * Per-request memo of responsive payloads, keyed by "mediaId:implode(widths):base".
+     *
+     * @var array<string, array|null>
+     */
+    private array $responsiveMemo = [];
+
     public function __construct(
         protected ConversionGenerator $generator,
     ) {}
@@ -20,6 +37,9 @@ class MediaUrl
     /**
      * URL for a conversion, generating it if the file is missing. Falls back to
      * the original when the conversion can't be produced (e.g. unknown name).
+     *
+     * Results are memoized per-request so the same media+conversion pair called
+     * across multiple view composers resolves in O(1) after the first call.
      */
     public function conversion(?Media $media, string $conversion): ?string
     {
@@ -27,11 +47,17 @@ class MediaUrl
             return null;
         }
 
-        if ($this->generator->ensure($media, $conversion)) {
-            return $media->getUrl($conversion);
+        $key = $media->id . ':' . $conversion;
+
+        if (array_key_exists($key, $this->conversionMemo)) {
+            return $this->conversionMemo[$key];
         }
 
-        return $media->getUrl();
+        if ($this->generator->ensure($media, $conversion)) {
+            return $this->conversionMemo[$key] = $media->getUrl($conversion);
+        }
+
+        return $this->conversionMemo[$key] = $media->getUrl();
     }
 
     /**

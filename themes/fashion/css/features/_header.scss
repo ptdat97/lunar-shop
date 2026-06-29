@@ -1,6 +1,5 @@
 // Site header / navbar — scoped to `.site-header`.
-// Tokens: `v.$accent`, `v.$muted`, `v.$border-color`; responsive: `@include m.up(lg)`. 
-// Sticky white bar with editorial typography and restrained iconography.
+// Modern luxury: glass morphism, backdrop blur, smooth transitions, mega menu ready.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
@@ -12,9 +11,19 @@
     background: v.$bg-primary;
     border-bottom: v.$border-width solid v.$border-color;
     height: v.$header-height;
+    transition: all v.$transition-base;
 
     @include m.down(md) {
         height: v.$header-height-mobile;
+    }
+
+    // Glass morphism on scroll (enhanced by JS)
+    &.is-scrolled {
+        background: v.$glass-bg;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom-color: rgba(255, 255, 255, .2);
+        box-shadow: v.$shadow-sm;
     }
 
     // Brand / logo
@@ -28,8 +37,12 @@
         line-height: 1;
         padding: 0;
         text-decoration: none;
+        transition: color v.$transition-fast;
 
-        &:hover { color: v.$muted; }
+        &:hover { 
+            color: v.$muted;
+            transform: scale(1.02);
+        }
     }
 
     // Nav links
@@ -43,10 +56,59 @@
             color: v.$accent;
             padding: .5rem .85rem;
             text-decoration: none;
-            transition: color v.$transition-fast;
+            transition: all v.$transition-fast;
+            position: relative;
+
+            // Animated underline on hover
+            &::after {
+                content: '';
+                position: absolute;
+                bottom: .25rem;
+                left: .85rem;
+                right: .85rem;
+                height: 1px;
+                background: v.$accent;
+                transform: scaleX(0);
+                transform-origin: right;
+                transition: transform v.$transition-base;
+            }
 
             &:hover,
-            &:focus-visible { color: v.$muted; }
+            &:focus-visible { 
+                color: v.$muted;
+                
+                &::after {
+                    transform: scaleX(1);
+                    transform-origin: left;
+                }
+            }
+        }
+
+        // Mega menu support (dropdown with columns)
+        .dropdown-menu {
+            border: 0;
+            border-radius: v.$radius-lg;
+            box-shadow: v.$shadow-xl;
+            padding: v.$spacing-lg 0;
+            margin-top: v.$spacing-sm;
+            background: v.$bg-primary;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            animation: fadeIn v.$transition-base ease;
+
+            .dropdown-item {
+                font-family: v.$font-body;
+                font-size: v.$font-size-sm;
+                color: v.$text-primary;
+                padding: .5rem v.$spacing-lg;
+                transition: all v.$transition-fast;
+
+                &:hover {
+                    background: v.$bg-secondary;
+                    color: v.$accent;
+                    padding-left: v.$spacing-xl;
+                }
+            }
         }
     }
 
@@ -66,9 +128,16 @@
             background: transparent;
             border: 0;
             position: relative;
+            transition: all v.$transition-fast;
 
-            &:hover { background: v.$bg-tertiary; }
-            &:focus-visible { outline: 2px solid v.$accent; outline-offset: 2px; }
+            &:hover { 
+                background: v.$bg-tertiary;
+                transform: translateY(-2px);
+            }
+            &:focus-visible { 
+                outline: 2px solid v.$accent; 
+                outline-offset: 2px; 
+            }
         }
     }
 
@@ -91,6 +160,7 @@
         text-align: center;
         border: 1.5px solid v.$bg-primary;
         pointer-events: none;
+        animation: scaleIn v.$transition-bounce;
     }
 
     // Toggler (mobile hamburger)
@@ -99,8 +169,16 @@
         padding: .5rem;
         color: v.$accent;
         font-size: 22px;
+        transition: transform v.$transition-fast;
 
-        &:focus-visible { outline: 2px solid v.$accent; outline-offset: 2px; }
+        &:hover {
+            transform: scale(1.1);
+        }
+
+        &:focus-visible { 
+            outline: 2px solid v.$accent; 
+            outline-offset: 2px; 
+        }
     }
 
     // Mobile offcanvas header polish (ID lives on #mobileMenu)
@@ -108,6 +186,7 @@
         .offcanvas-header {
             border-bottom: v.$border-width solid v.$border-color;
             padding: 1rem 1.25rem;
+            background: v.$bg-primary;
 
             .offcanvas-title {
                 font-family: v.$font-display;
@@ -120,18 +199,38 @@
             .btn-close {
                 margin: 0;
                 padding: .5rem;
+                transition: transform v.$transition-fast;
+
+                &:hover {
+                    transform: rotate(90deg);
+                }
             }
         }
 
         .offcanvas-body {
+            background: v.$bg-primary;
+
             .navbar-nav {
                 .nav-link {
                     font-size: v.$font-size-base;
                     padding: .65rem 0;
                     border-bottom: v.$border-width solid v.$border-color;
+                    transition: all v.$transition-fast;
+
+                    &:hover {
+                        padding-left: v.$spacing-sm;
+                        color: v.$accent;
+                    }
                 }
             }
         }
     }
-}
 
+    // Search icon active state
+    .header-actions [data-search-toggle] {
+        &.is-active {
+            color: v.$accent;
+            background: v.$bg-tertiary;
+        }
+    }
+}

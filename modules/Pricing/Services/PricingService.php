@@ -11,14 +11,33 @@ use Lunar\Models\ProductVariant;
 class PricingService
 {
     /**
+     * Per-request memo of matched prices, keyed by variant ID.
+     * Prevents re-running Lunar's pricing engine for the same variant
+     * across multiple view composers (product-card, price, product page).
+     *
+     * @var array<int, PriceData|null>
+     */
+    private array $priceMemo = [];
+
+    /**
      * The matched price for a variant via Lunar's Pricing engine (honours
      * currency, customer group and tiers). This is the single place the
      * pricing engine is invoked for presentation — Blade/Resources call here
      * instead of touching the `Pricing` facade directly (keeps price logic out
      * of views, per the coding standards).
+     *
+     * Results are memoized per-request so the same variant queried by
+     * product-card, price component, and product page composers resolves
+     * in O(1) after the first call.
      */
     public function matchedPrice(ProductVariant $variant): ?PriceData
     {
+        $variantId = (int) $variant->id;
+
+        if (array_key_exists($variantId, $this->priceMemo)) {
+            return $this->priceMemo[$variantId];
+        }
+
         try {
             // Prime the inverse relation: Lunar's Price cast reads
             // $price->priceable->unit_quantity, which lazy-loads the variant
@@ -28,9 +47,9 @@ class PricingService
                 $variant->prices->each(fn (Price $price) => $price->setRelation('priceable', $variant));
             }
 
-            return Pricing::for($variant)->get()->matched->price;
+            return $this->priceMemo[$variantId] = Pricing::for($variant)->get()->matched->price;
         } catch (\Throwable $e) {
-            return null;
+            return $this->priceMemo[$variantId] = null;
         }
     }
 
