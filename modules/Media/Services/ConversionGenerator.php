@@ -21,6 +21,12 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  *  - generation is guarded by an atomic lock, so a burst of concurrent requests
  *    for the same missing size produces it once (no thundering herd) — the other
  *    requests wait briefly, then serve the freshly generated file.
+ *
+ * Lock strategy:
+ *  - Uses Cache::lock() when the cache driver supports atomic locks (Redis,
+ *    database cache_locks table, etc.).
+ *  - Falls back to a file-based flock() lock when no atomic cache lock is
+ *    available, so conversion generation always works even without Redis.
  */
 class ConversionGenerator
 {
@@ -80,9 +86,41 @@ class ConversionGenerator
             return true;
         }
 
-        // Only one process generates a given conversion at a time. Concurrent
-        // requests block on the lock, then re-check (the holder will have
-        // produced the file), so we generate once under load.
+        // Try atomic cache lock first (Redis, database cache_locks table).
+        // Falls back to file-based flock() when the cache driver doesn't
+        // support locks (e.g. no cache_locks table, file driver without locks).
+        if ($this->supportsAtomicLocks()) {
+            return $this->ensureWithCacheLock($media, $conversion);
+        }
+
+        return $this->ensureWithFileLock($media, $conversion);
+    }
+
+    /**
+     * Check whether the current cache driver supports atomic locks.
+     */
+    protected function supportsAtomicLocks(): bool
+    {
+        // The 'array' and 'file' drivers do not support locks.
+        // The 'database' driver supports locks only if the cache_locks table exists.
+        // We probe by attempting to create a test lock and immediately releasing it.
+        try {
+            $lock = Cache::lock('__lock_probe__', 5);
+            $lock->get(function () {
+                // no-op
+            });
+
+            return true;
+        } catch (\Exception $e) {
+            return false;
+        }
+    }
+
+    /**
+     * Ensure conversion exists using Cache::lock() (Redis/database).
+     */
+    protected function ensureWithCacheLock(Media $media, string $conversion): bool
+    {
         $lock = Cache::lock($this->lockKey($media, $conversion), self::LOCK_TTL);
 
         try {
@@ -103,6 +141,61 @@ class ConversionGenerator
             return $this->fileExists($media, $conversion);
         } finally {
             optional($lock)->release();
+        }
+    }
+
+    /**
+     * Ensure conversion exists using file-based flock() locking.
+     * Used as fallback when no atomic cache lock is available.
+     */
+    protected function ensureWithFileLock(Media $media, string $conversion): bool
+    {
+        $lockFile = $this->fileLockPath($media, $conversion);
+        $lockDir = dirname($lockFile);
+
+        if (! is_dir($lockDir)) {
+            @mkdir($lockDir, 0755, true);
+        }
+
+        $fp = @fopen($lockFile, 'c');
+        if (! $fp) {
+            // Cannot open lock file — generate directly (best effort).
+            return $this->generate($media, $conversion);
+        }
+
+        // Attempt to acquire an exclusive (write) lock with non-blocking probe.
+        $locked = false;
+        $start = time();
+
+        while (! ($locked = flock($fp, LOCK_EX | LOCK_NB, $wouldBlock))) {
+            if ((time() - $start) >= self::LOCK_WAIT) {
+                break; // Timed out — serve whatever exists.
+            }
+            usleep(100_000); // 100ms between retries
+        }
+
+        if (! $locked) {
+            fclose($fp);
+
+            // Lock acquisition timed out: serve existing file or fallback.
+            return $this->fileExists($media, $conversion);
+        }
+
+        // Exclusive lock acquired.
+        try {
+            // Re-check after acquiring: the lock holder may have generated it.
+            if ($this->fileExists($media, $conversion)) {
+                $this->rememberExists($media, $conversion);
+
+                return true;
+            }
+
+            return $this->generate($media, $conversion);
+        } finally {
+            flock($fp, LOCK_UN);
+            fclose($fp);
+            // Clean up the lock file — it's ephemeral.
+            @unlink($lockFile);
         }
     }
 
@@ -179,5 +272,16 @@ class ConversionGenerator
     protected function lockKey(Media $media, string $conversion): string
     {
         return "media.gen.{$media->id}.{$conversion}";
+    }
+
+    /**
+     * Path to the file-based lock file for a media conversion.
+     * Lock files are stored in storage/framework/cache/media-locks/.
+     */
+    protected function fileLockPath(Media $media, string $conversion): string
+    {
+        $hash = md5("{$media->id}_{$conversion}");
+
+        return storage_path("framework/cache/media-locks/{$hash}.lock");
     }
 }
