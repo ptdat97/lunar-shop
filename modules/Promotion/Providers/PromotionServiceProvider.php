@@ -72,6 +72,9 @@ class PromotionServiceProvider extends ServiceProvider
 
         // $sale for the product card + price component + product page (badge +
         // struck price). All three read $product already in the view.
+        // Uses per-request memoization inside PromotionService so the first
+        // call pre-loads relations; subsequent calls for the same product are
+        // instant (zero queries).
         View::composer(
             ['theme::components.product-card', 'theme::components.price', 'theme::pages.product'],
             function ($view) use ($promotions): void {

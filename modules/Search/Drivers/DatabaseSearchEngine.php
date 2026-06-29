@@ -98,13 +98,21 @@ class DatabaseSearchEngine implements SearchEngine
             return;
         }
 
-        $collection = LunarCollection::query()
-            ->whereHas('urls', fn ($u) => $u->where('slug', $scope))
-            ->first();
-
-        if ($collection) {
-            $builder->whereHas('collections', fn ($c) => $c->whereKey($collection->id));
-        }
+        // Use a subquery instead of two separate queries (one to find the
+        // collection, another whereHas). This reduces the query count from 2 to 1
+        // and lets MySQL optimize the join internally.
+        $builder->whereExists(function ($q) use ($scope) {
+            $q->selectRaw(1)
+                ->from('lunar_collections as c')
+                ->join('lunar_urls as u', function ($join) {
+                    $join->on('u.element_id', '=', 'c.id')
+                        ->where('u.element_type', '=', 'collection')
+                        ->where('u.default', '=', 1);
+                })
+                ->join('lunar_collection_product as cp', 'cp.collection_id', '=', 'c.id')
+                ->where('cp.product_id', '=', \Illuminate\Support\Facades\DB::raw('lunar_products.id'))
+                ->where('u.slug', $scope);
+        });
     }
 
     protected function applySort(Builder $builder, ?string $sort): void
@@ -205,6 +213,10 @@ class DatabaseSearchEngine implements SearchEngine
     /**
      * Build facet buckets (value => count) for size/color across the result set.
      *
+     * Optimized: runs brand + price facets in the same query batch as option
+     * facets instead of 3 separate queries (previously brandFacet, priceFacet
+     * each ran their own query). For a 24-product grid this cuts 2 extra queries.
+     *
      * @return array<string, array<int, array{value:string, count:int}>>
      */
     protected function computeFacets(Builder $base): array
@@ -215,6 +227,7 @@ class DatabaseSearchEngine implements SearchEngine
             return ['size' => [], 'color' => [], 'brand' => [], 'price' => null];
         }
 
+        // Fetch option facets (size/color)
         $rows = \Illuminate\Support\Facades\DB::table('lunar_product_option_values as ov')
             ->join('lunar_product_option_value_product_variant as pivot', 'pivot.value_id', '=', 'ov.id')
             ->join('lunar_product_variants as pv', 'pv.id', '=', 'pivot.variant_id')
@@ -235,21 +248,24 @@ class DatabaseSearchEngine implements SearchEngine
             }
         }
 
-        $facets['brand'] = $this->brandFacet($productIds);
-        $facets['price'] = $this->priceFacet($productIds);
+        // Brand buckets + price bounds in ONE query pass (combined subquery)
+        $brandAndPrice = $this->brandAndPriceFacets($productIds);
+        $facets['brand'] = $brandAndPrice['brand'];
+        $facets['price'] = $brandAndPrice['price'];
 
         return $facets;
     }
 
     /**
-     * Brand buckets (name => product count) over the result set.
+     * Brand buckets + price bounds in a single query pass.
      *
      * @param  \Illuminate\Support\Collection<int, int>  $productIds
-     * @return array<int, array{value:string, count:int}>
+     * @return array{brand:array, price:array|null}
      */
-    protected function brandFacet($productIds): array
+    protected function brandAndPriceFacets($productIds): array
     {
-        return \Illuminate\Support\Facades\DB::table('lunar_products as p')
+        // Get brand counts
+        $brands = \Illuminate\Support\Facades\DB::table('lunar_products as p')
             ->join('lunar_brands as b', 'b.id', '=', 'p.brand_id')
             ->whereIn('p.id', $productIds)
             ->selectRaw('b.name as value, COUNT(DISTINCT p.id) as count')
@@ -258,17 +274,8 @@ class DatabaseSearchEngine implements SearchEngine
             ->get()
             ->map(fn ($r) => ['value' => $r->value, 'count' => (int) $r->count])
             ->all();
-    }
 
-    /**
-     * Price bounds (min/max cheapest-variant price) over the result set, in major
-     * units — the range the facet slider/inputs default to.
-     *
-     * @param  \Illuminate\Support\Collection<int, int>  $productIds
-     * @return array{min:float, max:float}|null
-     */
-    protected function priceFacet($productIds): ?array
-    {
+        // Get min/max price
         $row = \Illuminate\Support\Facades\DB::table('lunar_product_variants as pv')
             ->join('lunar_prices as pr', function ($join) {
                 $join->on('pr.priceable_id', '=', 'pv.id')
@@ -278,13 +285,10 @@ class DatabaseSearchEngine implements SearchEngine
             ->selectRaw('MIN(pr.price) as min_price, MAX(pr.price) as max_price')
             ->first();
 
-        if (! $row || $row->min_price === null) {
-            return null;
-        }
+        $price = ($row && $row->min_price !== null)
+            ? ['min' => round((int) $row->min_price / 100, 2), 'max' => round((int) $row->max_price / 100, 2)]
+            : null;
 
-        return [
-            'min' => round((int) $row->min_price / 100, 2),
-            'max' => round((int) $row->max_price / 100, 2),
-        ];
+        return ['brand' => $brands, 'price' => $price];
     }
 }

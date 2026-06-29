@@ -264,6 +264,43 @@ class PromotionService
     }
 
     /**
+     * Per-request badge memo — keyed by product ID so that the view composer
+     * loop over a product grid (24+ cards) resolves every sale badge with
+     * exactly ONE pass through the promotion matching logic.
+     *
+     * @var array<int, array|null>  productId => saleFor() result
+     */
+    private array $saleMemo = [];
+
+    /**
+     * Batch-compute sale badges for a collection of products — one pass over
+     * the promotions, zero loadMissing() calls per product.
+     *
+     * @param  \Illuminate\Support\Collection<int, Product>  $products
+     * @return array<int, array|null>  productId => saleFor() result
+     */
+    public function saleForMany(\Illuminate\Support\Collection $products): array
+    {
+        $promotions = $this->activeAutomatic()
+            ->filter(fn (Discount $d) => $this->isDisplayablePromotion($d));
+
+        if ($promotions->isEmpty()) {
+            return $products->pluck('id')->mapWithKeys(fn ($id) => [$id => null])->all();
+        }
+
+        // Pre-load relations for ALL products at once, not per product.
+        $products->loadMissing(['variants', 'collections']);
+
+        $results = [];
+        foreach ($products as $product) {
+            $results[$product->id] = $this->computeSaleFor($product, $promotions);
+            $this->saleMemo[$product->id] = $results[$product->id];
+        }
+
+        return $results;
+    }
+
+    /**
      * Best automatic promotion for a single product, for the product card /
      * detail page: a badge label plus — when the break is unconditional for
      * this product (a percentage flash-sale/sale not gated on cart contents) —
@@ -271,6 +308,9 @@ class PromotionService
      *
      * Quantity/combo deals depend on cart contents, so they surface as a
      * label only (no price rewrite). Returns null when nothing applies.
+     *
+     * Uses per-request memoization: the FIRST call for a product pre-loads
+     * relations; subsequent calls for the same product are instant.
      *
      * @return array{
      *   label:string,
@@ -284,20 +324,39 @@ class PromotionService
      */
     public function saleFor(Product $product): ?array
     {
-        $applicable = $this->activeAutomatic()
-            ->filter(fn (Discount $d) => $this->appliesToProduct($d, $product))
-            // Only promotions we can render a meaningful badge for. Excludes
-            // Lunar's BuyXGetY (a gift deal, not a per-product %), and any
-            // discount with no usable percentage (e.g. legacy rows with
-            // data = null) — those caused a bare "Sale" label with no price cut.
+        // Return cached result if already computed this request.
+        if (array_key_exists($product->id, $this->saleMemo)) {
+            return $this->saleMemo[$product->id];
+        }
+
+        $promotions = $this->activeAutomatic()
             ->filter(fn (Discount $d) => $this->isDisplayablePromotion($d));
+
+        if ($promotions->isEmpty()) {
+            return $this->saleMemo[$product->id] = null;
+        }
+
+        // Pre-load for this single product (same as before, but memoized).
+        $product->loadMissing(['variants', 'collections']);
+
+        return $this->saleMemo[$product->id] = $this->computeSaleFor($product, $promotions);
+    }
+
+    /**
+     * Core badge computation — shared between saleFor() and saleForMany().
+     * Assumes $product has ['variants', 'collections'] loaded.
+     *
+     * @param  \Illuminate\Support\Collection<int, Discount>  $promotions
+     * @return array|null
+     */
+    protected function computeSaleFor(Product $product, \Illuminate\Support\Collection $promotions): ?array
+    {
+        $applicable = $promotions->filter(fn (Discount $d) => $this->appliesToProduct($d, $product));
 
         if ($applicable->isEmpty()) {
             return null;
         }
 
-        // Prefer a discount that yields a concrete per-product price break
-        // (a simple percentage), falling back to the highest-priority one.
         $priceBreak = $applicable->first(fn (Discount $d) => $this->productPercentage($d) !== null);
         $discount = $priceBreak ?? $applicable->first();
 
