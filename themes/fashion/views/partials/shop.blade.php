@@ -17,11 +17,11 @@
     $currentSort = $currentSort ?? request('sort');
     $activeFilters = (array) request('filters', []);
     $sortOptions = [
-        'newest' => 'Newest',
-        'price-low-high' => 'Price: low to high',
-        'price-high-low' => 'Price: high to low',
-        'a-z' => 'Name: A–Z',
-        'z-a' => 'Name: Z–A',
+        'newest' => __('storefront.common.date'),
+        'price-low-high' => __('storefront.common.price').': thấp đến cao',
+        'price-high-low' => __('storefront.common.price').': cao đến thấp',
+        'a-z' => __('storefront.common.name').': A–Z',
+        'z-a' => __('storefront.common.name').': Z–A',
     ];
     $total = data_get($state, 'meta.total', $products->count());
 @endphp
@@ -37,7 +37,7 @@
         {{-- Facet sidebar — real GET form so filtering works without JS. --}}
         
         <aside class="col-12 col-lg-3 mb-4">
-            <h6 class="text-uppercase mb-4">Bộ lọc</h6>
+            <h6 class="text-uppercase mb-4">{{ __('storefront.search.facet_size') }}</h6>
             <form method="GET" data-facet-form>
                 @if($shopType === 'search' && request('q'))
                     <input type="hidden" name="q" value="{{ request('q') }}">
@@ -94,31 +94,31 @@
                         </div>
                     @endif
                 </div>
-                <noscript><button class="btn btn-dark btn-sm w-100">Apply</button></noscript>
+                <noscript><button class="btn btn-dark btn-sm w-100">{{ __('storefront.static.apply_filters') }}</button></noscript>
             </form>
         </aside>
 
         <div class="col-12 col-lg-9">
             {{-- Toolbar --}}
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <span class="text-muted small"><span data-result-count>{{ $total }}</span> products</span>
+                <span class="text-muted small"><span data-result-count>{{ $total }}</span> {{ __('storefront.product.no_products') }}</span>
                 <form method="GET" class="d-flex align-items-center gap-2">
                     @if($shopType === 'search' && request('q'))
                         <input type="hidden" name="q" value="{{ request('q') }}">
                     @endif
-                    <label class="small text-muted mb-0" for="sort">Sort</label>
+                    <label class="small text-muted mb-0" for="sort">{{ __('storefront.common.sort') }}</label>
                     <select class="form-select form-select-sm w-auto" id="sort" name="sort" data-sort>
                         @foreach($sortOptions as $value => $label)
                             <option value="{{ $value }}" @selected($currentSort === $value)>{{ $label }}</option>
                         @endforeach
                     </select>
-                    <noscript><button class="btn btn-dark btn-sm">Go</button></noscript>
+                    <noscript><button class="btn btn-dark btn-sm">{{ __('storefront.static.sort_go') }}</button></noscript>
                 </form>
             </div>
 
             {{-- SSR grid --}}
             @if($products->isEmpty())
-                <div class="text-center text-muted py-5">No products found.</div>
+                <div class="text-center text-muted py-5">{{ __('storefront.static.no_products_found') }}</div>
             @else
                 <div class="row g-4" data-grid>
                     @foreach($products as $product)

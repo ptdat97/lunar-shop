@@ -26,7 +26,7 @@
             {{-- Dashboard --}}
             <section data-tab-panel="dashboard">
                 <div class="border rounded p-3 mb-3">
-                    <h2 class="h6 text-uppercase">Hello, {{ $user->name }}</h2>
+                    <h2 class="h6 text-uppercase">{{ __('storefront.static.hello') }}, {{ $user->name }}</h2>
                     <p class="text-muted mb-0">{{ $user->email }}</p>
                 </div>
 

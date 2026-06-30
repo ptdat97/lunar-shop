@@ -117,7 +117,7 @@ $inStock = $product->variants->sum('stock') > 0;
             @endif
           @else
             <div class="ratio ratio-4x3 bg-light rounded d-flex align-items-center justify-content-center text-muted">
-              No image
+              {{ __('storefront.static.no_image') }}
             </div>
           @endif
         </div>
@@ -283,7 +283,7 @@ $inStock = $product->variants->sum('stock') > 0;
                 ]
                 : null,
     ];
-    $breadcrumbItems = [['name' => 'Home', 'url' => route('storefront.home')]];
+    $breadcrumbItems = [['name' => __('storefront.static.home_breadcrumb'), 'url' => route('storefront.home')]];
     if ($collection = $product->collections->first()) {
         $breadcrumbItems[] = [
             'name' => $collection->translateAttribute('name'),

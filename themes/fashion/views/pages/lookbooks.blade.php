@@ -2,7 +2,7 @@
 @section('body_class', 'page-lookbooks')
 
 @section('title', __('storefront.lookbook.title').' — '.config('app.name'))
-@section('meta_description', 'Browse our curated lookbooks — shop the looks you love.')
+@section('meta_description', __('storefront.static.lookbooks_meta'))
 
 @section('content')
     <div class="container py-4">

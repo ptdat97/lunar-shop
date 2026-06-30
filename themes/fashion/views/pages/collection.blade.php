@@ -10,7 +10,7 @@
     <div class="container pt-4">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb small">
-                <li class="breadcrumb-item"><a href="{{ route('storefront.home') }}" class="text-decoration-none">Home</a></li>
+                <li class="breadcrumb-item"><a href="{{ route('storefront.home') }}" class="text-decoration-none">{{ __('storefront.static.home_breadcrumb') }}</a></li>
                 <li class="breadcrumb-item active" aria-current="page">{{ $collection->translateAttribute('name') }}</li>
             </ol>
         </nav>
@@ -49,7 +49,7 @@
         '@context' => 'https://schema.org',
         '@type' => 'BreadcrumbList',
         'itemListElement' => [
-            ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => route('storefront.home')],
+            ['@type' => 'ListItem', 'position' => 1, 'name' => __('storefront.static.home_breadcrumb'), 'item' => route('storefront.home')],
             ['@type' => 'ListItem', 'position' => 2, 'name' => $collName, 'item' => url()->current()],
         ],
     ];

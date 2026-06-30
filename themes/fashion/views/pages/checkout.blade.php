@@ -34,14 +34,14 @@
                     <div class="col-6">
                         <div class="form-floating">
                             <input name="contact_email" type="email" id="co-email" value="{{ old('contact_email') }}"
-                                   class="form-control" placeholder="Email" required>
+                                   class="form-control" placeholder="{{ __('storefront.checkout.email') }}" required>
                             <label for="co-email">{{ __('storefront.checkout.email') }}</label>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="form-floating">
                             <input name="contact_phone" id="co-phone" value="{{ old('contact_phone') }}"
-                                   class="form-control" placeholder="Phone" required>
+                                   class="form-control" placeholder="{{ __('storefront.checkout.phone') }}" required>
                             <label for="co-phone">{{ __('storefront.checkout.phone') }}</label>
                         </div>
                     </div>
@@ -55,14 +55,14 @@
                     <div class="col-6">
                         <div class="form-floating">
                             <input name="first_name" id="co-first" value="{{ old('first_name') }}"
-                                   class="form-control" placeholder="First name" required>
+                                   class="form-control" placeholder="{{ __('storefront.checkout.first_name') }}" required>
                             <label for="co-first">{{ __('storefront.checkout.first_name') }}</label>
                         </div>
                     </div>
                     <div class="col-6">
                         <div class="form-floating">
                             <input name="last_name" id="co-last" value="{{ old('last_name') }}"
-                                   class="form-control" placeholder="Last name" required>
+                                   class="form-control" placeholder="{{ __('storefront.checkout.last_name') }}" required>
                             <label for="co-last">{{ __('storefront.checkout.last_name') }}</label>
                         </div>
                     </div>
@@ -81,7 +81,7 @@
                     <div class="col-12">
                         <div class="form-floating">
                             <input name="line_one" id="co-line" value="{{ old('line_one') }}"
-                                   class="form-control" placeholder="Address" required>
+                                   class="form-control" placeholder="{{ __('storefront.checkout.address') }}" required>
                             <label for="co-line">{{ __('storefront.checkout.address') }}</label>
                         </div>
                     </div>

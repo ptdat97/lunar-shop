@@ -8,14 +8,18 @@
 @if(!empty($sizeChart['has_chart']))
     @php
         $labels = [
-            'bust' => 'Bust', 'waist' => 'Waist', 'hip' => 'Hip',
-            'shoulder' => 'Shoulder', 'length' => 'Length', 'inseam' => 'Inseam',
+            'bust' => __('storefront.product.size'),
+            'waist' => __('storefront.product.size'),
+            'hip' => __('storefront.product.size'),
+            'shoulder' => __('storefront.product.size'),
+            'length' => __('storefront.product.size'),
+            'inseam' => __('storefront.product.size'),
         ];
     @endphp
     <div class="mt-4">
         <button class="btn btn-link p-0 text-dark" type="button"
                 data-bs-toggle="modal" data-bs-target="#sizeChart">
-            <i class="bi bi-list"></i> Size chart &amp; find my size
+            <i class="bi bi-list"></i> {{ __('storefront.static.size_chart_trigger') }}
         </button>
     </div>
 
@@ -24,7 +28,7 @@
             <div class="modal-content" data-size-finder data-slug="{{ $slug }}">
                 <div class="modal-header">
                     <h5 class="modal-title" id="sizeChartLabel">
-                        Size guide{{ $sizeChart['name'] ? ' — '.$sizeChart['name'] : '' }}
+                        {{ __('storefront.static.size_guide') }}{{ $sizeChart['name'] ? ' — '.$sizeChart['name'] : '' }}
                     </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -34,12 +38,12 @@
                     <ul class="nav nav-pills mb-3" role="tablist">
                         <li class="nav-item">
                             <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#sc-chart" type="button">
-                                Size chart
+                                {{ __('storefront.static.size_chart_tab') }}
                             </button>
                         </li>
                         <li class="nav-item">
                             <button class="nav-link" data-bs-toggle="pill" data-bs-target="#sc-finder" type="button">
-                                Find my size
+                                {{ __('storefront.static.find_my_size_tab') }}
                             </button>
                         </li>
                     </ul>
@@ -51,8 +55,8 @@
                                 <table class="table table-sm table-bordered align-middle small mb-0">
                                     <thead>
                                         <tr>
-                                            <th>Size</th>
-                                            <th>Fit</th>
+                                            <th>{{ __('storefront.product.size') }}</th>
+                                            <th>{{ __('storefront.product.fit') }}</th>
                                             @foreach($sizeChart['measurements'] as $m)
                                                 <th class="text-capitalize">{{ str_replace('_', ' ', $m) }}</th>
                                             @endforeach
@@ -85,7 +89,7 @@
 
                         {{-- Find my size --}}
                         <div class="tab-pane fade" id="sc-finder">
-                            <p class="text-muted small">Enter your body measurements (cm) and we’ll suggest your best fit.</p>
+                            <p class="text-muted small">{{ __('storefront.static.measurement_intro') }}</p>
                             <form data-size-finder-form>
                                 <div class="row g-2">
                                     @foreach($sizeChart['measurements'] as $m)
@@ -98,13 +102,13 @@
                                     @endforeach
                                 </div>
                                 <div class="alert alert-danger mt-3 mb-0" data-size-finder-error hidden></div>
-                                <button class="btn btn-dark mt-3" type="submit">Find my size</button>
+                                <button class="btn btn-dark mt-3" type="submit">{{ __('storefront.static.find_my_size_button') }}</button>
                             </form>
 
                             {{-- Result --}}
                             <div class="mt-3" data-size-finder-result hidden>
                                 <div class="border rounded p-3">
-                                    <div class="small text-muted text-uppercase">Recommended size</div>
+                                    <div class="small text-muted text-uppercase">{{ __('storefront.product.recommended_size') }}</div>
                                     <div class="d-flex align-items-baseline gap-2">
                                         <span class="h3 mb-0" data-sf-size>—</span>
                                         <span class="badge" data-sf-confidence></span>
@@ -112,7 +116,7 @@
                                     </div>
                                     <div class="small text-muted mt-2" data-sf-alternatives></div>
                                     <button class="btn btn-outline-dark btn-sm mt-2" type="button" data-sf-apply hidden>
-                                        Use this size
+                                        {{ __('storefront.static.use_this_size') }}
                                     </button>
                                 </div>
                             </div>

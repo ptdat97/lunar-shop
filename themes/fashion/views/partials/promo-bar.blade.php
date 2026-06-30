@@ -13,7 +13,7 @@
             <span class="opacity-75">{{ $flashSaleDescription }}</span>
             @if($flashSale->ends_at)
                 <span class="d-inline-flex align-items-center gap-1">
-                    <span class="opacity-75">Ends in</span>
+                    <span class="opacity-75">{{ __('storefront.promotion.ends_in') }}</span>
                     <span class="badge bg-warning text-dark font-monospace" data-flash-countdown>—</span>
                 </span>
             @endif

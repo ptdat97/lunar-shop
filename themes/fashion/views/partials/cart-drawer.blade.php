@@ -16,7 +16,7 @@
 
             {{-- Line items (rendered by JS) --}}
             <div class="px-3" data-cart-body>
-                <div class="text-center text-muted py-5" data-cart-loading>Loading…</div>
+                <div class="text-center text-muted py-5" data-cart-loading>{{ __('storefront.static.loading') }}</div>
             </div>
 
             {{-- Empty state --}}

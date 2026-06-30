@@ -15,7 +15,7 @@
         <div class="col-12 col-lg-7">
             <div class="border rounded p-3">
                 <div class="d-flex justify-content-between small text-muted mb-2">
-                    <span>{{ __('storefront.account.reference') }}</span><span>{{ $order->reference }}</span>
+                    <span>{{ __('storefront.cart.order_summary') }}</span><span>{{ $order->reference }}</span>
                 </div>
                 <table class="table table-sm align-middle mb-3">
                     <tbody>

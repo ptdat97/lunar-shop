@@ -8,7 +8,7 @@
 <div class="container py-4" data-cart-page>
     <h1 class="h3 mb-4">{{ __('storefront.cart.title') }}</h1>
 
-    <div class="text-center text-muted py-5" data-cart-loading>…</div>
+    <div class="text-center text-muted py-5" data-cart-loading>{{ __('storefront.static.loading') }}</div>
 
     <div class="row g-4" data-cart-content hidden>
         <div class="col-12 col-lg-8">

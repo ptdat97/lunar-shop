@@ -178,4 +178,26 @@ return [
         'vi' => 'Tiếng Việt',
     ],
 
+    'static' => [
+        'home_breadcrumb' => 'Trang chủ',
+        'no_image' => 'Không có hình ảnh',
+        'loading' => 'Đang tải…',
+        'no_products_found' => 'Không tìm thấy sản phẩm.',
+        'hello' => 'Xin chào',
+        'lookbooks_meta' => 'Khám phá bộ sưu tập được tuyển chọn — mua những set đồ bạn yêu thích.',
+        'sort_go' => 'Tìm',
+        'apply_filters' => 'Áp dụng',
+        'size_chart_trigger' => 'Bảng size & tìm size của tôi',
+        'size_guide' => 'Hướng dẫn size',
+        'size_chart_tab' => 'Bảng size',
+        'find_my_size_tab' => 'Tìm size của tôi',
+        'size' => 'Size',
+        'fit' => 'Dáng',
+        'measurement_intro' => 'Nhập số đo cơ thể (cm) và chúng tôi sẽ gợi ý size phù hợp nhất.',
+        'find_my_size_button' => 'Tìm size của tôi',
+        'recommended_size' => 'Size gợi ý',
+        'use_this_size' => 'Dùng size này',
+        'instagram_aria' => 'Instagram',
+    ],
+
 ];
