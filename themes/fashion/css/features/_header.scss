@@ -10,12 +10,7 @@
     z-index: v.$z-header;
     background: v.$bg-primary;
     border-bottom: v.$border-width solid v.$border-color;
-    height: v.$header-height;
     transition: all v.$transition-base;
-
-    @include m.down(md) {
-        height: v.$header-height-mobile;
-    }
 
     // Glass morphism on scroll (enhanced by JS)
     &.is-scrolled {
