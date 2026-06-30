@@ -5,6 +5,7 @@
 
 import api from '../api.js';
 import { renderGrid } from './_card.js';
+import { gridConfig } from '../config/grid.js';
 
 const KEY = 'recently_viewed';
 const MAX = 12;
@@ -45,7 +46,7 @@ export default async function (root = document) {
         const products = Array.isArray(data?.data) ? data.data : [];
         if (!products.length) return;
 
-        renderGrid(grid, products);
+        renderGrid(grid, products, gridConfig.recentlyViewed);
         section.hidden = false;
         // Let wishlist re-decorate the freshly rendered cards.
         window.dispatchEvent(new CustomEvent('grid:rendered', { detail: { root: grid } }));
