@@ -69,11 +69,22 @@
 
 ## P1 — Tăng chuyển đổi / AOV (fashion-specific)
 
-### 5. Đổi/trả hàng (RMA / returns) — *Order* (build mới)
-- Fashion tỉ lệ đổi trả cao → ROI lớn. Lunar không có RMA.
-- Cách làm: bảng `return_requests` (order_id, line, reason, status, refund_amount) +
-  Filament resource (duyệt/từ chối) + email trạng thái + link yêu cầu đổi-trả ở
-  account order-detail. Gắn với refund (mục 2) khi hoàn tiền.
+### 5. Đổi/trả hàng (RMA / returns) — *Order* — ✅ **đã làm**
+- ✅ Bảng `return_requests` + `return_request_lines` (line-level qty) + models
+  `ReturnRequest`/`ReturnRequestLine`.
+- ✅ `ReturnService`: `open` (validate ownership + qty ≤ line qty), `approve` (+refund
+  tùy chọn), `reject`, `refund` (prorate theo qty → gọi `RefundService` cho gateway
+  order, hoặc mark refunded cho COD/bank), `refundableAmount`. Full refund → order
+  `refunded`; partial → giữ paid.
+- ✅ Storefront: `POST /account/orders/{order}/returns` (owner-only, 404 guest/non-owner)
+  + form đổi/trả ở account order-detail (`account.js`: chọn line + qty + lý do, i18n
+  EN/VI, URL/label từ account-state). `OrderResource` thêm `can_return` + line `id`.
+- ✅ Admin: `ReturnRequestResource` (Sales group, read + actions Approve/Reject/Refund,
+  không cho create) — Approve có toggle "refund ngay".
+- ✅ Email trạng thái: `ReturnStatusMail` (queued, i18n `mail.return.*`, gửi qua
+  `OrderMailer` locale-aware) fire ở open/approve/reject/refund.
+- ✅ Test: `ReturnRequestTest` (6 case — prorate, approve+refund+transaction, reject+email,
+  invalid qty, storefront owner tạo được, non-owner 404).
 
 ### 6. Email transactional — i18n ✅ **đã làm** (branding + invoice còn lại)
 - ✅ **i18n EN/VI:** `lang/{en,vi}/mail.php` (subject + heading + intro + table + button +
@@ -100,11 +111,17 @@
     form find-my-size.
   - Gợi ý fit theo lịch sử mua/đổi-trả; cảnh báo "thường giữa hai size".
 
-### 9. "Frequently bought together" — *Catalog (Recommend)*
-- Hiện có `AssociationStrategy` + `CollectionStrategy`. Thiếu strategy co-purchase.
-- Cách làm: `CoPurchaseStrategy` đọc `lunar_order_lines` (job tính bảng tổng hợp định
-  kỳ), cắm vào chain sau curate. Giữ interface `RecommendationStrategy` — không đụng
-  caller. **Không** dùng ML/vector ở giai đoạn SME.
+### 9. "Frequently bought together" — *Catalog (Recommend)* — ✅ **đã làm**
+- ✅ `CoPurchaseStrategy` (implements `RecommendationStrategy`): 1 query aggregate đọc
+  `lunar_order_lines` (join variants → product), lấy product cùng xuất hiện trong các
+  đơn PAID chứa product nguồn, rank theo tần suất co-occurrence. Hydrate published
+  products giữ thứ tự.
+- ✅ Cắm vào `config/recommend.php` chain giữa Association (curated) và Collection
+  (fallback) — **không đụng caller** (service tự combine/de-dup/cache). Tự động vào cả
+  product-page + mini-cart recommendations.
+- ✅ Paid statuses đọc từ `analytics.paid_statuses` (single source — "purchased" nhất
+  quán toàn app). Realtime query, không cần job tổng hợp ở quy mô SME.
+- ✅ Test: `RecommendationTest` (co-purchase trả product mua cùng; bỏ qua đơn chưa paid).
 
 ---
 

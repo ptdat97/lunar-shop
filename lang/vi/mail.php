@@ -36,6 +36,18 @@ return [
         'status_line' => 'Trạng thái: :status',
     ],
 
+    // Return / RMA status
+    'return' => [
+        'subject' => 'Đổi/trả :reference — :status',
+        'heading' => 'Yêu cầu đổi/trả của bạn',
+        'intro' => 'Yêu cầu đổi/trả **:reference** cho đơn **:order** hiện đang ở trạng thái **:status**.',
+        'refund_line' => 'Số tiền hoàn: :amount',
+        'status_requested' => 'đã nhận',
+        'status_approved' => 'đã duyệt',
+        'status_rejected' => 'bị từ chối',
+        'status_refunded' => 'đã hoàn tiền',
+    ],
+
     // Invoice PDF
     'invoice' => [
         'title' => 'Hóa đơn',

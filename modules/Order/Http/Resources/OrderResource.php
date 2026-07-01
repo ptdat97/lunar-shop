@@ -24,7 +24,11 @@ class OrderResource extends JsonResource
             'sub_total' => $this->subTotal?->formatted(),
             'shipping_total' => $this->shippingTotal?->formatted(),
             'tax_total' => $this->taxTotal?->formatted(),
+            // Returnable when the order is in a paid/fulfilled state (customer can
+            // open an RMA from the account order-detail).
+            'can_return' => in_array($this->status, ['payment-received', 'dispatched', 'completed'], true),
             'lines' => $this->whenLoaded('lines', fn () => $this->lines->map(fn ($line) => [
+                'id' => $line->id,
                 'description' => $line->description,
                 'identifier' => $line->identifier,
                 'quantity' => $line->quantity,

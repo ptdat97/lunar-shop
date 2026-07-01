@@ -36,6 +36,18 @@ return [
         'status_line' => 'Status: :status',
     ],
 
+    // Return / RMA status
+    'return' => [
+        'subject' => 'Return :reference — :status',
+        'heading' => 'Your return request',
+        'intro' => 'Your return **:reference** for order **:order** is now **:status**.',
+        'refund_line' => 'Refunded amount: :amount',
+        'status_requested' => 'received',
+        'status_approved' => 'approved',
+        'status_rejected' => 'rejected',
+        'status_refunded' => 'refunded',
+    ],
+
     // Invoice PDF
     'invoice' => [
         'title' => 'Invoice',

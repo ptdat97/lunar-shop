@@ -54,7 +54,32 @@ function orderRow(order) {
 </tr>`;
 }
 
-function orderDetailHtml(order, invoice) {
+function returnFormHtml(order, returns) {
+    if (!returns?.url || !order.can_return || !(order.lines ?? []).length) return '';
+    const t = returns.i18n ?? {};
+    const reasons = Object.entries(returns.reasons ?? {})
+        .map(([k, v]) => `<option value="${esc(k)}">${esc(v)}</option>`).join('');
+    const rows = (order.lines ?? []).map((l) => `
+<div class="d-flex align-items-center gap-2 mb-2">
+    <input class="form-check-input m-0" type="checkbox" data-return-line="${l.id}">
+    <span class="flex-grow-1 small">${esc(l.description)}</span>
+    <input type="number" class="form-control form-control-sm" style="width:70px" min="1" max="${l.quantity}" value="1"
+           data-return-qty="${l.id}" aria-label="${esc(t.returnQty ?? 'Qty')}">
+</div>`).join('');
+    return `
+<details class="mt-3" data-return-form data-order-id="${order.id}">
+    <summary class="btn btn-outline-secondary btn-sm">${esc(t.requestReturn ?? 'Request a return')}</summary>
+    <div class="border rounded p-3 mt-2">
+        ${rows}
+        <label class="form-label small mt-2 mb-1">${esc(t.returnReason ?? 'Reason')}</label>
+        <select class="form-select form-select-sm mb-2" data-return-reason>${reasons}</select>
+        <button type="button" class="btn btn-dark btn-sm" data-return-submit>${esc(t.submitReturn ?? 'Submit return')}</button>
+        <div class="small mt-2" data-return-status></div>
+    </div>
+</details>`;
+}
+
+function orderDetailHtml(order, invoice, returns) {
     const lines = (order.lines ?? []).map((l) => `
 <tr><td>${esc(l.description)}</td><td class="text-center">× ${l.quantity}</td><td class="text-end">${esc(l.sub_total)}</td></tr>`).join('');
     const addr = order.shipping_address;
@@ -82,10 +107,10 @@ function orderDetailHtml(order, invoice) {
     <dt class="col-8 fw-normal">Shipping</dt><dd class="col-4 text-end">${esc(order.shipping_total ?? '')}</dd>
     <dt class="col-8 fw-bold">Total</dt><dd class="col-4 text-end fw-bold">${esc(order.total ?? '')}</dd>
 </dl>
-${addrHtml}${invoiceHtml}`;
+${addrHtml}${invoiceHtml}${returnFormHtml(order, returns)}`;
 }
 
-function initOrders(root, stats, invoice) {
+function initOrders(root, stats, invoice, returns) {
     const loading = root.querySelector('[data-orders-loading]');
     const empty = root.querySelector('[data-orders-empty]');
     const wrap = root.querySelector('[data-orders-wrap]');
@@ -118,13 +143,38 @@ function initOrders(root, stats, invoice) {
             detail.hidden = false;
             try {
                 const { data } = await api.get(`/orders/${view.dataset.orderView}`);
-                detailBody.innerHTML = orderDetailHtml(data.data, invoice);
+                detailBody.innerHTML = orderDetailHtml(data.data, invoice, returns);
             } catch {
                 detailBody.innerHTML = '<div class="text-danger small">Could not load this order.</div>';
             }
             detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
         if (e.target.closest('[data-order-back]')) detail.hidden = true;
+
+        // Submit a return request (line checkboxes + qty + reason).
+        const submitBtn = e.target.closest('[data-return-submit]');
+        if (submitBtn && returns) {
+            e.preventDefault();
+            const form = submitBtn.closest('[data-return-form]');
+            const status = form.querySelector('[data-return-status]');
+            const lines = [...form.querySelectorAll('[data-return-line]:checked')].map((cb) => ({
+                order_line_id: Number(cb.dataset.returnLine),
+                quantity: Number(form.querySelector(`[data-return-qty="${cb.dataset.returnLine}"]`)?.value || 1),
+            }));
+            if (!lines.length) { status.textContent = returns.i18n.returnError ?? 'Select at least one item.'; return; }
+            submitBtn.disabled = true;
+            try {
+                const url = returns.url.replace('__ID__', encodeURIComponent(form.dataset.orderId));
+                await api.post(url, { reason: form.querySelector('[data-return-reason]')?.value, lines });
+                status.className = 'small mt-2 text-success';
+                status.textContent = returns.i18n.returnSubmitted ?? 'Submitted.';
+                form.querySelector('.border')?.querySelectorAll('input,select,button').forEach((el) => (el.disabled = true));
+            } catch {
+                submitBtn.disabled = false;
+                status.className = 'small mt-2 text-danger';
+                status.textContent = returns.i18n.returnError ?? 'Error.';
+            }
+        }
     });
 
     // Load when the orders tab is first shown (or immediately if it's active).
@@ -339,11 +389,12 @@ export default function (root = document) {
     if (!account || account.dataset.accountInit) return;
     account.dataset.accountInit = '1';
 
-    const { countries = [], invoiceUrl, i18n = {} } = readState(account);
+    const { countries = [], invoiceUrl, returnUrl, returnReasons = {}, i18n = {} } = readState(account);
     const invoice = invoiceUrl ? { url: invoiceUrl, label: i18n.downloadInvoice } : null;
+    const returns = returnUrl ? { url: returnUrl, reasons: returnReasons, i18n } : null;
 
     initTabs(account);
-    const loadOrders = initOrders(account, account.querySelector('[data-stat-orders]'), invoice);
+    const loadOrders = initOrders(account, account.querySelector('[data-stat-orders]'), invoice, returns);
     const loadAddresses = initAddresses(account, countries, account.querySelector('[data-stat-addresses]'));
     initProfile(account);
 

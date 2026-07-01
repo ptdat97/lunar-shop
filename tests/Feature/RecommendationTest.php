@@ -2,6 +2,11 @@
 
 namespace Tests\Feature;
 
+use Lunar\Models\Channel;
+use Lunar\Models\Currency;
+use Lunar\Models\Order;
+use Lunar\Models\OrderLine;
+use Modules\Catalog\Strategies\CoPurchaseStrategy;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -12,6 +17,66 @@ use Tests\TestCase;
 class RecommendationTest extends TestCase
 {
     use CreatesStorefrontData;
+
+    /** A paid order containing the given products' first variants. */
+    private function paidOrderWith(array $products): Order
+    {
+        $order = Order::factory()->create([
+            'channel_id' => Channel::getDefault()->id,
+            'currency_code' => Currency::getDefault()->code,
+            'status' => 'payment-received',
+            'reference' => 'CO-' . uniqid(),
+            'sub_total' => 1000, 'discount_total' => 0, 'shipping_total' => 0,
+            'tax_total' => 0, 'total' => 1000,
+        ]);
+
+        foreach ($products as $product) {
+            $variant = $product->variants->first();
+            OrderLine::factory()->create([
+                'order_id' => $order->id,
+                'purchasable_type' => $variant->getMorphClass(),
+                'purchasable_id' => $variant->id,
+                'type' => 'physical', 'description' => 'x', 'quantity' => 1,
+                'unit_price' => 500, 'unit_quantity' => 1, 'sub_total' => 500,
+                'discount_total' => 0, 'tax_total' => 0, 'total' => 500,
+            ]);
+        }
+
+        return $order;
+    }
+
+    public function test_co_purchase_strategy_returns_products_bought_together(): void
+    {
+        $this->seedBaseData();
+        $a = $this->createProduct(['name' => 'A']);
+        $b = $this->createProduct(['name' => 'B']);
+        $c = $this->createProduct(['name' => 'C']);
+
+        // A+B in one order, A+C in another → co-purchase of A is {B, C}.
+        $this->paidOrderWith([$a, $b]);
+        $this->paidOrderWith([$a, $c]);
+
+        $recs = app(CoPurchaseStrategy::class)->for($a->fresh(), 8);
+
+        $ids = $recs->pluck('id')->all();
+        $this->assertContains($b->id, $ids);
+        $this->assertContains($c->id, $ids);
+        $this->assertNotContains($a->id, $ids, 'source product is excluded');
+    }
+
+    public function test_co_purchase_ignores_unpaid_orders(): void
+    {
+        $this->seedBaseData();
+        $a = $this->createProduct(['name' => 'A']);
+        $b = $this->createProduct(['name' => 'B']);
+
+        $order = $this->paidOrderWith([$a, $b]);
+        $order->update(['status' => 'awaiting-payment']); // not a real purchase
+
+        $recs = app(CoPurchaseStrategy::class)->for($a->fresh(), 8);
+
+        $this->assertNotContains($b->id, $recs->pluck('id')->all());
+    }
 
     public function test_product_recommendations_return_curated_association_first(): void
     {

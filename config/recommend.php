@@ -7,7 +7,10 @@ return [
     | strategies here in P2/P3 without touching callers.
     */
     'strategies' => [
+        // Curated (hand-picked) first, then automatic co-purchase history, then
+        // the collection-similarity fallback fills any remaining slots.
         \Modules\Catalog\Strategies\AssociationStrategy::class,
+        \Modules\Catalog\Strategies\CoPurchaseStrategy::class,
         \Modules\Catalog\Strategies\CollectionStrategy::class,
     ],
 

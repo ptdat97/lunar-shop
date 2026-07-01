@@ -8,10 +8,25 @@
 <div class="container py-4" data-account>
     <script type="application/json" data-account-state>@json([
         'countries' => $countries,
-        // Invoice download: URL template (:id replaced client-side) + label, so
-        // account.js stays free of hardcoded routes/strings.
+        // Invoice download + return request: URL templates (:id replaced
+        // client-side) + labels, so account.js stays free of hardcoded routes/strings.
         'invoiceUrl' => route('storefront.orders.invoice', ['order' => '__ID__']),
-        'i18n' => ['downloadInvoice' => __('storefront.account.download_invoice')],
+        'returnUrl' => route('storefront.orders.returns.store', ['order' => '__ID__']),
+        'returnReasons' => [
+            'wrong-size' => __('storefront.account.return_reason_size'),
+            'defect' => __('storefront.account.return_reason_defect'),
+            'not-as-described' => __('storefront.account.return_reason_described'),
+            'changed-mind' => __('storefront.account.return_reason_mind'),
+        ],
+        'i18n' => [
+            'downloadInvoice' => __('storefront.account.download_invoice'),
+            'requestReturn' => __('storefront.account.request_return'),
+            'submitReturn' => __('storefront.account.submit_return'),
+            'returnReason' => __('storefront.account.return_reason'),
+            'returnQty' => __('storefront.account.return_qty'),
+            'returnSubmitted' => __('storefront.account.return_submitted'),
+            'returnError' => __('storefront.account.return_error'),
+        ],
     ])</script>
     <h1 class="h3 mb-4">{{ __('storefront.account.my_account') }}</h1>
 

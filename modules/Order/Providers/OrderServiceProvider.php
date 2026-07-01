@@ -10,6 +10,7 @@ use Modules\Order\Events\OrderPaid;
 use Modules\Order\Listeners\SendOrderConfirmation;
 use Modules\Order\Listeners\SendOrderPaidEmail;
 use Modules\Order\Observers\OrderObserver;
+use Modules\Theme\Support\AdminPages;
 
 class OrderServiceProvider extends ServiceProvider
 {
@@ -18,7 +19,8 @@ class OrderServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Admin resource for customer return (RMA) requests (Sales group).
+        AdminPages::addResource(\Modules\Order\Filament\Resources\ReturnRequestResource::class);
     }
 
     /**
