@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Storage;
-use Modules\Media\Services\ConversionGenerator;
-use Modules\Media\Services\MediaUrl;
+use Modules\Assets\Services\ConversionGenerator;
+use Modules\Assets\Services\MediaUrl;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;

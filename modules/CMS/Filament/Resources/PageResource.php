@@ -12,7 +12,7 @@ use Modules\CMS\Filament\Resources\PageResource\Pages\CreatePage;
 use Modules\CMS\Filament\Resources\PageResource\Pages\EditPage;
 use Modules\CMS\Filament\Resources\PageResource\Pages\ListPages;
 use Modules\CMS\Models\Page;
-use Modules\FileManager\Filament\Forms\MediaPicker;
+use Modules\Assets\Filament\Forms\MediaPicker;
 
 class PageResource extends Resource
 {

@@ -8,7 +8,7 @@ use Modules\Catalog\Database\Seeders\Demo50ProductsSeeder;
 use Modules\Catalog\Database\Seeders\DemoOptionsSeeder;
 use Modules\Catalog\Database\Seeders\MultiSizeProductsSeeder;
 use Modules\CMS\Database\Seeders\CmsDemoSeeder;
-use Modules\FileManager\Database\Seeders\MediaLibraryDemoSeeder;
+use Modules\Assets\Database\Seeders\MediaLibraryDemoSeeder;
 use Modules\Location\Database\Seeders\VnLocationSeeder;
 use Modules\Product\Database\Seeders\SizeIntelligenceDemoSeeder;
 use Modules\Menu\Database\Seeders\FooterMenuSeeder;

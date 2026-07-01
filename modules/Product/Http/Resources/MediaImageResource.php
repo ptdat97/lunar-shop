@@ -2,7 +2,7 @@
 
 namespace Modules\Product\Http\Resources;
 
-use Modules\Media\Services\MediaSettings;
+use Modules\Assets\Services\MediaSettings;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -44,7 +44,7 @@ class MediaImageResource
         }
 
         $zoomSize ??= app(MediaSettings::class)->sizes()['zoom'];
-        $urls = app(\Modules\Media\Services\MediaUrl::class);
+        $urls = app(\Modules\Assets\Services\MediaUrl::class);
 
         // Generated on demand when their files are missing.
         $large = $urls->conversion($media, 'large');

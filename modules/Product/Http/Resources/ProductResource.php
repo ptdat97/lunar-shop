@@ -80,6 +80,6 @@ class ProductResource extends JsonResource
      */
     protected function imageUrl(?Media $media, string $conversion): ?string
     {
-        return app(\Modules\Media\Services\MediaUrl::class)->conversion($media, $conversion);
+        return app(\Modules\Assets\Services\MediaUrl::class)->conversion($media, $conversion);
     }
 }

@@ -13,7 +13,7 @@ use Modules\CMS\Filament\Resources\LookbookResource\Pages\CreateLookbook;
 use Modules\CMS\Filament\Resources\LookbookResource\Pages\EditLookbook;
 use Modules\CMS\Filament\Resources\LookbookResource\Pages\ListLookbooks;
 use Modules\CMS\Models\Lookbook;
-use Modules\FileManager\Filament\Forms\MediaPicker;
+use Modules\Assets\Filament\Forms\MediaPicker;
 
 class LookbookResource extends Resource
 {

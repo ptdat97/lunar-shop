@@ -11,7 +11,7 @@ use Modules\CMS\Filament\Resources\BannerResource\Pages\CreateBanner;
 use Modules\CMS\Filament\Resources\BannerResource\Pages\EditBanner;
 use Modules\CMS\Filament\Resources\BannerResource\Pages\ListBanners;
 use Modules\CMS\Models\Banner;
-use Modules\FileManager\Filament\Forms\MediaPicker;
+use Modules\Assets\Filament\Forms\MediaPicker;
 
 class BannerResource extends Resource
 {
