@@ -4,7 +4,7 @@ namespace Modules\Recommend\Http\Controllers\Api\V1;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Modules\Cart\Services\CartService;
+use Modules\Checkout\Services\CartService;
 use Modules\Product\Http\Resources\ProductResource;
 use Modules\Product\Services\ProductService;
 use Modules\Recommend\Services\RecommendationService;

@@ -8,8 +8,8 @@ use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Order;
 use Modules\Order\Mail\OrderConfirmationMail;
 use Modules\Order\Mail\OrderPaidMail;
-use Modules\Payment\Services\VNPayGateway;
-use Modules\Payment\Services\VNPayPaymentProcessor;
+use Modules\Checkout\Services\VNPayGateway;
+use Modules\Checkout\Services\VNPayPaymentProcessor;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 

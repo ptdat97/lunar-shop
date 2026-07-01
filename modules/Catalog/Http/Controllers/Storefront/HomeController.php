@@ -4,7 +4,7 @@ namespace Modules\Catalog\Http\Controllers\Storefront;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Routing\Controller;
-use Modules\SectionBuilder\Services\SectionRenderer;
+use Modules\Content\Services\SectionRenderer;
 
 class HomeController extends Controller
 {

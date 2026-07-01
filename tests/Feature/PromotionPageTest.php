@@ -78,7 +78,7 @@ class PromotionPageTest extends TestCase
     {
         $this->seedFlashSale();
 
-        \Modules\SectionBuilder\Models\PageSection::create([
+        \Modules\Content\Models\PageSection::create([
             'page_handle' => 'home',
             'type' => 'promotion-slider',
             'sort' => 0,
@@ -86,7 +86,7 @@ class PromotionPageTest extends TestCase
             'settings' => ['heading' => 'On Sale Now', 'limit' => 12],
         ]);
 
-        $html = app(\Modules\SectionBuilder\Services\SectionRenderer::class)->render('home');
+        $html = app(\Modules\Content\Services\SectionRenderer::class)->render('home');
 
         $this->assertStringContainsString('data-promotion-swiper', $html);
         $this->assertStringContainsString('On Sale Now', $html);

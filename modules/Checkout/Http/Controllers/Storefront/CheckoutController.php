@@ -9,10 +9,10 @@ use Illuminate\Routing\Controller;
 use Illuminate\Validation\ValidationException;
 use Lunar\Facades\CartSession;
 use Modules\Checkout\Services\CheckoutService;
-use Modules\Location\Models\Province;
-use Modules\Location\Services\CountryService;
+use Modules\Customer\Models\Province;
+use Modules\Customer\Services\CountryService;
 use Modules\Order\Services\OrderService;
-use Modules\Payment\Services\VNPayGateway;
+use Modules\Checkout\Services\VNPayGateway;
 
 class CheckoutController extends Controller
 {

@@ -258,7 +258,7 @@ class PromotionAdvancedTest extends TestCase
         $this->assertNotEmpty($applied[0]['amount']);
 
         // And it surfaces on the cart JSON contract under `applied_discounts`.
-        $payload = (new \Modules\Cart\Http\Resources\CartResource($cart))->toArray(request());
+        $payload = (new \Modules\Checkout\Http\Resources\CartResource($cart))->toArray(request());
         $this->assertSame('Flash Sale — 20% Off', $payload['applied_discounts'][0]['name']);
     }
 

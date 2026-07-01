@@ -8,7 +8,7 @@ use Lunar\Facades\Payments;
 use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Cart;
 use Lunar\Models\Order;
-use Modules\Cart\Services\CartService;
+use Modules\Checkout\Services\CartService;
 use Modules\Customer\Services\CustomerResolver;
 
 /**

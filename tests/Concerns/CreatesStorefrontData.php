@@ -108,14 +108,14 @@ trait CreatesStorefrontData
      * Seed a couple of provinces + wards (small fixture; the full dataset is
      * 3.3k wards and unnecessary for tests).
      */
-    protected function seedLocations(): \Modules\Location\Models\Province
+    protected function seedLocations(): \Modules\Customer\Models\Province
     {
-        $hcm = \Modules\Location\Models\Province::create(['code' => '79', 'name' => 'Thành phố Hồ Chí Minh']);
+        $hcm = \Modules\Customer\Models\Province::create(['code' => '79', 'name' => 'Thành phố Hồ Chí Minh']);
         $hcm->wards()->createMany([
             ['code' => '79001', 'name' => 'Phường Bến Nghé'],
             ['code' => '79002', 'name' => 'Phường Bến Thành'],
         ]);
-        \Modules\Location\Models\Province::create(['code' => '01', 'name' => 'Thành phố Hà Nội'])
+        \Modules\Customer\Models\Province::create(['code' => '01', 'name' => 'Thành phố Hà Nội'])
             ->wards()->create(['code' => '01001', 'name' => 'Phường Hoàn Kiếm']);
 
         return $hcm;

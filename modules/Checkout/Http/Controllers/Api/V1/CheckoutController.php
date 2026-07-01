@@ -5,7 +5,7 @@ namespace Modules\Checkout\Http\Controllers\Api\V1;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
-use Modules\Cart\Http\Resources\CartResource;
+use Modules\Checkout\Http\Resources\CartResource;
 use Modules\Checkout\Http\Resources\OrderResource;
 use Modules\Checkout\Http\Resources\ShippingOptionResource;
 use Modules\Checkout\Services\CheckoutService;

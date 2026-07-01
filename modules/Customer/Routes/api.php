@@ -4,8 +4,17 @@ use Illuminate\Support\Facades\Route;
 use Modules\Customer\Http\Controllers\Api\V1\AddressController;
 use Modules\Customer\Http\Controllers\Api\V1\AuthController;
 use Modules\Customer\Http\Controllers\Api\V1\CustomerController;
+use Modules\Customer\Http\Controllers\Api\V1\LocationController;
 use Modules\Customer\Http\Controllers\Api\V1\TokenAuthController;
 use Modules\Customer\Http\Controllers\Api\V1\WishlistController;
+
+// Public location lookups (no auth/session needed) for address dropdowns.
+Route::prefix('api/v1')->middleware('api')->group(function (): void {
+    Route::get('locations/provinces', [LocationController::class, 'provinces'])
+        ->name('api.v1.locations.provinces');
+    Route::get('locations/provinces/{province}/wards', [LocationController::class, 'wards'])
+        ->name('api.v1.locations.wards');
+});
 
 // Token (PAT) auth for native app / headless clients — stateless, no session,
 // so the plain `api` group (not `web`). The SPA cookie flow below is unchanged;

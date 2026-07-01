@@ -6,7 +6,7 @@ use Illuminate\Support\Collection;
 use Lunar\Models\Collection as LunarCollection;
 use Lunar\Models\Product;
 use Lunar\Models\Url;
-use Modules\CMS\Models\Page;
+use Modules\Content\Models\Page;
 
 /**
  * Builds the storefront sitemap URL set. Lives in Catalog because it coordinates

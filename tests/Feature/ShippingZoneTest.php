@@ -33,7 +33,7 @@ class ShippingZoneTest extends TestCase
             'shipping' => $this->shippingPayload(['country_id' => $country->id, 'state' => $state]),
         ])->assertSuccessful();
 
-        return app(\Modules\Cart\Services\CartService::class)->current();
+        return app(\Modules\Checkout\Services\CartService::class)->current();
     }
 
     public function test_falls_back_to_config_rate_when_no_zone_matches(): void

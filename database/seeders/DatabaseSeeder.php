@@ -7,16 +7,16 @@ use Modules\Catalog\Database\Seeders\BaseDataSeeder;
 use Modules\Catalog\Database\Seeders\Demo50ProductsSeeder;
 use Modules\Catalog\Database\Seeders\DemoOptionsSeeder;
 use Modules\Catalog\Database\Seeders\MultiSizeProductsSeeder;
-use Modules\CMS\Database\Seeders\CmsDemoSeeder;
+use Modules\Content\Database\Seeders\CmsDemoSeeder;
 use Modules\Assets\Database\Seeders\MediaLibraryDemoSeeder;
-use Modules\Location\Database\Seeders\VnLocationSeeder;
+use Modules\Customer\Database\Seeders\VnLocationSeeder;
 use Modules\Product\Database\Seeders\SizeIntelligenceDemoSeeder;
-use Modules\Menu\Database\Seeders\FooterMenuSeeder;
-use Modules\Menu\Database\Seeders\HeaderMenuSeeder;
+use Modules\Content\Database\Seeders\FooterMenuSeeder;
+use Modules\Content\Database\Seeders\HeaderMenuSeeder;
 use Modules\Promotion\Database\Seeders\DemoCouponSeeder;
 use Modules\Promotion\Database\Seeders\DemoPromotionSeeder;
 use Modules\Promotion\Database\Seeders\PromotionShowcaseSeeder;
-use Modules\SectionBuilder\Database\Seeders\HomeSectionsSeeder;
+use Modules\Content\Database\Seeders\HomeSectionsSeeder;
 
 /**
  * Full setup for a fresh install: Lunar essentials → demo catalog → menus,
