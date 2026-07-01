@@ -141,6 +141,83 @@ return [
         'whole_country' => 'Whole country',
     ],
 
+    'payment' => [
+        'title' => 'Payment Settings',
+        'save' => 'Save',
+        'saved' => 'Payment settings saved.',
+        'general' => 'General',
+        'default' => 'Default method at checkout',
+        'default_help' => 'The payment option pre-selected on the checkout page.',
+        'method_cod' => 'Cash on delivery',
+        'method_bank' => 'Bank transfer',
+        'vnpay' => 'VNPay',
+        'vnpay_desc' => 'Credentials from the VNPay merchant portal. Leave TMN Code empty to disable VNPay at checkout.',
+        'momo' => 'MoMo',
+        'momo_desc' => 'Credentials from the MoMo Business portal. Leave Partner Code empty to disable MoMo at checkout.',
+        'payment_url' => 'Payment URL',
+        'return_url' => 'Return URL',
+        'ipn_url' => 'IPN URL',
+        'endpoint' => 'API endpoint',
+    ],
+
+    'shipping_settings' => [
+        'title' => 'Shipping Settings',
+        'save' => 'Save',
+        'saved' => 'Shipping settings saved.',
+        'section' => 'Default flat rate',
+        'section_desc' => 'Used when no shipping zone matches the address. Zones (Shipping Zones page) take priority.',
+        'standard_rate' => 'Standard rate (minor units)',
+        'standard_rate_help' => 'e.g. 3000 = 30.00 in the store currency.',
+        'free_threshold' => 'Free-shipping threshold (minor units)',
+        'free_threshold_help' => 'Order subtotal at/above which shipping is free. 0 = disabled.',
+    ],
+
+    'membership' => [
+        'title' => 'Membership Tiers',
+        'save' => 'Save',
+        'saved' => 'Membership tiers saved.',
+        'enabled' => 'Enable membership tiers',
+        'enabled_help' => 'When off, no spend-based tiers are applied.',
+        'tiers' => 'Tiers',
+        'tiers_help' => 'A customer joins the highest tier whose lifetime paid spend they reach.',
+        'handle' => 'Handle',
+        'name' => 'Name',
+        'min_spend' => 'Min spend (major units)',
+        'discount_percentage' => 'Discount %',
+        'add_tier' => 'Add tier',
+    ],
+
+    'catalog_settings' => [
+        'title' => 'Catalog Settings',
+        'save' => 'Save',
+        'saved' => 'Catalog settings saved.',
+    ],
+
+    'recommend' => [
+        'title' => 'Recommendations',
+        'save' => 'Save',
+        'saved' => 'Recommendation settings saved.',
+        'section' => 'Limits',
+        'product_limit' => 'Product page limit',
+        'cart_limit' => 'Mini-cart limit',
+        'cache_ttl' => 'Cache TTL (seconds)',
+    ],
+
+    'review' => [
+        'section' => 'Reviews',
+        'auto_approve' => 'Auto-approve reviews',
+        'auto_approve_help' => 'When on, submitted reviews are published immediately. When off, they wait for admin approval.',
+    ],
+
+    'inventory_settings' => [
+        'title' => 'Inventory Settings',
+        'save' => 'Save',
+        'saved' => 'Inventory settings saved.',
+        'section' => 'Stock thresholds',
+        'low_stock_threshold' => 'Low-stock threshold',
+        'low_stock_threshold_help' => 'Variants at or below this stock level are flagged "low" in Stock Overview.',
+    ],
+
     'section' => [
         'label' => 'Section',
         'plural' => 'Page Sections',
@@ -213,6 +290,9 @@ return [
     'media' => [
         'library' => 'Media Library',
         'image_sizes' => 'Image Sizes',
+        'on_demand' => 'On-demand generation',
+        'on_demand_sync' => 'Generate images synchronously',
+        'on_demand_sync_help' => 'On: the first request for a missing image size generates it inline (simple, no worker needed). Off: serve the nearest ready size and generate the exact one on the media queue (needs Horizon running).',
         'conversion_sizes' => 'Conversion sizes',
         'sizes_desc' => 'Width and height (px) for each generated image size. Larger sizes mean sharper images but bigger files — keep them as small as the design allows for fast page loads.',
         'width' => 'Width (px)',
@@ -228,6 +308,28 @@ return [
         'file_deleted' => 'File deleted',
         'pick' => 'Select from Media Library…',
         'missing' => 'Selected file no longer exists in the library.',
+        
+        // Media Image Sizes Page
+        'no_worker' => 'No queue worker running.',
+        'no_worker_desc' => 'Image (re)generation is queued but won\'t process until a worker is up. Start Horizon with :command1 (or :command2).',
+        'sizes_changed' => 'Sizes changed.',
+        'sizes_changed_desc' => 'Existing images are still at the old size.',
+        'rebuild_all_now' => 'Rebuild all now',
+        'regenerate_missing' => 'Regenerate missing',
+        'regenerate_all' => 'Regenerate all',
+        'regenerate_all_confirm' => 'Rebuild ALL conversions in the background? This overwrites existing generated images.',
+        'save_note' => 'Saving applies new sizes to :newly generated images. To rebuild existing media with the new sizes, use :regenerate_all — it runs in the background on the queue (no request timeout, safe for large libraries) and needs a running queue worker (:queue_work).',
+        'regeneration_progress' => 'Regeneration progress',
+        'cancelled' => 'Cancelled',
+        'completed' => 'Completed',
+        'waiting_for_worker' => 'Waiting for a worker…',
+        'processing' => 'Processing…',
+        'batches' => 'batches',
+        'throughput' => '~:perMin batches/min',
+        'eta_remaining' => '· about :etaLabel remaining',
+        'batch_queued_no_worker' => 'Batch is queued but no worker is running — start Horizon to process it.',
+        'batch_failed' => ':count batch(es) failed — check the queue/logs.',
+        'cancel' => 'Cancel',
     ],
 
     'inventory' => [

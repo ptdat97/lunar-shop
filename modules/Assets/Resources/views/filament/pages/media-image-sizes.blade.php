@@ -7,19 +7,17 @@
         {{-- No queue worker → images can't be (re)built in the background. --}}
         @unless($workerAvailable)
             <div class="mb-4 rounded-lg border border-warning-300 bg-warning-50 p-4 text-sm text-warning-800 dark:border-warning-700 dark:bg-warning-950/50 dark:text-warning-200">
-                <strong>No queue worker running.</strong> Image (re)generation is queued but won't
-                process until a worker is up. Start Horizon with
-                <code>php&nbsp;artisan&nbsp;horizon</code> (or <code>php&nbsp;artisan&nbsp;queue:work</code>).
+                <strong>{{ __('admin.media.no_worker') }}</strong> {{ __('admin.media.no_worker_desc', ['command1' => 'php&nbsp;artisan&nbsp;horizon', 'command2' => 'php&nbsp;artisan&nbsp;queue:work']) }}
             </div>
         @endunless
 
         {{-- Sizes were just changed → existing conversions are stale. --}}
         @if($sizesStale)
             <div class="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary-300 bg-primary-50 p-4 text-sm text-primary-800 dark:border-primary-700 dark:bg-primary-950/50 dark:text-primary-200">
-                <span><strong>Sizes changed.</strong> Existing images are still at the old size.</span>
+                <span><strong>{{ __('admin.media.sizes_changed') }}</strong> {{ __('admin.media.sizes_changed_desc') }}</span>
                 <x-filament::button type="button" size="sm" color="primary"
                     wire:click="regenerateAll" wire:loading.attr="disabled" wire:target="regenerateAll">
-                    Rebuild all now
+                    {{ __('admin.media.rebuild_all_now') }}
                 </x-filament::button>
             </div>
         @endif
@@ -29,7 +27,7 @@
 
             <div class="flex flex-wrap items-center gap-3">
                 <x-filament::button type="submit">
-                    Save sizes
+                    {{ __('admin.media.save') }}
                 </x-filament::button>
 
                 <x-filament::button
@@ -39,7 +37,7 @@
                     wire:loading.attr="disabled"
                     wire:target="regenerateMissing"
                 >
-                    Regenerate missing
+                    {{ __('admin.media.regenerate_missing') }}
                 </x-filament::button>
 
                 <x-filament::button
@@ -48,25 +46,21 @@
                     wire:click="regenerateAll"
                     wire:loading.attr="disabled"
                     wire:target="regenerateAll"
-                    wire:confirm="Rebuild ALL conversions in the background? This overwrites existing generated images."
+                    wire:confirm="{{ __('admin.media.regenerate_all_confirm') }}"
                 >
-                    Regenerate all
+                    {{ __('admin.media.regenerate_all') }}
                 </x-filament::button>
             </div>
 
             <p class="text-sm text-gray-500 dark:text-gray-400">
-                Saving applies new sizes to <em>newly</em> generated images. To rebuild
-                existing media with the new sizes, use <strong>Regenerate all</strong> — it
-                runs in the background on the queue (no request timeout, safe for large
-                libraries) and needs a running queue worker
-                (<code>php&nbsp;artisan&nbsp;queue:work</code>).
+                {{ __('admin.media.save_note', ['newly' => '<em>tạo mới</em>', 'regenerate_all' => '<strong>Tạo lại tất cả</strong>', 'queue_work' => 'php&nbsp;artisan&nbsp;queue:work']) }}
             </p>
         </form>
 
         {{-- Live batch progress --}}
         @if($batch)
             <x-filament::section class="mt-6">
-                <x-slot name="heading">Regeneration progress</x-slot>
+                <x-slot name="heading">{{ __('admin.media.regeneration_progress') }}</x-slot>
 
                 @php
                     $pct = (int) ($batch['progress'] ?? 0);
@@ -85,14 +79,14 @@
                 <div class="space-y-3">
                     <div class="flex items-center justify-between text-sm">
                         <span class="font-medium">
-                            @if($cancelled) Cancelled
-                            @elseif($finished) Completed
-                            @elseif($stalled) Waiting for a worker…
-                            @else Processing…
+                            @if($cancelled) {{ __('admin.media.cancelled') }}
+                            @elseif($finished) {{ __('admin.media.completed') }}
+                            @elseif($stalled) {{ __('admin.media.waiting_for_worker') }}
+                            @else {{ __('admin.media.processing') }}
                             @endif
                         </span>
                         <span class="tabular-nums text-gray-500">
-                            {{ $batch['processed'] ?? 0 }} / {{ $batch['total'] ?? 0 }} batches
+                            {{ $batch['processed'] ?? 0 }} / {{ $batch['total'] ?? 0 }} {{ __('admin.media.batches') }}
                             ({{ $pct }}%)
                         </span>
                     </div>
@@ -107,20 +101,20 @@
                     {{-- Throughput + ETA (Horizon-drained). --}}
                     @if(! $finished && ! $cancelled && ($perMin || $etaLabel))
                         <p class="text-xs tabular-nums text-gray-500">
-                            @if($perMin) ~{{ $perMin }} batches/min @endif
-                            @if($etaLabel) · about {{ $etaLabel }} remaining @endif
+                            @if($perMin) {{ __('admin.media.throughput', ['perMin' => $perMin]) }} @endif
+                            @if($etaLabel) {{ __('admin.media.eta_remaining', ['etaLabel' => $etaLabel]) }} @endif
                         </p>
                     @endif
 
                     {{-- Batch queued but no worker draining it. --}}
                     @if($stalled)
                         <p class="text-sm text-warning-600">
-                            Batch is queued but no worker is running — start Horizon to process it.
+                            {{ __('admin.media.batch_queued_no_worker') }}
                         </p>
                     @endif
 
                     @if($failed)
-                        <p class="text-sm text-danger-600">{{ $failed }} batch(es) failed — check the queue/logs.</p>
+                        <p class="text-sm text-danger-600">{{ __('admin.media.batch_failed', ['count' => $failed]) }}</p>
                     @endif
 
                     @if(! $finished && ! $cancelled)
@@ -130,7 +124,7 @@
                             color="gray"
                             wire:click="cancelRegenerate"
                         >
-                            Cancel
+                            {{ __('admin.media.cancel') }}
                         </x-filament::button>
                     @endif
                 </div>

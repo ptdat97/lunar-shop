@@ -9,6 +9,7 @@ use Lunar\Facades\Discounts;
 use Modules\Order\Events\OrderPaid;
 use Modules\Promotion\Services\MembershipService;
 use Modules\Promotion\Services\PromotionService;
+use Modules\Theme\Support\AdminPages;
 
 class PromotionServiceProvider extends ServiceProvider
 {
@@ -23,6 +24,9 @@ class PromotionServiceProvider extends ServiceProvider
         // discounts + their eager-loaded relations) is shared across the many
         // saleFor() calls product cards trigger on a listing page.
         $this->app->singleton(PromotionService::class);
+
+        // Admin page to configure spend-based membership tiers.
+        AdminPages::add(\Modules\Promotion\Filament\Pages\MembershipSettingsPage::class);
     }
 
     /**
@@ -31,6 +35,7 @@ class PromotionServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
+        $this->loadViewsFrom(__DIR__ . '/../Resources/views', 'promotion-admin');
 
         $this->loadRoutesFrom(__DIR__ . '/../Routes/web.php');
         $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');

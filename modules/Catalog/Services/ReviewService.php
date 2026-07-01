@@ -37,7 +37,7 @@ class ReviewService
             'author' => $author,
             'rating' => max(1, min(5, $rating)),
             'body' => $body,
-            'approved' => (bool) config('review.auto_approve', true),
+            'approved' => (bool) app(\App\Support\Settings::class)->get('review.auto_approve', true),
         ]);
     }
 }

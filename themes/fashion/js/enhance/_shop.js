@@ -66,6 +66,14 @@ function facetLabel(root, key) {
     return root.dataset[`facetLabel${key}`] || (key.charAt(0).toUpperCase() + key.slice(1));
 }
 
+// Localized label for an enum-like facet VALUE (e.g. availability's "in_stock"),
+// read from `data-value-label-{value}` on the shop root. Real data values
+// (size/color/brand/material) have no override and display verbatim.
+function valueLabel(root, value) {
+    const camel = String(value).replace(/[-_](\w)/g, (_, c) => c.toUpperCase());
+    return root.dataset[`valueLabel${camel.charAt(0).toUpperCase() + camel.slice(1)}`] || value;
+}
+
 function priceFacetHtml(facet, active) {
     if (!facet || !(facet.max > facet.min)) return '';
     const lo = Math.floor(facet.min);
@@ -104,7 +112,7 @@ function renderFacets(root, facets, activeFilters) {
     <input class="form-check-input" type="checkbox" id="${id}"
            data-facet="${key}" value="${b.value}" ${checked}>
     <label class="form-check-label d-flex justify-content-between" for="${id}">
-        <span>${b.value}</span><span class="text-muted small">${b.count}</span>
+        <span>${valueLabel(root, b.value)}</span><span class="text-muted small">${b.count}</span>
     </label>
 </div>`;
             }).join('');

@@ -32,5 +32,12 @@ return [
             'driver' => 'vnpay',
             'authorized' => 'awaiting-payment',
         ],
+
+        // MoMo — online gateway (redirect + callback), same pattern as VNPay.
+        // Driver registered via Payments::extend('momo', ...).
+        'momo' => [
+            'driver' => 'momo',
+            'authorized' => 'awaiting-payment',
+        ],
     ],
 ];

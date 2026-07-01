@@ -47,8 +47,11 @@ class StockOverview extends Page implements HasTable
 
     protected static string $view = 'inventory::filament.pages.stock-overview';
 
-    /** Stock at or below this is considered "low". */
-    public const LOW_THRESHOLD = 5;
+    /** Admin-configurable "low stock" threshold (Settings → default). */
+    protected function lowThreshold(): int
+    {
+        return app(\Modules\Inventory\Services\InventoryService::class)->lowStockThreshold();
+    }
 
     public function table(Table $table): Table
     {
@@ -105,7 +108,7 @@ class StockOverview extends Page implements HasTable
                     ])
                     ->query(fn (Builder $q, array $data): Builder => match ($data['value'] ?? null) {
                         'out' => $q->where('purchasable', '!=', 'always')->where('stock', '<=', 0),
-                        'low' => $q->where('purchasable', '!=', 'always')->whereBetween('stock', [1, self::LOW_THRESHOLD]),
+                        'low' => $q->where('purchasable', '!=', 'always')->whereBetween('stock', [1, $this->lowThreshold()]),
                         'tracked' => $q->where('purchasable', '!=', 'always'),
                         default => $q,
                     }),
@@ -124,7 +127,7 @@ class StockOverview extends Page implements HasTable
 
         return match (true) {
             $variant->stock <= 0 => 'Out of stock',
-            $variant->stock <= self::LOW_THRESHOLD => 'Low stock',
+            $variant->stock <= $this->lowThreshold() => 'Low stock',
             default => 'In stock',
         };
     }

@@ -89,7 +89,8 @@ class MediaUrl
     /** Whether on-demand generation runs inline (sync) or defers to the queue. */
     protected function syncOnDemand(): bool
     {
-        return (bool) config('lunar.media.on_demand.sync', true);
+        return (bool) app(\App\Support\Settings::class)
+            ->get('media.on_demand_sync', config('lunar.media.on_demand.sync', true));
     }
 
     /**

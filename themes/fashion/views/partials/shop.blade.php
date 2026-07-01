@@ -29,7 +29,10 @@
 <div class="container my-4" data-shop="{{ $shopType }}" @if($scope) data-scope="{{ $scope }}" @endif
      data-facet-label-size="{{ __('storefront.search.facet_size') }}"
      data-facet-label-color="{{ __('storefront.search.facet_color') }}"
-     data-facet-label-brand="{{ __('storefront.search.facet_brand') }}">
+     data-facet-label-brand="{{ __('storefront.search.facet_brand') }}"
+     data-facet-label-material="{{ __('storefront.search.facet_material') }}"
+     data-facet-label-availability="{{ __('storefront.search.facet_availability') }}"
+     data-value-label-in-stock="{{ __('storefront.search.in_stock') }}">
     {{-- Hydration payload: one contract for SSR + enhancer (no fetch on load). --}}
     <script type="application/json" data-island-state>@json($state)</script>
 
@@ -55,14 +58,21 @@
                         <div class="mb-4">
                             <h6 class="text-uppercase small mb-2">{{ __('storefront.search.facet_'.$key) }}</h6>
                             @foreach($buckets as $bucket)
-                                @php $id = 'f-'.$key.'-'.\Illuminate\Support\Str::slug($bucket['value']); @endphp
+                                @php
+                                    $id = 'f-'.$key.'-'.\Illuminate\Support\Str::slug($bucket['value']);
+                                    // Availability values are enum-like → translate; the rest
+                                    // (size/color/brand/material) are real data shown verbatim.
+                                    $label = $key === 'availability'
+                                        ? __('storefront.search.'.$bucket['value'])
+                                        : $bucket['value'];
+                                @endphp
                                 <div class="form-check">
                                     <input class="form-check-input" type="checkbox" id="{{ $id }}"
                                            data-facet="{{ $key }}"
                                            name="filters[{{ $key }}][]" value="{{ $bucket['value'] }}"
                                            @checked(in_array($bucket['value'], (array) ($activeFilters[$key] ?? [])))>
                                     <label class="form-check-label d-flex justify-content-between" for="{{ $id }}">
-                                        <span>{{ $bucket['value'] }}</span>
+                                        <span>{{ $label }}</span>
                                         <span class="text-muted small">{{ $bucket['count'] }}</span>
                                     </label>
                                 </div>

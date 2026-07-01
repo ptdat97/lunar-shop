@@ -54,7 +54,7 @@ function orderRow(order) {
 </tr>`;
 }
 
-function orderDetailHtml(order) {
+function orderDetailHtml(order, invoice) {
     const lines = (order.lines ?? []).map((l) => `
 <tr><td>${esc(l.description)}</td><td class="text-center">× ${l.quantity}</td><td class="text-end">${esc(l.sub_total)}</td></tr>`).join('');
     const addr = order.shipping_address;
@@ -66,6 +66,11 @@ function orderDetailHtml(order) {
     <div>${esc(addr.city)}${addr.state ? ', ' + esc(addr.state) : ''}</div>
     ${addr.contact_phone ? `<div>${esc(addr.contact_phone)}</div>` : ''}
 </div>` : '';
+    // Invoice download link (localized label + URL template from account state).
+    const invoiceHtml = (invoice?.url && order.id != null) ? `
+<a class="btn btn-outline-dark btn-sm mt-3" href="${invoice.url.replace('__ID__', encodeURIComponent(order.id))}">
+    ${esc(invoice.label ?? 'Download invoice')}
+</a>` : '';
     return `
 <div class="d-flex justify-content-between">
     <strong>${esc(order.reference)}</strong>
@@ -77,10 +82,10 @@ function orderDetailHtml(order) {
     <dt class="col-8 fw-normal">Shipping</dt><dd class="col-4 text-end">${esc(order.shipping_total ?? '')}</dd>
     <dt class="col-8 fw-bold">Total</dt><dd class="col-4 text-end fw-bold">${esc(order.total ?? '')}</dd>
 </dl>
-${addrHtml}`;
+${addrHtml}${invoiceHtml}`;
 }
 
-function initOrders(root, stats) {
+function initOrders(root, stats, invoice) {
     const loading = root.querySelector('[data-orders-loading]');
     const empty = root.querySelector('[data-orders-empty]');
     const wrap = root.querySelector('[data-orders-wrap]');
@@ -113,7 +118,7 @@ function initOrders(root, stats) {
             detail.hidden = false;
             try {
                 const { data } = await api.get(`/orders/${view.dataset.orderView}`);
-                detailBody.innerHTML = orderDetailHtml(data.data);
+                detailBody.innerHTML = orderDetailHtml(data.data, invoice);
             } catch {
                 detailBody.innerHTML = '<div class="text-danger small">Could not load this order.</div>';
             }
@@ -334,10 +339,11 @@ export default function (root = document) {
     if (!account || account.dataset.accountInit) return;
     account.dataset.accountInit = '1';
 
-    const { countries = [] } = readState(account);
+    const { countries = [], invoiceUrl, i18n = {} } = readState(account);
+    const invoice = invoiceUrl ? { url: invoiceUrl, label: i18n.downloadInvoice } : null;
 
     initTabs(account);
-    const loadOrders = initOrders(account, account.querySelector('[data-stat-orders]'));
+    const loadOrders = initOrders(account, account.querySelector('[data-stat-orders]'), invoice);
     const loadAddresses = initAddresses(account, countries, account.querySelector('[data-stat-addresses]'));
     initProfile(account);
 

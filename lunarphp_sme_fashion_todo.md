@@ -14,34 +14,56 @@
 
 ## P0 — Chặn doanh thu / vận hành cơ bản
 
-### 1. MoMo payment gateway — *Checkout*
-- Chỉ có VNPay; MoMo chưa có (không class/config).
-- Cách làm: theo đúng mẫu VNPay — driver kế thừa `Lunar\Base\...\AbstractPayment`
-  (tham chiếu `modules/Checkout/PaymentTypes/VNPayPayment.php`), gateway build URL +
-  verify chữ ký (HMAC), routes `start`/`return`/`ipn` idempotent (ghi `Transaction`,
-  chuyển order → payment-received). Đăng ký qua `Payments::extend('momo')` +
-  `payment-overrides.php`. **Không đổi pipeline checkout.**
-- Bật bằng env (giống `VNPAY_TMN_CODE`/`VNPAY_HASH_SECRET`).
-- Kèm test kiểu `VNPayPaymentTest` (chữ ký + tamper + callback idempotent).
+### 1. MoMo payment gateway — *Checkout* — ✅ **đã làm**
+- ✅ Theo đúng mẫu VNPay: `MoMoPayment` driver (`AbstractPayment`), `MoMoGateway`
+  (create-payment JSON POST → payUrl, verify HMAC-SHA256, sign, isSuccessful,
+  orderIdFrom), `MoMoPaymentProcessor` (reconcile + ghi `Transaction` driver `momo` +
+  chuyển order → payment-received, **idempotent**), `MoMoResult` DTO, `MoMoController`
+  (return redirect + ipn POST trả 204). Đăng ký `Payments::extend('momo')` +
+  `payment-overrides.php` + `paymentMethods()`. **Không đổi pipeline checkout.**
+- ✅ Config `payment.momo.*` (env `MOMO_PARTNER_CODE`/`MOMO_ACCESS_KEY`/`MOMO_SECRET_KEY`…),
+  routes `payment/momo/return` (GET) + `payment/momo/ipn` (POST, CSRF-exempt),
+  checkout `place()` redirect sang payUrl, UI radio MoMo (`momoEnabled`) + i18n EN/VI.
+- ✅ Test: `MoMoPaymentTest` (9 case — chữ ký round-trip + tamper, place order awaiting,
+  createPayment payUrl/error qua `Http::fake`, callback paid + Transaction + email,
+  idempotent, invalid signature, failed resultCode, IPN 204).
+- ✅ Refund qua API MoMo đã làm (mục 2).
 
-### 2. Refund qua API — *Checkout*
-- Hiện `VNPayPayment::refund()` trả `PaymentRefund(true)` nhưng refund thực tế làm
-  out-of-band (portal VNPay). Cần gọi API refund thật của cổng + ghi `Transaction`
-  refund + cập nhật order status.
-- Bắt đầu với VNPay refund API; MoMo tương tự khi có gateway.
+### 2. Refund qua API — *Checkout* — ✅ **đã làm**
+- ✅ Gateway refund API thật: `VNPayGateway::refund()` (POST merchant API, ký
+  HMAC-SHA512, full/partial 02/03) + `MoMoGateway::refund()` (POST refund API, ký
+  HMAC-SHA256). Config `payment.vnpay.api_url` + `payment.momo.refund_url`.
+- ✅ `RefundService` (shared): tìm capture transaction, gọi gateway đúng driver, ghi
+  `Transaction` type `refund` (parent = capture), cập nhật order → `refunded` (full) hoặc
+  giữ paid (partial); guard over-refund + refundedTotal/isRefundable. `RefundResult` DTO.
+- ✅ **Admin action dùng NATIVE Lunar**: `VNPayPayment::refund()`/`MoMoPayment::refund()`
+  delegate sang RefundService → nút "Refund" sẵn có trong Lunar OrderResource (ManageOrder)
+  hoạt động end-to-end, không cần build action mới (Lunar chỉ đọc `PaymentRefund` +
+  đọc refund-type transactions ta ghi).
+- ✅ Test: `RefundTest` (6 case — VNPay/MoMo full refund, partial giữ paid, gateway fail
+  không ghi gì, over-refund bị chặn) qua `Http::fake`. Verify path Lunar admin
+  `$transaction->refund()` → driver → RefundService → `refunded`.
 
-### 3. Invoice PDF — *Order*
-- Chưa có package PDF hay template. Khách cần hóa đơn/biên nhận.
-- Cách làm: thêm `barryvdh/laravel-dompdf`, tạo template Blade hóa đơn (dùng lại data
-  `OrderResource`), route tải PDF ở account order-detail + đính kèm vào
-  `OrderPaidMail`. Song ngữ EN/VI.
+### 3. Invoice PDF — *Order* — ✅ **đã làm**
+- ✅ `barryvdh/laravel-dompdf` + template `order::invoice` (self-contained CSS, DejaVu
+  font → Unicode VN OK) + `InvoiceService` (make/bytes/filename). Song ngữ EN/VI qua
+  `lang.mail.invoice.*` (render theo locale).
+- ✅ Route tải PDF owner-only `account/orders/{order}/invoice`
+  (`InvoiceController`, route-model-bound + ownership check → guest/non-owner 404) +
+  nút "Download invoice" ở account order-detail (`account.js`, URL template + label từ
+  account-state, không hardcode).
+- ✅ Đính kèm invoice PDF vào `OrderPaidMail` (build lazy → theo locale mail).
+- ✅ Test: `InvoiceTest` (generate PDF, owner tải được, non-owner/guest 404).
 
-### 4. Bật hạ tầng production — *cấu hình*
-- Env đã set sẵn `CACHE_STORE=redis`, `QUEUE_CONNECTION=redis`, `REDIS_CLIENT=phpredis`;
-  Horizon đã cài (`laravel/horizon`). **Chưa** verify chạy thật.
-- Việc còn lại: cấu hình Redis prod + chạy Horizon (queue email/job restock), CDN cho
-  `public/` (media + build assets), rà lại DB index sau khi có traffic thật
-  (đã có `add_performance_indexes` migration làm nền).
+### 4. Bật hạ tầng production — *cấu hình* — ✅ **queue/Horizon xong**
+- ✅ Redis + Horizon chạy thật (verify end-to-end): `.env` → redis, 2 supervisor
+  (`supervisor-app` mails/notifications/default; `supervisor-media` cho ảnh nặng),
+  queue tách theo loại (`App\Support\Queues`), retry/backoff cho mailable + job.
+- ✅ Mail đơn hàng → queue `mails`; back-in-stock → `notifications`; resize ảnh →
+  `media` (on-demand async fallback + pre-warm sau upload + batch regenerate với
+  progress/ETA/worker-status Horizon-aware).
+- Việc còn lại: CDN cho `public/` (media + build assets) khi deploy; rà lại DB index
+  sau khi có traffic thật (đã có `add_performance_indexes` làm nền).
 
 ---
 
@@ -53,17 +75,24 @@
   Filament resource (duyệt/từ chối) + email trạng thái + link yêu cầu đổi-trả ở
   account order-detail. Gắn với refund (mục 2) khi hoàn tiền.
 
-### 6. Email transactional — hoàn thiện — *Order*
-- 3 mailable đã chạy nhưng template markdown **chưa i18n** (0 file dùng `__()`) và chưa
-  branding.
-- Cách làm: thay chuỗi cứng bằng `__()` (lang `mail.*` EN/VI), thêm logo/màu brand,
-  render theo locale của khách. Đính kèm invoice PDF (mục 3).
+### 6. Email transactional — i18n ✅ **đã làm** (branding + invoice còn lại)
+- ✅ **i18n EN/VI:** `lang/{en,vi}/mail.php` (subject + heading + intro + table + button +
+  shipping + thanks); 3 template markdown dùng `__()`; subject trong `envelope()` cũng
+  i18n. `OrderMailer::send()` set `->locale()` = locale khách đang dùng (fallback
+  `LocaleService::default()`) → **queued mail giữ đúng ngôn ngữ** qua serialize.
+- ✅ Test: `OrderMailI18nTest` (render EN, render VI, locale-stamping trên queued mail).
+- ✅ Đính kèm invoice PDF vào `OrderPaidMail` (mục 3 đã xong).
+- ⬜ Còn: branding (logo/màu). Nhãn order-status (`statusLabel`) vẫn theo config Lunar
+  (English) — tách khỏi storefront i18n.
 
-### 7. Facet material + availability — *Catalog (Search)*
-- Engine mới có `size/color/brand/price`. Thiếu `material` (đã có bảng
-  `product_materials`) và `availability` (in-stock/out).
-- Cách làm: mở rộng `DatabaseSearchEngine::computeFacets` + `applyFilters`; UI thêm 2
-  nhóm facet ở sidebar (`_shop.js` đã parse cả list + object facet). Giữ nguyên contract.
+### 7. Facet material + availability — *Catalog (Search)* — ✅ **đã làm**
+- ✅ `DatabaseSearchEngine`: `computeFacets` trả thêm `material` (từ `product_materials`,
+  value+count) và `availability` (bucket `in_stock` đơn) + `applyFilters` lọc theo cả hai
+  (material: `whereHas('material')`; availability: `whereHas('variants', stock>0)`).
+- ✅ UI: sidebar render tự động (bucket facet generic) + i18n `facet_material`/
+  `facet_availability`/`in_stock` (EN/VI); `_shop.js` dịch value enum (`in_stock` →
+  "Còn hàng") qua `data-value-label-*`. Facet counts tính từ facetBase (trước filter).
+- ✅ Test: `test_material_facet_and_filter` + `test_availability_facet_and_in_stock_filter`.
 
 ### 8. Size Intelligence v2 — *Catalog*
 - Base (size chart + find-my-size) đã có. v2:
@@ -105,6 +134,30 @@
 ### 14. Quick-view — *theme*
 - Đã chừa chỗ, cố ý hoãn. Làm khi cần: modal xem nhanh sản phẩm từ grid (vanilla, đọc
   `/api/v1/products/{slug}`), add-to-cart không rời trang listing.
+
+### 15b. Config tính năng ra admin Filament — ✅ **đã làm**
+- ✅ Hạ tầng chung: `App\Support\Settings` (bảng `app_settings` key→JSON, cached, đọc
+  DB → fallback config/env) + singleton. Migration `create_app_settings_table`.
+- ✅ 4 Filament settings page (đọc/ghi qua Settings, i18n EN/VI):
+  - **Payment** (Checkout, Settings group): keys VNPay + MoMo, để trống primary key =
+    tắt cổng. Gateway `fromConfig()` đọc qua Settings.
+  - **Shipping** (Shipping, Settings group): flat rate + free-ship threshold. Resolver +
+    CartResource đọc qua Settings.
+  - **Membership** (Promotion, Sales group): Toggle enabled + Repeater tiers, auto-sort
+    theo min_spend. `MembershipService` đọc qua Settings.
+  - **Recommendations** (Catalog group): product_limit/cart_limit/cache_ttl.
+- ✅ **Đợt 2** thêm 3 config business nữa: **Review auto-approve** (moderation, gộp vào
+  `CatalogSettingsPage` — đổi tên từ RecommendSettingsPage), **Default payment method**
+  (Select vào Payment Settings, `defaultPayment` inject vào checkout), **Media on-demand
+  mode** sync/async (Toggle vào Image Sizes page). Đều đọc qua Settings.
+- ✅ **Đợt 3** thêm **Low-stock threshold** (`InventorySettingsPage` mới, Settings group
+  `settings`): ngưỡng "sắp hết hàng" cho Stock Overview badge/filter +
+  `InventoryService::lowStock()`. Gỡ const `LOW_THRESHOLD` hardcode (5) → configurable.
+- ✅ Test: `AppSettingsTest` (fallback config, DB override wins, per-key fallback,
+  review auto-approve điều khiển visibility đánh giá mới).
+- ⬜ Giữ trong config (kỹ thuật): recommend.strategies, analytics paid_statuses,
+  inventory/cart/media pipelines-overrides, tax-inclusive, Scout/Typesense, FFmpeg,
+  media disks.
 
 ---
 

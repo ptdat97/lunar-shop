@@ -18,15 +18,15 @@ use Lunar\Models\Order;
  */
 class MembershipService
 {
-    /** Tier config rows, ascending by min_spend. */
+    /** Tier config rows, ascending by min_spend (admin-configurable). */
     public function tiers(): array
     {
-        return config('promotion.membership.tiers', []);
+        return (array) app(\App\Support\Settings::class)->get('promotion.membership.tiers', []);
     }
 
     public function enabled(): bool
     {
-        return (bool) config('promotion.membership.enabled', false);
+        return (bool) app(\App\Support\Settings::class)->get('promotion.membership.enabled', false);
     }
 
     /**

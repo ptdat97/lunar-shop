@@ -46,6 +46,51 @@ class FacetAndRecentlyViewedTest extends TestCase
         $this->assertSame($all - 1, $expensive, 'min=50 should exclude the $10 tee');
     }
 
+    public function test_material_facet_and_filter(): void
+    {
+        $this->seedBaseData();
+        $cotton = $this->createProduct(['name' => 'Cotton Tee']);
+        $denim = $this->createProduct(['name' => 'Denim Jacket']);
+        \DB::table('product_materials')->insert([
+            ['product_id' => $cotton->id, 'material' => 'Cotton'],
+            ['product_id' => $denim->id, 'material' => 'Denim'],
+        ]);
+
+        $engine = app(SearchEngine::class);
+        $result = $engine->search(new SearchQuery(perPage: 50));
+
+        $this->assertArrayHasKey('material', $result->facets);
+        $materials = collect($result->facets['material'])->pluck('value')->all();
+        $this->assertContains('Cotton', $materials);
+        $this->assertContains('Denim', $materials);
+
+        // Filtering by material keeps only matching products.
+        $filtered = $engine->search(new SearchQuery(perPage: 50, filters: ['material' => ['Cotton']]));
+        $this->assertSame(1, $filtered->total);
+        $this->assertSame($cotton->id, $filtered->items->first()->id);
+    }
+
+    public function test_availability_facet_and_in_stock_filter(): void
+    {
+        $this->seedBaseData();
+        $inStock = $this->createProduct(['name' => 'In Stock', 'stock' => 5]);
+        $this->createProduct(['name' => 'Sold Out', 'stock' => 0]);
+
+        $engine = app(SearchEngine::class);
+        $result = $engine->search(new SearchQuery(perPage: 50));
+
+        // Availability facet reports the in-stock count as a single bucket.
+        $availability = collect($result->facets['availability']);
+        $this->assertSame('in_stock', $availability->first()['value'] ?? null);
+
+        // Filtering by availability=in_stock excludes the sold-out product.
+        $filtered = $engine->search(new SearchQuery(perPage: 50, filters: ['availability' => ['in_stock']]));
+        $ids = $filtered->items->pluck('id')->all();
+        $this->assertContains($inStock->id, $ids);
+        $this->assertSame($filtered->total, $filtered->items->count());
+        $this->assertTrue($filtered->items->every(fn ($p) => $p->variants->sum('stock') > 0));
+    }
+
     public function test_products_endpoint_returns_slugs_in_order(): void
     {
         $this->seedBaseData();

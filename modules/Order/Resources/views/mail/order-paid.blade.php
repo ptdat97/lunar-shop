@@ -1,24 +1,24 @@
 @component('mail::message')
-# Payment received
+# {{ __('mail.paid.heading') }}
 
-We’ve received your payment for order **{{ $order->reference }}** — thank you!
+{!! __('mail.paid.intro', ['reference' => $order->reference]) !!}
 
 @component('mail::table')
-| Item | Qty | Subtotal |
+| {{ __('mail.table_item') }} | {{ __('mail.table_qty') }} | {{ __('mail.table_subtotal') }} |
 | :--- | :-: | -------: |
 @foreach($order->lines as $line)
 | {{ $line->description }} | {{ $line->quantity }} | {{ $line->subTotal?->formatted() }} |
 @endforeach
 @endcomponent
 
-**Amount paid: {{ $order->total?->formatted() }}**
+**{{ __('mail.paid.amount_paid', ['total' => $order->total?->formatted()]) }}**
 
-Your order is now being prepared. We’ll let you know when it ships.
+{{ __('mail.paid.preparing') }}
 
 @component('mail::button', ['url' => url('/checkout/confirmation/'.$order->reference)])
-View your order
+{{ __('mail.view_order') }}
 @endcomponent
 
-Thanks,<br>
+{{ __('mail.thanks') }}<br>
 {{ config('app.name') }}
 @endcomponent

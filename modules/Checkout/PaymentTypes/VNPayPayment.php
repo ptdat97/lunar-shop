@@ -48,8 +48,12 @@ class VNPayPayment extends AbstractPayment
 
     public function refund(TransactionContract $transaction, int $amount = 0, $notes = null): PaymentRefund
     {
-        // Refunds are handled out of band (VNPay merchant portal) for now.
-        return new PaymentRefund(true);
+        // Delegate to the shared RefundService: it calls the VNPay merchant API,
+        // records a `refund` Transaction, and updates the order.
+        $result = app(\Modules\Checkout\Services\RefundService::class)
+            ->refund($transaction->order, $amount > 0 ? $amount : null, (string) ($notes ?? 'admin'));
+
+        return new PaymentRefund($result->success, $result->message);
     }
 
     public function capture(TransactionContract $transaction, $amount = 0): PaymentCapture

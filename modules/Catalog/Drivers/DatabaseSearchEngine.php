@@ -181,6 +181,19 @@ class DatabaseSearchEngine implements SearchEngine
             $builder->whereHas('brand', fn ($b) => $b->whereIn('name', $brands));
         }
 
+        // Material facet — filter by the product's material (product_materials).
+        $materials = array_filter((array) ($filters['material'] ?? []));
+        if (! empty($materials)) {
+            $builder->whereHas('material', fn ($m) => $m->whereIn('material', $materials));
+        }
+
+        // Availability facet — a single "In stock" checkbox. When ticked, keep
+        // only products with at least one in-stock variant (stock > 0).
+        $availability = array_filter((array) ($filters['availability'] ?? []));
+        if (in_array('in_stock', $availability, true)) {
+            $builder->whereHas('variants', fn ($v) => $v->where('stock', '>', 0));
+        }
+
         // Price range — filters['price'] = ['min' => x, 'max' => y] in major units.
         $this->applyPriceFilter($builder, (array) ($filters['price'] ?? []));
     }
@@ -224,7 +237,7 @@ class DatabaseSearchEngine implements SearchEngine
         $productIds = (clone $base)->pluck('lunar_products.id');
 
         if ($productIds->isEmpty()) {
-            return ['size' => [], 'color' => [], 'brand' => [], 'price' => null];
+            return ['size' => [], 'color' => [], 'brand' => [], 'material' => [], 'availability' => [], 'price' => null];
         }
 
         // Fetch option facets (size/color)
@@ -251,9 +264,51 @@ class DatabaseSearchEngine implements SearchEngine
         // Brand buckets + price bounds in ONE query pass (combined subquery)
         $brandAndPrice = $this->brandAndPriceFacets($productIds);
         $facets['brand'] = $brandAndPrice['brand'];
+        $facets['material'] = $this->materialFacet($productIds);
+        $facets['availability'] = $this->availabilityFacet($productIds);
         $facets['price'] = $brandAndPrice['price'];
 
         return $facets;
+    }
+
+    /**
+     * Material buckets (value => count) from product_materials over the result set.
+     *
+     * @param  \Illuminate\Support\Collection<int, int>  $productIds
+     * @return array<int, array{value:string, count:int}>
+     */
+    protected function materialFacet($productIds): array
+    {
+        return \Illuminate\Support\Facades\DB::table('product_materials as pm')
+            ->whereIn('pm.product_id', $productIds)
+            ->whereNotNull('pm.material')
+            ->where('pm.material', '!=', '')
+            ->selectRaw('pm.material as value, COUNT(DISTINCT pm.product_id) as count')
+            ->groupBy('pm.material')
+            ->orderBy('pm.material')
+            ->get()
+            ->map(fn ($r) => ['value' => $r->value, 'count' => (int) $r->count])
+            ->all();
+    }
+
+    /**
+     * Availability facet — a single "in_stock" bucket counting products with at
+     * least one in-stock variant. Rendered as one checkbox in the sidebar.
+     *
+     * @param  \Illuminate\Support\Collection<int, int>  $productIds
+     * @return array<int, array{value:string, count:int}>
+     */
+    protected function availabilityFacet($productIds): array
+    {
+        $inStock = \Illuminate\Support\Facades\DB::table('lunar_product_variants as pv')
+            ->whereIn('pv.product_id', $productIds)
+            ->where('pv.stock', '>', 0)
+            ->distinct()
+            ->count('pv.product_id');
+
+        return $inStock > 0
+            ? [['value' => 'in_stock', 'count' => (int) $inStock]]
+            : [];
     }
 
     /**

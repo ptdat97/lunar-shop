@@ -1,16 +1,16 @@
 @component('mail::message')
-# Your order has an update
+# {{ __('mail.status.heading') }}
 
-Order **{{ $order->reference }}** is now **{{ $statusLabel }}**.
+{!! __('mail.status.intro', ['reference' => $order->reference, 'status' => $statusLabel]) !!}
 
 @component('mail::panel')
-Status: {{ $statusLabel }}
+{{ __('mail.status.status_line', ['status' => $statusLabel]) }}
 @endcomponent
 
 @component('mail::button', ['url' => url('/checkout/confirmation/'.$order->reference)])
-View your order
+{{ __('mail.view_order') }}
 @endcomponent
 
-Thanks,<br>
+{{ __('mail.thanks') }}<br>
 {{ config('app.name') }}
 @endcomponent

@@ -3,6 +3,7 @@
 namespace Modules\Checkout\Services;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Http;
 use Lunar\Models\Order;
 
 /**
@@ -22,15 +23,19 @@ class VNPayGateway
         protected string $hashSecret,
         protected string $paymentUrl,
         protected string $returnUrl,
+        protected string $apiUrl = '',
     ) {}
 
     public static function fromConfig(): self
     {
+        $settings = app(\App\Support\Settings::class);
+
         return new self(
-            (string) config('payment.vnpay.tmn_code'),
-            (string) config('payment.vnpay.hash_secret'),
-            (string) config('payment.vnpay.payment_url'),
-            (string) config('payment.vnpay.return_url'),
+            (string) $settings->get('payment.vnpay.tmn_code'),
+            (string) $settings->get('payment.vnpay.hash_secret'),
+            (string) $settings->get('payment.vnpay.payment_url'),
+            (string) $settings->get('payment.vnpay.return_url'),
+            (string) $settings->get('payment.vnpay.api_url'),
         );
     }
 
@@ -106,6 +111,70 @@ class VNPayGateway
     {
         return ($query['vnp_ResponseCode'] ?? null) === '00'
             && ($query['vnp_TransactionStatus'] ?? null) === '00';
+    }
+
+    /**
+     * Refund (all or part of) a captured VNPay transaction via the merchant API.
+     * `$amount` is in the currency's MINOR unit (order/transaction scale) and is
+     * converted to VNPay's ×100 major unit here. `$captureMeta` is the stored
+     * capture callback (Transaction->meta) — supplies vnp_TransactionNo + date.
+     *
+     * Returns ['success' => bool, 'message' => string, 'reference' => ?string].
+     *
+     * @param  array<string, mixed>  $captureMeta
+     * @return array{success:bool, message:string, reference:?string}
+     */
+    public function refund(Order $order, int $amount, array $captureMeta, string $createdBy = 'system', string $ipAddress = '127.0.0.1'): array
+    {
+        if (! $this->isConfigured() || $this->apiUrl === '') {
+            return ['success' => false, 'message' => 'VNPay refund is not configured.', 'reference' => null];
+        }
+
+        $decimals = $order->currency->decimal_places ?? 0;
+        $vnpAmount = (int) round($amount / (10 ** $decimals) * 100);
+
+        $requestId = (string) \Illuminate\Support\Str::uuid();
+        $createDate = Carbon::now()->format('YmdHis');
+        // Full vs partial refund: 02 = full, 03 = partial.
+        $orderTotalMinor = (int) $order->total->value;
+        $transactionType = $amount >= $orderTotalMinor ? '02' : '03';
+        $txnDate = (string) ($captureMeta['vnp_PayDate'] ?? $captureMeta['vnp_CreateDate'] ?? $createDate);
+        $transactionNo = (string) ($captureMeta['vnp_TransactionNo'] ?? '');
+        $orderInfo = 'Refund order ' . $order->reference;
+
+        // VNPay refund signature: fixed pipe-joined field order (per API docs).
+        $data = implode('|', [
+            $requestId, '2.1.0', 'refund', $this->tmnCode, $transactionType,
+            (string) $order->id, (string) $vnpAmount, $transactionNo, $txnDate,
+            $createdBy, $createDate, $ipAddress, $orderInfo,
+        ]);
+        $secureHash = hash_hmac('sha512', $data, $this->hashSecret);
+
+        $response = Http::asJson()->post($this->apiUrl, [
+            'vnp_RequestId' => $requestId,
+            'vnp_Version' => '2.1.0',
+            'vnp_Command' => 'refund',
+            'vnp_TmnCode' => $this->tmnCode,
+            'vnp_TransactionType' => $transactionType,
+            'vnp_TxnRef' => (string) $order->id,
+            'vnp_Amount' => $vnpAmount,
+            'vnp_TransactionNo' => $transactionNo,
+            'vnp_TransactionDate' => $txnDate,
+            'vnp_CreateBy' => $createdBy,
+            'vnp_CreateDate' => $createDate,
+            'vnp_IpAddr' => $ipAddress,
+            'vnp_OrderInfo' => $orderInfo,
+            'vnp_SecureHash' => $secureHash,
+        ]);
+
+        $body = $response->json() ?? [];
+        $success = ($body['vnp_ResponseCode'] ?? null) === '00';
+
+        return [
+            'success' => $success,
+            'message' => (string) ($body['vnp_Message'] ?? ($success ? 'Refunded.' : 'Refund failed.')),
+            'reference' => $body['vnp_TransactionNo'] ?? null,
+        ];
     }
 
     /**

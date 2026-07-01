@@ -23,7 +23,7 @@ class CheckoutService
     ) {}
 
     /** Payment method identifiers built into the app. */
-    protected const DEFAULT_PAYMENT_METHODS = ['cod', 'bank-transfer', 'vnpay'];
+    protected const DEFAULT_PAYMENT_METHODS = ['cod', 'bank-transfer', 'vnpay', 'momo'];
 
     /**
      * Available shipping options for the current cart.

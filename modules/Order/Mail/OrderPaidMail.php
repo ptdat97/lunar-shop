@@ -2,17 +2,20 @@
 
 namespace Modules\Order\Mail;
 
+use App\Support\Queues;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Lunar\Models\Order;
-use App\Support\Queues;
+use Modules\Order\Services\InvoiceService;
 
 /**
  * Sent when payment is confirmed (e.g. VNPay callback → payment-received).
+ * The paid invoice PDF is attached (generated in the mail's locale).
  */
 class OrderPaidMail extends Mailable implements ShouldQueue
 {
@@ -31,7 +34,7 @@ class OrderPaidMail extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: "Payment received — {$this->order->reference}");
+        return new Envelope(subject: __('mail.paid.subject', ['reference' => $this->order->reference]));
     }
 
     public function content(): Content
@@ -39,5 +42,21 @@ class OrderPaidMail extends Mailable implements ShouldQueue
         return new Content(markdown: 'order::mail.order-paid', with: [
             'order' => $this->order->loadMissing('lines'),
         ]);
+    }
+
+    /**
+     * Attach the invoice PDF. Built lazily at render time so it inherits the
+     * mail's locale (set by OrderMailer) — the invoice is bilingual (EN/VI).
+     *
+     * @return list<Attachment>
+     */
+    public function attachments(): array
+    {
+        $invoices = app(InvoiceService::class);
+
+        return [
+            Attachment::fromData(fn () => $invoices->bytes($this->order), $invoices->filename($this->order))
+                ->withMime('application/pdf'),
+        ];
     }
 }

@@ -142,7 +142,7 @@
                     <i class="bi bi-lock-fill"></i> {{ __('storefront.checkout.payment_secure') }}
                 </p>
                 <div class="checkout-options">
-                    @php $pay = old('payment_type', 'cod'); @endphp
+                    @php $pay = old('payment_type', $defaultPayment ?? 'cod'); @endphp
                     <label class="checkout-option @if($pay === 'cod') checkout-option--active @endif" for="pay-cod">
                         <input class="form-check-input m-0" type="radio" name="payment_type" id="pay-cod" value="cod"
                                @checked($pay === 'cod') required data-payment-radio>
@@ -172,6 +172,18 @@
                                 <small class="d-block text-muted">{{ __('storefront.checkout.vnpay_hint') }}</small>
                             </span>
                             <i class="bi bi-credit-card checkout-option__icon"></i>
+                        </label>
+                    @endif
+
+                    @if($momoEnabled)
+                        <label class="checkout-option @if($pay === 'momo') checkout-option--active @endif" for="pay-momo">
+                            <input class="form-check-input m-0" type="radio" name="payment_type" id="pay-momo" value="momo"
+                                   @checked($pay === 'momo') data-payment-radio>
+                            <span class="checkout-option__label">
+                                {{ __('storefront.checkout.momo') }}
+                                <small class="d-block text-muted">{{ __('storefront.checkout.momo_hint') }}</small>
+                            </span>
+                            <i class="bi bi-wallet2 checkout-option__icon"></i>
                         </label>
                     @endif
                 </div>

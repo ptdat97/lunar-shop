@@ -143,6 +143,83 @@ return [
         'whole_country' => 'Toàn quốc',
     ],
 
+    'payment' => [
+        'title' => 'Cấu hình thanh toán',
+        'save' => 'Lưu',
+        'saved' => 'Đã lưu cấu hình thanh toán.',
+        'general' => 'Chung',
+        'default' => 'Phương thức mặc định ở checkout',
+        'default_help' => 'Tùy chọn thanh toán được chọn sẵn ở trang thanh toán.',
+        'method_cod' => 'Thanh toán khi nhận hàng',
+        'method_bank' => 'Chuyển khoản ngân hàng',
+        'vnpay' => 'VNPay',
+        'vnpay_desc' => 'Thông tin từ cổng merchant VNPay. Để trống TMN Code sẽ tắt VNPay ở checkout.',
+        'momo' => 'MoMo',
+        'momo_desc' => 'Thông tin từ cổng MoMo Business. Để trống Partner Code sẽ tắt MoMo ở checkout.',
+        'payment_url' => 'URL thanh toán',
+        'return_url' => 'URL trả về',
+        'ipn_url' => 'URL IPN',
+        'endpoint' => 'API endpoint',
+    ],
+
+    'shipping_settings' => [
+        'title' => 'Cấu hình vận chuyển',
+        'save' => 'Lưu',
+        'saved' => 'Đã lưu cấu hình vận chuyển.',
+        'section' => 'Phí mặc định (flat rate)',
+        'section_desc' => 'Dùng khi không có shipping zone nào khớp địa chỉ. Zone (trang Shipping Zones) được ưu tiên.',
+        'standard_rate' => 'Phí chuẩn (đơn vị nhỏ nhất)',
+        'standard_rate_help' => 'VD: 3000 = 30.00 theo tiền tệ cửa hàng.',
+        'free_threshold' => 'Ngưỡng miễn phí ship (đơn vị nhỏ nhất)',
+        'free_threshold_help' => 'Tổng tạm tính từ mức này trở lên sẽ miễn phí ship. 0 = tắt.',
+    ],
+
+    'membership' => [
+        'title' => 'Hạng thành viên',
+        'save' => 'Lưu',
+        'saved' => 'Đã lưu hạng thành viên.',
+        'enabled' => 'Bật hạng thành viên',
+        'enabled_help' => 'Khi tắt, không áp dụng hạng theo chi tiêu.',
+        'tiers' => 'Các hạng',
+        'tiers_help' => 'Khách vào hạng cao nhất mà tổng chi tiêu tích lũy đạt tới.',
+        'handle' => 'Mã (handle)',
+        'name' => 'Tên',
+        'min_spend' => 'Chi tiêu tối thiểu (đơn vị lớn)',
+        'discount_percentage' => 'Giảm %',
+        'add_tier' => 'Thêm hạng',
+    ],
+
+    'catalog_settings' => [
+        'title' => 'Cấu hình Catalog',
+        'save' => 'Lưu',
+        'saved' => 'Đã lưu cấu hình catalog.',
+    ],
+
+    'recommend' => [
+        'title' => 'Gợi ý sản phẩm',
+        'save' => 'Lưu',
+        'saved' => 'Đã lưu cấu hình gợi ý.',
+        'section' => 'Giới hạn',
+        'product_limit' => 'Số lượng ở trang sản phẩm',
+        'cart_limit' => 'Số lượng ở mini-cart',
+        'cache_ttl' => 'Cache TTL (giây)',
+    ],
+
+    'review' => [
+        'section' => 'Đánh giá',
+        'auto_approve' => 'Tự động duyệt đánh giá',
+        'auto_approve_help' => 'Bật: đánh giá được đăng ngay. Tắt: chờ admin duyệt.',
+    ],
+
+    'inventory_settings' => [
+        'title' => 'Cấu hình kho',
+        'save' => 'Lưu',
+        'saved' => 'Đã lưu cấu hình kho.',
+        'section' => 'Ngưỡng tồn kho',
+        'low_stock_threshold' => 'Ngưỡng sắp hết hàng',
+        'low_stock_threshold_help' => 'Variant có tồn kho từ mức này trở xuống sẽ bị đánh dấu "sắp hết" ở Stock Overview.',
+    ],
+
     'section' => [
         'label' => 'Khối nội dung',
         'plural' => 'Khối nội dung trang',
@@ -215,6 +292,9 @@ return [
     'media' => [
         'library' => 'Thư viện Media',
         'image_sizes' => 'Kích thước ảnh',
+        'on_demand' => 'Sinh ảnh theo yêu cầu',
+        'on_demand_sync' => 'Sinh ảnh đồng bộ',
+        'on_demand_sync_help' => 'Bật: request đầu tiên cần ảnh sẽ sinh ngay (đơn giản, không cần worker). Tắt: trả ảnh gần nhất có sẵn và sinh ảnh đúng size qua queue media (cần Horizon chạy).',
         'conversion_sizes' => 'Kích thước ảnh sinh ra',
         'sizes_desc' => 'Chiều rộng và cao (px) cho mỗi kích thước ảnh được sinh ra. Kích thước lớn cho ảnh nét hơn nhưng file nặng hơn — giữ nhỏ nhất có thể để trang tải nhanh.',
         'width' => 'Rộng (px)',
@@ -230,6 +310,28 @@ return [
         'file_deleted' => 'Đã xoá file',
         'pick' => 'Chọn từ Thư viện Media…',
         'missing' => 'File đã chọn không còn trong thư viện.',
+        
+        // Media Image Sizes Page
+        'no_worker' => 'Không có worker hàng đợi đang chạy.',
+        'no_worker_desc' => 'Việc (tái)tạo hình ảnh đã được xếp hàng đợi nhưng sẽ không xử lý cho đến khi worker khởi động. Khởi động Horizon với :command1 (hoặc :command2).',
+        'sizes_changed' => 'Kích thước đã thay đổi.',
+        'sizes_changed_desc' => 'Các hình ảnh hiện tại vẫn ở kích thước cũ.',
+        'rebuild_all_now' => 'Tạo lại tất cả ngay',
+        'regenerate_missing' => 'Tạo lại hình ảnh bị thiếu',
+        'regenerate_all' => 'Tạo lại tất cả',
+        'regenerate_all_confirm' => 'Tạo lại TẤT CẢ các chuyển đổi trong nền? Thao tác này sẽ ghi đè lên các hình ảnh đã tạo.',
+        'save_note' => 'Lưu sẽ áp dụng kích thước mới cho các hình ảnh được :newly tạo mới. Để tạo lại các phương tiện hiện có với kích thước mới, sử dụng :regenerate_all — nó chạy trong nền trên hàng đợi (không có thời gian chờ yêu cầu, an toàn cho các thư viện lớn) và cần một worker hàng đợi đang chạy (:queue_work).',
+        'regeneration_progress' => 'Tiến độ tạo lại',
+        'cancelled' => 'Đã hủy',
+        'completed' => 'Hoàn thành',
+        'waiting_for_worker' => 'Đang chờ worker…',
+        'processing' => 'Đang xử lý…',
+        'batches' => 'batch',
+        'throughput' => ':perMin batch/phút',
+        'eta_remaining' => '· còn khoảng :etaLabel',
+        'batch_queued_no_worker' => 'Batch đã xếp hàng đợi nhưng không có worker nào đang chạy — khởi động Horizon để xử lý.',
+        'batch_failed' => ':count batch bị lỗi — kiểm tra hàng đợi/nhật ký.',
+        'cancel' => 'Hủy',
     ],
 
     'inventory' => [

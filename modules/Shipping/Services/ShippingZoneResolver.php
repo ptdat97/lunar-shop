@@ -26,12 +26,13 @@ class ShippingZoneResolver
             return $zone->rateFor($subTotal);
         }
 
-        // Fallback: static config (Phase 1 flat rate + threshold).
-        $threshold = (int) config('shipping.free_threshold', 0);
+        // Fallback: admin-configurable flat rate + threshold (Settings → config).
+        $settings = app(\App\Support\Settings::class);
+        $threshold = (int) $settings->get('shipping.free_threshold', 0);
 
         return ($threshold > 0 && $subTotal >= $threshold)
             ? 0
-            : (int) config('shipping.standard_rate', 3000);
+            : (int) $settings->get('shipping.standard_rate', 3000);
     }
 
     /**

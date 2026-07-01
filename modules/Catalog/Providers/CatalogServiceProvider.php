@@ -39,7 +39,7 @@ class CatalogServiceProvider extends ServiceProvider
 
             return new RecommendationService(
                 strategies: $strategies,
-                cacheTtl: (int) config('recommend.cache_ttl', 3600),
+                cacheTtl: (int) app(\App\Support\Settings::class)->get('recommend.cache_ttl', 3600),
             );
         });
 
@@ -48,6 +48,9 @@ class CatalogServiceProvider extends ServiceProvider
         AdminPages::addResource(
             \Modules\Catalog\Filament\Resources\SizeChartResource::class,
         );
+
+        // Catalog settings page (recommendation limits + review moderation).
+        AdminPages::add(\Modules\Catalog\Filament\Pages\CatalogSettingsPage::class);
     }
 
     /**
@@ -56,6 +59,7 @@ class CatalogServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
+        $this->loadViewsFrom(__DIR__ . '/../Resources/views', 'catalog-admin');
 
         $this->loadRoutesFrom(__DIR__ . '/../Routes/web.php');
         $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');

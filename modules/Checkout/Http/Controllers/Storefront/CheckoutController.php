@@ -12,6 +12,7 @@ use Modules\Checkout\Services\CheckoutService;
 use Modules\Customer\Models\Province;
 use Modules\Customer\Services\CountryService;
 use Modules\Order\Services\OrderService;
+use Modules\Checkout\Services\MoMoGateway;
 use Modules\Checkout\Services\VNPayGateway;
 
 class CheckoutController extends Controller
@@ -40,7 +41,9 @@ class CheckoutController extends Controller
             'countries' => $this->countries->forSelect(),
             'provinces' => Province::orderBy('name')->get(['id', 'code', 'name']),
             'shippingOptions' => $this->checkout->shippingOptions(),
-            'vnpayEnabled' => filled(config('payment.vnpay.tmn_code')),
+            'vnpayEnabled' => filled(app(\App\Support\Settings::class)->get('payment.vnpay.tmn_code')),
+            'momoEnabled' => filled(app(\App\Support\Settings::class)->get('payment.momo.partner_code')),
+            'defaultPayment' => (string) app(\App\Support\Settings::class)->get('payment.default', 'cod'),
             'old' => session()->getOldInput(),
         ]);
     }
@@ -91,11 +94,23 @@ class CheckoutController extends Controller
             return back()->withInput()->with('error', $e->getMessage());
         }
 
-        // Online gateway: redirect to VNPay. Offline (cod/bank): confirmation.
+        // Online gateway: redirect to the provider. Offline (cod/bank): confirmation.
         if ($data['payment_type'] === 'vnpay') {
             $gateway = VNPayGateway::fromConfig();
             if ($gateway->isConfigured()) {
                 return redirect()->away($gateway->buildPaymentUrl($order, $request->ip()));
+            }
+        }
+
+        if ($data['payment_type'] === 'momo') {
+            $gateway = MoMoGateway::fromConfig();
+            if ($gateway->isConfigured()) {
+                try {
+                    return redirect()->away($gateway->createPayment($order));
+                } catch (\Throwable $e) {
+                    return redirect()->route('storefront.checkout.confirmation', $order->reference)
+                        ->with('error', $e->getMessage());
+                }
             }
         }
 

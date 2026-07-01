@@ -19,7 +19,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // MoMo IPN is a server-to-server POST from MoMo (no session/CSRF token);
+        // it's authenticated by its HMAC signature instead.
+        $middleware->validateCsrfTokens(except: [
+            'payment/momo/ipn',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // R4 — one error envelope for every /api/v1/* failure, regardless of the

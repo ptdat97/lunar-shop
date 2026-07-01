@@ -18,6 +18,7 @@ class ShippingServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(base_path('config/shipping.php'), 'shipping');
 
         AdminPages::addResource(ShippingZoneResource::class);
+        AdminPages::add(\Modules\Shipping\Filament\Pages\ShippingSettingsPage::class);
     }
 
     /**
@@ -26,6 +27,7 @@ class ShippingServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
+        $this->loadViewsFrom(__DIR__ . '/../Resources/views', 'shipping-admin');
 
         $this->loadRoutesFrom(__DIR__ . '/../Routes/web.php');
         $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');

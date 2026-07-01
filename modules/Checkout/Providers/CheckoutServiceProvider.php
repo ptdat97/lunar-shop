@@ -4,9 +4,12 @@ namespace Modules\Checkout\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Lunar\Facades\Payments;
+use Modules\Checkout\PaymentTypes\MoMoPayment;
 use Modules\Checkout\PaymentTypes\VNPayPayment;
 use Modules\Checkout\Services\CartService;
+use Modules\Checkout\Services\MoMoGateway;
 use Modules\Checkout\Services\VNPayGateway;
+use Modules\Theme\Support\AdminPages;
 use Modules\Theme\Support\LunarConfigOverride;
 
 class CheckoutServiceProvider extends ServiceProvider
@@ -19,8 +22,12 @@ class CheckoutServiceProvider extends ServiceProvider
 
         $this->mergeConfigFrom(base_path('config/payment.php'), 'payment');
 
-        // Resolve the VNPay gateway from config so controllers can inject it.
+        // Resolve the VNPay + MoMo gateways from config so controllers can inject them.
         $this->app->bind(VNPayGateway::class, fn () => VNPayGateway::fromConfig());
+        $this->app->bind(MoMoGateway::class, fn () => MoMoGateway::fromConfig());
+
+        // Admin page to configure gateway keys (VNPay + MoMo) without editing .env.
+        AdminPages::add(\Modules\Checkout\Filament\Pages\PaymentSettingsPage::class);
     }
 
     /**
@@ -37,12 +44,14 @@ class CheckoutServiceProvider extends ServiceProvider
         LunarConfigOverride::applyFrom('lunar.payments', __DIR__ . '/../Config/payment-overrides.php');
 
         $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
+        $this->loadViewsFrom(__DIR__ . '/../Resources/views', 'checkout-admin');
 
         $this->loadRoutesFrom(__DIR__ . '/../Routes/web.php');
         $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
 
-        // Register the VNPay driver so config('lunar.payments.types.vnpay')
-        // resolves to it. Checkout dispatches via Payments::driver(...).
+        // Register the VNPay + MoMo drivers so config('lunar.payments.types.*')
+        // resolves to them. Checkout dispatches via Payments::driver(...).
         Payments::extend('vnpay', fn ($app) => $app->make(VNPayPayment::class));
+        Payments::extend('momo', fn ($app) => $app->make(MoMoPayment::class));
     }
 }

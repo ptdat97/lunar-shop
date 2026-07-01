@@ -6,7 +6,13 @@
 
 @section('content')
 <div class="container py-4" data-account>
-    <script type="application/json" data-account-state>@json(['countries' => $countries])</script>
+    <script type="application/json" data-account-state>@json([
+        'countries' => $countries,
+        // Invoice download: URL template (:id replaced client-side) + label, so
+        // account.js stays free of hardcoded routes/strings.
+        'invoiceUrl' => route('storefront.orders.invoice', ['order' => '__ID__']),
+        'i18n' => ['downloadInvoice' => __('storefront.account.download_invoice')],
+    ])</script>
     <h1 class="h3 mb-4">{{ __('storefront.account.my_account') }}</h1>
 
     <div class="row g-4">

@@ -68,11 +68,25 @@ class InventoryService
         return $variant?->canBeFulfilledAtQuantity($quantity) ?? false;
     }
 
+    /** Default "low stock" threshold when the admin hasn't set one. */
+    public const DEFAULT_LOW_THRESHOLD = 5;
+
     /**
-     * Get low stock variants (below threshold).
+     * Admin-configurable stock level at/below which a variant is "low".
      */
-    public function lowStock(int $threshold = 5)
+    public function lowStockThreshold(): int
     {
+        return (int) app(\App\Support\Settings::class)
+            ->get('inventory.low_stock_threshold', self::DEFAULT_LOW_THRESHOLD);
+    }
+
+    /**
+     * Get low stock variants (below the given threshold, or the configured one).
+     */
+    public function lowStock(?int $threshold = null)
+    {
+        $threshold ??= $this->lowStockThreshold();
+
         return ProductVariant::where('stock', '<', $threshold)
             ->where('stock', '>', 0)
             ->with('product')

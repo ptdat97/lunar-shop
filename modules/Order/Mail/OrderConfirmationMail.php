@@ -31,7 +31,7 @@ class OrderConfirmationMail extends Mailable implements ShouldQueue
 
     public function envelope(): Envelope
     {
-        return new Envelope(subject: "Order confirmed — {$this->order->reference}");
+        return new Envelope(subject: __('mail.confirmation.subject', ['reference' => $this->order->reference]));
     }
 
     public function content(): Content
