@@ -10,6 +10,7 @@ use Modules\Catalog\Drivers\DatabaseSearchEngine;
 use Modules\Catalog\Models\ProductMaterial;
 use Modules\Catalog\Models\SizeChart;
 use Modules\Catalog\Services\PricingService;
+use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Services\RecommendationService;
 use Modules\Theme\Support\AdminPages;
 
@@ -106,8 +107,19 @@ class CatalogServiceProvider extends ServiceProvider
         View::composer('theme::pages.product', function ($view) use ($pricing): void {
             $svc = $pricing();
             $product = $view->getData()['product'] ?? null;
+
+            // Price the deep-linked variant (?color=red&size=m) so the SSR price
+            // is correct for no-JS visitors + crawlers; falls back to the first
+            // variant. enhance/product-variant.js keeps this in sync client-side.
+            $selectedVariant = $product
+                ? $this->app->make(ProductService::class)
+                    ->resolveSelectedVariant($product, request()->query())
+                : null;
+
             $view->with([
-                'displayPrice' => $product ? $svc->displayPrice($product) : null,
+                'displayPrice' => $selectedVariant
+                    ? $svc->displayPriceForVariant($selectedVariant)
+                    : ($product ? $svc->displayPrice($product) : null),
                 'lowestPriceAmount' => $product ? $svc->lowestPriceAmount($product) : null,
                 'currencyCode' => $svc->defaultCurrencyCode(),
             ]);

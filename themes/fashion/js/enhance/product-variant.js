@@ -71,6 +71,46 @@ function buildOptionGroups(variants) {
     return [...groups.entries()].map(([name, values]) => ({ name, values: [...values] }));
 }
 
+// URL param key for an option — lowercased option name (e.g. "Color" → "color"),
+// spaces to hyphens. Deep-linkable + human-readable: /products/x?color=red&size=m.
+function paramKey(optionName) {
+    return String(optionName).toLowerCase().trim().replace(/\s+/g, '-');
+}
+
+// Reflect the current selection into the URL query without reloading. Only
+// chosen options are written; the path (slug) is preserved. A no-op when the
+// resulting URL matches the current one (avoids redundant history writes).
+function syncUrl(groups, selected) {
+    const url = new URL(window.location.href);
+    const params = url.searchParams;
+    groups.forEach((g) => {
+        const key = paramKey(g.name);
+        const value = selected[g.name];
+        if (value) params.set(key, value);
+        else params.delete(key);
+    });
+    const next = url.pathname + (params.toString() ? `?${params}` : '') + url.hash;
+    if (next !== window.location.pathname + window.location.search + window.location.hash) {
+        window.history.replaceState(window.history.state, '', next);
+    }
+}
+
+// Read the current URL query back into a { optionName: value } map, matching
+// param keys to option groups. Used on load so a deep link preselects options.
+function selectionFromUrl(groups) {
+    const params = new URL(window.location.href).searchParams;
+    const out = {};
+    groups.forEach((g) => {
+        const raw = params.get(paramKey(g.name));
+        if (raw === null) return;
+        // Match case-insensitively against the group's known values so the URL
+        // is forgiving (?size=m resolves to value "M").
+        const match = g.values.find((v) => String(v).toLowerCase() === raw.toLowerCase());
+        if (match !== undefined) out[g.name] = match;
+    });
+    return out;
+}
+
 export default function (root = document) {
     const panel = root.querySelector('[data-product-detail]');
     if (!panel || panel.dataset.variantInit) return;
@@ -89,9 +129,13 @@ export default function (root = document) {
     const variantInput = panel.querySelector('[data-variant-input]');
     const addBtn = panel.querySelector('[data-add-to-cart-btn]');
 
-    // Pre-select the first variant's options so JS state matches the SSR view.
+    // Pre-select the first variant's options so JS state matches the SSR view,
+    // then let any deep-link query (?color=red&size=m) override it. The SSR
+    // controller already preselected the same variant, so this just re-syncs the
+    // JS state without a flash.
     const first = variants[0];
     (first?.options || []).forEach(({ option, value }) => { selected[option] = value; });
+    Object.assign(selected, selectionFromUrl(groups));
 
     // The SSR gallery already shows the first variant; only re-render the
     // gallery when the chosen variant actually changes.
@@ -147,6 +191,9 @@ export default function (root = document) {
             lastGalleryVariantId = variant.id;
             swapGallery(variant);
         }
+
+        // Keep the URL in step with the current selection (deep-linkable, no reload).
+        syncUrl(groups, selected);
 
         // Let other enhancers (e.g. notify-me) react to the selected variant
         // without coupling to this module's internals.

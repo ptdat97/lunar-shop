@@ -65,6 +65,15 @@ class PricingService
     }
 
     /**
+     * Formatted display price for a specific variant (e.g. a deep-linked variant
+     * on the product page). Null when the variant can't be priced.
+     */
+    public function displayPriceForVariant(?ProductVariant $variant): ?string
+    {
+        return $variant ? (string) $this->matchedPrice($variant)?->formatted() : null;
+    }
+
+    /**
      * The store's default currency code (e.g. "USD", "VND"), for display /
      * structured data. Falls back to "USD" when none is configured.
      */

@@ -15,7 +15,21 @@ $state = new \Modules\Catalog\Http\Resources\ProductResource(
     $product->loadMissing(['variants.values.option', 'variants.images', 'media']),
 )->resolve();
 
-$firstVariant = $product->variants->first();
+// Deep-link: a query like ?color=red&size=m preselects the matching variant so
+// the SSR page (and no-JS visitors + crawlers) opens on the linked variant.
+// Resolution lives in ProductService (shared with the price view composer so the
+// SSR price matches). enhance/product-variant.js keeps this URL in sync client-side.
+$firstVariant = app(\Modules\Catalog\Services\ProductService::class)
+    ->resolveSelectedVariant($product, request()->query());
+// Pre-selected option values for the SSR button "active" state, keyed by the
+// (translated) option name — same keys the option-group loop uses below.
+$selectedValues = collect($firstVariant?->values ?? [])
+    ->mapWithKeys(fn ($value) => [
+        ($value->option?->translate('name') ?? $value->option?->name ?? 'Option')
+            => ($value->translate('name') ?? $value->name),
+    ])
+    ->all();
+
 $priceAmount = $lowestPriceAmount; // alias for the JSON-LD block below
 $currency = $currencyCode;
 $inStock = $product->variants->sum('stock') > 0;
@@ -177,8 +191,9 @@ $inStock = $product->variants->sum('stock') > 0;
               <label class="form-label small text-uppercase d-block">{{ $optName }}</label>
               <div class="d-flex flex-wrap gap-2">
                 @foreach ($values as $val)
-                  <button type="button" class="btn btn-sm btn-outline-dark" data-option="{{ $optName }}"
-                    data-value="{{ $val }}">{{ $val }}</button>
+                  @php $isActive = ($selectedValues[$optName] ?? null) === $val; @endphp
+                  <button type="button" class="btn btn-sm {{ $isActive ? 'btn-dark' : 'btn-outline-dark' }}"
+                    data-option="{{ $optName }}" data-value="{{ $val }}">{{ $val }}</button>
                 @endforeach
               </div>
             </div>

@@ -52,6 +52,42 @@ class ProductService
     }
 
     /**
+     * Resolve which variant a deep-link query selects (e.g. ?color=red&size=m),
+     * for SSR (no-JS + crawlers). Keys are the lowercased option name; values
+     * match option values case-insensitively. A variant qualifies only if it
+     * carries every queried option and each value matches. Falls back to the
+     * first variant when the query is empty or matches nothing.
+     *
+     * The storefront JS (enhance/product-variant.js) keeps this URL in sync as
+     * options change, so an SSR render and the JS state agree on the variant.
+     *
+     * @param  array<string, mixed>  $query  request()->query()
+     */
+    public function resolveSelectedVariant(Product $product, array $query): ?\Lunar\Models\ProductVariant
+    {
+        $first = $product->variants->first();
+
+        $queryOptions = collect($query)
+            ->mapWithKeys(fn ($v, $k) => [strtolower((string) $k) => strtolower((string) $v)]);
+
+        if ($queryOptions->isEmpty()) {
+            return $first;
+        }
+
+        return $product->variants->first(function ($variant) use ($queryOptions) {
+            $variantOptions = $variant->values->mapWithKeys(fn ($value) => [
+                strtolower((string) ($value->option?->translate('name') ?? $value->option?->name ?? ''))
+                    => strtolower((string) ($value->translate('name') ?? $value->name)),
+            ]);
+
+            // Every queried option must be present on this variant with a matching value.
+            return $queryOptions->every(
+                fn ($val, $key) => $variantOptions->has($key) && $variantOptions->get($key) === $val,
+            );
+        }) ?? $first;
+    }
+
+    /**
      * Published products for a list of URL slugs, returned IN THE GIVEN ORDER
      * (used by "recently viewed" — the client stores slugs newest-first). One
      * query; unknown/unpublished slugs are simply dropped.
