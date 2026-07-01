@@ -35,11 +35,16 @@ class MediaUrl
     ) {}
 
     /**
-     * URL for a conversion, generating it if the file is missing. Falls back to
-     * the original when the conversion can't be produced (e.g. unknown name).
+     * URL for a conversion. Two modes (config `lunar.media.on_demand.sync`):
      *
-     * Results are memoized per-request so the same media+conversion pair called
-     * across multiple view composers resolves in O(1) after the first call.
+     *  - SYNC (default): generate the missing conversion inline, then serve it.
+     *  - ASYNC: never block the request — serve the nearest already-generated
+     *    size (or the original as a last resort) and dispatch a job to produce
+     *    the exact size on the `media` queue for the next visitor.
+     *
+     * Either way the returned URL is always usable. Results are memoized
+     * per-request so the same media+conversion pair resolves in O(1) after the
+     * first call (a 24-card grid re-asks the same URLs many times).
      */
     public function conversion(?Media $media, string $conversion): ?string
     {
@@ -53,11 +58,38 @@ class MediaUrl
             return $this->conversionMemo[$key];
         }
 
-        if ($this->generator->ensure($media, $conversion)) {
+        // Unknown conversion name → original (no generation possible).
+        if (! in_array($conversion, $this->generator->conversionNames($media), true)) {
+            return $this->conversionMemo[$key] = $media->getUrl();
+        }
+
+        // Already on disk (cheap cached check) → serve it directly.
+        if ($this->generator->exists($media, $conversion)) {
             return $this->conversionMemo[$key] = $media->getUrl($conversion);
         }
 
-        return $this->conversionMemo[$key] = $media->getUrl();
+        if ($this->syncOnDemand()) {
+            if ($this->generator->ensure($media, $conversion)) {
+                return $this->conversionMemo[$key] = $media->getUrl($conversion);
+            }
+
+            return $this->conversionMemo[$key] = $media->getUrl();
+        }
+
+        // ASYNC: produce the exact size off-request, serve a fallback meanwhile.
+        \Modules\Assets\Jobs\GenerateConversionJob::dispatch($media->id, $conversion);
+
+        $fallback = $this->generator->nearestExisting($media, $conversion);
+
+        return $this->conversionMemo[$key] = $fallback
+            ? $media->getUrl($fallback)
+            : $media->getUrl();
+    }
+
+    /** Whether on-demand generation runs inline (sync) or defers to the queue. */
+    protected function syncOnDemand(): bool
+    {
+        return (bool) config('lunar.media.on_demand.sync', true);
     }
 
     /**
@@ -115,5 +147,26 @@ class MediaUrl
             'width' => (int) ($baseSize['width'] ?? 0),
             'height' => (int) ($baseSize['height'] ?? 0),
         ];
+    }
+
+    /**
+     * Pre-warm all conversions for a media item on the `media` queue, so the
+     * first storefront visitor doesn't pay the synchronous generation cost.
+     * Call after an upload (or ahead of a campaign). No-op / idempotent: each
+     * job re-checks existence under a lock. Skips conversions already on disk.
+     */
+    public function warm(?Media $media): void
+    {
+        if (! $media) {
+            return;
+        }
+
+        foreach ($this->generator->conversionNames($media) as $conversion) {
+            if ($this->generator->fileExists($media, $conversion)) {
+                continue;
+            }
+
+            \Modules\Assets\Jobs\GenerateConversionJob::dispatch($media->id, $conversion);
+        }
     }
 }

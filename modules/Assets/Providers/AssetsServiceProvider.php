@@ -2,6 +2,7 @@
 
 namespace Modules\Assets\Providers;
 
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Modules\Assets\Filament\Pages\MediaImageSizes;
@@ -11,6 +12,7 @@ use Modules\Assets\Services\MediaSettings;
 use Modules\Assets\Services\MediaUrl;
 use Modules\Theme\Support\AdminPages;
 use Modules\Theme\Support\LunarConfigOverride;
+use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
 
 class AssetsServiceProvider extends ServiceProvider
 {
@@ -41,6 +43,19 @@ class AssetsServiceProvider extends ServiceProvider
 
         $this->composeThemeImages();
         $this->composeLookbookFiles();
+        $this->warmConversionsOnUpload();
+    }
+
+    /**
+     * When media is added (admin upload), pre-warm its conversions on the `media`
+     * queue so the first storefront visitor doesn't pay the synchronous
+     * generation cost. On-demand generation still covers anything not warmed yet.
+     */
+    protected function warmConversionsOnUpload(): void
+    {
+        Event::listen(MediaHasBeenAddedEvent::class, function (MediaHasBeenAddedEvent $event): void {
+            app(MediaUrl::class)->warm($event->media);
+        });
     }
 
     /**

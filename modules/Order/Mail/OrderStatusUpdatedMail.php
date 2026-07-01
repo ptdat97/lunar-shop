@@ -9,6 +9,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Lunar\Models\Order;
+use App\Support\Queues;
 
 /**
  * Sent when an order's status changes (e.g. dispatched, completed, cancelled).
@@ -17,10 +18,18 @@ class OrderStatusUpdatedMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
+    /** Retry a few times with growing backoff for transient SMTP failures. */
+    public int $tries = 3;
+
+    /** @var list<int> seconds between retries (10s, 60s, 5m). */
+    public array $backoff = [10, 60, 300];
+
     public function __construct(
         public Order $order,
         public string $previousStatus,
-    ) {}
+    ) {
+        $this->onQueue(Queues::MAILS);
+    }
 
     public function envelope(): Envelope
     {

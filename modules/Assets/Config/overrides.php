@@ -11,6 +11,16 @@ use Modules\Assets\Definitions\FashionMediaDefinitions;
  * these over the published Lunar defaults at boot. Only list the keys we change.
  */
 return [
+    // On-demand conversion behaviour (read by MediaUrl / ConversionGenerator).
+    'on_demand' => [
+        // When true (default), the first request for a missing conversion blocks
+        // and generates it synchronously (simple, always-correct). When false,
+        // the request serves the nearest already-generated size immediately and
+        // the exact size is produced off-request on the `media` Horizon queue —
+        // best when a queue worker is running (no request-time image work).
+        'sync' => (bool) env('MEDIA_ON_DEMAND_SYNC', true),
+    ],
+
     'definitions' => [
         // Media Library assets get the same responsive + WebP conversions as
         // storefront imagery so picked files are ready for the front end.

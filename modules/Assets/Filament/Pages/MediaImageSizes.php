@@ -58,6 +58,12 @@ class MediaImageSizes extends Page implements HasForms
     /** Live batch progress, refreshed by the page poll. @var array<string,mixed>|null */
     public ?array $batch = null;
 
+    /** True after a save that changed a dimension → existing conversions stale. */
+    public bool $sizesStale = false;
+
+    /** Whether a queue worker (Horizon) is available to drain the media queue. */
+    public bool $workerAvailable = true;
+
     public function mount(): void
     {
         $this->form->fill(app(MediaSettings::class)->sizes());
@@ -109,13 +115,48 @@ class MediaImageSizes extends Page implements HasForms
         // Validates against the min/max rules declared on the fields.
         $this->form->validate();
 
-        app(MediaSettings::class)->save($this->form->getState());
+        $settings = app(MediaSettings::class);
+        $before = $settings->sizes();
+        $after = $this->form->getState();
 
-        Notification::make()
+        $settings->save($after);
+
+        // A size change makes every existing conversion at that size stale. Flag
+        // it so the view shows a "rebuild now" call-to-action (Horizon-aware),
+        // instead of silently leaving the library at the old size.
+        $this->sizesStale = $this->sizesChanged($before, $after);
+
+        $notification = Notification::make()
             ->title(__('admin.media.saved'))
-            ->body(__('admin.media.saved_body'))
-            ->success()
-            ->send();
+            ->success();
+
+        if ($this->sizesStale) {
+            $notification->body(
+                app(MediaRegenerator::class)->workerAvailable()
+                    ? 'Sizes saved. Existing images are still at the old size — use "Rebuild all" below.'
+                    : 'Sizes saved, but no queue worker is running. Start Horizon before rebuilding.'
+            );
+        } else {
+            $notification->body(__('admin.media.saved_body'));
+        }
+
+        $notification->send();
+    }
+
+    /**
+     * @param  array<string, array{width:int, height:int}>  $before
+     * @param  array<string, mixed>  $after
+     */
+    protected function sizesChanged(array $before, array $after): bool
+    {
+        foreach (MediaSettings::keys() as $key) {
+            if ((int) ($before[$key]['width'] ?? 0) !== (int) ($after[$key]['width'] ?? 0)
+                || (int) ($before[$key]['height'] ?? 0) !== (int) ($after[$key]['height'] ?? 0)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -143,11 +184,19 @@ class MediaImageSizes extends Page implements HasForms
     }
 
     /**
-     * Poll target: refresh the batch progress shown in the view.
+     * Poll target: refresh the batch progress + worker status shown in the view.
      */
     public function refreshBatch(): void
     {
-        $this->batch = app(MediaRegenerator::class)->progress();
+        $regenerator = app(MediaRegenerator::class);
+        $this->batch = $regenerator->progress();
+        $this->workerAvailable = $regenerator->workerAvailable();
+
+        // Once a rebuild is running (or the library is up to date), the stale
+        // banner is no longer useful.
+        if ($this->batch !== null) {
+            $this->sizesStale = false;
+        }
     }
 
     protected function queueRegenerate(bool $onlyMissing): void

@@ -231,6 +231,63 @@ class ConversionGenerator
     }
 
     /**
+     * Find the best ALREADY-GENERATED conversion to serve in place of a missing
+     * one, WITHOUT generating anything (non-blocking). Prefers the smallest
+     * existing conversion whose width is >= the target's (so quality/size is at
+     * least as good); if none is larger, falls back to the largest existing one.
+     *
+     * Returns the conversion name, or null when the media has no generated
+     * conversion at all (caller then serves the original).
+     *
+     * Used by {@see MediaUrl::conversion()} so a page whose images aren't fully
+     * generated yet serves an appropriately-sized file (not the heavy original),
+     * while the exact size is produced off-request on the `media` queue.
+     */
+    public function nearestExisting(Media $media, string $conversion): ?string
+    {
+        $sizes = app(MediaSettings::class)->sizes();
+        $targetWidth = $sizes[$conversion]['width'] ?? null;
+
+        $existing = [];
+        foreach ($this->conversionNames($media) as $name) {
+            if ($name === $conversion) {
+                continue;
+            }
+            if ($this->fileExists($media, $name)) {
+                $existing[$name] = $sizes[$name]['width'] ?? PHP_INT_MAX;
+            }
+        }
+
+        if (empty($existing)) {
+            return null;
+        }
+
+        // If we know the target width, prefer the smallest existing conversion
+        // that is at least as wide (upscale-free); otherwise the widest available.
+        if ($targetWidth !== null) {
+            $atLeast = array_filter($existing, fn ($w) => $w >= $targetWidth);
+            if (! empty($atLeast)) {
+                asort($atLeast);
+
+                return array_key_first($atLeast);
+            }
+        }
+
+        arsort($existing);
+
+        return array_key_first($existing);
+    }
+
+    /**
+     * Public, non-generating existence check (cached). Serves the fast path in
+     * {@see MediaUrl::conversion()} without ever producing a file.
+     */
+    public function exists(Media $media, string $conversion): bool
+    {
+        return $this->existsCached($media, $conversion);
+    }
+
+    /**
      * Cached existence check. Caches only POSITIVE results (a generated file is
      * immutable until sizes change + a regenerate, which busts the cache). A
      * negative result is never cached, so a missing file is retried/generated.

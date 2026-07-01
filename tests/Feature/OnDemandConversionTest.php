@@ -2,7 +2,10 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
+use Modules\Assets\Jobs\GenerateConversionJob;
 use Modules\Assets\Services\ConversionGenerator;
 use Modules\Assets\Services\MediaUrl;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -34,8 +37,10 @@ class OnDemandConversionTest extends TestCase
         $generator = app(ConversionGenerator::class);
 
         // Simulate a not-yet-generated conversion (tests run the sync queue, so
-        // the upload may have produced it — remove the file to set the scenario).
+        // the upload — and the post-upload warm listener — may have produced it;
+        // remove the file AND bust the "exists" cache to set the scenario).
         Storage::disk($media->conversions_disk)->delete($media->getPathRelativeToRoot('medium'));
+        $generator->forgetExists($media, 'medium');
         $this->assertFalse($generator->fileExists($media->fresh(), 'medium'));
 
         $this->assertTrue($generator->ensure($media->fresh(), 'medium'));
@@ -70,5 +75,47 @@ class OnDemandConversionTest extends TestCase
         // Unknown conversion → original URL (no exception).
         $this->assertStringNotContainsString('conversions/', $urls->conversion($media->fresh(), 'nope'));
         $this->assertNull($urls->conversion(null, 'medium'));
+    }
+
+    public function test_async_mode_serves_nearest_existing_and_queues_exact_size(): void
+    {
+        Config::set('lunar.media.on_demand.sync', false);
+
+        $media = $this->mediaWithImage();
+        $generator = app(ConversionGenerator::class);
+
+        // 'small' exists as a fallback candidate; 'zoom' is missing.
+        $generator->ensure($media->fresh(), 'small');
+        Storage::disk($media->conversions_disk)->delete($media->getPathRelativeToRoot('zoom'));
+        $generator->forgetExists($media, 'zoom');
+
+        Queue::fake();
+        $url = app(MediaUrl::class)->conversion($media->fresh(), 'zoom');
+
+        // Served a real conversion (the nearest existing), not the heavy original,
+        // and never generated 'zoom' inline (it's still missing).
+        $this->assertStringContainsString('conversions/', $url);
+        $this->assertFalse($generator->fileExists($media->fresh(), 'zoom'));
+
+        // The exact size was queued on the media queue for the next visitor.
+        Queue::assertPushed(
+            GenerateConversionJob::class,
+            fn (GenerateConversionJob $job) => $job->conversion === 'zoom' && $job->queue === 'media',
+        );
+    }
+
+    public function test_nearest_existing_prefers_smallest_that_is_wide_enough(): void
+    {
+        $media = $this->mediaWithImage();
+        $generator = app(ConversionGenerator::class);
+
+        // Generate large + zoom (both wider than medium), remove medium.
+        $generator->ensure($media->fresh(), 'large');
+        $generator->ensure($media->fresh(), 'zoom');
+        Storage::disk($media->conversions_disk)->delete($media->getPathRelativeToRoot('medium'));
+        $generator->forgetExists($media, 'medium');
+
+        // 'large' (smallest >= medium's width) beats 'zoom' — no needless upscale.
+        $this->assertSame('large', $generator->nearestExisting($media->fresh(), 'medium'));
     }
 }

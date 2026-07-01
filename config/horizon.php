@@ -197,34 +197,61 @@ return [
     */
 
     'defaults' => [
-        'supervisor-1' => [
+        // Customer-facing work: order mail + notifications + default. Light and
+        // latency-sensitive, so it runs on its own supervisor and is drained
+        // ahead of heavy media work. Queue order = drain priority.
+        'supervisor-app' => [
             'connection' => 'redis',
-            'queue' => ['default'],
+            'queue' => ['mails', 'notifications', 'default'],
             'balance' => 'auto',
             'autoScalingStrategy' => 'time',
             'maxProcesses' => 1,
             'maxTime' => 0,
             'maxJobs' => 0,
-            // Image conversions are memory/time heavy; give workers headroom.
-            'memory' => 256,
-            'tries' => 1,
-            'timeout' => 300,
+            'memory' => 128,
+            'tries' => 3,
+            'timeout' => 60,
             'nice' => 0,
+        ],
+
+        // Heavy media work (image conversions): memory/time heavy, so isolated
+        // with more memory + a long timeout. Jobs are idempotent (regenerate is
+        // safe to re-run), but keep a couple of retries for transient IO errors.
+        'supervisor-media' => [
+            'connection' => 'redis',
+            'queue' => ['media'],
+            'balance' => 'auto',
+            'autoScalingStrategy' => 'time',
+            'maxProcesses' => 1,
+            'maxTime' => 0,
+            'maxJobs' => 0,
+            'memory' => 256,
+            'tries' => 2,
+            'timeout' => 300,
+            'nice' => 5,
         ],
     ],
 
     'environments' => [
         'production' => [
-            'supervisor-1' => [
+            'supervisor-app' => [
                 'maxProcesses' => 10,
+                'balanceMaxShift' => 1,
+                'balanceCooldown' => 3,
+            ],
+            'supervisor-media' => [
+                'maxProcesses' => 4,
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 3,
             ],
         ],
 
         'local' => [
-            'supervisor-1' => [
+            'supervisor-app' => [
                 'maxProcesses' => 3,
+            ],
+            'supervisor-media' => [
+                'maxProcesses' => 2,
             ],
         ],
     ],
