@@ -87,7 +87,7 @@ trait CreatesStorefrontData
      */
     protected function attachSizeChart(Product $product): Product
     {
-        $chart = \Modules\Product\Models\SizeChart::create([
+        $chart = \Modules\Catalog\Models\SizeChart::create([
             'name' => 'Tops', 'category' => 'tops', 'active' => true,
         ]);
 

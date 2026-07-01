@@ -6,7 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Customer\Services\WishlistService;
-use Modules\Product\Http\Resources\ProductResource;
+use Modules\Catalog\Http\Resources\ProductResource;
 
 class WishlistController extends Controller
 {

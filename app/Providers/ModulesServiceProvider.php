@@ -8,7 +8,7 @@ use Lunar\Admin\Filament\Resources as Lunar;
 use Lunar\Admin\Filament\Resources\ProductResource;
 use Lunar\Admin\LunarPanelManager;
 use Lunar\Admin\Support\Facades\LunarPanel;
-use Modules\Product\Filament\Extensions\ProductSizeExtension;
+use Modules\Catalog\Filament\Extensions\ProductSizeExtension;
 use Modules\Theme\Filament\Resources as Custom;
 use Modules\Theme\Support\AdminPages;
 
@@ -26,21 +26,15 @@ class ModulesServiceProvider extends ServiceProvider
     protected array $modules = [
         'Theme',
         'Catalog',
-        'Product',
-        'Collection',
         'Inventory',
-        'Pricing',
         'Checkout',
         'Customer',
         'Order',
         'Content',
         'Assets',
-        'Search',
-        'Recommend',
         'Promotion',
         'Shipping',
         'Analytics',
-        'Review',
     ];
 
     public function register(): void

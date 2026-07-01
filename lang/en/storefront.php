@@ -178,4 +178,26 @@ return [
         'vi' => 'Tiếng Việt',
     ],
 
+    'static' => [
+        'home_breadcrumb' => 'Home',
+        'no_image' => 'No image',
+        'loading' => 'Loading…',
+        'no_products_found' => 'No products found.',
+        'hello' => 'Hello',
+        'lookbooks_meta' => 'Explore our curated collections — shop the looks you love.',
+        'sort_go' => 'Go',
+        'apply_filters' => 'Apply',
+        'size_chart_trigger' => 'Size chart & find my size',
+        'size_guide' => 'Size guide',
+        'size_chart_tab' => 'Size chart',
+        'find_my_size_tab' => 'Find my size',
+        'size' => 'Size',
+        'fit' => 'Fit',
+        'measurement_intro' => 'Enter your body measurements (cm) and we\'ll suggest the best size.',
+        'find_my_size_button' => 'Find my size',
+        'recommended_size' => 'Recommended size',
+        'use_this_size' => 'Use this size',
+        'instagram_aria' => 'Instagram',
+    ],
+
 ];

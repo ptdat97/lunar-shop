@@ -11,7 +11,7 @@
   // Hydration payload for the variant enhancer — same ProductResource shape as
   // GET /api/v1/products/{slug} (SSR-first §8). resolve() serialises a Resource,
   // it isn't a business-service call.
-$state = new \Modules\Product\Http\Resources\ProductResource(
+$state = new \Modules\Catalog\Http\Resources\ProductResource(
     $product->loadMissing(['variants.values.option', 'variants.images', 'media']),
 )->resolve();
 
@@ -74,6 +74,20 @@ $inStock = $product->variants->sum('stock') > 0;
                  desktop, horizontal under the main on mobile). --}}
         <div id="product-gallery" data-product-gallery class="product-gallery">
           @if ($galleryImages->isNotEmpty())
+            {{-- Thumbs strip first in source (sits LEFT on desktop / above on
+                         mobile) — mirrors enhance/_gallery.js so the SSR markup and the
+                         JS-rendered gallery match (same data-* order). --}}
+            @if ($galleryImages->count() > 1)
+              <div class="swiper product-gallery__thumbs" data-gallery-thumbs>
+                <div class="swiper-wrapper">
+                  @foreach ($galleryImages as $img)
+                    <div class="swiper-slide">
+                      <img src="{{ $img['small'] }}" alt="{{ $name }}" class="img-fluid rounded" loading="lazy">
+                    </div>
+                  @endforeach
+                </div>
+              </div>
+            @endif
             <div class="swiper product-gallery__main" data-gallery-main>
               <div class="swiper-wrapper">
                 @foreach ($galleryImages as $img)
@@ -101,20 +115,6 @@ $inStock = $product->variants->sum('stock') > 0;
               <div class="swiper-button-prev"></div>
               <div class="swiper-button-next"></div>
             </div>
-            {{-- Thumbs strip first in source (sits LEFT on desktop / above on
-                         mobile) — mirrors enhance/_gallery.js so the SSR markup and the
-                         JS-rendered gallery match (same data-* order). --}}
-            @if ($galleryImages->count() > 1)
-              <div class="swiper product-gallery__thumbs" data-gallery-thumbs>
-                <div class="swiper-wrapper">
-                  @foreach ($galleryImages as $img)
-                    <div class="swiper-slide">
-                      <img src="{{ $img['small'] }}" alt="{{ $name }}" class="img-fluid rounded" loading="lazy">
-                    </div>
-                  @endforeach
-                </div>
-              </div>
-            @endif
           @else
             <div class="ratio ratio-4x3 bg-light rounded d-flex align-items-center justify-content-center text-muted">
               {{ __('storefront.static.no_image') }}

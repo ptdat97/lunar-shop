@@ -457,7 +457,7 @@ class PromotionService
             return null;
         }
 
-        return app(\Modules\Pricing\Services\PricingService::class)->matchedPrice($variant);
+        return app(\Modules\Catalog\Services\PricingService::class)->matchedPrice($variant);
     }
 
     /**

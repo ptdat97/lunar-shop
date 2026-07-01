@@ -10,7 +10,7 @@ use Modules\Catalog\Database\Seeders\MultiSizeProductsSeeder;
 use Modules\Content\Database\Seeders\CmsDemoSeeder;
 use Modules\Assets\Database\Seeders\MediaLibraryDemoSeeder;
 use Modules\Customer\Database\Seeders\VnLocationSeeder;
-use Modules\Product\Database\Seeders\SizeIntelligenceDemoSeeder;
+use Modules\Catalog\Database\Seeders\SizeIntelligenceDemoSeeder;
 use Modules\Content\Database\Seeders\FooterMenuSeeder;
 use Modules\Content\Database\Seeders\HeaderMenuSeeder;
 use Modules\Promotion\Database\Seeders\DemoCouponSeeder;

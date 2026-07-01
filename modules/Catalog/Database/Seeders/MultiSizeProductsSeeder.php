@@ -14,7 +14,7 @@ use Lunar\Models\ProductOption;
 use Lunar\Models\ProductType;
 use Lunar\Models\TaxClass;
 use Lunar\Models\Url;
-use Modules\Product\Models\ProductMaterial;
+use Modules\Catalog\Models\ProductMaterial;
 
 /**
  * Seeds a few products that each carry the full S/M/L/XL size run (one variant

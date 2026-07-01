@@ -7,8 +7,8 @@ use Illuminate\Support\ServiceProvider;
 use Lunar\Models\Collection as LunarCollection;
 use Modules\Content\Services\MenuRenderer;
 use Modules\Content\Services\SectionRenderer;
-use Modules\Product\Services\ProductService;
-use Modules\Search\Data\SearchQuery;
+use Modules\Catalog\Services\ProductService;
+use Modules\Catalog\Data\SearchQuery;
 use Modules\Theme\Support\AdminPages;
 
 class ContentServiceProvider extends ServiceProvider

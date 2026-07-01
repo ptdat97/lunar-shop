@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use Modules\Search\Contracts\SearchEngine;
-use Modules\Search\Data\SearchQuery;
+use Modules\Catalog\Contracts\SearchEngine;
+use Modules\Catalog\Data\SearchQuery;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 

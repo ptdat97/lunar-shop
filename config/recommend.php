@@ -7,8 +7,8 @@ return [
     | strategies here in P2/P3 without touching callers.
     */
     'strategies' => [
-        \Modules\Recommend\Strategies\AssociationStrategy::class,
-        \Modules\Recommend\Strategies\CollectionStrategy::class,
+        \Modules\Catalog\Strategies\AssociationStrategy::class,
+        \Modules\Catalog\Strategies\CollectionStrategy::class,
     ],
 
     // Cache TTL (seconds) for product-page recommendations. Cart is never cached.
