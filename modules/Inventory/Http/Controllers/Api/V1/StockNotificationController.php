@@ -30,9 +30,11 @@ class StockNotificationController extends Controller
 
         $variant = ProductVariant::findOrFail($data['variant_id']);
 
-        // Only meaningful for variants that aren't currently purchasable —
-        // there's nothing to wait for if it's in stock.
-        if ($this->inventory->inStock($variant->id)) {
+        // Only meaningful when the variant has no physical stock — matching the
+        // storefront's "Hết hàng" state. NOTE: don't use inStock()/
+        // canBeFulfilledAtQuantity() here: a stock=0 "backorder/always" variant
+        // is still shown as out of stock, so the shopper must be able to subscribe.
+        if ($this->inventory->hasPhysicalStock($variant->id)) {
             return response()->json([
                 'message' => 'This item is already in stock.',
             ], 422);

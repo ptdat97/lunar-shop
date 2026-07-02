@@ -68,6 +68,18 @@ class InventoryService
         return $variant?->canBeFulfilledAtQuantity($quantity) ?? false;
     }
 
+    /**
+     * Whether a variant has physical stock on hand (stock > 0). This matches the
+     * storefront's "in stock / Hết hàng" display (which is based on raw stock),
+     * unlike inStock() which also returns true for backorder/always variants.
+     * Use this for back-in-stock eligibility: a stock=0 "always" variant still
+     * shows "Hết hàng", so the shopper should be allowed to subscribe.
+     */
+    public function hasPhysicalStock(int $variantId): bool
+    {
+        return $this->stock($variantId) > 0;
+    }
+
     /** Default "low stock" threshold when the admin hasn't set one. */
     public const DEFAULT_LOW_THRESHOLD = 5;
 

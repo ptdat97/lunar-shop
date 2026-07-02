@@ -84,6 +84,26 @@ class InventoryTest extends TestCase
         $this->assertDatabaseCount('stock_notifications', 0);
     }
 
+    public function test_notify_me_allows_backorder_variant_with_zero_stock(): void
+    {
+        // Regression: a stock=0 "always"/backorder variant still shows "Hết hàng"
+        // on the storefront, so the shopper must be able to subscribe — even
+        // though Lunar's canBeFulfilledAtQuantity() reports it as purchasable.
+        $product = $this->createProduct(['stock' => 0]);
+        $variant = $product->variants->first();
+        $variant->update(['purchasable' => 'always']);
+
+        $this->postJson('/api/v1/inventory/notify-me', [
+            'variant_id' => $variant->id,
+            'email' => 'shopper@example.com',
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('stock_notifications', [
+            'product_variant_id' => $variant->id,
+            'email' => 'shopper@example.com',
+        ]);
+    }
+
     public function test_notify_me_subscription_is_idempotent(): void
     {
         $product = $this->createProduct(['stock' => 0]);
