@@ -91,7 +91,9 @@ class ContentServiceProvider extends ServiceProvider
                 : Product::query()
                     ->whereIn('id', $allIds)
                     ->where('status', 'published')
-                    ->with(['variants', 'thumbnail', 'brand', 'media'])
+                    // prices.currency so the card price renders without a per-grid
+                    // currency lazy-load; media powers the hover image.
+                    ->with(['variants.prices.currency', 'thumbnail', 'brand', 'media'])
                     ->get()
                     ->keyBy('id');
 

@@ -43,8 +43,25 @@ class PricingService
             // $price->priceable->unit_quantity, which lazy-loads the variant
             // again (one query per price) unless we point it back at the variant
             // we already have. Saves a query per product card on listing pages.
+            //
+            // Also prime the price->currency relation. Downstream formatting
+            // (e.g. PromotionService reading $matched->currency for a sale badge)
+            // would otherwise lazy-load the currency once PER product — the same
+            // `select … lunar_currencies where id in (…)` repeated across a grid.
+            // The default currency is Blink-cached (one query for the request),
+            // so setting it here collapses N queries into 0 extra.
             if ($variant->relationLoaded('prices')) {
-                $variant->prices->each(fn (Price $price) => $price->setRelation('priceable', $variant));
+                $defaultCurrency = \Lunar\Models\Currency::getDefault();
+                $variant->prices->each(function (Price $price) use ($variant, $defaultCurrency): void {
+                    $price->setRelation('priceable', $variant);
+                    // Only prime when it isn't already loaded and the ids match,
+                    // so multi-currency stores still resolve the correct currency.
+                    if (! $price->relationLoaded('currency')
+                        && $defaultCurrency
+                        && (int) $price->currency_id === (int) $defaultCurrency->id) {
+                        $price->setRelation('currency', $defaultCurrency);
+                    }
+                });
             }
 
             return $this->priceMemo[$variantId] = Pricing::for($variant)->get()->matched->price;
