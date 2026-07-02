@@ -20,19 +20,27 @@
             data-wishlist-toggle data-product-id="{{ $product->id }}" aria-label="Add to wishlist" aria-pressed="false">
         <i class="bi bi-heart"></i>
     </button>
-    <a href="{{ $url }}" class="d-block product-card__media rounded mb-2">
+    <a href="{{ $url }}" class="d-block product-card__media rounded mb-2 {{ ($hoverImage ?? false) ? 'has-hover' : '' }}">
         @if($picture ?? false)
             @include('theme::components.picture', [
                 'picture' => $picture,
                 'alt' => $name,
+                'class' => 'product-card__img',
                 'sizes' => '(min-width: 992px) 25vw, (min-width: 576px) 33vw, 50vw',
             ])
         @elseif($image)
-            <img src="{{ $image }}" alt="{{ $name }}" loading="lazy">
+            <img src="{{ $image }}" alt="{{ $name }}" class="product-card__img" loading="lazy">
         @else
             <span class="d-flex h-100 align-items-center justify-content-center text-muted small">
                 {{ $name }}
             </span>
+        @endif
+
+        {{-- Secondary image revealed on hover (e.g. back/detail view). Lazy +
+             aria-hidden: purely decorative, the primary image carries the alt. --}}
+        @if($hoverImage ?? false)
+            <img src="{{ $hoverImage }}" alt="" class="product-card__img product-card__img--hover"
+                 loading="lazy" aria-hidden="true">
         @endif
     </a>
     <div class="product-card__body">

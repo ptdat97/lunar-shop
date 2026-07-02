@@ -36,7 +36,8 @@ class ProductController extends Controller
 
         $result = $this->products->list(SearchQuery::fromRequest($request));
 
-        $result->items->loadMissing(['variants', 'thumbnail', 'brand']);
+        // `media` → ProductResource.hover_thumbnail (card hover second image).
+        $result->items->loadMissing(['variants', 'thumbnail', 'brand', 'media']);
 
         return ProductResource::collection($result->items)
             ->additional([

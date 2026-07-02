@@ -84,12 +84,25 @@ class AssetsServiceProvider extends ServiceProvider
         View::composer('theme::components.product-card', function ($view): void {
             $product = $view->getData()['product'] ?? null;
             $urls = app(MediaUrl::class);
+
+            // Hover image: the first gallery image that isn't the primary
+            // thumbnail, shown on card hover (fashion "flip to back view"). Only
+            // resolved when `media` is already eager-loaded so a grid stays
+            // N+1-free — grids that don't load media simply get no hover image.
+            $hover = null;
+            if ($product && $product->relationLoaded('media')) {
+                $thumbId = $product->thumbnail?->id;
+                $second = $product->media->first(fn ($m) => $m->id !== $thumbId);
+                $hover = $second ? $urls->conversion($second, 'medium') : null;
+            }
+
             // $image kept for parity with the JS-rendered grid (_card.js, which
             // gets a single thumbnail URL from the API). $picture adds the
             // responsive <picture> payload for the SSR card.
             $view->with([
                 'image' => $product ? $urls->conversion($product->thumbnail, 'medium') : null,
                 'picture' => $product ? $urls->responsive($product->thumbnail) : null,
+                'hoverImage' => $hover,
             ]);
         });
 

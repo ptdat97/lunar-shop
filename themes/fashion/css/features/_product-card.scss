@@ -31,15 +31,36 @@
             transition: transform v.$transition-slow;
             will-change: transform;
         }
+
+        // Secondary image sits on top of the primary, hidden until hover.
+        &__img--hover,
+        .product-card__img--hover {
+            position: absolute;
+            inset: 0;
+            opacity: 0;
+            // Slightly delayed fade so the swap reads as intentional, not a flicker.
+            transition: opacity v.$transition-base, transform v.$transition-slow;
+            pointer-events: none;
+        }
     }
 
     &:hover &__media {
         img { transform: scale(1.04); }
 
+        // Cross-fade to the second image on hover (only present when it exists).
+        .product-card__img--hover { opacity: 1; }
+
         &::after {
             opacity: 1;
             transform: translateY(0);
         }
+    }
+
+    // Touch devices can't hover — never hide content behind a hover, so the
+    // second image simply stays out (primary shown). No change needed, but keep
+    // the swap disabled to avoid a stuck half-state on tap-hold.
+    @media (hover: none) {
+        &__media .product-card__img--hover { display: none; }
     }
 
     // ── Badge (top-left absolute) ────────────────────────────────────────────

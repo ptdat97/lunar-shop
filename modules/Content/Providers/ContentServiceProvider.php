@@ -75,7 +75,8 @@ class ContentServiceProvider extends ServiceProvider
             $result = $this->app->make(ProductService::class)
                 ->list(new SearchQuery(perPage: $limit));
 
-            $result->items->loadMissing(['variants', 'thumbnail', 'brand']);
+            // `media` powers the product-card hover (second) image (N+1-free).
+            $result->items->loadMissing(['variants', 'thumbnail', 'brand', 'media']);
 
             return ['products' => $result->items];
         });

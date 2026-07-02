@@ -94,7 +94,8 @@ class PromotionService
         $query = Product::query()
             ->where('status', 'published')
             // Eager-load everything a product card renders (flat, not N+1).
-            ->with(['variants.prices.currency', 'thumbnail', 'brand', 'collections', 'defaultUrl']);
+            // `media` powers the card hover (second) image.
+            ->with(['variants.prices.currency', 'thumbnail', 'brand', 'collections', 'defaultUrl', 'media']);
 
         $productIds = $this->targetedProductIds($discount);
         $collectionIds = $this->targetedCollectionIds($discount);

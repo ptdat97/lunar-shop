@@ -38,8 +38,11 @@ function badgeHtml(product) {
 export function cardHtml(product) {
     const url = product.slug ? `/products/${esc(product.slug)}` : '#';
     const name = esc(product.name);
+    const hover = product.hover_thumbnail
+        ? `<img src="${esc(product.hover_thumbnail)}" alt="" class="product-card__img product-card__img--hover" loading="lazy" aria-hidden="true">`
+        : '';
     const media = product.thumbnail
-        ? `<img src="${esc(product.thumbnail)}" alt="${name}" loading="lazy">`
+        ? `<img src="${esc(product.thumbnail)}" alt="${name}" class="product-card__img" loading="lazy">${hover}`
         : `<span class="d-flex h-100 align-items-center justify-content-center text-muted small">${name}</span>`;
     const brand = product.brand
         ? `<div class="product-card__brand">${esc(product.brand)}</div>`
@@ -52,7 +55,7 @@ export function cardHtml(product) {
             data-wishlist-toggle data-product-id="${esc(product.id)}" aria-label="Add to wishlist" aria-pressed="false">
         <i class="bi bi-heart"></i>
     </button>
-    <a href="${url}" class="d-block product-card__media rounded mb-2">${media}</a>
+    <a href="${url}" class="d-block product-card__media rounded mb-2${product.hover_thumbnail ? ' has-hover' : ''}">${media}</a>
     <div class="product-card__body">
         ${brand}
         <h3 class="product-card__title mb-1">

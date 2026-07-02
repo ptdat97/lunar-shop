@@ -37,7 +37,7 @@ class CollectionService
     {
         $query = $collection->products()
             ->where('status', 'published')
-            ->with(['variants', 'thumbnail', 'brand']);
+            ->with(['variants', 'thumbnail', 'brand', 'media']); // media → card hover image
 
         // Lunar stores translatable name as JSONB; sort on the extracted value.
         $nameExpr = 'JSON_UNQUOTE(JSON_EXTRACT(lunar_products.attribute_data, "$.name.value"))';

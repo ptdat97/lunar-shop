@@ -55,6 +55,7 @@ class ContentService
                 'items.product.thumbnail',
                 'items.product.brand',
                 'items.product.defaultUrl',
+                'items.product.media', // card hover (second) image
                 'items.image',
             ])
             ->where('slug', $slug)

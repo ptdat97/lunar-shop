@@ -106,7 +106,7 @@ class ProductService
         $products = Product::query()
             ->where('status', 'published')
             ->whereHas('urls', fn ($u) => $u->whereIn('slug', $slugs))
-            ->with(['variants.prices.currency', 'thumbnail', 'brand', 'defaultUrl', 'collections'])
+            ->with(['variants.prices.currency', 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media'])
             ->get();
 
         // Re-order to match the requested slug order (DB returns arbitrary order).
@@ -127,7 +127,7 @@ class ProductService
         $query = Product::query()
             ->where('status', 'published')
             ->where('id', '!=', $product->id)
-            ->with(['variants.prices.currency', 'thumbnail', 'brand', 'defaultUrl', 'collections']);
+            ->with(['variants.prices.currency', 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media']);
 
         if ($collectionIds->isNotEmpty()) {
             $query->whereHas('collections', fn ($c) => $c->whereKey($collectionIds));

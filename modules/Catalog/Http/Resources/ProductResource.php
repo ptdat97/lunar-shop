@@ -33,6 +33,10 @@ class ProductResource extends JsonResource
             'slug' => $this->defaultUrl?->slug,
             'description' => $this->translateAttribute('description'),
             'thumbnail' => $this->imageUrl($this->thumbnail, 'medium'),
+            // Second image revealed on card hover — first gallery image that
+            // isn't the primary thumbnail. Present only when media is loaded so
+            // the JS-rendered grid matches the SSR card (product-card.blade.php).
+            'hover_thumbnail' => $this->whenLoaded('media', fn () => $this->hoverThumbnailUrl()),
             'brand' => $this->whenLoaded('brand', fn () => $this->brand?->name),
             'variants' => ProductVariantResource::collection($this->whenLoaded('variants')),
             // Product-level gallery images — the default the storefront gallery
@@ -81,5 +85,18 @@ class ProductResource extends JsonResource
     protected function imageUrl(?Media $media, string $conversion): ?string
     {
         return app(\Modules\Assets\Services\MediaUrl::class)->conversion($media, $conversion);
+    }
+
+    /**
+     * URL of the product's hover (second) image: the first gallery image that
+     * isn't the primary thumbnail. Mirrors the SSR product-card composer so the
+     * JS grid and Blade grid pick the same image. Null when there's only one.
+     */
+    protected function hoverThumbnailUrl(): ?string
+    {
+        $thumbId = $this->thumbnail?->id;
+        $second = $this->media->first(fn ($m) => $m->id !== $thumbId);
+
+        return $second ? $this->imageUrl($second, 'medium') : null;
     }
 }

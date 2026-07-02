@@ -117,7 +117,7 @@ class RecommendationService
             ->whereIn('id', $ids)
             // Full product-card relation set (price + url + promotion eligibility)
             // so recommendation grids render flat, not N+1.
-            ->with(['variants.prices.currency', 'thumbnail', 'brand', 'defaultUrl', 'collections'])
+            ->with(['variants.prices.currency', 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media'])
             ->get()
             ->keyBy('id');
 
