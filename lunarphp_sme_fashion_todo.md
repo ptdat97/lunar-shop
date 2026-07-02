@@ -105,11 +105,17 @@
   "Còn hàng") qua `data-value-label-*`. Facet counts tính từ facetBase (trước filter).
 - ✅ Test: `test_material_facet_and_filter` + `test_availability_facet_and_in_stock_filter`.
 
-### 8. Size Intelligence v2 — *Catalog*
-- Base (size chart + find-my-size) đã có. v2:
-  - Lưu **hồ sơ số đo** của khách đăng nhập (bảng `customer_measurements`) → prefill
-    form find-my-size.
-  - Gợi ý fit theo lịch sử mua/đổi-trả; cảnh báo "thường giữa hai size".
+### 8. Size Intelligence v2 — *Catalog / Customer* — ✅ **hồ sơ số đo xong**
+- ✅ Lưu **hồ sơ số đo** khách đăng nhập: bảng `customer_measurements` (1/customer) +
+  model `CustomerMeasurement` + relation `Customer::measurement` (extend, không fork) +
+  `MeasurementService` (for/save, bỏ blank + unknown key).
+- ✅ API `GET/PUT /api/v1/customer/measurements` (auth cookie/token) + prefill find-my-size
+  (`size-finder.js` load profile khi mở modal, ẩn/hiện toggle "lưu số đo" theo login,
+  tự lưu sau khi tìm size nếu opted-in). i18n `save_measurements` EN/VI.
+- ✅ Test: `CustomerMeasurementTest` (5 case — service save/read drop blank+unknown,
+  idempotent 1 profile, API get/update, guest 401, validate range).
+- ⬜ Còn (nice-to-have, chưa làm): gợi ý fit theo lịch sử mua/đổi-trả, cảnh báo "giữa
+  hai size".
 
 ### 9. "Frequently bought together" — *Catalog (Recommend)* — ✅ **đã làm**
 - ✅ `CoPurchaseStrategy` (implements `RecommendationStrategy`): 1 query aggregate đọc

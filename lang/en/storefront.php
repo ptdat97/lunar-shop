@@ -211,6 +211,7 @@ return [
         'fit' => 'Fit',
         'measurement_intro' => 'Enter your body measurements (cm) and we\'ll suggest the best size.',
         'find_my_size_button' => 'Find my size',
+        'save_measurements' => 'Save my measurements for next time',
         'recommended_size' => 'Recommended size',
         'use_this_size' => 'Use this size',
         'instagram_aria' => 'Instagram',

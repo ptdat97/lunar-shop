@@ -102,6 +102,12 @@
                                     @endforeach
                                 </div>
                                 <div class="alert alert-danger mt-3 mb-0" data-size-finder-error hidden></div>
+                                {{-- Save profile (Size Intelligence v2). Hidden until
+                                     size-finder.js confirms the shopper is logged in. --}}
+                                <div class="form-check mt-3" data-sf-save-wrap hidden>
+                                    <input class="form-check-input" type="checkbox" id="sf-save" data-sf-save>
+                                    <label class="form-check-label small" for="sf-save">{{ __('storefront.static.save_measurements') }}</label>
+                                </div>
                                 <button class="btn btn-dark mt-3" type="submit">{{ __('storefront.static.find_my_size_button') }}</button>
                             </form>
 

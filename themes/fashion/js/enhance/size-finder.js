@@ -28,6 +28,26 @@ function initFinder(root) {
     const fitEl = root.querySelector('[data-sf-fit]');
     const altEl = root.querySelector('[data-sf-alternatives]');
     const applyBtn = root.querySelector('[data-sf-apply]');
+    const saveToggle = root.querySelector('[data-sf-save]');
+
+    // Prefill from the shopper's saved measurement profile (logged-in only).
+    // Silent: a 401/empty for guests just leaves the form blank.
+    (async () => {
+        try {
+            const { data } = await api.get('/customer/measurements');
+            const saved = data.data ?? {};
+            let any = false;
+            Object.entries(saved).forEach(([k, v]) => {
+                const input = form.elements[k];
+                if (input && v != null) { input.value = v; any = true; }
+            });
+            // Only expose "save my measurements" to logged-in shoppers.
+            if (saveToggle) saveToggle.closest('[data-sf-save-wrap]')?.removeAttribute('hidden');
+            if (any && saveToggle) saveToggle.checked = true;
+        } catch {
+            // guest / not logged in → leave blank, hide the save option.
+        }
+    })();
 
     function showError(message) {
         if (!errorBox) return;
@@ -75,6 +95,11 @@ function initFinder(root) {
         try {
             const { data } = await api.post(`/products/${slug}/recommend-size`, payload);
             render(data.data);
+
+            // Persist the entered measurements for next time (logged-in + opted in).
+            if (saveToggle?.checked) {
+                api.put('/customer/measurements', payload).catch(() => {});
+            }
         } catch (err) {
             showError(err.response?.data?.message || 'Could not get a recommendation. Please try again.');
         } finally {

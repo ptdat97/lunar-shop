@@ -211,6 +211,7 @@ return [
         'fit' => 'Dáng',
         'measurement_intro' => 'Nhập số đo cơ thể (cm) và chúng tôi sẽ gợi ý size phù hợp nhất.',
         'find_my_size_button' => 'Tìm size của tôi',
+        'save_measurements' => 'Lưu số đo của tôi cho lần sau',
         'recommended_size' => 'Size gợi ý',
         'use_this_size' => 'Dùng size này',
         'instagram_aria' => 'Instagram',

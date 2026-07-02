@@ -5,6 +5,7 @@ use Modules\Customer\Http\Controllers\Api\V1\AddressController;
 use Modules\Customer\Http\Controllers\Api\V1\AuthController;
 use Modules\Customer\Http\Controllers\Api\V1\CustomerController;
 use Modules\Customer\Http\Controllers\Api\V1\LocationController;
+use Modules\Customer\Http\Controllers\Api\V1\MeasurementController;
 use Modules\Customer\Http\Controllers\Api\V1\TokenAuthController;
 use Modules\Customer\Http\Controllers\Api\V1\WishlistController;
 
@@ -52,6 +53,10 @@ Route::prefix('api/v1')->middleware(['web', 'auth:sanctum'])->group(function ():
     Route::delete('customer/addresses/{address}', [AddressController::class, 'destroy'])->name('api.v1.customer.addresses.destroy');
 
     Route::post('wishlist', [WishlistController::class, 'toggle'])->name('api.v1.wishlist.toggle');
+
+    // Size Intelligence v2: saved body-measurement profile.
+    Route::get('customer/measurements', [MeasurementController::class, 'show'])->name('api.v1.customer.measurements.show');
+    Route::put('customer/measurements', [MeasurementController::class, 'update'])->name('api.v1.customer.measurements.update');
 
     // Token logout (app/headless): revoke the PAT used for this request.
     Route::post('auth/token/revoke', [TokenAuthController::class, 'revoke'])->name('api.v1.auth.token.revoke');
