@@ -40,6 +40,141 @@ Ecommerce fashion cho SME single-store:
 
 ---
 
+# Can thiệp Core Lunar (vendor) mà KHÔNG sửa code
+
+> Nguyên tắc #1: **không bao giờ sửa `vendor/`**. Lunar cung cấp nhiều điểm mở rộng
+> chính chủ; dùng chúng theo thứ tự ưu tiên **nhẹ → nặng** dưới đây. Mỗi kỹ thuật kèm
+> trạng thái thực tế (✅ đang dùng / ⚪ có sẵn, chưa dùng) và nơi đăng ký
+> (`register()` vs `boot()` của service provider).
+
+## Cây quyết định nhanh
+
+```text
+Cần ĐỔI hành vi Lunar có sẵn?
+├─ Đổi được qua config?                 → (1) Config / pipeline override
+├─ Là driver/type mới (payment, discount, shipping, tax…)? → (2) Manager::extend / addType
+└─ Đổi luồng xử lý cart/order?          → (1) Pipeline (chèn/đổi/bỏ stage)
+
+Cần THÊM lên model core (Product, Customer, Order…)?
+├─ Chỉ thêm quan hệ?                     → (3) Model::resolveRelationUsing()
+└─ Thêm method / cast / scope / override? → (4) ModelManifest::replace (subclass)
+
+Cần PHẢN ỨNG khi có sự kiện?             → (5) Event::listen(LunarEvent)
+Cần đổi ADMIN (Filament)?                → (6) ResourceExtension / *PageExtension
+                                           (hoặc reuse action native của Lunar)
+```
+
+## (1) Config / pipeline override — nhẹ nhất, không cần code
+
+Lunar đọc hành vi từ `config/lunar/*` (cart, orders, pricing, payments, media, taxes…).
+Ghi đè trực tiếp, hoặc dùng **`Modules\Core\Support\LunarConfigOverride`** để re-apply
+override lên config đã publish — an toàn trước `php artisan vendor:publish --tag=lunar
+--force` (chạy trong `boot()`).
+
+- **Pipelines** (`cart.pipelines.*`, `orders.pipelines.creation`): chèn / đổi / bỏ bước
+  xử lý. Stage là class implement pipeline; muốn thêm logic thì viết stage riêng và
+  chèn vào mảng.
+  - ✅ **Đang dùng:** `Inventory/Config/overrides.php` chèn `DecrementStock` vào cuối
+    `orders.pipelines.creation` (giảm tồn khi tạo order).
+  - Các stage core có sẵn để tham chiếu/sắp lại: `FillOrderFromCart`, `CreateOrderLines`,
+    `CreateOrderAddresses`, `CreateShippingLine`, `CleanUpOrderLines`, `MapDiscountBreakdown`
+    (order); `CalculateLines`, `ApplyShipping`, `ApplyDiscounts`, `CalculateTax`,
+    `Calculate` (cart).
+- **Payment types / media definitions / cart_session**:
+  - ✅ **Đang dùng:** `Checkout/Config/payment-overrides.php` (COD/bank/vnpay/momo type),
+    `Assets/Config/overrides.php` (FashionMediaDefinitions), cart_session auto_create.
+
+## (2) Manager / Facade `extend()` — thêm driver/type, cực sạch
+
+Lunar expose facade có `extend()` / `add*()` để cắm implementation mới mà không đụng core.
+
+| Facade | Method | Trạng thái |
+|---|---|---|
+| `Lunar\Facades\Payments` | `Payments::extend('handle', fn($app)=>…)` | ✅ VNPay + MoMo driver (Checkout provider `boot()`) |
+| `Lunar\Facades\Discounts` | `Discounts::addType(MyType::class)` | ✅ QuantityPercentageOff, ComboPercentageOff (Promotion `register()`) |
+| `Lunar\Base\ShippingModifiers` | `->add(MyModifier::class)` | ✅ FlatRateShippingModifier (Shipping `boot()`) |
+| `Lunar\Facades\Pricing` | pipeline `pricing.pipelines` / modifier | ⚪ có sẵn, chưa cần |
+| `Lunar\Facades\Taxes` | driver/manifest | ⚪ dùng Lunar mặc định |
+| `AttributeManifest` / `FieldTypeManifest` | `->add()` | ⚪ khi cần custom field/attribute type |
+
+> Custom driver/type là **class riêng trong module** (vd `PaymentTypes/VNPayPayment`
+> kế thừa `AbstractPayment`; discount type kế thừa `AbstractDiscountType`), đăng ký qua
+> facade — **không** copy code Lunar ra.
+
+## (3) `Model::resolveRelationUsing()` — thêm quan hệ vào model vendor
+
+Laravel-native. Gắn relation vào model Lunar (Product/Customer/Order…) mà không subclass,
+đăng ký trong `boot()`.
+
+- ✅ **Đang dùng:** `Product::material` + `Product::sizeChart` (Catalog provider),
+  `Customer::measurement` (Customer provider). Model đích (`ProductMaterial`,
+  `CustomerMeasurement`…) sống trong module tương ứng.
+
+```php
+Customer::resolveRelationUsing(
+    'measurement',
+    fn (Customer $c) => $c->hasOne(CustomerMeasurement::class, 'customer_id'),
+);
+```
+
+## (4) Model replace — thay hẳn bằng subclass của mình
+
+Khi cần **override method / thêm cast, scope, accessor** trên chính model core (vượt quá
+một relation). Tạo subclass `extends` model Lunar rồi:
+
+```php
+// trong register()
+app(\Lunar\Base\ModelManifestInterface::class)
+    ->replace(\Lunar\Models\Contracts\Product::class, \Modules\Catalog\Models\CustomProduct::class);
+```
+
+Subclass kế thừa toàn bộ hành vi Lunar → không sửa vendor. ⚪ **Chưa dùng** — hiện
+`resolveRelationUsing` + service wrap là đủ; chỉ leo lên mức này khi thực sự cần đổi
+method của model core.
+
+## (5) Events — hook không đồng bộ, coupling lỏng
+
+`Event::listen(LunarEvent::class, Listener)` trong `boot()`. Cách tách rời nhất: nhiều
+module cùng nghe một event, không biết nhau.
+
+- ✅ **Đang dùng:** `PaymentAttemptEvent` (Order → email xác nhận, mọi driver);
+  domain event của dự án `Modules\Order\Events\OrderPaid` (Promotion nghe để sync
+  membership, Checkout dispatch từ callback VNPay/MoMo).
+- Quy ước: event **domain của dự án** đặt trong module sở hữu (vd `OrderPaid` ở Order),
+  không nhét vào Core (Core chỉ hạ tầng, không business).
+
+## (6) Filament admin — Extension classes (không fork resource)
+
+Lunar cho phép mở rộng resource/page admin qua `Support/Extending/*` mà không copy resource:
+`ResourceExtension`, `EditPageExtension`, `CreatePageExtension`, `ViewPageExtension`,
+`ListPageExtension`, `RelationPageExtension`, `RelationManagerExtension`.
+
+- ✅ **Đang dùng:** `ProductSizeExtension extends ResourceExtension` (thêm tab "Size & Fit"
+  + swap tab variants vào Lunar `ProductResource`), đăng ký:
+  `LunarPanel::extensions([ProductResource::class => ProductSizeExtension::class])`.
+- ✅ **Reuse action native:** nút **Refund** dùng thẳng `ManageOrder::getRefundAction()`
+  của Lunar (nó gọi `$transaction->refund()` → driver ta viết) — không cần extension.
+- Trang/resource **mới** (Lunar không có) thì build trong module + đóng góp qua
+  `Modules\Core\Support\AdminPages::add()/addResource()` (không phải extend, là add mới).
+
+## Chốt: nơi đăng ký & thứ tự
+
+| Kỹ thuật | Provider hook | Ghi chú |
+|---|---|---|
+| Config / pipeline override | `boot()` | qua `LunarConfigOverride::applyFrom()` |
+| `Payments::extend`, `ShippingModifiers->add` | `boot()` | facade cần app booted |
+| `Discounts::addType` | `register()` | Filament đọc type sớm |
+| `resolveRelationUsing` | `boot()` | model đã load |
+| `ModelManifest::replace` | `register()` | trước khi model được dùng |
+| `Event::listen` | `boot()` | |
+| Filament `AdminPages::add*` | `register()` | `ModulesServiceProvider` gom trong register-phase |
+
+> **Core (`Modules\Core`) đăng ký đầu tiên** → `Settings`, `AdminPages`,
+> `LunarConfigOverride`, `Queues` sẵn sàng cho mọi module. Core **chỉ hạ tầng**, tuyệt
+> đối không chứa business logic hay điểm mở rộng domain-specific.
+
+---
+
 # Tech stack (theo repo hiện tại)
 
 | Layer | Công nghệ |
@@ -73,14 +208,21 @@ app/
  └── Models/User.php                         # auth user (Lunar customer riêng)
 
 routes/{web,api}.php                         # gom routes từ các module
-modules/                                     # 11 module (đã gộp từ 24)
+modules/                                     # 12 module (11 feature + Core hạ tầng)
 themes/fashion/                              # theme active (view + JS + CSS)
 ```
 
-## 11 module (sau hợp nhất)
+## 12 module (11 feature + Core)
 
-Codebase từng có 24 module scaffold; đã **hợp nhất còn 11** để hợp quy mô single-store
-(gộp các sub-domain tương đồng vào một module, bỏ ~13 service provider).
+Codebase từng có 24 module scaffold; đã **hợp nhất còn 11 feature module** để hợp quy mô
+single-store (gộp các sub-domain tương đồng vào một module, bỏ ~13 service provider),
+cộng **1 module `Core`** chứa hạ tầng dùng chung.
+
+**Core** — hạ tầng cross-cutting, **không chứa business logic** (đăng ký đầu tiên nên
+mọi module khác dùng được): `Support\Settings` (DB settings store key→JSON + fallback
+config/env), `Support\Queues` (tên queue tập trung), `Support\AdminPages` (gom Filament
+page/resource module đóng góp), `Support\LunarConfigOverride` (re-apply override lên
+`config/lunar/*`), migration `app_settings`.
 
 | Module | Gộp từ | Trách nhiệm | Nội dung chính |
 |---|---|---|---|

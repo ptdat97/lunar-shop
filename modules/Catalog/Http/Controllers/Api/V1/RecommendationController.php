@@ -28,7 +28,7 @@ class RecommendationController extends Controller
 
         abort_if($product === null, 404);
 
-        $limit = min(24, max(1, (int) $request->input('limit', app(\App\Support\Settings::class)->get('recommend.product_limit', 8))));
+        $limit = min(24, max(1, (int) $request->input('limit', app(\Modules\Core\Support\Settings::class)->get('recommend.product_limit', 8))));
 
         $items = $this->recommend->forProduct($product, $limit);
 
@@ -41,7 +41,7 @@ class RecommendationController extends Controller
      */
     public function forCart(Request $request)
     {
-        $limit = min(12, max(1, (int) $request->input('limit', app(\App\Support\Settings::class)->get('recommend.cart_limit', 6))));
+        $limit = min(12, max(1, (int) $request->input('limit', app(\Modules\Core\Support\Settings::class)->get('recommend.cart_limit', 6))));
 
         $items = $this->recommend->forCart($this->cart->products(), $limit);
 

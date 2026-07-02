@@ -79,7 +79,7 @@ class CartResource extends JsonResource
      */
     protected function freeShippingInfo(): ?array
     {
-        $threshold = (int) app(\App\Support\Settings::class)->get('shipping.free_threshold', 0);
+        $threshold = (int) app(\Modules\Core\Support\Settings::class)->get('shipping.free_threshold', 0);
 
         if ($threshold <= 0) {
             return null;

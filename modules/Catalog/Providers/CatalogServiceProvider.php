@@ -12,7 +12,7 @@ use Modules\Catalog\Models\SizeChart;
 use Modules\Catalog\Services\PricingService;
 use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Services\RecommendationService;
-use Modules\Theme\Support\AdminPages;
+use Modules\Core\Support\AdminPages;
 
 class CatalogServiceProvider extends ServiceProvider
 {
@@ -39,7 +39,7 @@ class CatalogServiceProvider extends ServiceProvider
 
             return new RecommendationService(
                 strategies: $strategies,
-                cacheTtl: (int) app(\App\Support\Settings::class)->get('recommend.cache_ttl', 3600),
+                cacheTtl: (int) app(\Modules\Core\Support\Settings::class)->get('recommend.cache_ttl', 3600),
             );
         });
 

@@ -76,7 +76,7 @@ class InventoryService
      */
     public function lowStockThreshold(): int
     {
-        return (int) app(\App\Support\Settings::class)
+        return (int) app(\Modules\Core\Support\Settings::class)
             ->get('inventory.low_stock_threshold', self::DEFAULT_LOW_THRESHOLD);
     }
 

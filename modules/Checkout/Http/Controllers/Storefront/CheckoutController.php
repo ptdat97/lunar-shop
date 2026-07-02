@@ -41,9 +41,9 @@ class CheckoutController extends Controller
             'countries' => $this->countries->forSelect(),
             'provinces' => Province::orderBy('name')->get(['id', 'code', 'name']),
             'shippingOptions' => $this->checkout->shippingOptions(),
-            'vnpayEnabled' => filled(app(\App\Support\Settings::class)->get('payment.vnpay.tmn_code')),
-            'momoEnabled' => filled(app(\App\Support\Settings::class)->get('payment.momo.partner_code')),
-            'defaultPayment' => (string) app(\App\Support\Settings::class)->get('payment.default', 'cod'),
+            'vnpayEnabled' => filled(app(\Modules\Core\Support\Settings::class)->get('payment.vnpay.tmn_code')),
+            'momoEnabled' => filled(app(\Modules\Core\Support\Settings::class)->get('payment.momo.partner_code')),
+            'defaultPayment' => (string) app(\Modules\Core\Support\Settings::class)->get('payment.default', 'cod'),
             'old' => session()->getOldInput(),
         ]);
     }

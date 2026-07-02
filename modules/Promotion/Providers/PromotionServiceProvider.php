@@ -9,7 +9,7 @@ use Lunar\Facades\Discounts;
 use Modules\Order\Events\OrderPaid;
 use Modules\Promotion\Services\MembershipService;
 use Modules\Promotion\Services\PromotionService;
-use Modules\Theme\Support\AdminPages;
+use Modules\Core\Support\AdminPages;
 
 class PromotionServiceProvider extends ServiceProvider
 {

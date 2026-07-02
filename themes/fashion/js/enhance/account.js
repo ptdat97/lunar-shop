@@ -4,6 +4,20 @@
 
 import api from '../api.js';
 
+// Localized strings, populated from the account state on init. English defaults
+// keep the UI working if a key is missing.
+let t = {};
+const T = {
+    view: 'View', edit: 'Edit', delete: 'Delete', default: 'Default',
+    shippingTo: 'Shipping to', subtotal: 'Subtotal', shipping: 'Shipping', total: 'Total',
+    loading: 'Loading…', selectWard: 'Ward', editAddress: 'Edit address', addAddress: 'Add address',
+    deleteAddressConfirm: 'Delete this address?', ordersError: 'Could not load orders.',
+    orderError: 'Could not load this order.', addressesError: 'Could not load addresses.',
+    saveError: 'Could not save changes.', addressSaveError: 'Could not save the address.',
+    selectItem: 'Select at least one item.',
+};
+const tr = (key) => t[key] ?? T[key] ?? key;
+
 function esc(v) {
     return String(v ?? '').replace(/[&<>"']/g, (c) => ({
         '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -50,7 +64,7 @@ function orderRow(order) {
     <td>${esc(date)}</td>
     <td><span class="badge bg-light text-dark text-capitalize">${esc(status)}</span></td>
     <td class="text-end">${esc(order.total ?? '')}</td>
-    <td class="text-end"><button class="btn btn-link btn-sm p-0" data-order-view="${order.id}">View</button></td>
+    <td class="text-end"><button class="btn btn-link btn-sm p-0" data-order-view="${order.id}">${esc(tr('view'))}</button></td>
 </tr>`;
 }
 
@@ -85,7 +99,7 @@ function orderDetailHtml(order, invoice, returns) {
     const addr = order.shipping_address;
     const addrHtml = addr ? `
 <div class="small text-muted mt-3">
-    <div class="text-uppercase">Shipping to</div>
+    <div class="text-uppercase">${esc(tr('shippingTo'))}</div>
     <div>${esc(addr.name)}</div>
     <div>${esc(addr.line_one)}${addr.line_two ? ', ' + esc(addr.line_two) : ''}</div>
     <div>${esc(addr.city)}${addr.state ? ', ' + esc(addr.state) : ''}</div>
@@ -103,9 +117,9 @@ function orderDetailHtml(order, invoice, returns) {
 </div>
 <table class="table table-sm align-middle mt-3 mb-0"><tbody>${lines}</tbody></table>
 <dl class="row small border-top pt-2 mt-2 mb-0">
-    <dt class="col-8 fw-normal">Subtotal</dt><dd class="col-4 text-end">${esc(order.sub_total ?? '')}</dd>
-    <dt class="col-8 fw-normal">Shipping</dt><dd class="col-4 text-end">${esc(order.shipping_total ?? '')}</dd>
-    <dt class="col-8 fw-bold">Total</dt><dd class="col-4 text-end fw-bold">${esc(order.total ?? '')}</dd>
+    <dt class="col-8 fw-normal">${esc(tr('subtotal'))}</dt><dd class="col-4 text-end">${esc(order.sub_total ?? '')}</dd>
+    <dt class="col-8 fw-normal">${esc(tr('shipping'))}</dt><dd class="col-4 text-end">${esc(order.shipping_total ?? '')}</dd>
+    <dt class="col-8 fw-bold">${esc(tr('total'))}</dt><dd class="col-4 text-end fw-bold">${esc(order.total ?? '')}</dd>
 </dl>
 ${addrHtml}${invoiceHtml}${returnFormHtml(order, returns)}`;
 }
@@ -131,7 +145,7 @@ function initOrders(root, stats, invoice, returns) {
             body.innerHTML = orders.map(orderRow).join('');
             if (wrap) wrap.hidden = false;
         } catch {
-            if (loading) loading.textContent = 'Could not load orders.';
+            if (loading) loading.textContent = tr('ordersError');
         }
     }
 
@@ -139,13 +153,13 @@ function initOrders(root, stats, invoice, returns) {
         const view = e.target.closest('[data-order-view]');
         if (view) {
             e.preventDefault();
-            detailBody.innerHTML = '<div class="text-muted small">Loading…</div>';
+            detailBody.innerHTML = `<div class="text-muted small">${esc(tr('loading'))}</div>`;
             detail.hidden = false;
             try {
                 const { data } = await api.get(`/orders/${view.dataset.orderView}`);
                 detailBody.innerHTML = orderDetailHtml(data.data, invoice, returns);
             } catch {
-                detailBody.innerHTML = '<div class="text-danger small">Could not load this order.</div>';
+                detailBody.innerHTML = `<div class="text-danger small">${esc(tr('orderError'))}</div>`;
             }
             detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
@@ -161,7 +175,7 @@ function initOrders(root, stats, invoice, returns) {
                 order_line_id: Number(cb.dataset.returnLine),
                 quantity: Number(form.querySelector(`[data-return-qty="${cb.dataset.returnLine}"]`)?.value || 1),
             }));
-            if (!lines.length) { status.textContent = returns.i18n.returnError ?? 'Select at least one item.'; return; }
+            if (!lines.length) { status.textContent = tr('selectItem'); return; }
             submitBtn.disabled = true;
             try {
                 const url = returns.url.replace('__ID__', encodeURIComponent(form.dataset.orderId));
@@ -188,14 +202,14 @@ function addressCard(a) {
     return `
 <div class="col-12 col-md-6" data-address-item="${a.id}">
     <div class="border rounded p-3 h-100">
-        ${a.shipping_default ? '<span class="badge bg-dark mb-2">Default</span>' : ''}
+        ${a.shipping_default ? `<span class="badge bg-dark mb-2">${esc(tr('default'))}</span>` : ''}
         <div class="fw-semibold">${esc(a.first_name)} ${esc(a.last_name)}</div>
         <div class="small text-muted">${esc(a.line_one)}${a.line_two ? ', ' + esc(a.line_two) : ''}</div>
         <div class="small text-muted">${esc(a.city)}${a.state ? ', ' + esc(a.state) : ''}</div>
         ${a.contact_phone ? `<div class="small text-muted">${esc(a.contact_phone)}</div>` : ''}
         <div class="mt-2 d-flex gap-2">
-            <button class="btn btn-link btn-sm p-0" data-address-edit="${a.id}">Edit</button>
-            <button class="btn btn-link btn-sm p-0 text-danger" data-address-delete="${a.id}">Delete</button>
+            <button class="btn btn-link btn-sm p-0" data-address-edit="${a.id}">${esc(tr('edit'))}</button>
+            <button class="btn btn-link btn-sm p-0 text-danger" data-address-delete="${a.id}">${esc(tr('delete'))}</button>
         </div>
     </div>
 </div>`;
@@ -233,7 +247,7 @@ function initAddresses(root, countries, stats) {
 
     async function loadWards(provinceId, selectedName = '') {
         if (!wardSelect) return;
-        wardSelect.innerHTML = '<option value="" disabled selected>Phường/Xã</option>';
+        wardSelect.innerHTML = `<option value="" disabled selected>${esc(tr('selectWard'))}</option>`;
         wardSelect.disabled = ! provinceId;
         if (! provinceId) return;
         const { data } = await api.get(`/locations/provinces/${provinceId}/wards`);
@@ -261,7 +275,7 @@ function initAddresses(root, countries, stats) {
             cache = data.data ?? [];
             render();
         } catch {
-            if (loading) loading.textContent = 'Could not load addresses.';
+            if (loading) loading.textContent = tr('addressesError');
         }
     }
 
@@ -273,7 +287,7 @@ function initAddresses(root, countries, stats) {
 
         // Reset dependent selects to placeholders.
         if (provinceSelect) provinceSelect.value = '';
-        if (wardSelect) { wardSelect.innerHTML = '<option value="" disabled selected>Phường/Xã</option>'; wardSelect.disabled = true; }
+        if (wardSelect) { wardSelect.innerHTML = `<option value="" disabled selected>${esc(tr('selectWard'))}</option>`; wardSelect.disabled = true; }
 
         if (address) {
             Object.entries(address).forEach(([k, v]) => {
@@ -293,7 +307,7 @@ function initAddresses(root, countries, stats) {
             }
         }
 
-        if (formTitle) formTitle.textContent = address ? 'Edit address' : 'Add address';
+        if (formTitle) formTitle.textContent = address ? tr('editAddress') : tr('addAddress');
         formWrap.hidden = false;
         formWrap.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
@@ -306,7 +320,7 @@ function initAddresses(root, countries, stats) {
         const del = e.target.closest('[data-address-delete]');
         if (edit) openForm(cache.find((a) => a.id === Number(edit.dataset.addressEdit)));
         if (del) {
-            if (!confirm('Delete this address?')) return;
+            if (!confirm(tr('deleteAddressConfirm'))) return;
             const id = Number(del.dataset.addressDelete);
             await api.delete(`/customer/addresses/${id}`);
             cache = cache.filter((a) => a.id !== id);
@@ -336,7 +350,7 @@ function initAddresses(root, countries, stats) {
         } catch (err) {
             const errors = err.response?.data?.errors;
             if (errorBox) {
-                errorBox.textContent = errors ? Object.values(errors)[0][0] : 'Could not save the address.';
+                errorBox.textContent = errors ? Object.values(errors)[0][0] : tr('addressSaveError');
                 errorBox.hidden = false;
             }
         }
@@ -362,7 +376,7 @@ function bindFormToEndpoint(form, method, url, { okBox, errBox, onOk } = {}) {
         } catch (err) {
             const errors = err.response?.data?.errors;
             if (errBox) {
-                errBox.textContent = errors ? Object.values(errors)[0][0] : 'Could not save changes.';
+                errBox.textContent = errors ? Object.values(errors)[0][0] : tr('saveError');
                 errBox.hidden = false;
             }
         }
@@ -390,6 +404,7 @@ export default function (root = document) {
     account.dataset.accountInit = '1';
 
     const { countries = [], invoiceUrl, returnUrl, returnReasons = {}, i18n = {} } = readState(account);
+    t = i18n; // localized strings for dynamically-rendered UI
     const invoice = invoiceUrl ? { url: invoiceUrl, label: i18n.downloadInvoice } : null;
     const returns = returnUrl ? { url: returnUrl, reasons: returnReasons, i18n } : null;
 

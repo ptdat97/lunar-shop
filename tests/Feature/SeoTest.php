@@ -67,4 +67,39 @@ class SeoTest extends TestCase
 
         return $collection->fresh(['urls']);
     }
+
+    public function test_cms_page_renders_with_webpage_and_breadcrumb_jsonld(): void
+    {
+        $this->seedBaseData();
+
+        \Modules\Content\Models\Page::create([
+            'title' => 'About Us',
+            'slug' => 'about-us',
+            'content' => '<p>Our story.</p>',
+            'meta_title' => 'About',
+            'meta_description' => 'Learn about us',
+            'published' => true,
+        ]);
+
+        $html = $this->get('/pages/about-us')
+            ->assertOk()
+            ->assertSee('Our story.', false)
+            ->getContent();
+
+        $this->assertStringContainsString('"WebPage"', $html);
+        $this->assertStringContainsString('"BreadcrumbList"', $html);
+        $this->assertStringContainsString('About Us', $html);
+    }
+
+    public function test_unpublished_cms_page_is_404(): void
+    {
+        $this->seedBaseData();
+
+        \Modules\Content\Models\Page::create([
+            'title' => 'Draft', 'slug' => 'draft-page',
+            'content' => 'x', 'published' => false,
+        ]);
+
+        $this->get('/pages/draft-page')->assertNotFound();
+    }
 }

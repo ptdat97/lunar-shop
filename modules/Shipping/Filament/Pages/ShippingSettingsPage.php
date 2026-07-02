@@ -2,7 +2,7 @@
 
 namespace Modules\Shipping\Filament\Pages;
 
-use App\Support\Settings;
+use Modules\Core\Support\Settings;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;

@@ -10,7 +10,7 @@ use Lunar\Admin\LunarPanelManager;
 use Lunar\Admin\Support\Facades\LunarPanel;
 use Modules\Catalog\Filament\Extensions\ProductSizeExtension;
 use Modules\Theme\Filament\Resources as Custom;
-use Modules\Theme\Support\AdminPages;
+use Modules\Core\Support\AdminPages;
 
 class ModulesServiceProvider extends ServiceProvider
 {
@@ -24,6 +24,7 @@ class ModulesServiceProvider extends ServiceProvider
      * @var list<string>
      */
     protected array $modules = [
+        'Core',
         'Theme',
         'Catalog',
         'Inventory',

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Support\Settings;
+use Modules\Core\Support\Settings;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 

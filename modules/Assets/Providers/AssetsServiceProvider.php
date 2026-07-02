@@ -10,8 +10,8 @@ use Modules\Assets\Filament\Pages\MediaLibrary;
 use Modules\Assets\Services\FileManager;
 use Modules\Assets\Services\MediaSettings;
 use Modules\Assets\Services\MediaUrl;
-use Modules\Theme\Support\AdminPages;
-use Modules\Theme\Support\LunarConfigOverride;
+use Modules\Core\Support\AdminPages;
+use Modules\Core\Support\LunarConfigOverride;
 use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
 
 class AssetsServiceProvider extends ServiceProvider
@@ -66,7 +66,7 @@ class AssetsServiceProvider extends ServiceProvider
     protected function composeLookbookFiles(): void
     {
         View::composer(
-            ['theme::pages.lookbook', 'theme::pages.lookbooks'],
+            ['theme::pages.lookbook', 'theme::pages.lookbooks', 'theme::pages.page'],
             function ($view): void {
                 $files = $this->app->make(FileManager::class);
                 $view->with('fileUrl', fn ($file, string $size = 'large') => $files->url($file, $size));
@@ -99,6 +99,13 @@ class AssetsServiceProvider extends ServiceProvider
             $urls = app(MediaUrl::class);
             $view->with('collectionImage', fn ($collection, string $size = 'small') =>
                 $urls->conversion($collection?->thumbnail, $size));
+        });
+
+        // Collection page: expose the collection's thumbnail as an OG image URL
+        // (for a rich social preview) without resolving a service in Blade.
+        View::composer('theme::pages.collection', function ($view): void {
+            $collection = $view->getData()['collection'] ?? null;
+            $view->with('ogImage', app(MediaUrl::class)->conversion($collection?->thumbnail, 'large'));
         });
 
         // Checkout: expose a per-line thumbnail resolver so the order summary can

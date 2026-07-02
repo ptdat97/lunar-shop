@@ -10,7 +10,7 @@ use Modules\Order\Events\OrderPaid;
 use Modules\Order\Listeners\SendOrderConfirmation;
 use Modules\Order\Listeners\SendOrderPaidEmail;
 use Modules\Order\Observers\OrderObserver;
-use Modules\Theme\Support\AdminPages;
+use Modules\Core\Support\AdminPages;
 
 class OrderServiceProvider extends ServiceProvider
 {

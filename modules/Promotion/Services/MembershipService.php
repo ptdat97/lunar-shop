@@ -21,12 +21,12 @@ class MembershipService
     /** Tier config rows, ascending by min_spend (admin-configurable). */
     public function tiers(): array
     {
-        return (array) app(\App\Support\Settings::class)->get('promotion.membership.tiers', []);
+        return (array) app(\Modules\Core\Support\Settings::class)->get('promotion.membership.tiers', []);
     }
 
     public function enabled(): bool
     {
-        return (bool) app(\App\Support\Settings::class)->get('promotion.membership.enabled', false);
+        return (bool) app(\Modules\Core\Support\Settings::class)->get('promotion.membership.enabled', false);
     }
 
     /**

@@ -1,6 +1,6 @@
 <?php
 
-namespace Modules\Theme\Support;
+namespace Modules\Core\Support;
 
 /**
  * Collects the custom Filament pages and resources contributed by modules, so

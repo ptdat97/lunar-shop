@@ -5,6 +5,9 @@
 @section('meta_description', \Illuminate\Support\Str::limit(strip_tags((string) $collection->translateAttribute('description')), 155))
 {{-- Canonical drops filter/sort/page query so faceted variants don't compete. --}}
 @section('canonical', url()->current())
+@if (! empty($ogImage))
+    @section('og_image', $ogImage)
+@endif
 
 @section('content')
     <div class="container pt-4">

@@ -2,7 +2,7 @@
 
 namespace Modules\Assets\Services;
 
-use App\Support\Queues;
+use Modules\Core\Support\Queues;
 use Illuminate\Bus\Batch;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;

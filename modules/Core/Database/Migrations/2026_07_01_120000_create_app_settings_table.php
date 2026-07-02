@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 /**
  * Generic key → JSON settings store for admin-configurable feature settings
  * (payment keys, shipping rates, membership tiers, recommend limits). Read
- * through App\Support\Settings which falls back to config/env when unset.
+ * through Modules\Core\Support\Settings which falls back to config/env when unset.
  */
 return new class extends Migration
 {

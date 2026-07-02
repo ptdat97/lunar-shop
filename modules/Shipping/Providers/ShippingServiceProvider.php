@@ -6,7 +6,7 @@ use Illuminate\Support\ServiceProvider;
 use Lunar\Base\ShippingModifiers;
 use Modules\Shipping\Filament\Resources\ShippingZoneResource;
 use Modules\Shipping\Modifiers\FlatRateShippingModifier;
-use Modules\Theme\Support\AdminPages;
+use Modules\Core\Support\AdminPages;
 
 class ShippingServiceProvider extends ServiceProvider
 {

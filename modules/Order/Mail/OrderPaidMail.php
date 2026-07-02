@@ -2,7 +2,7 @@
 
 namespace Modules\Order\Mail;
 
-use App\Support\Queues;
+use Modules\Core\Support\Queues;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;

@@ -9,7 +9,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Lunar\Models\Order;
-use App\Support\Queues;
+use Modules\Core\Support\Queues;
 
 /**
  * Sent when an order is placed (COD/bank, and VNPay on authorize).

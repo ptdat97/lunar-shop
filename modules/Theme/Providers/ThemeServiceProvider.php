@@ -20,7 +20,7 @@ class ThemeServiceProvider extends ServiceProvider
         $this->app->singleton(ThemeSettings::class);
 
         // Contribute the admin page (registered by ModulesServiceProvider).
-        \Modules\Theme\Support\AdminPages::add(
+        \Modules\Core\Support\AdminPages::add(
             \Modules\Theme\Filament\Pages\ThemeSettingsPage::class,
         );
     }

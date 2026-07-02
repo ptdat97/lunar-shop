@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Support;
+namespace Modules\Core\Support;
 
 /**
  * Named queues used across the app. Kept in one place so job/mail dispatch and

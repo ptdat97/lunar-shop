@@ -139,13 +139,20 @@
 - Cách làm: bổ sung bản dịch vi trong seeder demo + hướng dẫn admin nhập đa ngôn ngữ
   qua product editor (Lunar `translateAttribute` đã sẵn).
 
-### 11. Dịch động các chuỗi JS còn lại — *theme*
-- `account.js` còn ~16 chuỗi cứng (edit/error states). Đưa vào `data-*-i18n` như
-  `product-variant.js` đã làm.
+### 11. Dịch động các chuỗi JS còn lại — *theme* — ✅ **đã làm**
+- ✅ `account.js`: chuỗi cứng (View/Edit/Delete/Default/Shipping to/Subtotal/Total/
+  loading/errors/Phường-Xã…) đưa vào bundle `i18n` từ `data-account-state`; helper `tr()`
+  fallback English. Thêm ~20 key `storefront.account.*` EN/VI. Return-form giữ fallback
+  `returns.i18n.*` (đã có từ #5).
 
-### 12. Hoàn thiện SEO — *Catalog / Content*
-- Đã có: Product/Collection JSON-LD, sitemap, robots, OG ở product.
-- Còn: JSON-LD cho **CMS page** (Article/WebPage), **OG image** cho home + collection.
+### 12. Hoàn thiện SEO — *Catalog / Content* — ✅ **đã làm**
+- ✅ **CMS page view** (`theme::pages.page` trước đó **thiếu hẳn** → 500; nay tạo mới):
+  render content + featured image + JSON-LD `WebPage` + `BreadcrumbList` + OG. `fileUrl`
+  composer mở rộng cho `pages.page`.
+- ✅ **OG image**: layout fallback `general.og_image`/`general.logo` (home + mọi page
+  không set riêng) + collection page dùng thumbnail (composer `pages.collection` →
+  `$ogImage`).
+- ✅ Test: `SeoTest` (CMS page WebPage+BreadcrumbList JSON-LD; unpublished → 404).
 
 ### 13. Test cho tính năng JS-heavy + module tests — *toàn repo*
 - 110 test ở `tests/Feature`. Chưa phủ: picture/srcset, search-panel, notify-me UI,

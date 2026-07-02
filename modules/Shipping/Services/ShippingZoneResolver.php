@@ -27,7 +27,7 @@ class ShippingZoneResolver
         }
 
         // Fallback: admin-configurable flat rate + threshold (Settings → config).
-        $settings = app(\App\Support\Settings::class);
+        $settings = app(\Modules\Core\Support\Settings::class);
         $threshold = (int) $settings->get('shipping.free_threshold', 0);
 
         return ($threshold > 0 && $subTotal >= $threshold)

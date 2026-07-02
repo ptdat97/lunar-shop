@@ -9,8 +9,8 @@ use Modules\Checkout\PaymentTypes\VNPayPayment;
 use Modules\Checkout\Services\CartService;
 use Modules\Checkout\Services\MoMoGateway;
 use Modules\Checkout\Services\VNPayGateway;
-use Modules\Theme\Support\AdminPages;
-use Modules\Theme\Support\LunarConfigOverride;
+use Modules\Core\Support\AdminPages;
+use Modules\Core\Support\LunarConfigOverride;
 
 class CheckoutServiceProvider extends ServiceProvider
 {

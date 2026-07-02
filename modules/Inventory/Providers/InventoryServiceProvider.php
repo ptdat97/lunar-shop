@@ -6,8 +6,8 @@ use Illuminate\Support\ServiceProvider;
 use Lunar\Models\ProductVariant;
 use Modules\Inventory\Filament\Pages\StockOverview;
 use Modules\Inventory\Observers\ProductVariantObserver;
-use Modules\Theme\Support\AdminPages;
-use Modules\Theme\Support\LunarConfigOverride;
+use Modules\Core\Support\AdminPages;
+use Modules\Core\Support\LunarConfigOverride;
 
 class InventoryServiceProvider extends ServiceProvider
 {

@@ -2,7 +2,7 @@
 
 namespace Modules\Assets\Jobs;
 
-use App\Support\Queues;
+use Modules\Core\Support\Queues;
 use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;

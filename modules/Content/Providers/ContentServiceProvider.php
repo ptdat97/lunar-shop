@@ -9,7 +9,7 @@ use Modules\Content\Services\MenuRenderer;
 use Modules\Content\Services\SectionRenderer;
 use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Data\SearchQuery;
-use Modules\Theme\Support\AdminPages;
+use Modules\Core\Support\AdminPages;
 
 class ContentServiceProvider extends ServiceProvider
 {

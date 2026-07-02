@@ -19,8 +19,16 @@
     <meta property="og:title" content="@yield('og_title', View::yieldContent('title', config('app.name')))">
     <meta property="og:description" content="@yield('og_description', View::yieldContent('meta_description'))">
     <meta property="og:url" content="{{ url()->current() }}">
+    @php
+        // Page-set og_image wins; otherwise fall back to the theme's social/logo
+        // image so home + content pages still get a rich preview card.
+        $defaultOg = $theme->image('general.og_image') ?: $theme->image('general.logo');
+    @endphp
     @hasSection('og_image')
         <meta property="og:image" content="@yield('og_image')">
+        <meta name="twitter:card" content="summary_large_image">
+    @elseif ($defaultOg)
+        <meta property="og:image" content="{{ $defaultOg }}">
         <meta name="twitter:card" content="summary_large_image">
     @else
         <meta name="twitter:card" content="summary">

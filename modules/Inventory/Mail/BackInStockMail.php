@@ -9,7 +9,7 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Lunar\Models\ProductVariant;
-use App\Support\Queues;
+use Modules\Core\Support\Queues;
 
 /**
  * Notifies a "notify me" subscriber that a variant they wanted is back in stock.

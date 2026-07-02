@@ -28,7 +28,7 @@ class VNPayGateway
 
     public static function fromConfig(): self
     {
-        $settings = app(\App\Support\Settings::class);
+        $settings = app(\Modules\Core\Support\Settings::class);
 
         return new self(
             (string) $settings->get('payment.vnpay.tmn_code'),
