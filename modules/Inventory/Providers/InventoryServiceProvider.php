@@ -18,6 +18,8 @@ class InventoryServiceProvider extends ServiceProvider
     {
         // Contribute the stock-overview (low/out-of-stock) page to the panel.
         AdminPages::add(StockOverview::class);
+        // Back-in-stock mailing list ("notify me" subscriptions).
+        AdminPages::add(\Modules\Inventory\Filament\Pages\StockNotificationsPage::class);
         AdminPages::add(\Modules\Inventory\Filament\Pages\InventorySettingsPage::class);
     }
 

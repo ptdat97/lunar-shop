@@ -128,5 +128,15 @@ class CatalogServiceProvider extends ServiceProvider
                 'currencyCode' => $svc->defaultCurrencyCode(),
             ]);
         });
+
+        // Recently-viewed strip: inject the admin-configured display limit
+        // (Catalog settings) so Blade doesn't resolve Settings itself (§7) and
+        // enhance/recently-viewed.js reads it from a data-* attribute instead of
+        // a hardcoded number.
+        View::composer('theme::partials.recently-viewed', function ($view): void {
+            $limit = (int) app(\Modules\Core\Support\Settings::class)
+                ->get('recently_viewed.limit', 8);
+            $view->with('recentlyViewedLimit', max(1, min(12, $limit)));
+        });
     }
 }

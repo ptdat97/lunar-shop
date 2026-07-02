@@ -53,6 +53,8 @@ return [
 
     'product' => [
         'add_to_cart' => 'Add to cart',
+        'add_to_wishlist' => 'Add to wishlist',
+        'wishlist_saved' => 'Saved to wishlist',
         'out_of_stock' => 'Out of stock',
         'in_stock' => ':count in stock',
         'select_options' => 'Select options',

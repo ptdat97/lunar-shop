@@ -5,6 +5,7 @@ namespace Modules\Content\Providers;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Models\Collection as LunarCollection;
+use Lunar\Models\Product;
 use Modules\Content\Services\MenuRenderer;
 use Modules\Content\Services\SectionRenderer;
 use Modules\Catalog\Services\ProductService;
@@ -68,17 +69,64 @@ class ContentServiceProvider extends ServiceProvider
             ];
         });
 
-        // product-tabs → products (via the shared ProductService / search)
+        // product-tabs → per-tab products. Each tab has an editable label and its
+        // own hand-picked product_ids (PageSectionResource). We load every
+        // referenced product ONCE (de-duped across tabs, N+1-free) then map each
+        // tab to its products in the chosen order. A tab with no selection falls
+        // back to the newest products so a freshly added tab still shows something.
         $renderer->provide('product-tabs', function (array $settings) {
-            $limit = (int) ($settings['limit'] ?? 8);
+            $tabs = $settings['tabs'] ?? [];
+            $fallbackLimit = (int) ($settings['limit'] ?? 8);
 
-            $result = $this->app->make(ProductService::class)
-                ->list(new SearchQuery(perPage: $limit));
+            // Collect every selected id across all tabs → one query.
+            $allIds = collect($tabs)
+                ->flatMap(fn ($tab) => $tab['product_ids'] ?? [])
+                ->map(fn ($id) => (int) $id)
+                ->filter()
+                ->unique()
+                ->values();
 
-            // `media` powers the product-card hover (second) image (N+1-free).
-            $result->items->loadMissing(['variants', 'thumbnail', 'brand', 'media']);
+            $byId = $allIds->isEmpty()
+                ? collect()
+                : Product::query()
+                    ->whereIn('id', $allIds)
+                    ->where('status', 'published')
+                    ->with(['variants', 'thumbnail', 'brand', 'media'])
+                    ->get()
+                    ->keyBy('id');
 
-            return ['products' => $result->items];
+            // Shared fallback (newest) for tabs with no explicit selection.
+            $fallback = null;
+            $resolveFallback = function () use (&$fallback, $fallbackLimit) {
+                if ($fallback === null) {
+                    $result = $this->app->make(ProductService::class)
+                        ->list(new SearchQuery(perPage: $fallbackLimit));
+                    $result->items->loadMissing(['variants', 'thumbnail', 'brand', 'media']);
+                    $fallback = $result->items;
+                }
+
+                return $fallback;
+            };
+
+            $resolvedTabs = collect($tabs)->map(function ($tab) use ($byId, $resolveFallback) {
+                $ids = collect($tab['product_ids'] ?? [])->map(fn ($id) => (int) $id)->filter();
+
+                $products = $ids->isEmpty()
+                    ? $resolveFallback()
+                    // Preserve the admin's chosen order; drop ids that no longer resolve.
+                    : $ids->map(fn ($id) => $byId->get($id))->filter()->values();
+
+                return [
+                    'label' => $tab['label'] ?? '',
+                    'products' => $products,
+                ];
+            })->values();
+
+            return [
+                'tabs' => $resolvedTabs,
+                // First tab's products power the SSR/no-JS default grid.
+                'products' => $resolvedTabs->first()['products'] ?? collect(),
+            ];
         });
 
         // promotion-slider → on-sale products (via the shared PromotionService).

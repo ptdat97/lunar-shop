@@ -18,6 +18,7 @@ use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
+use Lunar\Models\Product;
 use Modules\Content\Filament\Resources\PageSectionResource\Pages;
 use Modules\Content\Models\PageSection;
 use Modules\Content\Support\SectionSchemas;
@@ -141,7 +142,7 @@ class PageSectionResource extends Resource
                 ]),
 
             FormSection::make(__('admin.section.settings'))
-                ->visible(fn (Get $get) => in_array($get('type'), ['category-grid', 'product-tabs', 'instagram']))
+                ->visible(fn (Get $get) => in_array($get('type'), ['category-grid', 'instagram']))
                 ->columns(2)
                 ->schema([
                     TextInput::make('settings.heading')->label(__('admin.common.heading'))
@@ -149,7 +150,36 @@ class PageSectionResource extends Resource
                     TextInput::make('settings.subheading')->label(__('admin.common.subheading'))
                         ->visible(fn (Get $get) => $get('type') === 'instagram'),
                     TextInput::make('settings.limit')->label(__('admin.section.item_limit'))->numeric()->minValue(1)
-                        ->visible(fn (Get $get) => in_array($get('type'), ['category-grid', 'product-tabs'])),
+                        ->visible(fn (Get $get) => $get('type') === 'category-grid'),
+                ]),
+
+            // Product tabs: each tab has an editable name and its own hand-picked
+            // product list. Fewer DB round-trips at render if the same product
+            // appears across tabs — the provider de-dupes the load.
+            FormSection::make(__('admin.section.product_tabs'))
+                ->visible(fn (Get $get) => $get('type') === 'product-tabs')
+                ->schema([
+                    TextInput::make('settings.kicker')->label(__('admin.section.kicker')),
+                    TextInput::make('settings.heading')->label(__('admin.common.heading')),
+                    Repeater::make('settings.tabs')
+                        ->label(__('admin.section.tabs'))
+                        ->schema([
+                            TextInput::make('label')->label(__('admin.section.tab_label'))->required(),
+                            Select::make('product_ids')
+                                ->label(__('admin.section.tab_products'))
+                                ->multiple()
+                                ->searchable()
+                                ->options(fn () => Product::all()
+                                    ->mapWithKeys(fn ($p) => [$p->id => $p->translateAttribute('name')]))
+                                ->getOptionLabelsUsing(fn (array $values): array => Product::query()
+                                    ->whereIn('id', $values)->get()
+                                    ->mapWithKeys(fn ($p) => [$p->id => $p->translateAttribute('name')])
+                                    ->all())
+                                ->helperText(__('admin.section.tab_products_help')),
+                        ])
+                        ->collapsible()->reorderable()
+                        ->itemLabel(fn (array $state) => $state['label'] ?? __('admin.section.tab'))
+                        ->addActionLabel(__('admin.section.add_tab')),
                 ]),
 
             FormSection::make(__('admin.section.promotion_section'))

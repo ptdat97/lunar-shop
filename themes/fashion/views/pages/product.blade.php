@@ -215,6 +215,20 @@ $inStock = $product->variants->sum('stock') > 0;
             </button>
           </form>
 
+          {{-- Add to wishlist: same [data-wishlist-toggle] contract as the card
+               heart (enhance/wishlist.js, delegated). Full-width outline action;
+               the icon fills and the label swaps to "Saved" when active. Requires
+               auth — a guest click redirects to login (handled by the enhancer). --}}
+          <button type="button" class="btn btn-outline-dark btn-lg w-100 mt-2 product-wishlist-btn"
+            data-wishlist-toggle data-product-id="{{ $product->id }}" aria-pressed="false">
+            <i class="bi bi-heart product-wishlist-btn__icon" aria-hidden="true"></i>
+            {{-- Two labels; CSS shows the right one for the pressed/unpressed
+                 state so the enhancer needs no extra hook (it only toggles
+                 .active / aria-pressed). --}}
+            <span class="product-wishlist-btn__label product-wishlist-btn__label--add">{{ __('storefront.product.add_to_wishlist') }}</span>
+            <span class="product-wishlist-btn__label product-wishlist-btn__label--saved">{{ __('storefront.product.wishlist_saved') }}</span>
+          </button>
+
           {{-- Back-in-stock: shown only when the selected variant is out of
                      stock. Subscribes via POST /api/v1/inventory/notify-me. The
                      variant id is kept in sync by notify-me.js (variant:changed).

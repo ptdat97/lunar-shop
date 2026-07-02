@@ -49,3 +49,61 @@
     }
 }
 
+// ── Product page: full-width "Add to wishlist" button ───────────────────────
+// Opts out of the circular icon-button styling above (this one is a labelled
+// Bootstrap outline button). The heart fills and the label swaps to "Saved"
+// when active, driven only by the state the shared enhancer already sets.
+.product-wishlist-btn {
+    // Undo the generic [data-wishlist-toggle] circle sizing/reset.
+    width: 100%;
+    height: auto;
+    border-radius: v.$radius;
+    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .5rem;
+    font-size: inherit;
+    letter-spacing: .03em;
+
+    &__icon {
+        font-size: 1.15em;
+        line-height: 1;
+        transition: transform v.$transition-fast;
+    }
+
+    // Show "Add to wishlist" by default; hide the "Saved" label.
+    &__label--saved { display: none; }
+
+    &:hover {
+        // Keep Bootstrap's outline-dark hover (dark fill), not the circle's
+        // red-on-white — override the generic :hover from above.
+        background: v.$accent;
+        color: v.$accent-contrast;
+        transform: none;
+    }
+
+    // Active (saved) state: filled heart, swap the label, keep it readable.
+    &.is-active,
+    &[aria-pressed='true'] {
+        background: transparent;
+        color: v.$error;
+        border-color: v.$error;
+
+        .product-wishlist-btn__icon::before {
+            // Swap the outline heart glyph for the filled one (bootstrap-icons
+            // codepoints declared in _base.scss).
+            content: '\F415'; // bi-heart-fill
+        }
+
+        .product-wishlist-btn__label--add { display: none; }
+        .product-wishlist-btn__label--saved { display: inline; }
+
+        &:hover {
+            background: v.$error;
+            color: #fff;
+            border-color: v.$error;
+        }
+    }
+}
+

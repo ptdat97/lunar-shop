@@ -14,9 +14,9 @@ use Filament\Pages\Page;
 
 /**
  * Catalog-level admin settings: product-recommendation tuning (how many items to
- * show + cache TTL) and review moderation (auto-approve). Stored in app_settings
- * and read via Settings (falls back to config). The recommendation strategy
- * chain itself stays in config (code-level).
+ * show + cache TTL), review moderation (auto-approve), and the recently-viewed
+ * strip size. Stored in app_settings and read via Settings (falls back to
+ * config). The recommendation strategy chain itself stays in config (code-level).
  */
 class CatalogSettingsPage extends Page implements HasForms
 {
@@ -40,7 +40,9 @@ class CatalogSettingsPage extends Page implements HasForms
 
     public static function getNavigationGroup(): ?string
     {
-        return __('lunarpanel::global.sections.catalog');
+        // Grouped under "Settings" alongside the other module settings pages
+        // (Payment, Shipping, Inventory), not under the Catalog content group.
+        return __('lunarpanel::global.sections.settings');
     }
 
     /** @var array<string, mixed> */
@@ -58,6 +60,9 @@ class CatalogSettingsPage extends Page implements HasForms
             ],
             'review' => [
                 'auto_approve' => (bool) $settings->get('review.auto_approve', true),
+            ],
+            'recently_viewed' => [
+                'limit' => (int) $settings->get('recently_viewed.limit', 8),
             ],
         ]);
     }
@@ -84,6 +89,14 @@ class CatalogSettingsPage extends Page implements HasForms
                             ->label(__('admin.review.auto_approve'))
                             ->helperText(__('admin.review.auto_approve_help')),
                     ]),
+
+                Section::make(__('admin.recently_viewed.section'))
+                    ->schema([
+                        TextInput::make('recently_viewed.limit')
+                            ->label(__('admin.recently_viewed.limit'))
+                            ->helperText(__('admin.recently_viewed.limit_help'))
+                            ->numeric()->minValue(1)->maxValue(12)->required(),
+                    ]),
             ]);
     }
 
@@ -100,6 +113,10 @@ class CatalogSettingsPage extends Page implements HasForms
 
         $settings->put('review', [
             'auto_approve' => (bool) ($data['review']['auto_approve'] ?? true),
+        ]);
+
+        $settings->put('recently_viewed', [
+            'limit' => (int) ($data['recently_viewed']['limit'] ?? 8),
         ]);
 
         Notification::make()->title(__('admin.catalog_settings.saved'))->success()->send();

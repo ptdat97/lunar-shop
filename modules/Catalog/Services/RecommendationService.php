@@ -28,8 +28,10 @@ class RecommendationService
      * @param  list<int>  $exclude  extra product ids to drop (e.g. cart contents)
      * @return Collection<int, Product>
      */
-    public function forProduct(Product $product, int $limit = 8, array $exclude = []): Collection
+    public function forProduct(Product $product, ?int $limit = null, array $exclude = []): Collection
     {
+        // Null → use the admin-configured product-page limit (Catalog settings).
+        $limit = $limit ?? $this->settingLimit('recommend.product_limit', 8);
         $key = "recommend:product:{$product->id}:{$limit}:" . md5(implode(',', $exclude));
 
         // Cache only the resolved product ids (cheap + avoids stale model state);
@@ -48,8 +50,11 @@ class RecommendationService
      * @param  Collection<int, Product>  $cartProducts  products currently in the cart
      * @return Collection<int, Product>
      */
-    public function forCart(Collection $cartProducts, int $limit = 6): Collection
+    public function forCart(Collection $cartProducts, ?int $limit = null): Collection
     {
+        // Null → use the admin-configured mini-cart limit (Catalog settings).
+        $limit = $limit ?? $this->settingLimit('recommend.cart_limit', 6);
+
         if ($cartProducts->isEmpty()) {
             return collect();
         }
@@ -77,6 +82,17 @@ class RecommendationService
      * @param  list<int>  $exclude
      * @return Collection<int, Product>
      */
+    /**
+     * A recommendation limit from Catalog settings (falls back to config, then
+     * the given default). Guarded to a sane positive range.
+     */
+    protected function settingLimit(string $path, int $default): int
+    {
+        $value = (int) app(\Modules\Core\Support\Settings::class)->get($path, $default);
+
+        return max(1, $value);
+    }
+
     protected function resolve(Product $product, int $limit, array $exclude): Collection
     {
         $excludeIds = array_merge([$product->id], $exclude);

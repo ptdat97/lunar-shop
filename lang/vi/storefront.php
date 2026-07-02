@@ -53,6 +53,8 @@ return [
 
     'product' => [
         'add_to_cart' => 'Thêm vào giỏ',
+        'add_to_wishlist' => 'Thêm vào yêu thích',
+        'wishlist_saved' => 'Đã lưu vào yêu thích',
         'out_of_stock' => 'Hết hàng',
         'in_stock' => 'Còn :count sản phẩm',
         'select_options' => 'Chọn phân loại',

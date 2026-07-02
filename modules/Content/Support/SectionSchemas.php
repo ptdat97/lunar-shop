@@ -49,11 +49,15 @@ class SectionSchemas
             ],
 
             'product-tabs' => [
+                'heading' => 'Shop the edit',
+                // Each tab: an editable label + hand-picked product_ids. Empty
+                // product_ids falls back to the newest products so a freshly
+                // seeded page still shows something until curated in the admin.
                 'limit' => 8,
                 'tabs' => [
-                    ['id' => 'newArrivals', 'label' => 'New Arrivals'],
-                    ['id' => 'bestSeller', 'label' => 'Best Seller'],
-                    ['id' => 'onSale', 'label' => 'On Sale'],
+                    ['label' => 'New Arrivals', 'product_ids' => []],
+                    ['label' => 'Best Seller', 'product_ids' => []],
+                    ['label' => 'On Sale', 'product_ids' => []],
                 ],
             ],
 

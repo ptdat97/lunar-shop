@@ -205,6 +205,12 @@ return [
         'cache_ttl' => 'Cache TTL (giây)',
     ],
 
+    'recently_viewed' => [
+        'section' => 'Sản phẩm đã xem gần đây',
+        'limit' => 'Số lượng hiển thị',
+        'limit_help' => 'Số sản phẩm đã xem gần đây hiển thị trong dải (1–12).',
+    ],
+
     'review' => [
         'section' => 'Đánh giá',
         'auto_approve' => 'Tự động duyệt đánh giá',
@@ -285,6 +291,14 @@ return [
         'promotion_pin_help' => 'Ghim 1 khuyến mãi, hoặc để trống cho tất cả.',
         'item_limit' => 'Số lượng hiển thị',
         'updated' => 'Cập nhật',
+        'product_tabs' => 'Tab sản phẩm',
+        'kicker' => 'Kicker (nhãn nhỏ)',
+        'tabs' => 'Các tab',
+        'tab' => 'Tab',
+        'add_tab' => 'Thêm tab',
+        'tab_label' => 'Tên tab',
+        'tab_products' => 'Sản phẩm',
+        'tab_products_help' => 'Chọn sản phẩm hiển thị ở tab này. Để trống sẽ dùng sản phẩm mới nhất.',
     ],
 
     'theme' => [
@@ -374,6 +388,21 @@ return [
         'low_stock' => 'Sắp hết',
         'out_of_stock' => 'Hết hàng',
         'product' => 'Sản phẩm',
+    ],
+
+    'stock_notifications' => [
+        'title' => 'Danh sách chờ hàng về',
+        'email' => 'Email',
+        'product' => 'Sản phẩm',
+        'sku' => 'SKU',
+        'status' => 'Trạng thái',
+        'status_waiting' => 'Đang chờ',
+        'status_notified' => 'Đã gửi',
+        'subscribed_at' => 'Ngày đăng ký',
+        'notified_at' => 'Ngày gửi',
+        'unsubscribe' => 'Xóa',
+        'empty_heading' => 'Chưa có đăng ký nào',
+        'empty_desc' => 'Khi khách yêu cầu nhận email lúc sản phẩm hết hàng có lại, đăng ký sẽ hiển thị ở đây.',
     ],
 
     'size_chart' => [

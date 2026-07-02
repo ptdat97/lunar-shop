@@ -15,7 +15,6 @@
         <link rel="icon" href="{{ $favicon }}">
     @endif
 
-    <link rel="stylesheet" href="{{ asset('vendor/bootstrap/css/bootstrap.min.css') }}">
     @vite(['themes/fashion/css/app.scss', 'themes/fashion/js/app.js'])
 
     @stack('head')

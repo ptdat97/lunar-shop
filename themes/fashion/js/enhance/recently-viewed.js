@@ -35,9 +35,13 @@ export default async function (root = document) {
     const grid = section.querySelector('[data-recently-viewed-grid]');
     const current = section.dataset.currentSlug || null;
 
+    // How many to show — admin-configured (Catalog settings) via data-limit,
+    // clamped to the stored cap. Falls back to 8 if the attribute is absent.
+    const limit = Math.min(MAX, Math.max(1, parseInt(section.dataset.limit, 10) || 8));
+
     // Record the current product (if any), then build the display list excluding it.
     const stored = record(current);
-    const slugs = stored.filter((s) => s !== current).slice(0, 8);
+    const slugs = stored.filter((s) => s !== current).slice(0, limit);
 
     if (!grid || slugs.length === 0) return; // nothing else to show yet
 

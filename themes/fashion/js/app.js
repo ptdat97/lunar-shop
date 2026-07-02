@@ -9,8 +9,14 @@
 // in the layout — not imported here.
 
 // Bootstrap JS from npm — provides Bootstrap's JS components (dropdown, modal,
-// collapse, offcanvas, carousel, etc.) via data-bs-* attributes or programmatic API.
-import 'bootstrap';
+// collapse, offcanvas, carousel, etc.) via data-bs-* attributes AND expose it as
+// window.bootstrap so enhancers can drive components programmatically
+// (e.g. add-to-cart.js opening the mini-cart Offcanvas, size-finder Modal).
+// Importing the module for side-effects alone wires the data-bs-* auto-init but
+// leaves window.bootstrap undefined, so those programmatic calls silently no-op.
+import * as bootstrap from 'bootstrap';
+
+window.bootstrap = bootstrap;
 
 // Eager-glob so adding a file under enhance/ auto-registers it. The leading
 // underscore convention (e.g. _card.js, _gallery.js) marks render helpers that

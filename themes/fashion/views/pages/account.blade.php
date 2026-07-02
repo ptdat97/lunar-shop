@@ -6,47 +6,52 @@
 
 @section('content')
 <div class="container py-4" data-account>
-    <script type="application/json" data-account-state>@json([
-        'countries' => $countries,
-        // Invoice download + return request: URL templates (:id replaced
-        // client-side) + labels, so account.js stays free of hardcoded routes/strings.
-        'invoiceUrl' => route('storefront.orders.invoice', ['order' => '__ID__']),
-        'returnUrl' => route('storefront.orders.returns.store', ['order' => '__ID__']),
-        'returnReasons' => [
-            'wrong-size' => __('storefront.account.return_reason_size'),
-            'defect' => __('storefront.account.return_reason_defect'),
-            'not-as-described' => __('storefront.account.return_reason_described'),
-            'changed-mind' => __('storefront.account.return_reason_mind'),
-        ],
-        'i18n' => [
-            'downloadInvoice' => __('storefront.account.download_invoice'),
-            'requestReturn' => __('storefront.account.request_return'),
-            'submitReturn' => __('storefront.account.submit_return'),
-            'returnReason' => __('storefront.account.return_reason'),
-            'returnQty' => __('storefront.account.return_qty'),
-            'returnSubmitted' => __('storefront.account.return_submitted'),
-            'returnError' => __('storefront.account.return_error'),
-            'view' => __('storefront.account.view'),
-            'edit' => __('storefront.account.edit'),
-            'delete' => __('storefront.account.delete'),
-            'default' => __('storefront.account.default'),
-            'shippingTo' => __('storefront.account.shipping_to'),
-            'subtotal' => __('storefront.account.subtotal'),
-            'shipping' => __('storefront.account.shipping'),
-            'total' => __('storefront.account.total'),
-            'loading' => __('storefront.account.loading'),
-            'selectWard' => __('storefront.account.select_ward'),
-            'editAddress' => __('storefront.account.edit_address'),
-            'addAddress' => __('storefront.account.add_address'),
-            'deleteAddressConfirm' => __('storefront.account.delete_address_confirm'),
-            'ordersError' => __('storefront.account.orders_error'),
-            'orderError' => __('storefront.account.order_error'),
-            'addressesError' => __('storefront.account.addresses_error'),
-            'saveError' => __('storefront.account.save_error'),
-            'addressSaveError' => __('storefront.account.address_save_error'),
-            'selectItem' => __('storefront.account.select_item'),
-        ],
-    ])</script>
+    {{-- Invoice download + return request: URL templates (:id replaced
+         client-side) + labels, so account.js stays free of hardcoded routes/strings.
+         Built in a @php block (not inline @json([...])) because Blade's @json
+         directive mis-parses nested arrays / route(..., [...]) calls. --}}
+    @php
+        $accountState = [
+            'countries' => $countries,
+            'invoiceUrl' => route('storefront.orders.invoice', ['order' => '__ID__']),
+            'returnUrl' => route('storefront.orders.returns.store', ['order' => '__ID__']),
+            'returnReasons' => [
+                'wrong-size' => __('storefront.account.return_reason_size'),
+                'defect' => __('storefront.account.return_reason_defect'),
+                'not-as-described' => __('storefront.account.return_reason_described'),
+                'changed-mind' => __('storefront.account.return_reason_mind'),
+            ],
+            'i18n' => [
+                'downloadInvoice' => __('storefront.account.download_invoice'),
+                'requestReturn' => __('storefront.account.request_return'),
+                'submitReturn' => __('storefront.account.submit_return'),
+                'returnReason' => __('storefront.account.return_reason'),
+                'returnQty' => __('storefront.account.return_qty'),
+                'returnSubmitted' => __('storefront.account.return_submitted'),
+                'returnError' => __('storefront.account.return_error'),
+                'view' => __('storefront.account.view'),
+                'edit' => __('storefront.account.edit'),
+                'delete' => __('storefront.account.delete'),
+                'default' => __('storefront.account.default'),
+                'shippingTo' => __('storefront.account.shipping_to'),
+                'subtotal' => __('storefront.account.subtotal'),
+                'shipping' => __('storefront.account.shipping'),
+                'total' => __('storefront.account.total'),
+                'loading' => __('storefront.account.loading'),
+                'selectWard' => __('storefront.account.select_ward'),
+                'editAddress' => __('storefront.account.edit_address'),
+                'addAddress' => __('storefront.account.add_address'),
+                'deleteAddressConfirm' => __('storefront.account.delete_address_confirm'),
+                'ordersError' => __('storefront.account.orders_error'),
+                'orderError' => __('storefront.account.order_error'),
+                'addressesError' => __('storefront.account.addresses_error'),
+                'saveError' => __('storefront.account.save_error'),
+                'addressSaveError' => __('storefront.account.address_save_error'),
+                'selectItem' => __('storefront.account.select_item'),
+            ],
+        ];
+    @endphp
+    <script type="application/json" data-account-state>@json($accountState)</script>
     <h1 class="h3 mb-4">{{ __('storefront.account.my_account') }}</h1>
 
     <div class="row g-4">

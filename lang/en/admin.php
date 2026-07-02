@@ -203,6 +203,12 @@ return [
         'cache_ttl' => 'Cache TTL (seconds)',
     ],
 
+    'recently_viewed' => [
+        'section' => 'Recently viewed',
+        'limit' => 'Products shown',
+        'limit_help' => 'How many recently-viewed products to display in the strip (1–12).',
+    ],
+
     'review' => [
         'section' => 'Reviews',
         'auto_approve' => 'Auto-approve reviews',
@@ -283,6 +289,14 @@ return [
         'promotion_pin_help' => 'Pin to one promotion, or leave empty for all on-sale.',
         'item_limit' => 'Item limit',
         'updated' => 'Updated',
+        'product_tabs' => 'Product tabs',
+        'kicker' => 'Kicker (eyebrow)',
+        'tabs' => 'Tabs',
+        'tab' => 'Tab',
+        'add_tab' => 'Add tab',
+        'tab_label' => 'Tab name',
+        'tab_products' => 'Products',
+        'tab_products_help' => 'Pick the products shown on this tab. Leave empty to fall back to the newest products.',
     ],
 
     'theme' => [
@@ -372,6 +386,21 @@ return [
         'low_stock' => 'Low stock',
         'out_of_stock' => 'Out of stock',
         'product' => 'Product',
+    ],
+
+    'stock_notifications' => [
+        'title' => 'Back-in-stock list',
+        'email' => 'Email',
+        'product' => 'Product',
+        'sku' => 'SKU',
+        'status' => 'Status',
+        'status_waiting' => 'Waiting',
+        'status_notified' => 'Notified',
+        'subscribed_at' => 'Subscribed',
+        'notified_at' => 'Notified at',
+        'unsubscribe' => 'Remove',
+        'empty_heading' => 'No subscriptions yet',
+        'empty_desc' => 'When a shopper asks to be emailed about an out-of-stock item, it shows up here.',
     ],
 
     'size_chart' => [
