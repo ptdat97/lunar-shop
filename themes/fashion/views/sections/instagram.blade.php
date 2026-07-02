@@ -17,16 +17,15 @@
 @endphp
 @if($posts)
     <section class="instagram container-fluid px-0 my-5">
-        <div class="text-center mb-4">
+        <div class="section-head section-head--center container">
             @if(!empty($settings['heading']))
-                <h2 class="h4 mb-1">{{ $settings['heading'] }}</h2>
+                <h2 class="display-heading">{{ $settings['heading'] }}</h2>
             @endif
             @if(!empty($settings['subheading']))
-                <p class="text-muted mb-2">{{ $settings['subheading'] }}</p>
+                <p class="section-head__intro mx-auto">{{ $settings['subheading'] }}</p>
             @endif
             @if($instagramUrl)
-                <a href="{{ $instagramUrl }}" target="_blank" rel="noopener"
-                   class="d-inline-flex align-items-center gap-2 fw-semibold text-dark text-decoration-none">
+                <a href="{{ $instagramUrl }}" target="_blank" rel="noopener" class="link-cta mt-3">
                     <i class="bi bi-instagram"></i>
                     {{ $instagram['handle'] ?? __('storefront.common.follow_us') }}
                 </a>

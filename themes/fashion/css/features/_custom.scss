@@ -6,6 +6,62 @@
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
+// ── Global typography foundation ────────────────────────────────────────────
+// Bootstrap sets font-family on <body>; override here so the editorial pairing
+// (Outfit body + Cormorant display) lands everywhere, not just in components.
+body {
+    font-family: v.$font-body;
+    font-size: v.$font-size-md;
+    font-weight: v.$font-weight-normal;
+    line-height: v.$line-height-base;
+    color: v.$text-secondary;
+    background: v.$bg-primary;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+// Headings default to the display serif with tight tracking + balanced wrap so
+// they read as intentional. Components can still opt out locally.
+h1, h2, h3, h4, .h1, .h2, .h3, .h4 {
+    font-family: v.$font-display;
+    font-weight: v.$font-weight-medium;
+    letter-spacing: v.$letter-spacing-tight;
+    line-height: v.$line-height-tight;
+    color: v.$text-primary;
+    text-wrap: balance;
+}
+
+// Body copy stays readable: cap measure, relax paragraphs inside prose blocks.
+p { text-wrap: pretty; }
+
+// Prices, counts and other figures line up when tabular.
+.price, [data-product-price], .product-card__price {
+    font-variant-numeric: tabular-nums;
+}
+
+// One consistent, visible focus ring for keyboard users across the theme.
+:focus-visible {
+    outline: 2px solid v.$accent;
+    outline-offset: 2px;
+    border-radius: v.$radius-sm;
+}
+
+// Fixed grain overlay — breaks the digital flatness of large cream fields
+// without touching layout. pointer-events:none so it never intercepts clicks.
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: v.$z-base;
+    pointer-events: none;
+    opacity: .028;
+    mix-blend-mode: multiply;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@include m.reduced-motion;
+
 //
 //   .my-banner {
 //       background: v.$accent;
@@ -136,20 +192,244 @@
     }
 }
 
+// ── Editorial primitives (shared across home sections) ─────────────────────
+// A small vocabulary the sections compose from, so headings/eyebrows/CTAs read
+// as one system instead of ad-hoc Bootstrap utilities.
+
+// Eyebrow / kicker: tiny wide-tracked uppercase label above a heading.
+.eyebrow {
+    display: inline-block;
+    font-family: v.$font-body;
+    font-size: v.$font-size-xs;
+    font-weight: v.$font-weight-semibold;
+    letter-spacing: v.$letter-spacing-wider;
+    text-transform: uppercase;
+    color: v.$muted;
+    margin-bottom: v.$spacing-md;
+
+    // Hairline lead-in mark — a restrained editorial flourish.
+    &::before {
+        content: '';
+        display: inline-block;
+        width: 1.75rem;
+        height: 1px;
+        background: currentColor;
+        vertical-align: middle;
+        margin-right: .6rem;
+        opacity: .7;
+    }
+}
+
+// Display heading: the section's serif statement. Sentence case, not Title Case.
+.display-heading {
+    font-family: v.$font-display;
+    font-size: v.$font-size-3xl;
+    font-weight: v.$font-weight-normal;
+    line-height: v.$line-height-tight;
+    letter-spacing: v.$letter-spacing-tight;
+    color: v.$text-primary;
+    margin: 0;
+    text-wrap: balance;
+
+    @include m.up(lg) { font-size: v.$font-size-4xl; }
+
+    em {
+        font-style: italic;
+        color: v.$muted;
+    }
+}
+
+// Section header block: eyebrow + heading + optional intro, left-aligned by
+// default (breaks the everything-centered habit). `.text-center` still works.
+.section-head {
+    max-width: 46rem;
+    margin-bottom: v.$spacing-2xl;
+
+    &--center {
+        margin-inline: auto;
+        text-align: center;
+
+        .eyebrow::before { display: none; }
+    }
+
+    &__intro {
+        margin-top: v.$spacing-md;
+        margin-bottom: 0;
+        max-width: 42rem;
+        color: v.$text-secondary;
+        font-size: v.$font-size-lg;
+        line-height: v.$line-height-relaxed;
+    }
+}
+
+// Text link with animated underline — the tertiary CTA style that reduces the
+// filled-button + ghost-button monotony.
+.link-cta {
+    @include m.link-hover;
+    display: inline-flex;
+    align-items: center;
+    gap: .5rem;
+    font-family: v.$font-body;
+    font-size: v.$font-size-sm;
+    font-weight: v.$font-weight-semibold;
+    letter-spacing: v.$letter-spacing-wide;
+    text-transform: uppercase;
+    color: v.$text-primary;
+
+    .bi { transition: transform v.$transition-base; }
+    &:hover .bi-arrow-right { transform: translateX(4px); }
+}
+
+// Filled + outline pill-free buttons in the theme voice (used by hero + CTAs).
+// Sharp radius, wide tracking, physical press feedback.
+.btn-editorial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: .6rem;
+    padding: 1rem 2.25rem;
+    font-family: v.$font-body;
+    font-size: v.$font-size-sm;
+    font-weight: v.$font-weight-semibold;
+    letter-spacing: v.$letter-spacing-wide;
+    text-transform: uppercase;
+    text-decoration: none;
+    border: v.$border-width solid transparent;
+    border-radius: v.$radius;
+    cursor: pointer;
+    transition: background v.$transition-base, color v.$transition-base,
+                border-color v.$transition-base, transform v.$transition-fast,
+                box-shadow v.$transition-base;
+
+    .bi { transition: transform v.$transition-base; }
+    &:hover .bi-arrow-right { transform: translateX(4px); }
+    &:active { transform: translateY(1px); }
+    &:focus-visible { outline: 2px solid v.$accent; outline-offset: 3px; }
+
+    &--solid {
+        background: v.$accent;
+        color: v.$accent-contrast;
+        border-color: v.$accent;
+
+        &:hover {
+            background: v.$text-secondary;
+            border-color: v.$text-secondary;
+            color: v.$accent-contrast;
+            box-shadow: v.$shadow-lg;
+        }
+    }
+
+    &--outline {
+        background: transparent;
+        color: v.$text-primary;
+        border-color: v.$border-color;
+
+        &:hover {
+            border-color: v.$accent;
+            background: v.$accent;
+            color: v.$accent-contrast;
+        }
+    }
+
+    // On dark imagery (hero): light fill that inverts on hover.
+    &--light {
+        background: v.$bg-primary;
+        color: v.$text-primary;
+        border-color: v.$bg-primary;
+
+        &:hover {
+            background: transparent;
+            color: v.$bg-primary;
+            border-color: v.$bg-primary;
+        }
+    }
+}
+
+// ── Home: product tabs ─────────────────────────────────────────────────────
+// Centered filter row as underlined text tabs (not filled pills) — quieter,
+// more editorial, active state carries a solid underline.
+.product-tabs {
+    &__nav {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: v.$spacing-lg;
+        list-style: none;
+        padding: 0;
+        margin: 0 0 v.$spacing-2xl;
+    }
+
+    &__tab {
+        @include m.button-reset;
+        position: relative;
+        padding-bottom: .4rem;
+        font-family: v.$font-body;
+        font-size: v.$font-size-sm;
+        font-weight: v.$font-weight-medium;
+        letter-spacing: v.$letter-spacing-wide;
+        text-transform: uppercase;
+        color: v.$muted;
+        transition: color v.$transition-base;
+
+        &::after {
+            content: '';
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 1.5px;
+            background: v.$accent;
+            transform: scaleX(0);
+            transform-origin: center;
+            transition: transform v.$transition-base;
+        }
+
+        &:hover { color: v.$text-primary; }
+        &.is-active {
+            color: v.$text-primary;
+            &::after { transform: scaleX(1); }
+        }
+        &:focus-visible { outline: 2px solid v.$accent; outline-offset: 3px; }
+    }
+}
+
 // ── Home: testimonials section ─────────────────────────────────────────────
+// Editorial pull-quote card: no border, warm surface, serif italic quote so it
+// reads as an endorsement rather than a boxed UI review.
 .testimonial-card {
-    border: 1px solid var(--bs-border-color, #dee2e6);
+    background: v.$bg-primary;
+    border: 0;
+    border-radius: v.$radius-lg;
+    padding: v.$spacing-xl;
+    box-shadow: v.$shadow-sm;
+    transition: box-shadow v.$transition-base, transform v.$transition-base;
+
+    &:hover {
+        transform: translateY(-4px);
+        box-shadow: v.$shadow-md;
+    }
+
+    &__stars {
+        color: v.$warning;
+        font-size: v.$font-size-sm;
+        letter-spacing: .1em;
+    }
 
     &__text {
-        line-height: 1.6;
-
-        &::before { content: '“'; }
-        &::after { content: '”'; }
+        font-family: v.$font-display;
+        font-size: v.$font-size-xl;
+        font-style: italic;
+        font-weight: v.$font-weight-normal;
+        line-height: v.$line-height-relaxed;
+        color: v.$text-primary;
+        margin: 0;
+        // No stray quote glyphs — the serif italic carries the voice.
     }
 
     &__avatar {
         object-fit: cover;
         flex: 0 0 auto;
+        border-radius: v.$radius-lg; // squircle, not a circle — less generic
     }
 }
 

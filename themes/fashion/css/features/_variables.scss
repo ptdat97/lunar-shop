@@ -41,9 +41,10 @@ $font-size-md: .9375rem !default;   // 15px — primary body / UI
 $font-size-lg: 1rem !default;       // 16px
 $font-size-xl: 1.125rem !default;   // 18px
 $font-size-2xl: 1.5rem !default;    // 24px
-$font-size-3xl: 2rem !default;      // 32px
-$font-size-4xl: 3rem !default;      // 48px — hero headlines
-$font-size-5xl: 4rem !default;      // 64px — mega hero headlines
+$font-size-3xl: 2.25rem !default;   // 36px
+$font-size-4xl: 3.5rem !default;    // 56px — section display / hero headlines
+$font-size-5xl: 5.25rem !default;   // 84px — mega hero headlines (serif runs light)
+$font-size-6xl: 7rem !default;      // 112px — editorial display moments
 
 $font-weight-normal: 400 !default;
 $font-weight-medium: 500 !default;
@@ -54,10 +55,11 @@ $line-height-tight: 1.2 !default;
 $line-height-base: 1.5 !default;
 $line-height-relaxed: 1.65 !default;
 
+$letter-spacing-tightest: -.04em !default; // Mega serif display
 $letter-spacing-tight: -.02em !default;
 $letter-spacing-normal: 0 !default;
-$letter-spacing-wide: .08em !default; // Uppercase labels / nav links
-$letter-spacing-wider: .12em !default; // More dramatic uppercase
+$letter-spacing-wide: .14em !default;  // Uppercase labels / nav links
+$letter-spacing-wider: .22em !default; // Dramatic uppercase kickers
 
 // ── Spacing ────────────────────────────────────────────────────────────────────
 $spacing-xs: .25rem !default;    // 4px
@@ -89,12 +91,14 @@ $transition-slow: .4s ease !default;   // Image scale
 $transition-smooth: .4s cubic-bezier(.4, 0, .2, 1) !default;
 $transition-bounce: .5s cubic-bezier(.68, -.55, .265, 1.55) !default;
 
-// ── Shadows (minimal — only where needed) ─────────────────────────────────────
-$shadow-sm: 0 1px 2px rgba(0, 0, 0, .04) !default;
-$shadow-md: 0 4px 12px rgba(0, 0, 0, .06) !default;
-$shadow-lg: 0 8px 24px rgba(0, 0, 0, .08) !default;
-$shadow-xl: 0 12px 32px rgba(0, 0, 0, .12) !default;
-$shadow-glow: 0 0 20px rgba(10, 10, 10, .15) !default;
+// ── Shadows ────────────────────────────────────────────────────────────────────
+// Tinted warm to sit on the off-white palette — pure black at low opacity reads
+// grey and flat against cream. Warm umber (39,28,18) keeps depth in the family.
+$shadow-sm: 0 1px 2px rgba(39, 28, 18, .05) !default;
+$shadow-md: 0 6px 18px rgba(39, 28, 18, .07) !default;
+$shadow-lg: 0 14px 34px rgba(39, 28, 18, .10) !default;
+$shadow-xl: 0 24px 60px rgba(39, 28, 18, .14) !default;
+$shadow-glow: 0 0 20px rgba(39, 28, 18, .15) !default;
 
 // ── Z-index scale ──────────────────────────────────────────────────────────────
 // Systematic z-index levels. Always use these tokens — never hardcode numbers.

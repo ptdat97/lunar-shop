@@ -38,6 +38,14 @@
         <link rel="icon" href="{{ $favicon }}">
     @endif
 
+    {{-- Editorial type pairing: Cormorant Garamond (display serif) + Outfit (body).
+         Preconnect so the render-blocking font CSS resolves fast; Anivele stays as
+         a bundled fallback face in app.scss. --}}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,400;1,500&family=Outfit:wght@300;400;500;600;700&display=swap">
+
     {{-- Swiper CSS (vendor) — keep until migrated to npm --}}
     <link rel="stylesheet" href="{{ asset('vendor/swiper/swiper-bundle.min.css') }}">
 

@@ -42,7 +42,7 @@ export function cardHtml(product) {
         ? `<img src="${esc(product.thumbnail)}" alt="${name}" loading="lazy">`
         : `<span class="d-flex h-100 align-items-center justify-content-center text-muted small">${name}</span>`;
     const brand = product.brand
-        ? `<div class="text-muted small text-uppercase">${esc(product.brand)}</div>`
+        ? `<div class="product-card__brand">${esc(product.brand)}</div>`
         : '';
 
     return `

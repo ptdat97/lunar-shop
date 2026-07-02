@@ -4,6 +4,20 @@
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
+// Announcement topbar — sits above the sticky header. Accent field, tiny
+// wide-tracked copy so it reads as a considered ribbon, not a stray dark band.
+.site-topbar {
+    background: v.$accent;
+    color: v.$accent-contrast;
+    text-align: center;
+    padding: .6rem 1rem;
+    font-family: v.$font-body;
+    font-size: v.$font-size-xs;
+    font-weight: v.$font-weight-medium;
+    letter-spacing: v.$letter-spacing-wide;
+    text-transform: uppercase;
+}
+
 .site-header {
     position: sticky;
     top: 0;
@@ -17,8 +31,8 @@
         background: v.$glass-bg;
         backdrop-filter: blur(20px);
         -webkit-backdrop-filter: blur(20px);
-        border-bottom-color: rgba(255, 255, 255, .2);
-        box-shadow: v.$shadow-sm;
+        border-bottom-color: v.$border-color;
+        box-shadow: v.$shadow-md;
     }
 
     // Brand / logo
@@ -69,14 +83,38 @@
             }
 
             &:hover,
-            &:focus-visible { 
+            &:focus-visible {
                 color: v.$muted;
-                
+
                 &::after {
                     transform: scaleX(1);
                     transform-origin: left;
                 }
             }
+
+            // Current page: persistent underline + full-strength colour.
+            &.is-active {
+                color: v.$accent;
+
+                &::after {
+                    transform: scaleX(1);
+                    transform-origin: left;
+                }
+            }
+        }
+
+        // Small square badge on nav items (New / Sale) — not a pill.
+        .nav-link__badge {
+            font-family: v.$font-body;
+            font-size: 9px;
+            font-weight: v.$font-weight-semibold;
+            letter-spacing: .06em;
+            text-transform: uppercase;
+            line-height: 1;
+            padding: .2rem .3rem;
+            background: v.$error;
+            color: #fff;
+            border-radius: v.$radius-sm;
         }
 
         // Mega menu support (dropdown with columns)

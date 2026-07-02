@@ -37,7 +37,7 @@
     </a>
     <div class="product-card__body">
         @if($brand = $product->brand?->name)
-            <div class="text-muted small text-uppercase">{{ $brand }}</div>
+            <div class="product-card__brand">{{ $brand }}</div>
         @endif
         <h3 class="product-card__title mb-1">
             <a href="{{ $url }}" class="text-dark text-decoration-none">{{ $name }}</a>

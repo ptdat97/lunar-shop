@@ -10,15 +10,17 @@
     ];
 @endphp
 @if($items)
-    <section class="iconbox bg-light py-4 my-5">
+    <section class="iconbox">
         <div class="container">
-            <div class="row g-4 text-center">
+            <div class="iconbox__row">
                 @foreach($items as $item)
                     @php $glyph = $iconMap[$item['icon'] ?? ''] ?? 'bi-patch-check'; @endphp
-                    <div class="col-6 col-lg-3">
-                        <i class="bi {{ $glyph }} iconbox__icon fs-2 mb-2 d-inline-block"></i>
-                        <h3 class="h6 mb-1">{{ $item['heading'] ?? '' }}</h3>
-                        <p class="small text-muted mb-0">{{ $item['text'] ?? '' }}</p>
+                    <div class="iconbox__item">
+                        <i class="bi {{ $glyph }} iconbox__icon" aria-hidden="true"></i>
+                        <div>
+                            <h3 class="iconbox__heading">{{ $item['heading'] ?? '' }}</h3>
+                            <p class="iconbox__text">{{ $item['text'] ?? '' }}</p>
+                        </div>
                     </div>
                 @endforeach
             </div>

@@ -101,26 +101,8 @@ html {
 .bi-bell::before { content: '\F18A'; }
 .bi-bag-plus::before { content: '\F176'; }
 
-// ── Product card: consistent media box ────────────────────────────────────────
-.product-card {
-    &__media {
-        aspect-ratio: v.$product-ratio;
-        overflow: hidden;
-        background: v.$bg-secondary;
-
-        img {
-            @include m.cover;
-            transition: transform v.$transition-slow;
-        }
-    }
-
-    &:hover &__media img { transform: scale(1.04); }
-
-    &__title {
-        font-size: .95rem;
-        line-height: 1.3;
-    }
-}
+// Product card styles live in features/_product-card.scss (single source of
+// truth) — do not redeclare `.product-card` here.
 
 // ── Product page gallery: Swiper main slider + thumbnail strip ────────────────
 .product-gallery {
