@@ -17,6 +17,7 @@ class PageSection extends Model
      * @return array<string, string>  type => label
      */
     public const TYPES = [
+        'promotions-strip' => 'Promotions Strip',
         'hero-slider' => 'Hero Slider',
         'category-grid' => 'Category Grid',
         'product-tabs' => 'Product Tabs',

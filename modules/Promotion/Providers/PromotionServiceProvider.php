@@ -67,7 +67,10 @@ class PromotionServiceProvider extends ServiceProvider
             ]);
         });
 
-        View::composer('theme::partials.promotions-strip', function ($view) use ($promotions): void {
+        View::composer([
+            'theme::partials.promotions-strip',
+            'theme::sections.promotions-strip',
+        ], function ($view) use ($promotions): void {
             $svc = $promotions();
             $view->with([
                 'promotionsList' => $svc->activeAutomatic(),

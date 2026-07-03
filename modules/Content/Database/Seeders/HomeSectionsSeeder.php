@@ -15,6 +15,7 @@ class HomeSectionsSeeder extends Seeder
     public function run(): void
     {
         $order = [
+            'promotions-strip',
             'hero-slider',
             'category-grid',
             'product-tabs',

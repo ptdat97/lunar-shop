@@ -61,6 +61,8 @@ class SectionSchemas
                 ],
             ],
 
+            'promotions-strip' => [],
+
             'promotion-slider' => [
                 'heading' => 'On Sale Now',
                 'subheading' => 'Grab these deals before they’re gone.',
@@ -150,6 +152,6 @@ class SectionSchemas
      */
     public static function isDynamic(string $type): bool
     {
-        return in_array($type, ['category-grid', 'product-tabs', 'promotion-slider'], true);
+        return in_array($type, ['category-grid', 'product-tabs', 'promotion-slider', 'promotions-strip'], true);
     }
 }
