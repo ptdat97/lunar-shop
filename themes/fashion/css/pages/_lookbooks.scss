@@ -5,7 +5,6 @@
 @use '../features/mixins' as m;
 
 .page-lookbooks {
-    padding: v.$spacing-2xl 0 v.$spacing-3xl;
 
     .lookbooks-grid {
         display: grid;

@@ -6,7 +6,7 @@
 @endif
 
 <header class="site-header" data-header>
-    <nav class="navbar navbar-expand-lg bg-white">
+    <nav class="navbar navbar-expand-lg bg-white w-100" >
         <div class="container">
             {{-- Mobile: hamburger toggles the off-canvas menu --}}
             <button class="navbar-toggler border-0 px-0 me-2" type="button"

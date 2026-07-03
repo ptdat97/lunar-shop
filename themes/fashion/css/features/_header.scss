@@ -19,8 +19,12 @@
 }
 
 .site-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     position: sticky;
     top: 0;
+    height: v.$header-height;
     z-index: v.$z-header;
     background: v.$bg-primary;
     border-bottom: v.$border-width solid v.$border-color;
