@@ -37,6 +37,7 @@ Route::prefix('api/v1')->middleware('web')->group(function (): void {
     // empty) when no user is authenticated; the controllers handle that.
     Route::get('customer', [CustomerController::class, 'show'])->name('api.v1.customer.show');
     Route::get('wishlist', [WishlistController::class, 'index'])->name('api.v1.wishlist.index');
+    Route::get('customer/measurements', [MeasurementController::class, 'show'])->name('api.v1.customer.measurements.show');
 });
 
 // Authenticated customer endpoints. Accept either Sanctum token (app/headless)
@@ -55,7 +56,6 @@ Route::prefix('api/v1')->middleware(['web', 'auth:sanctum'])->group(function ():
     Route::post('wishlist', [WishlistController::class, 'toggle'])->name('api.v1.wishlist.toggle');
 
     // Size Intelligence v2: saved body-measurement profile.
-    Route::get('customer/measurements', [MeasurementController::class, 'show'])->name('api.v1.customer.measurements.show');
     Route::put('customer/measurements', [MeasurementController::class, 'update'])->name('api.v1.customer.measurements.update');
 
     // Token logout (app/headless): revoke the PAT used for this request.

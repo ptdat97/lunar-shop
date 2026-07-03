@@ -65,9 +65,17 @@ class CustomerMeasurementTest extends TestCase
             ->assertOk()->assertJsonPath('data.hip', 96);
     }
 
-    public function test_guest_cannot_access_measurements(): void
+    public function test_guest_sees_empty_measurements(): void
     {
-        $this->getJson('/api/v1/customer/measurements')->assertUnauthorized();
+        $this->getJson('/api/v1/customer/measurements')
+            ->assertOk()
+            ->assertJsonPath('data', []);
+    }
+
+    public function test_guest_cannot_save_measurements(): void
+    {
+        $this->putJson('/api/v1/customer/measurements', ['bust' => 90])
+            ->assertUnauthorized();
     }
 
     public function test_update_validates_ranges(): void

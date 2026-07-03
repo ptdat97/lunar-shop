@@ -24,7 +24,8 @@ class MeasurementController extends Controller
     /** GET /api/v1/customer/measurements — the saved profile (or empty). */
     public function show(Request $request): JsonResponse
     {
-        $customer = $this->customers->existingForUser($request->user());
+        $user = $request->user();
+        $customer = $user ? $this->customers->existingForUser($user) : null;
 
         return response()->json([
             'data' => $customer ? $this->measurements->for($customer) : [],
