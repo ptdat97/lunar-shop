@@ -5,7 +5,6 @@
 @use '../features/mixins' as m;
 
 .page-search {
-    padding: v.$spacing-2xl 0 v.$spacing-3xl;
 
     .search-header {
         margin-bottom: v.$spacing-xl;

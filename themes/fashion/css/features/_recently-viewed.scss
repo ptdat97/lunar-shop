@@ -5,7 +5,7 @@
 @use '../features/mixins' as m;
 
 .recently-viewed {
-    padding: v.$spacing-3xl 0;
+    
     border-top: v.$border-width solid v.$border-color;
     background: v.$bg-primary;
 

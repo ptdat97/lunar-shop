@@ -5,7 +5,6 @@
 @use '../features/mixins' as m;
 
 .page-login {
-    padding: v.$spacing-3xl 0;
 
     .auth-card {
         max-width: 420px;

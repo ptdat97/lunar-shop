@@ -5,7 +5,6 @@
 @use '../features/mixins' as m;
 
 .page-wishlist {
-    padding: v.$spacing-2xl 0 v.$spacing-3xl;
 
     .wishlist-grid {
         display: grid;
