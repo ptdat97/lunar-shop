@@ -4,6 +4,8 @@ namespace Tests\Concerns;
 
 use App\Models\User;
 use Lunar\FieldTypes\Text;
+use Lunar\FieldTypes\TranslatedText;
+use Lunar\Models\Country;
 use Lunar\Models\Currency;
 use Lunar\Models\Language;
 use Lunar\Models\Price;
@@ -13,6 +15,8 @@ use Lunar\Models\ProductVariant;
 use Lunar\Models\TaxClass;
 use Lunar\Models\Url;
 use Modules\Catalog\Database\Seeders\BaseDataSeeder;
+use Modules\Catalog\Models\SizeChart;
+use Modules\Customer\Models\Province;
 
 /**
  * Test helpers: seed Lunar essentials (channel/currency/tax/countries) and
@@ -49,10 +53,16 @@ trait CreatesStorefrontData
         $price = $attributes['price'] ?? 1999; // minor units
         $stock = $attributes['stock'] ?? 25;
 
+        // When a Vietnamese name is given, store a translatable attribute so
+        // tests can exercise per-locale product content; otherwise plain Text.
+        $nameAttr = isset($attributes['name_vi'])
+            ? new TranslatedText(['en' => new Text($name), 'vi' => new Text($attributes['name_vi'])])
+            : new Text($name);
+
         $product = Product::create([
             'product_type_id' => ProductType::first()?->id ?? ProductType::create(['name' => 'General'])->id,
             'status' => 'published',
-            'attribute_data' => ['name' => new Text($name)],
+            'attribute_data' => ['name' => $nameAttr],
         ]);
 
         $variant = ProductVariant::create([
@@ -87,7 +97,7 @@ trait CreatesStorefrontData
      */
     protected function attachSizeChart(Product $product): Product
     {
-        $chart = \Modules\Catalog\Models\SizeChart::create([
+        $chart = SizeChart::create([
             'name' => 'Tops', 'category' => 'tops', 'active' => true,
         ]);
 
@@ -108,14 +118,14 @@ trait CreatesStorefrontData
      * Seed a couple of provinces + wards (small fixture; the full dataset is
      * 3.3k wards and unnecessary for tests).
      */
-    protected function seedLocations(): \Modules\Customer\Models\Province
+    protected function seedLocations(): Province
     {
-        $hcm = \Modules\Customer\Models\Province::create(['code' => '79', 'name' => 'Thành phố Hồ Chí Minh']);
+        $hcm = Province::create(['code' => '79', 'name' => 'Thành phố Hồ Chí Minh']);
         $hcm->wards()->createMany([
             ['code' => '79001', 'name' => 'Phường Bến Nghé'],
             ['code' => '79002', 'name' => 'Phường Bến Thành'],
         ]);
-        \Modules\Customer\Models\Province::create(['code' => '01', 'name' => 'Thành phố Hà Nội'])
+        Province::create(['code' => '01', 'name' => 'Thành phố Hà Nội'])
             ->wards()->create(['code' => '01001', 'name' => 'Phường Hoàn Kiếm']);
 
         return $hcm;
@@ -143,7 +153,7 @@ trait CreatesStorefrontData
             'line_one' => '1 Le Loi',
             'state' => 'Thành phố Hồ Chí Minh', // Tỉnh/Thành
             'city' => 'Phường Bến Nghé',         // Phường/Xã
-            'country_id' => \Lunar\Models\Country::query()->value('id'),
+            'country_id' => Country::query()->value('id'),
             'contact_email' => 'buyer@example.com',
             'contact_phone' => '0900000000',
         ], $overrides);

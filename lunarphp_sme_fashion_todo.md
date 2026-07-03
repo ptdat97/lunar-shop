@@ -133,11 +133,26 @@
 
 ## P2 — Hoàn thiện & giữ chân
 
-### 10. Nội dung sản phẩm song ngữ (VI) — *Catalog / seeders*
-- UI đã song ngữ EN/VI, nhưng tên/mô tả sản phẩm chưa có bản dịch `vi` (seeders không
-  set `translateAttribute` vi) → trang VI vẫn hiện tên tiếng Anh.
-- Cách làm: bổ sung bản dịch vi trong seeder demo + hướng dẫn admin nhập đa ngôn ngữ
-  qua product editor (Lunar `translateAttribute` đã sẵn).
+### 10. Nội dung sản phẩm song ngữ (VI) — *Catalog / seeders* — ✅ **đã làm (2026-07-03)**
+- ✅ Seed `vi` Language row (`BaseDataSeeder`, idempotent per-code; `en` vẫn là default
+  của Lunar) → Lunar resolve được `attribute_data` theo ngôn ngữ.
+- ✅ `Demo50ProductsSeeder` chuyển name + description sang `TranslatedText` (EN+VI):
+  50 tên VI song song + 5 mô tả VI, helper `t($en, $vi)` fallback EN khi thiếu. Trang VI
+  hiện đúng tên tiếng Việt qua `ProductResource::translateAttribute('name')` (read path
+  đã sẵn, không đổi).
+- ✅ **API locale resolution** (`/api/v1/*`): trước đây API chỉ chạy middleware `api`
+  (không `SetStorefrontLocale`) → không đổi ngôn ngữ theo request. Thêm middleware
+  session-less `SetApiLocale` (đăng ký qua `pushMiddlewareToGroup('api', …)` trong
+  `ThemeServiceProvider`) + `LocaleService::resolveForApi()` (`?locale=` → `Accept-Language`
+  → default). Nay product/collection/search payload trả `translateAttribute` đúng ngôn ngữ
+  client chọn. Nhóm route `web`/`storefront` (checkout/order/wishlist) vẫn resolve qua
+  session như cũ.
+- ✅ Test: `ProductTranslationTest` (6 case — vi/en Language seeded + en default;
+  `translateAttribute` resolve theo locale; SSR product page locale=vi; API `?locale=vi`,
+  `Accept-Language: vi`, và default=en). Trait `CreatesStorefrontData::createProduct(['name_vi' => …])`
+  tạo product song ngữ.
+- ⬜ Còn: admin nhập đa ngôn ngữ qua product editor (Lunar `translateAttribute` sẵn có —
+  chỉ là hướng dẫn vận hành, không phải code).
 
 ### 11. Dịch động các chuỗi JS còn lại — *theme* — ✅ **đã làm**
 - ✅ `account.js`: chuỗi cứng (View/Edit/Delete/Default/Shipping to/Subtotal/Total/

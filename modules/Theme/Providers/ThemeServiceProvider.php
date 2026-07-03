@@ -5,7 +5,12 @@ namespace Modules\Theme\Providers;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Support\AdminPages;
+use Modules\Theme\Filament\Pages\ThemeSettingsPage;
 use Modules\Theme\Http\Middleware\InitStorefrontSession;
+use Modules\Theme\Http\Middleware\SetApiLocale;
+use Modules\Theme\Http\Middleware\SetStorefrontLocale;
+use Modules\Theme\Services\LocaleService;
 use Modules\Theme\Services\ThemeSettings;
 
 class ThemeServiceProvider extends ServiceProvider
@@ -20,8 +25,8 @@ class ThemeServiceProvider extends ServiceProvider
         $this->app->singleton(ThemeSettings::class);
 
         // Contribute the admin page (registered by ModulesServiceProvider).
-        \Modules\Core\Support\AdminPages::add(
-            \Modules\Theme\Filament\Pages\ThemeSettingsPage::class,
+        AdminPages::add(
+            ThemeSettingsPage::class,
         );
     }
 
@@ -33,18 +38,18 @@ class ThemeServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
+        $this->loadMigrationsFrom(__DIR__.'/../Database/Migrations');
 
-        $this->loadRoutesFrom(__DIR__ . '/../Routes/web.php');
-        $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
+        $this->loadRoutesFrom(__DIR__.'/../Routes/web.php');
+        $this->loadRoutesFrom(__DIR__.'/../Routes/api.php');
 
         $active = config('theme.active', 'fashion');
-        $base = base_path(config('theme.path', 'themes') . '/' . $active);
+        $base = base_path(config('theme.path', 'themes').'/'.$active);
 
-        View::addNamespace('theme', $base . '/views');
+        View::addNamespace('theme', $base.'/views');
 
         // Admin (Filament) views for this module.
-        $this->loadViewsFrom(__DIR__ . '/../Resources/views', 'theme-admin');
+        $this->loadViewsFrom(__DIR__.'/../Resources/views', 'theme-admin');
 
         // Make theme settings available as $theme — only in storefront theme
         // views (the `theme::` namespace), never in admin/Filament views where
@@ -55,7 +60,7 @@ class ThemeServiceProvider extends ServiceProvider
 
         // Language switcher data for the header (no service resolution in Blade).
         View::composer('theme::partials.header', function ($view) {
-            $locales = $this->app->make(\Modules\Theme\Services\LocaleService::class);
+            $locales = $this->app->make(LocaleService::class);
             $view->with([
                 'storefrontLocales' => $locales->supported(),
                 'currentLocale' => $this->app->getLocale(),
@@ -70,8 +75,15 @@ class ThemeServiceProvider extends ServiceProvider
         $router = $this->app->make(Router::class);
         $router->middlewareGroup('storefront', [
             'web',
-            \Modules\Theme\Http\Middleware\SetStorefrontLocale::class,
+            SetStorefrontLocale::class,
             InitStorefrontSession::class,
         ]);
+
+        // Headless /api/v1 is session-less, so it can't use the storefront
+        // locale group. Resolve locale per request (?locale= → Accept-Language →
+        // default) so API payloads (Lunar translateAttribute + __()) come back
+        // in the client's language. Appended to the framework `api` group used
+        // by every module's api routes.
+        $router->pushMiddlewareToGroup('api', SetApiLocale::class);
     }
 }

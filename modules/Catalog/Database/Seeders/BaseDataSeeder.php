@@ -4,10 +4,10 @@ namespace Modules\Catalog\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Lunar\Models\Channel;
+use Lunar\Models\Country;
 use Lunar\Models\Currency;
 use Lunar\Models\CustomerGroup;
 use Lunar\Models\Language;
-use Lunar\Models\Country;
 use Lunar\Models\ProductType;
 use Lunar\Models\TaxClass;
 use Lunar\Models\TaxRate;
@@ -32,8 +32,16 @@ class BaseDataSeeder extends Seeder
             ]);
         }
 
-        if (! Language::count()) {
-            Language::create(['code' => 'en', 'name' => 'English', 'default' => true]);
+        // Seed both storefront locales (config/theme.php) so Lunar can resolve
+        // translated attribute_data per language. `en` stays the Lunar default;
+        // `vi` enables Vietnamese product content. Idempotent per code.
+        foreach ([
+            ['code' => 'en', 'name' => 'English', 'default' => true],
+            ['code' => 'vi', 'name' => 'Tiếng Việt', 'default' => false],
+        ] as $lang) {
+            if (! Language::where('code', $lang['code'])->exists()) {
+                Language::create($lang);
+            }
         }
 
         // Essential countries (checkout needs these; the full list normally

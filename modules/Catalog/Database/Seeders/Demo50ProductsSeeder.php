@@ -5,6 +5,7 @@ namespace Modules\Catalog\Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 use Lunar\FieldTypes\Text;
+use Lunar\FieldTypes\TranslatedText;
 use Lunar\Models\Collection as LunarCollection;
 use Lunar\Models\CollectionGroup;
 use Lunar\Models\Currency;
@@ -39,7 +40,7 @@ class Demo50ProductsSeeder extends Seeder
         $pool = $this->images();
 
         foreach ($this->catalog() as $i => $item) {
-            $slug = Str::slug($item['name']) . '-' . ($i + 1);
+            $slug = Str::slug($item['name']).'-'.($i + 1);
 
             if (Product::whereHas('urls', fn ($q) => $q->where('slug', $slug))->exists()) {
                 continue;
@@ -49,14 +50,14 @@ class Demo50ProductsSeeder extends Seeder
                 'product_type_id' => $type->id,
                 'status' => 'published',
                 'attribute_data' => [
-                    'name' => new Text($item['name']),
-                    'description' => new Text($item['description']),
+                    'name' => $this->t($item['name'], $item['name_vi']),
+                    'description' => $this->t($item['description'], $item['description_vi']),
                 ],
             ]);
 
             $variant = ProductVariant::create([
                 'product_id' => $product->id,
-                'sku' => 'SKU-' . str_pad((string) ($i + 1), 4, '0', STR_PAD_LEFT),
+                'sku' => 'SKU-'.str_pad((string) ($i + 1), 4, '0', STR_PAD_LEFT),
                 'stock' => random_int(5, 80),
                 'unit_quantity' => 1,
                 'tax_class_id' => $taxClass?->id,
@@ -110,6 +111,19 @@ class Demo50ProductsSeeder extends Seeder
     }
 
     /**
+     * Build a translatable attribute value with English + Vietnamese. Falls
+     * back to English when no VI translation is provided. Admins can add more
+     * locales later via the Lunar product editor (translateAttribute).
+     */
+    protected function t(string $en, ?string $vi = null): TranslatedText
+    {
+        return new TranslatedText([
+            'en' => new Text($en),
+            'vi' => new Text($vi !== null && $vi !== '' ? $vi : $en),
+        ]);
+    }
+
+    /**
      * @return array{0: array<int,int>, 1: array<int,int>, 2: ProductOption, 3: ProductOption}
      */
     protected function options(): array
@@ -143,7 +157,7 @@ class Demo50ProductsSeeder extends Seeder
     }
 
     /**
-     * @return array<string, int|null>  handle => collection id
+     * @return array<string, int|null> handle => collection id
      */
     protected function collections(): array
     {
@@ -225,20 +239,50 @@ class Demo50ProductsSeeder extends Seeder
             'Wide-leg Trousers', 'Sequin Party Dress',
         ];
 
+        // Vietnamese product names, parallel to $names (same order/index).
+        $namesVi = [
+            'Áo thun cotton cổ tim', 'Áo dệt kim gân cotton pha', 'Quần da giả',
+            'Đầm quấn thắt lưng', 'Áo khoác trench hai hàng khuy', 'Kính râm phân cực',
+            'Áo sơ mi vải gai có túi', 'Áo sơ mi cotton cài khuy', 'Áo khoác nhẹ túi ngực',
+            'Túi tote cotton', 'Áo hai dây co giãn', 'Chân váy midi xếp ly',
+            'Áo khoác len dáng rộng', 'Quần chinos ôm', 'Blazer vải lanh pha',
+            'Áo len cổ lọ', 'Quần jeans lưng cao', 'Đầm maxi hoa',
+            'Áo khoác jeans lửng', 'Áo len cashmere', 'Quần âu may đo',
+            'Áo gile phao', 'Áo hai dây lụa', 'Áo khoác nhung tăm',
+            'Quần ống rộng xếp ly', 'Áo parka có mũ', 'Áo cardigan dệt kim gân',
+            'Bốt da cổ ngắn', 'Túi đeo chéo chần bông', 'Khăn len pha',
+            'Áo thun dài tay kẻ sọc', 'Quần jeans ống loe', 'Đầm hai dây satin',
+            'Áo khoác bomber', 'Áo len bện thừng', 'Quần cargo tiện dụng',
+            'Đầm blazer ôm dáng', 'Áo sơ mi lanh dáng suông', 'Áo gile kẻ sọc nhỏ',
+            'Áo khoác lông giả', 'Quần jogger vải jersey', 'Áo cổ yếm',
+            'Chân váy jeans ngắn', 'Áo khoác lót chần bông', 'Bodysuit cổ giả',
+            'Đầm mini vải tweed', 'Quần short dây rút', 'Áo dệt kim bouclé',
+            'Quần ống rộng', 'Đầm dự tiệc kim sa',
+        ];
+
         $descriptions = [
-            'Crafted from premium fabric for everyday comfort and style.',
-            'A versatile wardrobe staple with a flattering, modern cut.',
-            'Designed to move with you — soft, durable, and breathable.',
-            'Timeless silhouette that pairs effortlessly with any look.',
-            'Elevated detailing and a relaxed fit for all-day wear.',
+            ['Crafted from premium fabric for everyday comfort and style.',
+                'Chế tác từ chất liệu cao cấp, thoải mái và phong cách cho mỗi ngày.'],
+            ['A versatile wardrobe staple with a flattering, modern cut.',
+                'Món đồ tủ đa năng với phom dáng hiện đại, tôn dáng.'],
+            ['Designed to move with you — soft, durable, and breathable.',
+                'Thiết kế chuyển động cùng bạn — mềm mại, bền và thoáng khí.'],
+            ['Timeless silhouette that pairs effortlessly with any look.',
+                'Phom dáng vượt thời gian, dễ dàng phối cùng mọi phong cách.'],
+            ['Elevated detailing and a relaxed fit for all-day wear.',
+                'Chi tiết tinh tế cùng phom dáng thoải mái cho cả ngày dài.'],
         ];
 
         $catalog = [];
 
         foreach ($names as $i => $name) {
+            [$descEn, $descVi] = $descriptions[$i % count($descriptions)];
+
             $catalog[] = [
                 'name' => $name,
-                'description' => $descriptions[$i % count($descriptions)],
+                'name_vi' => $namesVi[$i] ?? $name,
+                'description' => $descEn,
+                'description_vi' => $descVi,
                 'price' => random_int(15, 250) * 100, // 15.00 – 250.00
                 'gender' => $i % 4 === 0 ? 'men' : 'women',
                 'on_sale' => $i % 5 === 0,

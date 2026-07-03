@@ -13,9 +13,7 @@ use Illuminate\Http\Request;
  */
 class LocaleService
 {
-    public function __construct(protected ThemeSettings $settings)
-    {
-    }
+    public function __construct(protected ThemeSettings $settings) {}
 
     /** All locales known to the theme (code => label), from config. */
     protected function known(): array
@@ -93,6 +91,25 @@ class LocaleService
 
         if ($this->isSupported($session)) {
             return $session;
+        }
+
+        $preferred = $request->getPreferredLanguage($this->codes());
+
+        return $this->isSupported($preferred) ? $preferred : $this->default();
+    }
+
+    /**
+     * The locale for a stateless API request: explicit `?locale=` query →
+     * `Accept-Language` header → default. No session (API is token/cookie
+     * stateless), so a client picks the language per request. Only ever
+     * returns a supported code.
+     */
+    public function resolveForApi(Request $request): string
+    {
+        $query = $request->query('locale');
+
+        if (is_string($query) && $this->isSupported($query)) {
+            return $query;
         }
 
         $preferred = $request->getPreferredLanguage($this->codes());
