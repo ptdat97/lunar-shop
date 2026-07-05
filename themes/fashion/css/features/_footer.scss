@@ -11,21 +11,6 @@
     position: relative;
     overflow: hidden;
 
-    // Subtle gradient overlay
-    &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, 
-            v.$accent 0%, 
-            v.$muted 50%, 
-            v.$accent 100%
-        );
-    }
-
     // Column headings
     .footer-heading {
         font-family: v.$font-body;

@@ -27,7 +27,7 @@
     height: v.$header-height;
     z-index: v.$z-header;
     background: v.$bg-primary;
-    border-bottom: v.$border-width solid v.$border-color;
+    //border-bottom: v.$border-width solid v.$border-color;
     transition: all v.$transition-base;
 
     // Glass morphism on scroll (enhanced by JS)
