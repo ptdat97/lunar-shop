@@ -1,12 +1,9 @@
-// Wishlist heart button — on product cards (.product-card__wishlist) and any
-// element with [data-wishlist-toggle]. `.is-active` (or aria-pressed="true")
-// marks "saved".
+
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
 
-.product-card__wishlist,
-[data-wishlist-toggle] {
+.product-card__wishlist{
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -41,21 +38,14 @@
     }
 }
 
-[data-wishlist-toggle] {
-    &.is-active,
-    &[aria-pressed='true'] {
-        color: v.$error;
-        background: #fff;
-    }
-}
+
 
 // ── Product page: full-width "Add to wishlist" button ───────────────────────
 // Opts out of the circular icon-button styling above (this one is a labelled
 // Bootstrap outline button). The heart fills and the label swaps to "Saved"
 // when active, driven only by the state the shared enhancer already sets.
 .product-wishlist-btn {
-    // Undo the generic [data-wishlist-toggle] circle sizing/reset.
-    width: 100%;
+    padding: v.$spacing-sm 0;
     height: auto;
     border-radius: v.$radius;
     background: transparent;
@@ -65,6 +55,8 @@
     gap: .5rem;
     font-size: inherit;
     letter-spacing: .03em;
+    font-weight: 400;
+    border: none;
 
     &__icon {
         font-size: 1.15em;
@@ -76,11 +68,7 @@
     &__label--saved { display: none; }
 
     &:hover {
-        // Keep Bootstrap's outline-dark hover (dark fill), not the circle's
-        // red-on-white — override the generic :hover from above.
-        background: v.$accent;
-        color: v.$accent-contrast;
-        transform: none;
+        text-decoration: underline;
     }
 
     // Active (saved) state: filled heart, swap the label, keep it readable.
@@ -88,7 +76,7 @@
     &[aria-pressed='true'] {
         background: transparent;
         color: v.$error;
-        border-color: v.$error;
+        //border-color: v.$error;
 
         .product-wishlist-btn__icon::before {
             // Swap the outline heart glyph for the filled one (bootstrap-icons
@@ -100,9 +88,9 @@
         .product-wishlist-btn__label--saved { display: inline; }
 
         &:hover {
-            background: v.$error;
-            color: #fff;
-            border-color: v.$error;
+            //background: v.$error;
+            color: v.$error;
+            //border-color: v.$error;
         }
     }
 }

@@ -219,7 +219,7 @@ $inStock = $product->variants->sum('stock') > 0;
                heart (enhance/wishlist.js, delegated). Full-width outline action;
                the icon fills and the label swaps to "Saved" when active. Requires
                auth — a guest click redirects to login (handled by the enhancer). --}}
-          <button type="button" class="btn btn-outline-dark btn-lg w-100 mt-2 product-wishlist-btn"
+          <button type="button" class="btn mt-2 product-wishlist-btn"
             data-wishlist-toggle data-product-id="{{ $product->id }}" aria-pressed="false">
             <i class="bi bi-heart product-wishlist-btn__icon" aria-hidden="true"></i>
             {{-- Two labels; CSS shows the right one for the pressed/unpressed
