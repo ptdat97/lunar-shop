@@ -141,9 +141,11 @@ class ContentServiceProvider extends ServiceProvider
             $fallback = null;
             $resolveFallback = function () use (&$fallback, $fallbackLimit) {
                 if ($fallback === null) {
+                    // withFacets:false → skip the facet/count aggregates a carousel
+                    // never uses. The search engine already eager-loads variants,
+                    // thumbnail, brand and media, so no follow-up loadMissing.
                     $result = $this->app->make(ProductService::class)
-                        ->list(new SearchQuery(perPage: $fallbackLimit));
-                    $result->items->loadMissing(['variants', 'thumbnail', 'brand', 'media']);
+                        ->list(new SearchQuery(perPage: $fallbackLimit, withFacets: false));
                     $fallback = $result->items;
                 }
 

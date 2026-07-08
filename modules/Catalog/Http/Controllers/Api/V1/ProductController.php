@@ -34,10 +34,9 @@ class ProductController extends Controller
             return ProductResource::collection($this->products->bySlugs($slugs));
         }
 
+        // The search engine already eager-loads variants, thumbnail, brand and
+        // media (used by ProductResource.hover_thumbnail), so no loadMissing here.
         $result = $this->products->list(SearchQuery::fromRequest($request));
-
-        // `media` → ProductResource.hover_thumbnail (card hover second image).
-        $result->items->loadMissing(['variants', 'thumbnail', 'brand', 'media']);
 
         return ProductResource::collection($result->items)
             ->additional([

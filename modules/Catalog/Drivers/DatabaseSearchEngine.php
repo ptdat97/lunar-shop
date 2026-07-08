@@ -22,37 +22,51 @@ class DatabaseSearchEngine implements SearchEngine
         $builder = Product::query()
             ->where('status', 'published')
             // Eager-load everything a product card renders (url, brand, price,
-            // promotion eligibility) so a 24-card grid stays flat, not N+1.
+            // promotion eligibility, hover image) so a 24-card grid stays flat,
+            // not N+1. `media` is included here so callers never need a follow-up
+            // loadMissing(['media']) — one place, one query.
             ->with([
                 'variants.prices.currency',
-                'thumbnail',
                 'brand',
                 'defaultUrl',
                 'collections',
+                // `media` is the full gallery (hover image). The `thumbnail`
+                // relation is just its primary item, so we DON'T eager-load
+                // thumbnail separately (a second media query filtered to
+                // primary=true) — it's back-filled from `media` in PHP below.
+                'media',
             ]);
 
         $this->applyTerm($builder, $query->term);
         $this->applyScope($builder, $query->scope);
 
         // Facets are computed BEFORE option filters are applied (so counts
-        // reflect the term/scope, not the currently selected option).
-        $facetBase = clone $builder;
+        // reflect the term/scope, not the currently selected option). Only the
+        // facet sidebar needs them — a plain product list (home carousels, API
+        // list) sets withFacets=false, skipping ~6 aggregate queries + the count.
+        $facetBase = $query->withFacets ? clone $builder : null;
 
         $this->applyFilters($builder, $query->filters);
         $this->applySort($builder, $query->sort);
 
-        $total = (clone $builder)->count();
-
         $items = $builder
             ->forPage($query->page, $query->perPage)
             ->get();
+
+        \Modules\Catalog\Support\MediaThumbnails::backfill($items);
+
+        // Without facets, skip the separate count() too and derive `total` from
+        // the page: exact enough for a carousel (no pager rendered).
+        $total = $query->withFacets
+            ? (clone $builder)->count()
+            : ($query->page - 1) * $query->perPage + $items->count();
 
         return new SearchResult(
             items: $items,
             total: $total,
             page: $query->page,
             perPage: $query->perPage,
-            facets: $this->computeFacets($facetBase),
+            facets: $facetBase ? $this->computeFacets($facetBase) : [],
         );
     }
 

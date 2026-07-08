@@ -117,8 +117,10 @@ class PromotionService
         $query = Product::query()
             ->where('status', 'published')
             // Eager-load everything a product card renders (flat, not N+1).
-            // `media` powers the card hover (second) image.
-            ->with(['variants.prices.currency', 'thumbnail', 'brand', 'collections', 'defaultUrl', 'media']);
+            // `media` powers the card hover (second) image; the `thumbnail`
+            // (primary media) is back-filled from it below instead of being a
+            // second, primary-filtered media query.
+            ->with(['variants.prices.currency', 'brand', 'collections', 'defaultUrl', 'media']);
 
         $productIds = $this->targets->targetedProductIds($discount);
         $collectionIds = $this->targets->targetedCollectionIds($discount);
@@ -136,7 +138,12 @@ class PromotionService
             });
         }
 
-        return $query->latest('id')->limit($limit)->get()
+        $products = $query->latest('id')->limit($limit)->get();
+
+        // thumbnail = primary item of the already-loaded media (no extra query).
+        \Modules\Catalog\Support\MediaThumbnails::backfill($products);
+
+        return $products
             // Keep only products the badge logic actually applies to.
             ->filter(fn (Product $p) => $this->targets->appliesToProduct($discount, $p))
             ->values();
@@ -156,19 +163,68 @@ class PromotionService
             return collect();
         }
 
-        $products = collect();
+        // Gather the products each promotion targets in ONE pass. targeted*Ids
+        // only read the discount's own (already-loaded) relations — no product
+        // query. A promotion with no product/collection targeting is cart-wide
+        // (applies to everything), so it widens the candidate set to "newest".
+        $productIds = collect();
+        $collectionIds = collect();
+        $cartWide = false;
 
         foreach ($promotions as $promotion) {
-            $products = $products->merge(
-                $this->productsForPromotion($promotion, $limit)
-            );
+            $pIds = $this->targets->targetedProductIds($promotion);
+            $cIds = $this->targets->targetedCollectionIds($promotion);
 
-            if ($products->unique('id')->count() >= $limit) {
-                break;
+            if ($pIds->isEmpty() && $cIds->isEmpty()) {
+                $cartWide = true;
             }
+
+            $productIds = $productIds->merge($pIds);
+            $collectionIds = $collectionIds->merge($cIds);
         }
 
-        return $products->unique('id')->take($limit)->values();
+        // Single product query + single eager-load pass for the whole slider
+        // (previously one query set PER promotion — an N+1 over promotions).
+        $query = Product::query()
+            ->where('status', 'published')
+            ->with(['variants.prices.currency', 'brand', 'collections', 'defaultUrl', 'media']);
+
+        // When no promotion is cart-wide, scope to just the targeted products
+        // (by id or by membership of a targeted collection). Otherwise leave the
+        // query unscoped (newest) so cart-wide sales still surface products.
+        if (! $cartWide) {
+            $productIds = $productIds->unique()->values();
+            $collectionIds = $collectionIds->unique()->values();
+
+            $query->where(function ($q) use ($productIds, $collectionIds) {
+                if ($productIds->isNotEmpty()) {
+                    $q->whereIn('id', $productIds);
+                }
+                if ($collectionIds->isNotEmpty()) {
+                    $q->orWhereHas('collections', fn ($c) => $c->whereIn(
+                        $c->getModel()->getTable().'.id', $collectionIds
+                    ));
+                }
+            });
+        }
+
+        // Fetch a bit more than the limit so the appliesTo filter below can still
+        // fill the slider after dropping any non-matching candidates.
+        $candidates = $query->latest('id')->limit($limit * 2)->get();
+
+        // thumbnail = primary item of the loaded media (no extra query).
+        \Modules\Catalog\Support\MediaThumbnails::backfill($candidates);
+
+        // Keep products any displayable promotion actually applies to. The
+        // discounts' relations are already loaded (displayablePromotions eager-
+        // loads them) and the products' collections/variants are eager-loaded
+        // here, so appliesToProduct's loadMissing calls are no-ops (no N+1).
+        return $candidates
+            ->filter(fn (Product $p) => $promotions->contains(
+                fn (Discount $d) => $this->targets->appliesToProduct($d, $p)
+            ))
+            ->take($limit)
+            ->values();
     }
 
     /**

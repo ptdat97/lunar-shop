@@ -16,6 +16,12 @@ class SearchQuery
         public int $perPage = 24,
         /** Optional collection/category scope (slug or id). */
         public ?string $scope = null,
+        /**
+         * Whether to compute facet buckets (size/color/brand/price/…). The facet
+         * sidebar needs them; a plain product list (home carousels, API list)
+         * doesn't — skipping avoids ~6 aggregate queries per call.
+         */
+        public bool $withFacets = true,
     ) {}
 
     public static function fromRequest(\Illuminate\Http\Request $request): self
