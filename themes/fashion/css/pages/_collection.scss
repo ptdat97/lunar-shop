@@ -5,6 +5,61 @@
 @use '../features/mixins' as m;
 
 .page-collection {
+    // Collection banner: the collection's own image as a hero with the name +
+    // description overlaid. Falls back to .collection-header when there's no image.
+    .collection-banner {
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+        min-height: 260px;
+        margin-bottom: v.$spacing-xl;
+        padding: v.$spacing-2xl 0;
+        background-size: cover;
+        background-position: center;
+        overflow: hidden;
+
+        @include m.up(md) { min-height: 340px; }
+
+        // Scrim so the text reads on any image.
+        &__scrim {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to top, rgba(20, 16, 12, .68) 0%, rgba(20, 16, 12, .28) 45%, rgba(20, 16, 12, .12) 100%);
+        }
+
+        &__inner {
+            position: relative;
+            z-index: 1;
+            color: #fff;
+        }
+
+        &__crumbs {
+            --bs-breadcrumb-divider-color: rgba(255, 255, 255, .6);
+            margin-bottom: .5rem;
+
+            .breadcrumb-item,
+            .breadcrumb-item a { color: rgba(255, 255, 255, .85); }
+            .breadcrumb-item.active { color: #fff; }
+        }
+
+        &__title {
+            font-family: v.$font-display;
+            font-size: v.$font-size-3xl;
+            font-weight: v.$font-weight-normal;
+            letter-spacing: -.01em;
+            margin: 0;
+
+            @include m.up(md) { font-size: v.$font-size-4xl; }
+        }
+
+        &__desc {
+            margin: .5rem 0 0;
+            max-width: 600px;
+            line-height: v.$line-height-relaxed;
+            color: rgba(255, 255, 255, .9);
+        }
+    }
+
     .collection-header {
         padding: v.$spacing-2xl 0 v.$spacing-xl;
 

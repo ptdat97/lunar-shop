@@ -10,18 +10,41 @@
 @endif
 
 @section('content')
-    <div class="container pt-4">
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb small">
-                <li class="breadcrumb-item"><a href="{{ route('storefront.home') }}" class="text-decoration-none">{{ __('storefront.static.home_breadcrumb') }}</a></li>
-                <li class="breadcrumb-item active" aria-current="page">{{ $collection->translateAttribute('name') }}</li>
-            </ol>
-        </nav>
-        <h1 class="h3 mb-0">{{ $collection->translateAttribute('name') }}</h1>
-        @if($desc = $collection->translateAttribute('description'))
-            <p class="text-muted">{{ $desc }}</p>
-        @endif
-    </div>
+    @php $desc = $collection->translateAttribute('description'); @endphp
+
+    @if(!empty($bannerImage))
+        {{-- Collection banner: the collection's own image with the name +
+             description overlaid. Falls back to the plain header below when the
+             collection has no image. --}}
+        <section class="collection-banner" style="background-image:url('{{ $bannerImage }}');">
+            <div class="collection-banner__scrim"></div>
+            <div class="container collection-banner__inner">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb small collection-banner__crumbs">
+                        <li class="breadcrumb-item"><a href="{{ route('storefront.home') }}" class="text-decoration-none">{{ __('storefront.static.home_breadcrumb') }}</a></li>
+                        <li class="breadcrumb-item active" aria-current="page">{{ $collection->translateAttribute('name') }}</li>
+                    </ol>
+                </nav>
+                <h1 class="collection-banner__title">{{ $collection->translateAttribute('name') }}</h1>
+                @if($desc)
+                    <p class="collection-banner__desc">{{ $desc }}</p>
+                @endif
+            </div>
+        </section>
+    @else
+        <div class="container pt-4">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb small">
+                    <li class="breadcrumb-item"><a href="{{ route('storefront.home') }}" class="text-decoration-none">{{ __('storefront.static.home_breadcrumb') }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">{{ $collection->translateAttribute('name') }}</li>
+                </ol>
+            </nav>
+            <h1 class="h3 mb-0">{{ $collection->translateAttribute('name') }}</h1>
+            @if($desc)
+                <p class="text-muted">{{ $desc }}</p>
+            @endif
+        </div>
+    @endif
 
     @include('theme::partials.shop', [
         'shopType' => 'collection',

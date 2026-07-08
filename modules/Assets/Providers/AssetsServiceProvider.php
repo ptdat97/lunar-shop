@@ -152,10 +152,16 @@ class AssetsServiceProvider extends ServiceProvider
         });
 
         // Collection page: expose the collection's thumbnail as an OG image URL
-        // (for a rich social preview) without resolving a service in Blade.
+        // (for a rich social preview) plus a wide banner image, without resolving
+        // a service in Blade. Both use the same self-healing conversion URL; the
+        // banner is null when the collection has no image so the view can skip it.
         View::composer('theme::pages.collection', function ($view): void {
             $collection = $view->getData()['collection'] ?? null;
-            $view->with('ogImage', app(MediaUrl::class)->conversion($collection?->thumbnail, 'large'));
+            $image = app(MediaUrl::class)->conversion($collection?->thumbnail, 'large');
+            $view->with([
+                'ogImage' => $image,
+                'bannerImage' => $collection?->thumbnail ? $image : null,
+            ]);
         });
 
         // Checkout: expose a per-line thumbnail resolver so the order summary can
