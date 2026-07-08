@@ -297,6 +297,12 @@ return [
         'tab_label' => 'Tab name',
         'tab_products' => 'Products',
         'tab_products_help' => 'Pick the products shown on this tab. Leave empty to fall back to the newest products.',
+        'collection_grid' => 'Collection Grid',
+        'collections' => 'Collections',
+        'collection' => 'Collection',
+        'collection_image' => 'Image',
+        'collection_image_help' => 'Optional. Leave empty to use the collection\'s own thumbnail.',
+        'add_collection' => 'Add collection',
     ],
 
     'theme' => [

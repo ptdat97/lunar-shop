@@ -299,6 +299,12 @@ return [
         'tab_label' => 'Tên tab',
         'tab_products' => 'Sản phẩm',
         'tab_products_help' => 'Chọn sản phẩm hiển thị ở tab này. Để trống sẽ dùng sản phẩm mới nhất.',
+        'collection_grid' => 'Lưới bộ sưu tập',
+        'collections' => 'Bộ sưu tập',
+        'collection' => 'Bộ sưu tập',
+        'collection_image' => 'Ảnh',
+        'collection_image_help' => 'Tùy chọn. Để trống sẽ dùng ảnh mặc định của bộ sưu tập.',
+        'add_collection' => 'Thêm bộ sưu tập',
     ],
 
     'theme' => [

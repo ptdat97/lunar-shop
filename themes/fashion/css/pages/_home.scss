@@ -1,5 +1,5 @@
 // Home page — scoped to <body class="page-home">.
-// Modern luxury: editorial hero, animated sections, premium category grid.
+// Modern luxury: editorial hero, animated sections, premium collection grid.
 
 @use '../features/variables' as v;
 @use '../features/mixins' as m;
@@ -205,10 +205,10 @@
         }
     }
 
-    // ── Asymmetric category grid ───────────────────────────────────────────────
+    // ── Asymmetric collection grid ───────────────────────────────────────────────
     // First tile is a wide feature (2 cols / 2 rows on desktop); the rest are
     // portrait tiles. Breaks the "four equal cards" habit.
-    .category-grid {
+    .collection-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: v.$spacing-sm;
@@ -259,7 +259,7 @@
                 box-shadow: v.$shadow-xl;
                 img { transform: scale(1.06); }
 
-                .category-grid__shop {
+                .collection-grid__shop {
                     opacity: 1;
                     transform: translateY(0);
                 }
@@ -288,7 +288,7 @@
             font-weight: v.$font-weight-normal;
             line-height: 1.1;
 
-            .category-grid__item--feature & {
+            .collection-grid__item--feature & {
                 @include m.up(lg) { font-size: v.$font-size-3xl; }
             }
         }

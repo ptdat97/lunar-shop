@@ -185,7 +185,7 @@ return [
         'vnpay' => 'VNPay (thanh toán online)',
         'momo' => 'MoMo (ví điện tử)',
         'cod_hint' => 'Thanh toán bằng tiền mặt khi nhận hàng.',
-        'bank_transfer_hint' => 'Thanh toán bằng chuyển khoản; giao hàng sau khi xác nhận thanh toán.',
+        'bank_transfer_hint' => 'Giao hàng sau khi xác nhận thanh toán.',
         'vnpay_hint' => 'Bạn sẽ được chuyển tới VNPay để hoàn tất thanh toán an toàn.',
         'momo_hint' => 'Bạn sẽ được chuyển tới MoMo để hoàn tất thanh toán an toàn.',
     ],

@@ -19,7 +19,7 @@ class PageSection extends Model
     public const TYPES = [
         'promotions-strip' => 'Promotions Strip',
         'hero-slider' => 'Hero Slider',
-        'category-grid' => 'Category Grid',
+        'collection-grid' => 'Collection Grid',
         'product-tabs' => 'Product Tabs',
         'promotion-slider' => 'Promotion Slider',
         'lookbook' => 'Lookbook',

@@ -57,16 +57,56 @@ class ContentServiceProvider extends ServiceProvider
     {
         $renderer = $this->app->make(SectionRenderer::class);
 
-        // category-grid → collections
-        $renderer->provide('category-grid', function (array $settings) {
-            $limit = (int) ($settings['limit'] ?? 6);
+        // collection-grid → admin-curated collections with a per-item image
+        // override. Each item picks a Lunar Collection (collection_id) and may
+        // upload its own image; a blank image falls back to the collection's
+        // thumbnail (self-healed via MediaUrl). The provider returns flat,
+        // presentation-ready items so the Blade view resolves no service (§7).
+        $renderer->provide('collection-grid', function (array $settings) {
+            $items = $settings['items'] ?? [];
 
-            return [
-                'collections' => LunarCollection::query()
+            // Load every picked collection ONCE (N+1-free), preserving admin order.
+            $ids = collect($items)
+                ->map(fn ($item) => (int) ($item['collection_id'] ?? 0))
+                ->filter()
+                ->unique()
+                ->values();
+
+            $byId = $ids->isEmpty()
+                ? collect()
+                : LunarCollection::query()
                     ->with(['thumbnail'])
-                    ->limit($limit)
-                    ->get(),
-            ];
+                    ->whereIn('id', $ids)
+                    ->get()
+                    ->keyBy('id');
+
+            $urls = $this->app->make(\Modules\Assets\Services\MediaUrl::class);
+
+            $resolved = collect($items)
+                ->map(function ($item) use ($byId, $urls) {
+                    $collection = $byId->get((int) ($item['collection_id'] ?? 0));
+
+                    if (! $collection) {
+                        return null; // picked collection was deleted — drop it.
+                    }
+
+                    $override = trim((string) ($item['image'] ?? ''));
+
+                    return [
+                        'name' => $collection->translateAttribute('name'),
+                        'url' => $collection->defaultUrl?->slug
+                            ? route('storefront.collection', $collection->defaultUrl->slug)
+                            : '#',
+                        // Uploaded image wins; blank → collection thumbnail.
+                        'image' => $override !== ''
+                            ? $this->sectionImageUrl($override)
+                            : $urls->conversion($collection->thumbnail, 'medium'),
+                    ];
+                })
+                ->filter()
+                ->values();
+
+            return ['items' => $resolved];
         });
 
         // product-tabs → per-tab products. Each tab has an editable label and its
@@ -147,6 +187,21 @@ class ContentServiceProvider extends ServiceProvider
                 'pinnedPromotion' => $pinned,
             ];
         });
+    }
+
+    /**
+     * Normalise a section FileUpload path into a usable <img src>. Uploads on the
+     * `media` disk are stored as a relative path (e.g. sections/collection/x.jpg),
+     * which needs the disk's public prefix; already-absolute values (seed demo
+     * paths like /demo/…, or full URLs) are returned untouched.
+     */
+    protected function sectionImageUrl(string $path): string
+    {
+        if (str_starts_with($path, '/') || str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return \Illuminate\Support\Facades\Storage::disk('media')->url($path);
     }
 
     /**

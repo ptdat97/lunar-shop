@@ -18,6 +18,7 @@ use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
+use Lunar\Models\Collection as LunarCollection;
 use Lunar\Models\Product;
 use Modules\Content\Filament\Resources\PageSectionResource\Pages;
 use Modules\Content\Models\PageSection;
@@ -142,15 +143,43 @@ class PageSectionResource extends Resource
                 ]),
 
             FormSection::make(__('admin.section.settings'))
-                ->visible(fn (Get $get) => in_array($get('type'), ['category-grid', 'instagram']))
+                ->visible(fn (Get $get) => $get('type') === 'instagram')
                 ->columns(2)
                 ->schema([
-                    TextInput::make('settings.heading')->label(__('admin.common.heading'))
-                        ->visible(fn (Get $get) => in_array($get('type'), ['category-grid', 'instagram'])),
-                    TextInput::make('settings.subheading')->label(__('admin.common.subheading'))
-                        ->visible(fn (Get $get) => $get('type') === 'instagram'),
-                    TextInput::make('settings.limit')->label(__('admin.section.item_limit'))->numeric()->minValue(1)
-                        ->visible(fn (Get $get) => $get('type') === 'category-grid'),
+                    TextInput::make('settings.heading')->label(__('admin.common.heading')),
+                    TextInput::make('settings.subheading')->label(__('admin.common.subheading')),
+                ]),
+
+            // Collection grid: admin curates which collections show and can
+            // override each tile's image (blank → the collection's thumbnail).
+            FormSection::make(__('admin.section.collection_grid'))
+                ->visible(fn (Get $get) => $get('type') === 'collection-grid')
+                ->schema([
+                    TextInput::make('settings.kicker')->label(__('admin.section.kicker')),
+                    TextInput::make('settings.heading')->label(__('admin.common.heading')),
+                    Repeater::make('settings.items')
+                        ->label(__('admin.section.collections'))
+                        ->schema([
+                            Select::make('collection_id')
+                                ->label(__('admin.section.collection'))
+                                ->required()
+                                ->searchable()
+                                ->options(fn () => LunarCollection::get()
+                                    ->mapWithKeys(fn ($c) => [$c->id => $c->translateAttribute('name')]))
+                                ->getOptionLabelsUsing(fn (array $values): array => LunarCollection::query()
+                                    ->whereIn('id', $values)->get()
+                                    ->mapWithKeys(fn ($c) => [$c->id => $c->translateAttribute('name')])
+                                    ->all()),
+                            FileUpload::make('image')
+                                ->label(__('admin.section.collection_image'))
+                                ->image()->disk('media')->directory('sections/collection')
+                                ->helperText(__('admin.section.collection_image_help')),
+                        ])
+                        ->columns(2)->collapsible()->reorderable()
+                        ->itemLabel(fn (array $state) => $state['collection_id']
+                            ? (LunarCollection::find($state['collection_id'])?->translateAttribute('name') ?? __('admin.section.collection'))
+                            : __('admin.section.collection'))
+                        ->addActionLabel(__('admin.section.add_collection')),
                 ]),
 
             // Product tabs: each tab has an editable name and its own hand-picked

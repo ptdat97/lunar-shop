@@ -151,14 +151,6 @@ class AssetsServiceProvider extends ServiceProvider
             ]);
         });
 
-        View::composer('theme::sections.category-grid', function ($view): void {
-            // The grid resolves a per-collection image inline; expose the helper
-            // as a closure so the view stays free of service resolution.
-            $urls = app(MediaUrl::class);
-            $view->with('collectionImage', fn ($collection, string $size = 'small') =>
-                $urls->conversion($collection?->thumbnail, $size));
-        });
-
         // Collection page: expose the collection's thumbnail as an OG image URL
         // (for a rich social preview) without resolving a service in Blade.
         View::composer('theme::pages.collection', function ($view): void {

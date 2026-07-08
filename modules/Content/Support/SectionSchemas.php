@@ -43,9 +43,11 @@ class SectionSchemas
                 ],
             ],
 
-            'category-grid' => [
-                'heading' => 'Shop by categories',
-                'limit' => 6,
+            'collection-grid' => [
+                'heading' => 'Shop by collections',
+                // Curated by the admin: each item picks a collection + optional
+                // image override. Empty until curated (no hard-coded ids).
+                'items' => [],
             ],
 
             'product-tabs' => [
@@ -152,6 +154,6 @@ class SectionSchemas
      */
     public static function isDynamic(string $type): bool
     {
-        return in_array($type, ['category-grid', 'product-tabs', 'promotion-slider', 'promotions-strip'], true);
+        return in_array($type, ['collection-grid', 'product-tabs', 'promotion-slider', 'promotions-strip'], true);
     }
 }
