@@ -372,6 +372,46 @@ return [
         'cancel' => 'Hủy',
     ],
 
+    'queue_workers' => [
+        'title' => 'Worker hàng đợi',
+
+        // Supervisors
+        'supervisor-app' => 'Worker ứng dụng',
+        'supervisor-app_desc' => 'Công việc phục vụ khách: email đơn hàng, thông báo, job chung. Ưu tiên độ trễ, xử lý trước công việc media.',
+        'supervisor-media' => 'Worker media',
+        'supervisor-media_desc' => 'Xử lý ảnh nặng (sinh on-demand + regenerate hàng loạt). Tốn RAM/thời gian, tách riêng để không làm chậm job khách.',
+
+        // Fields
+        'maxProcesses' => 'Số tiến trình tối đa',
+        'maxProcesses_help' => 'Số worker chạy song song tối đa. Nhiều hơn = xử lý nhanh hơn nhưng tốn CPU/RAM.',
+        'memory' => 'Giới hạn bộ nhớ (MB)',
+        'memory_help' => 'Worker khởi động lại khi vượt mức này. Xử lý ảnh cần nhiều bộ nhớ hơn.',
+        'timeout' => 'Thời gian chờ (giây)',
+        'timeout_help' => 'Job bị dừng nếu chạy quá lâu. Ảnh lớn cần timeout dài hơn.',
+        'tries' => 'Số lần thử lại',
+        'tries_help' => 'Số lần thử lại một job lỗi trước khi đưa vào failed jobs.',
+
+        'save' => 'Lưu cấu hình worker',
+        'saved' => 'Đã lưu cấu hình worker',
+        'terminate_note' => 'Thay đổi có hiệu lực ở lần khởi động supervisor kế tiếp — chạy php artisan horizon:terminate để khởi động lại daemon.',
+        'save_note' => 'Giá trị đã lưu được áp vào Horizon khi khởi động. Chạy :terminate để daemon Horizon đang chạy nhận cấu hình mới.',
+
+        // Status
+        'worker_up' => 'Worker đang chạy.',
+        'worker_down' => 'Không có worker nào chạy.',
+        'worker_down_desc' => 'Job trong hàng đợi sẽ không được xử lý cho tới khi Horizon chạy. Khởi động bằng php artisan horizon.',
+        'horizon_missing' => 'Chưa cài Laravel Horizon — các cấu hình này chưa có tác dụng.',
+        'open_dashboard' => 'Mở bảng điều khiển Horizon',
+        'queue_status' => 'Trạng thái hàng đợi',
+        'queue' => 'Hàng đợi',
+        'pending' => 'Đang chờ',
+        'wait' => 'Chờ',
+        'processes' => 'Tiến trình',
+        'no_queue_data' => 'Chưa có dữ liệu hàng đợi (Horizon có thể đang khởi động).',
+        'recent_jobs' => ':count job gần đây',
+        'failed_jobs' => ':count lỗi',
+    ],
+
     'inventory' => [
         'title' => 'Mức tồn kho',
         'sku' => 'SKU',

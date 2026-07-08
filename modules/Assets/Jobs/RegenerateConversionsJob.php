@@ -9,7 +9,6 @@ use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Modules\Assets\Services\ConversionGenerator;
-use Modules\Assets\Services\MediaSettings;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -76,11 +75,13 @@ class RegenerateConversionsJob implements ShouldQueue
             Config::set('media-library.queue_conversions_by_default', $previous);
         }
 
-        // Bust the on-demand exists-cache so rebuilt files are picked up.
-        $conversionKeys = MediaSettings::keys();
-
+        // Bust the on-demand exists-cache so rebuilt files are picked up. Iterate
+        // EVERY conversion registered for each media (via conversionNames), not
+        // just the admin presets — regenerate rebuilt all of them (incl. thumb /
+        // webp / any StandardMediaDefinitions size), so a preset-only bust would
+        // leave those serving the stale file until the exists-cache TTL expired.
         Media::whereIn('id', $this->mediaIds)->get()->each(
-            fn (Media $media) => collect($conversionKeys)->each(
+            fn (Media $media) => collect($generator->conversionNames($media))->each(
                 fn (string $conversion) => $generator->forgetExists($media, $conversion)
             )
         );

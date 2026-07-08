@@ -370,6 +370,46 @@ return [
         'cancel' => 'Cancel',
     ],
 
+    'queue_workers' => [
+        'title' => 'Queue Workers',
+
+        // Supervisors
+        'supervisor-app' => 'App workers',
+        'supervisor-app_desc' => 'Customer-facing work: order emails, notifications, and general jobs. Latency-sensitive, drained ahead of media work.',
+        'supervisor-media' => 'Media workers',
+        'supervisor-media_desc' => 'Heavy image conversions (on-demand + batch regeneration). Memory/time heavy, isolated so it never delays customer jobs.',
+
+        // Fields
+        'maxProcesses' => 'Max processes',
+        'maxProcesses_help' => 'Maximum concurrent worker processes. More = faster draining but more CPU/RAM.',
+        'memory' => 'Memory limit (MB)',
+        'memory_help' => 'A worker restarts when it exceeds this. Media conversions need more headroom.',
+        'timeout' => 'Timeout (seconds)',
+        'timeout_help' => 'A job killed after running this long. Large images need a longer timeout.',
+        'tries' => 'Retries',
+        'tries_help' => 'How many times a failed job is retried before it lands in failed jobs.',
+
+        'save' => 'Save worker settings',
+        'saved' => 'Worker settings saved',
+        'terminate_note' => 'Changes apply on the next supervisor launch — run php artisan horizon:terminate to restart the running daemon.',
+        'save_note' => 'Saved values are applied to Horizon at boot. Run :terminate so the running Horizon daemon picks them up.',
+
+        // Status
+        'worker_up' => 'Workers are running.',
+        'worker_down' => 'No workers running.',
+        'worker_down_desc' => 'Queued jobs won\'t process until Horizon is up. Start it with php artisan horizon.',
+        'horizon_missing' => 'Laravel Horizon is not installed — these settings have no effect until it is.',
+        'open_dashboard' => 'Open Horizon dashboard',
+        'queue_status' => 'Queue status',
+        'queue' => 'Queue',
+        'pending' => 'Pending',
+        'wait' => 'Wait',
+        'processes' => 'Processes',
+        'no_queue_data' => 'No queue data available (Horizon may be starting up).',
+        'recent_jobs' => ':count recent jobs',
+        'failed_jobs' => ':count failed',
+    ],
+
     'inventory' => [
         'title' => 'Stock Levels',
         'sku' => 'SKU',

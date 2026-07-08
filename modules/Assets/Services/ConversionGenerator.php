@@ -245,16 +245,17 @@ class ConversionGenerator
      */
     public function nearestExisting(Media $media, string $conversion): ?string
     {
-        $sizes = app(MediaSettings::class)->sizes();
-        $targetWidth = $sizes[$conversion]['width'] ?? null;
+        $collection = ConversionCollection::createForMedia($media);
+        $targetWidth = $this->conversionWidth($collection, $conversion);
 
         $existing = [];
-        foreach ($this->conversionNames($media) as $name) {
+        foreach ($collection as $c) {
+            $name = $c->getName();
             if ($name === $conversion) {
                 continue;
             }
             if ($this->fileExists($media, $name)) {
-                $existing[$name] = $sizes[$name]['width'] ?? PHP_INT_MAX;
+                $existing[$name] = $this->conversionWidth($collection, $name) ?? PHP_INT_MAX;
             }
         }
 
@@ -276,6 +277,36 @@ class ConversionGenerator
         arsort($existing);
 
         return array_key_first($existing);
+    }
+
+    /**
+     * The target width (px) a conversion produces, read from the conversion's own
+     * manipulations — the source of truth for EVERY registered conversion, not
+     * just the admin presets in MediaSettings. Handles both the `fit()` form
+     * (`->fit(Fit::Crop, $w, $h)` → args [Fit, w, h]) and the plain `width()`
+     * form. Returns null when no width manipulation is present (unbounded).
+     */
+    protected function conversionWidth(ConversionCollection $collection, string $conversion): ?int
+    {
+        $c = $collection->first(fn (Conversion $c) => $c->getName() === $conversion);
+
+        if (! $c) {
+            return null;
+        }
+
+        $manipulations = $c->getManipulations();
+
+        $fit = $manipulations->getManipulationArgument('fit');
+        if (is_array($fit) && isset($fit[1]) && is_numeric($fit[1])) {
+            return (int) $fit[1];
+        }
+
+        $width = $manipulations->getFirstManipulationArgument('width');
+        if (is_numeric($width)) {
+            return (int) $width;
+        }
+
+        return null;
     }
 
     /**

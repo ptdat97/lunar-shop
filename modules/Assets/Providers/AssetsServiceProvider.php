@@ -7,7 +7,9 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Modules\Assets\Filament\Pages\MediaImageSizes;
 use Modules\Assets\Filament\Pages\MediaLibrary;
+use Modules\Assets\Filament\Pages\QueueWorkers;
 use Modules\Assets\Services\FileManager;
+use Modules\Assets\Services\HorizonSettings;
 use Modules\Assets\Services\MediaSettings;
 use Modules\Assets\Services\MediaUrl;
 use Modules\Core\Support\AdminPages;
@@ -24,6 +26,7 @@ class AssetsServiceProvider extends ServiceProvider
         // Contribute the image-sizes + media-library pages to Lunar's admin panel.
         AdminPages::add(MediaImageSizes::class);
         AdminPages::add(MediaLibrary::class);
+        AdminPages::add(QueueWorkers::class);
     }
 
     /**
@@ -41,9 +44,51 @@ class AssetsServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/../Routes/web.php');
         $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
 
+        $this->applyHorizonSettings();
         $this->composeThemeImages();
         $this->composeLookbookFiles();
         $this->warmConversionsOnUpload();
+    }
+
+    /**
+     * Push admin-configured worker scaling ({@see HorizonSettings}) into the live
+     * `horizon.*` config before Horizon reads it to launch its supervisors, so
+     * maxProcesses/memory/timeout/tries are controllable from the panel instead
+     * of only config/horizon.php.
+     *
+     * Both layers are overridden because Horizon merges an environment block over
+     * the defaults: the `defaults.*` block sets memory/timeout/tries (which the
+     * environment blocks don't repeat), and the `environments.{env}.*` block sets
+     * maxProcesses (which Horizon takes from the environment, so overriding only
+     * the default would be ignored in prod/local).
+     *
+     * Guarded so a CLI/test run without Horizon installed — or a Settings read
+     * that fails at boot — never breaks the app; it just falls back to config.
+     */
+    protected function applyHorizonSettings(): void
+    {
+        if (! class_exists(\Laravel\Horizon\Horizon::class)) {
+            return;
+        }
+
+        try {
+            $supervisors = $this->app->make(HorizonSettings::class)->supervisors();
+        } catch (\Throwable $e) {
+            return; // Settings/DB unavailable at boot — keep config defaults.
+        }
+
+        $env = $this->app->environment();
+
+        foreach ($supervisors as $supervisor => $values) {
+            foreach ($values as $field => $value) {
+                config(["horizon.defaults.{$supervisor}.{$field}" => $value]);
+            }
+
+            // Horizon applies the environment block last; maxProcesses lives there.
+            if (config("horizon.environments.{$env}.{$supervisor}") !== null) {
+                config(["horizon.environments.{$env}.{$supervisor}.maxProcesses" => $values['maxProcesses']]);
+            }
+        }
     }
 
     /**
