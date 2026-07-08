@@ -9,8 +9,8 @@ use Lunar\Admin\Filament\Resources\ProductResource;
 use Lunar\Admin\LunarPanelManager;
 use Lunar\Admin\Support\Facades\LunarPanel;
 use Modules\Catalog\Filament\Extensions\ProductSizeExtension;
-use Modules\Theme\Filament\Resources as Custom;
 use Modules\Core\Support\AdminPages;
+use Modules\Theme\Filament\Resources as Custom;
 
 class ModulesServiceProvider extends ServiceProvider
 {

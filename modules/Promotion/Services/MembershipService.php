@@ -2,9 +2,12 @@
 
 namespace Modules\Promotion\Services;
 
+use Illuminate\Support\Collection;
+use Lunar\Models\Currency;
 use Lunar\Models\Customer;
 use Lunar\Models\CustomerGroup;
 use Lunar\Models\Order;
+use Modules\Core\Support\Settings;
 
 /**
  * Spend-based loyalty tiers, layered on Lunar's native CustomerGroup system.
@@ -21,12 +24,12 @@ class MembershipService
     /** Tier config rows, ascending by min_spend (admin-configurable). */
     public function tiers(): array
     {
-        return (array) app(\Modules\Core\Support\Settings::class)->get('promotion.membership.tiers', []);
+        return (array) app(Settings::class)->get('promotion.membership.tiers', []);
     }
 
     public function enabled(): bool
     {
-        return (bool) app(\Modules\Core\Support\Settings::class)->get('promotion.membership.enabled', false);
+        return (bool) app(Settings::class)->get('promotion.membership.enabled', false);
     }
 
     /**
@@ -49,7 +52,7 @@ class MembershipService
      */
     public function tierForSpend(int $spendMinor): ?array
     {
-        $factor = (int) (\Lunar\Models\Currency::getDefault()?->factor ?: 100);
+        $factor = (int) (Currency::getDefault()?->factor ?: 100);
         $spendMajor = $spendMinor / $factor;
 
         $matched = null;
@@ -74,7 +77,7 @@ class MembershipService
     }
 
     /** All CustomerGroups managed by membership tiers. */
-    public function managedGroupIds(): \Illuminate\Support\Collection
+    public function managedGroupIds(): Collection
     {
         $handles = collect($this->tiers())->pluck('handle');
 
@@ -124,7 +127,7 @@ class MembershipService
      */
     public function currentTier(Customer $customer): ?array
     {
-        $groupIds = $customer->customerGroups()->pluck($customer->customerGroups()->getTable() . '.id');
+        $groupIds = $customer->customerGroups()->pluck($customer->customerGroups()->getTable().'.id');
 
         $current = null;
         foreach ($this->tiers() as $tier) {
@@ -150,7 +153,7 @@ class MembershipService
         }
 
         $spend = $this->lifetimeSpend($customer);
-        $factor = (int) (\Lunar\Models\Currency::getDefault()?->factor ?: 100);
+        $factor = (int) (Currency::getDefault()?->factor ?: 100);
         $spendMajor = $spend / $factor;
 
         foreach ($this->tiers() as $tier) {

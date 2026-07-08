@@ -1,11 +1,11 @@
 <?php
 
-use Illuminate\Foundation\Application;
-use Illuminate\Foundation\Configuration\Exceptions;
-use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Foundation\Application;
+use Illuminate\Foundation\Configuration\Exceptions;
+use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -24,13 +24,18 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'payment/momo/ipn',
         ]);
+
+        // Append `throttle:api` to the api middleware group. The `api` limiter
+        // is defined in AppServiceProvider; credential endpoints add the
+        // stricter `throttle:auth` per-route.
+        $middleware->throttleApi();
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // R4 — one error envelope for every /api/v1/* failure, regardless of the
         // client's Accept header: { message, errors? }. Mirrors Laravel's own
         // validation shape so existing clients/tests keep working, and gives
         // headless consumers a single predictable error contract.
-        $exceptions->render(function (\Throwable $e, Request $request): ?JsonResponse {
+        $exceptions->render(function (Throwable $e, Request $request): ?JsonResponse {
             if (! $request->is('api/v1/*')) {
                 return null; // let web/SSR errors render normally
             }

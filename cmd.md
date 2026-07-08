@@ -7,6 +7,13 @@ php artisan lunar:install
 php artisan vendor:publish --tag=lunar
 ```
 
+## Queue work
+
+```bash
+php artisan queue:work
+
+
+
 ## Quản lý dữ liệu
 
 ```bash

@@ -346,7 +346,7 @@ return [
         'file_deleted' => 'File deleted',
         'pick' => 'Select from Media Library…',
         'missing' => 'Selected file no longer exists in the library.',
-        
+
         // Media Image Sizes Page
         'no_worker' => 'No queue worker running.',
         'no_worker_desc' => 'Image (re)generation is queued but won\'t process until a worker is up. Start Horizon with :command1 (or :command2).',

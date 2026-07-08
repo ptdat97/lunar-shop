@@ -20,15 +20,19 @@ Route::prefix('api/v1')->middleware('api')->group(function (): void {
 // Token (PAT) auth for native app / headless clients — stateless, no session,
 // so the plain `api` group (not `web`). The SPA cookie flow below is unchanged;
 // the authenticated endpoints already accept the issued bearer token.
-Route::prefix('api/v1')->middleware('api')->group(function (): void {
+Route::prefix('api/v1')->middleware(['api', 'throttle:auth'])->group(function (): void {
     Route::post('auth/token', [TokenAuthController::class, 'issue'])->name('api.v1.auth.token');
     Route::post('auth/token/register', [TokenAuthController::class, 'register'])->name('api.v1.auth.token.register');
 });
 
 // Auth uses Sanctum SPA (cookie session) → stateful `web` group.
 Route::prefix('api/v1')->middleware('web')->group(function (): void {
-    Route::post('auth/register', [AuthController::class, 'register'])->name('api.v1.auth.register');
-    Route::post('auth/login', [AuthController::class, 'login'])->name('api.v1.auth.login');
+    // Brute-force guard: strict per-IP limiter on credential endpoints (the
+    // stateful SPA flow runs in the `web` group, which has no default throttle).
+    Route::post('auth/register', [AuthController::class, 'register'])
+        ->middleware('throttle:auth')->name('api.v1.auth.register');
+    Route::post('auth/login', [AuthController::class, 'login'])
+        ->middleware('throttle:auth')->name('api.v1.auth.login');
     Route::post('auth/logout', [AuthController::class, 'logout'])->name('api.v1.auth.logout');
 
     // Login-state probes fired on page load by the storefront (header wishlist

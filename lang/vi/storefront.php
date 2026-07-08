@@ -2,6 +2,20 @@
 
 return [
 
+    'errors' => [
+        '404_title' => 'Không tìm thấy trang',
+        '404_message' => 'Trang bạn tìm không tồn tại hoặc đã được chuyển đi.',
+        '500_title' => 'Đã có lỗi xảy ra',
+        '500_message' => 'Có lỗi không mong muốn. Vui lòng thử lại sau ít phút.',
+        '503_title' => 'Chúng tôi sẽ quay lại ngay',
+        '503_message' => 'Cửa hàng đang bảo trì trong giây lát. Vui lòng quay lại sau.',
+        '403_title' => 'Không có quyền truy cập',
+        '403_message' => 'Bạn không có quyền xem trang này.',
+        '419_title' => 'Phiên đã hết hạn',
+        '419_message' => 'Phiên làm việc đã hết hạn. Vui lòng quay lại và thử lại.',
+        'go_home' => 'Về trang chủ',
+    ],
+
     'nav' => [
         'home' => 'Trang chủ',
         'menu' => 'Danh mục',

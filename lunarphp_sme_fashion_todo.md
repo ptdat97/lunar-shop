@@ -62,8 +62,17 @@
 - ✅ Mail đơn hàng → queue `mails`; back-in-stock → `notifications`; resize ảnh →
   `media` (on-demand async fallback + pre-warm sau upload + batch regenerate với
   progress/ETA/worker-status Horizon-aware).
+- ✅ **Production hardening (2026-07-08)** — xem
+  [lunarphp_sme_fashion_deploy.md](lunarphp_sme_fashion_deploy.md) (runbook đầy đủ):
+  rate limiting (`throttle:api` 120/phút toàn nhóm api + `throttle:auth` 10/phút/IP
+  trên login/register/token), Horizon gate → Lunar staff admin (guard `staff`),
+  scheduler (`horizon:snapshot` 5' + prune sanctum token/failed jobs), error pages
+  404/500/503/403/419 tự chứa song ngữ (`resources/views/errors/`), verify
+  `config:cache`/`route:cache`/`event:cache` chạy được, gỡ `.env` khỏi git index
+  (⚠️ secrets vẫn trong history — **phải rotate trước khi deploy**, xem runbook §0).
 - Việc còn lại: CDN cho `public/` (media + build assets) khi deploy; rà lại DB index
-  sau khi có traffic thật (đã có `add_performance_indexes` làm nền).
+  sau khi có traffic thật (đã có `add_performance_indexes` làm nền); error tracker
+  (Sentry) + CI khi có ngân sách.
 
 ---
 
@@ -170,8 +179,8 @@
 - ✅ Test: `SeoTest` (CMS page WebPage+BreadcrumbList JSON-LD; unpublished → 404).
 
 ### 13. Test cho tính năng JS-heavy + module tests — *toàn repo*
-- 110 test ở `tests/Feature`. Chưa phủ: picture/srcset, search-panel, notify-me UI,
-  lookbook-shoppable, variant deep-link (SSR price + query sync), MoMo (khi có).
+- 163 test ở `tests/Feature` (2026-07-08). Chưa phủ: picture/srcset, search-panel,
+  notify-me UI, lookbook-shoppable, variant deep-link (SSR price + query sync).
 - **Chuẩn hóa test cạnh module:** hiện `modules/*/Tests` = 0 (toàn bộ ở `tests/Feature`
   root). Sau đợt gộp 24→11 module, nên thêm test smoke cho từng module ở
   `modules/<Name>/Tests` để ranh giới rõ.

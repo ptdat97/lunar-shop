@@ -232,7 +232,7 @@ page/resource module đóng góp), `Support\LunarConfigOverride` (re-apply overr
 | **Checkout** | Checkout + Cart + Payment | Luồng cart → checkout → payment | Services: `CartService`, `CheckoutService`, `VNPayGateway`, `VNPayPaymentProcessor`. PaymentTypes: `VNPayPayment`. VNPay controller + return/IPN. Config override `cart-overrides.php` + `payment-overrides.php`. |
 | **Customer** | Customer + Location | Khách, địa chỉ, auth, wishlist, địa giới VN | Services: `CustomerResolver`, `WishlistService`, `CountryService`. Models: `WishlistItem`, `Province`, `Ward`. Auth web + Sanctum (cookie + PAT), address book, order history, VN provinces/wards API + seeder dataset. |
 | **Order** | — | Order, trạng thái, email giao dịch | Services: `OrderService`, `OrderMailer`. 3 mailable queued + observer/listeners. |
-| **Promotion** | — | Discount nâng cao hiển thị storefront | Services: `PromotionService`, `MembershipService`. Custom discount types + flash sale + membership. |
+| **Promotion** | — | Discount nâng cao hiển thị storefront | Services: `PromotionService` (facade: queries + coupon + memoization), `PromotionTargetResolver` (targeting/eligibility), `SaleBadgeService` (badge/banner/describe), `MembershipService`. Custom discount types + flash sale + membership. |
 | **Inventory** | — | Stock per-variant, reserve, notify-me | Services: `InventoryService`, `StockNotificationService`, `BackInStockNotifier`. Model `StockNotification`. Filament page Stock Overview. |
 | **Shipping** | — | Zone/rate DB-backed | Services: `ShippingService`, `ShippingZoneResolver`. Model `ShippingZone`. Filament resource. |
 | **Analytics** | — | Dashboard bán hàng | `AnalyticsService` + Filament Sales Dashboard. |
@@ -483,7 +483,7 @@ morph-alias-aware, cache 1h) + `robots.txt`. Storefront SSR Blade → crawlable.
 
 # Test
 
-**110 test / 414 assertion, all green** — `tests/Feature/` (23 file), chạy trên MySQL
+**163 test / 541 assertion, all green (2026-07-08)** — `tests/Feature/`, chạy trên MySQL
 `lunar_testing` (app phụ thuộc JSON functions/facets — SQLite không emulate được).
 `tests/TestCase` dùng `RefreshDatabase`; trait `CreatesStorefrontData` seed base data +
 fixture product/size-chart. Chạy: `vendor/bin/phpunit` (testsuite `Feature`).

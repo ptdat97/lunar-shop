@@ -2,6 +2,20 @@
 
 return [
 
+    'errors' => [
+        '404_title' => 'Page not found',
+        '404_message' => "The page you're looking for doesn't exist or has moved.",
+        '500_title' => 'Something went wrong',
+        '500_message' => 'An unexpected error occurred. Please try again in a moment.',
+        '503_title' => "We'll be right back",
+        '503_message' => 'The store is briefly down for maintenance. Please check back shortly.',
+        '403_title' => 'Access denied',
+        '403_message' => "You don't have permission to view this page.",
+        '419_title' => 'Session expired',
+        '419_message' => 'Your session expired. Please go back and try again.',
+        'go_home' => 'Back to homepage',
+    ],
+
     'nav' => [
         'home' => 'Home',
         'menu' => 'Menu',

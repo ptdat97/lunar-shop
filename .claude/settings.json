@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "defaultMode": "bypassPermissions",
+    "allow": [
+      "Bash",
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "WebFetch",
+      "WebSearch",
+      "Cmd",
+      "PowerShell",
+      "Execute",
+      "TaskKill",
+      "Registry",
+      "FileSystem",
+      "Process"
+    ],
+    "deny": []
+  }
+}

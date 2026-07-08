@@ -348,7 +348,7 @@ return [
         'file_deleted' => 'Đã xoá file',
         'pick' => 'Chọn từ Thư viện Media…',
         'missing' => 'File đã chọn không còn trong thư viện.',
-        
+
         // Media Image Sizes Page
         'no_worker' => 'Không có worker hàng đợi đang chạy.',
         'no_worker_desc' => 'Việc (tái)tạo hình ảnh đã được xếp hàng đợi nhưng sẽ không xử lý cho đến khi worker khởi động. Khởi động Horizon với :command1 (hoặc :command2).',
