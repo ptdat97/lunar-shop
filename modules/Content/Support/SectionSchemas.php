@@ -12,7 +12,7 @@ namespace Modules\Content\Support;
 class SectionSchemas
 {
     /**
-     * @return array<string, mixed>  default settings for a section type
+     * @return array<string, mixed> default settings for a section type
      */
     public static function defaults(string $type): array
     {
@@ -138,11 +138,6 @@ class SectionSchemas
                         'product_price' => '$60.00',
                     ],
                 ],
-            ],
-
-            'instagram' => [
-                'heading' => 'Shop Instagram',
-                'subheading' => 'Elevate your wardrobe with fresh finds today!',
             ],
 
             default => [],

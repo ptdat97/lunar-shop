@@ -5,6 +5,8 @@ namespace Modules\Theme\Services;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * Admin-configurable theme content (logo, topbar, social, contact, payment).
@@ -66,9 +68,9 @@ class ThemeSettings
             return '';
         }
 
-        return \Illuminate\Support\Str::startsWith($path, ['/', 'http'])
+        return Str::startsWith($path, ['/', 'http'])
             ? $path
-            : \Illuminate\Support\Facades\Storage::disk('media')->url($path);
+            : Storage::disk('media')->url($path);
     }
 
     /**
@@ -135,7 +137,6 @@ class ThemeSettings
             'social' => [
                 ['icon' => 'icon-fb', 'url' => '#'],
                 ['icon' => 'icon-x', 'url' => '#'],
-                ['icon' => 'icon-instagram', 'url' => '#'],
                 ['icon' => 'icon-tiktok', 'url' => '#'],
                 ['icon' => 'icon-amazon', 'url' => '#'],
                 ['icon' => 'icon-pinterest', 'url' => '#'],

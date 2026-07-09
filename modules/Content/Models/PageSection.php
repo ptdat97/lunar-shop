@@ -2,6 +2,7 @@
 
 namespace Modules\Content\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Cache;
 
@@ -15,7 +16,7 @@ class PageSection extends Model
      * Section types available to the admin. Each maps to a Blade partial in
      * the active theme (theme::sections.{type}).
      *
-     * @return array<string, string>  type => label
+     * @return array<string, string> type => label
      */
     public const TYPES = [
         'promotions-strip' => 'Promotions Strip',
@@ -26,7 +27,6 @@ class PageSection extends Model
         'lookbook' => 'Lookbook',
         'testimonial' => 'Testimonial',
         'iconbox' => 'Icon Box',
-        'instagram' => 'Instagram Gallery',
     ];
 
     protected $fillable = [
@@ -79,7 +79,7 @@ class PageSection extends Model
      * Builder::forPage() used internally by paginate(), which silently breaks
      * pagination (empty table in admin).
      */
-    public function scopeForPageHandle(\Illuminate\Database\Eloquent\Builder $query, string $handle): \Illuminate\Database\Eloquent\Builder
+    public function scopeForPageHandle(Builder $query, string $handle): Builder
     {
         return $query->where('page_handle', $handle)
             ->where('enabled', true)

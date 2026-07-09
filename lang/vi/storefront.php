@@ -249,7 +249,6 @@ return [
         'save_measurements' => 'Lưu số đo của tôi cho lần sau',
         'recommended_size' => 'Size gợi ý',
         'use_this_size' => 'Dùng size này',
-        'instagram_aria' => 'Instagram',
     ],
 
 ];

@@ -23,7 +23,6 @@ class HomeSectionsSeeder extends Seeder
             'lookbook',
             'testimonial',
             'iconbox',
-            'instagram',
         ];
 
         foreach ($order as $i => $type) {

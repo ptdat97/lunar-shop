@@ -23,6 +23,7 @@ use Lunar\Models\Product;
 use Modules\Content\Filament\Resources\PageSectionResource\Pages;
 use Modules\Content\Models\PageSection;
 use Modules\Content\Support\SectionSchemas;
+use Modules\Promotion\Services\PromotionService;
 
 class PageSectionResource extends Resource
 {
@@ -142,14 +143,6 @@ class PageSectionResource extends Resource
                         ->columns(2)->collapsible()->reorderable()->itemLabel(fn (array $state) => $state['author'] ?? __('admin.section.review')),
                 ]),
 
-            FormSection::make(__('admin.section.settings'))
-                ->visible(fn (Get $get) => $get('type') === 'instagram')
-                ->columns(2)
-                ->schema([
-                    TextInput::make('settings.heading')->label(__('admin.common.heading')),
-                    TextInput::make('settings.subheading')->label(__('admin.common.subheading')),
-                ]),
-
             // Collection grid: admin curates which collections show and can
             // override each tile's image (blank → the collection's thumbnail).
             FormSection::make(__('admin.section.collection_grid'))
@@ -221,7 +214,7 @@ class PageSectionResource extends Resource
                         ->numeric()->minValue(1)->maxValue(50)->default(12)
                         ->helperText(__('admin.section.promotion_count_help')),
                     Select::make('settings.promotion')->label(__('admin.section.promotion_pin'))
-                        ->options(fn () => app(\Modules\Promotion\Services\PromotionService::class)
+                        ->options(fn () => app(PromotionService::class)
                             ->displayablePromotions()
                             ->mapWithKeys(fn ($d) => [$d->handle => $d->name])
                             ->all())

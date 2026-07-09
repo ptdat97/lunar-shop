@@ -249,7 +249,6 @@ return [
         'save_measurements' => 'Save my measurements for next time',
         'recommended_size' => 'Recommended size',
         'use_this_size' => 'Use this size',
-        'instagram_aria' => 'Instagram',
     ],
 
 ];

@@ -339,10 +339,4 @@
 
         .container { position: relative; z-index: 1; }
     }
-
-    // ── Instagram band ─────────────────────────────────────────────────────────
-    .instagram {
-        padding-block: v.$spacing-3xl v.$spacing-4xl;
-        background: v.$bg-primary;
-    }
 }

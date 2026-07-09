@@ -75,7 +75,7 @@ class ThemeSettingsPage extends Page implements HasForms
 
                 Section::make(__('admin.theme.social'))->schema([
                     Repeater::make('social')->schema([
-                        TextInput::make('icon')->label(__('admin.theme.icon'))->placeholder('icon-fb / icon-instagram')->required(),
+                        TextInput::make('icon')->label(__('admin.theme.icon'))->placeholder('icon-fb / icon-tiktok')->required(),
                         TextInput::make('url')->label(__('admin.common.url'))->url()->default('#'),
                     ])->columns(2)->reorderable(),
                 ]),
