@@ -3,6 +3,7 @@
 namespace Modules\Theme\Filament\Pages;
 
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
@@ -67,6 +68,17 @@ class ThemeSettingsPage extends Page implements HasForms
                     TextInput::make('copyright')->label(__('admin.theme.copyright'))->columnSpanFull(),
                 ]),
 
+                Section::make(__('admin.theme.brand'))
+                    ->description(__('admin.theme.brand_desc'))
+                    ->columns(2)
+                    ->schema([
+                        FileUpload::make('brand.email_logo')->label(__('admin.theme.email_logo'))
+                            ->helperText(__('admin.theme.email_logo_help'))
+                            ->image()->disk('media')->directory('theme/logo'),
+                        ColorPicker::make('brand.email_accent')->label(__('admin.theme.email_accent'))
+                            ->helperText(__('admin.theme.email_accent_help')),
+                    ]),
+
                 Section::make(__('admin.theme.topbar'))->schema([
                     Repeater::make('topbar')->label(__('admin.theme.topbar_slides'))->simple(
                         TextInput::make('text')->required(),
@@ -124,7 +136,7 @@ class ThemeSettingsPage extends Page implements HasForms
         $data = $this->form->getState();
         $settings = app(ThemeSettings::class);
 
-        foreach (['general', 'topbar', 'social', 'contact', 'newsletter', 'payment', 'language'] as $group) {
+        foreach (['general', 'brand', 'topbar', 'social', 'contact', 'newsletter', 'payment', 'language'] as $group) {
             if (array_key_exists($group, $data)) {
                 $settings->set($group, (array) $data[$group]);
             }

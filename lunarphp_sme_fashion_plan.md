@@ -226,7 +226,7 @@ page/resource module đóng góp), `Support\LunarConfigOverride` (re-apply overr
 
 | Module | Gộp từ | Trách nhiệm | Nội dung chính |
 |---|---|---|---|
-| **Catalog** | Catalog + Product + Pricing + Review + Recommend + Search + Collection | Toàn bộ hiển thị/truy vấn sản phẩm | Services: `ProductService`, `PricingService`, `ReviewService`, `RecommendationService`, `CollectionService`, `SitemapService`, `SizeChartService`, `SizeRecommender`. Models: `ProductMaterial`, `SizeChart`, `SizeChartRow`, `Review`. Contracts/Drivers: `SearchEngine` + `DatabaseSearchEngine`. Strategies: `Association`, `Collection`. 7 file Filament (SizeChartResource + ProductSizeExtension). Home/sitemap/health + seeders demo. |
+| **Catalog** | Catalog + Product + Pricing + Review + Recommend + Search + Collection | Toàn bộ hiển thị/truy vấn sản phẩm | Services: `ProductService`, `PricingService`, `ReviewService`, `RecommendationService`, `CollectionService`, `SitemapService`, `SizeChartService`, `SizeRecommender`, `FitHistoryService`. Models: `ProductMaterial`, `SizeChart`, `SizeChartRow`, `Review`. Contracts/Drivers: `SearchEngine` + `DatabaseSearchEngine`. Strategies: `Association`, `Collection`. 7 file Filament (SizeChartResource + ProductSizeExtension). Home/sitemap/health + seeders demo. |
 | **Content** | CMS + SectionBuilder + Menu | Nội dung storefront admin-managed | Models: `Page`, `Banner`, `Lookbook`(+Image/Item), `Redirect`, `PageSection`, `Menu`(+Item). Services: `ContentService`, `SectionRenderer`, `MenuRenderer`, `MenuTree`. 20 file Filament (6 resource: Page/Banner/Lookbook/Redirect/PageSection/Menu). |
 | **Assets** | Media + FileManager | Ảnh/file | Services: `MediaUrl`, `ConversionGenerator`, `MediaRegenerator`, `MediaSettings`, `FileManager`. On-demand conversion + media library. 3 file Filament (MediaImageSizes, MediaLibrary, MediaPicker). |
 | **Checkout** | Checkout + Cart + Payment | Luồng cart → checkout → payment | Services: `CartService`, `CheckoutService`, `VNPayGateway`, `VNPayPaymentProcessor`. PaymentTypes: `VNPayPayment`. VNPay controller + return/IPN. Config override `cart-overrides.php` + `payment-overrides.php`. |
@@ -278,7 +278,7 @@ các endpoint này (nhúng `$state` JSON vào DOM) → một contract cho cả S
 GET    /api/v1/products                                  (+ ?slugs= giữ thứ tự cho recently-viewed)
 GET    /api/v1/products/{slug}                           (+ ?include=size_chart,related)
 GET    /api/v1/products/{slug}/size-chart
-POST   /api/v1/products/{slug}/recommend-size
+POST   /api/v1/products/{slug}/recommend-size           (+ fit_history khi đã đăng nhập)
 GET    /api/v1/products/{slug}/recommendations
 GET    /api/v1/products/{product}/reviews  · POST …/reviews
 GET    /api/v1/collections/{slug}
@@ -403,7 +403,13 @@ theo session không cần crawl (cart drawer/page, wishlist).
 - **Review:** model + service + API `products/{product}/reviews`; summary (count+average)
   nhúng vào product payload.
 - **Size Intelligence:** size chart + "find my size" (`/recommend-size` → gợi ý, áp vào
-  variant picker qua event `size:recommended`).
+  variant picker qua event `size:recommended`). **v2 — fit history**
+  (`FitHistoryService`): suy size thật từ order line đã PAID (variant option `size`) +
+  `return_requests` có hướng (`too-small`/`too-large`); size đã giữ thắng size đã trả,
+  mâu thuẫn → im lặng, trả N chật + N+1 rộng → cảnh báo "giữa hai size". Thứ tự size theo
+  `SizeChartRow.sort`. Trả về ở khoá `fit_history` của `/recommend-size` (additive,
+  endpoint vẫn public: guest → `null` + 200; resolve user qua guard `sanctum` nên nhận cả
+  cookie SPA lẫn Bearer token).
 - **Media (Assets):** on-demand conversion (`MediaUrl`/`ConversionGenerator` sinh size
   khi request), sizes cấu hình qua Filament (`MediaSettings`), responsive `<picture>`
   + width-srcset (WebP) ở product card + gallery LCP (`fetchpriority`, dimensions chống
@@ -424,6 +430,11 @@ theo session không cần crawl (cart drawer/page, wishlist).
   `OrderPaidMail`, `OrderStatusUpdatedMail`) + markdown templates + `OrderMailer`.
   Wiring: confirm qua `PaymentAttemptEvent`, paid qua event `OrderPaid` (VNPay callback),
   status-update qua `OrderObserver`.
+- **Branding email:** logo + màu nhấn từ Theme Settings (`ThemeSettings::emailLogo()` —
+  URL tuyệt đối vì email render ngoài origin; `emailAccent()` validate hex). Override
+  `resources/views/vendor/mail/html/header.blade.php` (logo, fallback site name) và
+  `resources/views/mail/default.blade.php` (theme CSS — **phải** ở path này vì chỉ view
+  `mail.default` mới được Blade compile, xem `Illuminate\Mail\Markdown::render()`).
 
 ## Promotion
 - Wrap Lunar Discounts. **Custom discount types** (`QuantityPercentageOff` "mua N giảm
@@ -485,7 +496,7 @@ morph-alias-aware, cache 1h) + `robots.txt`. Storefront SSR Blade → crawlable.
 
 # Test
 
-**170 test / 556 assertion, all green (2026-07-09)** — `tests/Feature/`, chạy trên MySQL
+**191 test / 596 assertion, all green (2026-07-09)** — `tests/Feature/`, chạy trên MySQL
 `lunar_testing` (app phụ thuộc JSON functions/facets — SQLite không emulate được).
 `tests/TestCase` dùng `RefreshDatabase`; trait `CreatesStorefrontData` seed base data +
 fixture product/size-chart. Chạy: `vendor/bin/phpunit` (testsuite `Feature`).
@@ -496,7 +507,8 @@ coupon), address book CRUD + ownership, checkout→order COD + API + order histo
 (chữ ký + tamper + callback paid/idempotent/invalid), email (Mail::fake), Location
 (provinces/wards), on-demand media conversion, token auth, recommendations, i18n,
 product/collection page smoke render, SEO (sitemap + JSON-LD), facet price/brand +
-recently-viewed.
+recently-viewed, email branding (logo absolute URL + accent, chặn CSS injection),
+fit history (kept/returned → size, between-sizes, cách ly theo customer).
 
 ---
 

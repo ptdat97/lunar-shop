@@ -121,6 +121,11 @@
                                         <span class="text-muted small" data-sf-fit></span>
                                     </div>
                                     <div class="small text-muted mt-2" data-sf-alternatives></div>
+                                    {{-- Fit history (logged-in shoppers): what they kept vs sent back.
+                                         Labels here so the JS carries no hardcoded copy. --}}
+                                    <div class="alert alert-info small mt-2 mb-0" data-sf-fit-history hidden
+                                         data-label-usual="{{ __('storefront.product.fit_usual_size') }}"
+                                         data-label-between="{{ __('storefront.product.fit_between_sizes') }}"></div>
                                     <button class="btn btn-outline-dark btn-sm mt-2" type="button" data-sf-apply hidden>
                                         {{ __('storefront.static.use_this_size') }}
                                     </button>

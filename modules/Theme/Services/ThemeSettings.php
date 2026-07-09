@@ -82,6 +82,44 @@ class ThemeSettings
     }
 
     /**
+     * Resolve an image setting to an absolute URL. Email clients render outside
+     * the site origin, so a root-relative path (the "media" disk serves "/media",
+     * and template defaults are "/themes/...") would never load.
+     */
+    public function absoluteImage(string $key, ?string $default = null): string
+    {
+        $url = $this->image($key, $default);
+
+        if (! $url || Str::startsWith($url, ['http://', 'https://'])) {
+            return $url;
+        }
+
+        return rtrim((string) config('app.url'), '/').'/'.ltrim($url, '/');
+    }
+
+    /**
+     * Absolute URL of the logo to show in transactional emails: the dedicated
+     * email logo when set, otherwise the header logo. Empty string when the
+     * store has uploaded neither (the email then falls back to the site name).
+     */
+    public function emailLogo(): string
+    {
+        return $this->absoluteImage('brand.email_logo')
+            ?: $this->absoluteImage('general.logo');
+    }
+
+    /**
+     * Accent colour for email buttons/links. Falls back to Laravel's default
+     * when an admin clears the field.
+     */
+    public function emailAccent(): string
+    {
+        $accent = trim((string) $this->get('brand.email_accent', ''));
+
+        return preg_match('/^#[0-9a-fA-F]{3,8}$/', $accent) ? $accent : '#18181b';
+    }
+
+    /**
      * Persist a group (top-level key) and bust the cache.
      *
      * @param  array<string, mixed>  $value
@@ -129,6 +167,12 @@ class ThemeSettings
                 'logo' => '',
                 'logo_footer' => '',
                 'favicon' => '',
+            ],
+            // Transactional email branding. `email_logo` blank falls back to the
+            // header logo (general.logo); blank accent keeps Laravel's default.
+            'brand' => [
+                'email_logo' => '',
+                'email_accent' => '#18181b',
             ],
             'topbar' => [
                 ['text' => 'Free shipping on all orders over $20.00'],

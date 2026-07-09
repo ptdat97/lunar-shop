@@ -15,8 +15,11 @@
             'countries' => $countries,
             'invoiceUrl' => route('storefront.orders.invoice', ['order' => '__ID__']),
             'returnUrl' => route('storefront.orders.returns.store', ['order' => '__ID__']),
+            // Size reasons carry a direction: they feed FitHistoryService, which
+            // recommends a size (and warns "between two sizes") on later visits.
             'returnReasons' => [
-                'wrong-size' => __('storefront.account.return_reason_size'),
+                'too-small' => __('storefront.account.return_reason_too_small'),
+                'too-large' => __('storefront.account.return_reason_too_large'),
                 'defect' => __('storefront.account.return_reason_defect'),
                 'not-as-described' => __('storefront.account.return_reason_described'),
                 'changed-mind' => __('storefront.account.return_reason_mind'),

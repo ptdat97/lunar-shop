@@ -95,15 +95,28 @@
 - ✅ Test: `ReturnRequestTest` (6 case — prorate, approve+refund+transaction, reject+email,
   invalid qty, storefront owner tạo được, non-owner 404).
 
-### 6. Email transactional — i18n ✅ **đã làm** (branding + invoice còn lại)
+### 6. Email transactional — ✅ **đã làm** (i18n + invoice + branding)
 - ✅ **i18n EN/VI:** `lang/{en,vi}/mail.php` (subject + heading + intro + table + button +
   shipping + thanks); 3 template markdown dùng `__()`; subject trong `envelope()` cũng
   i18n. `OrderMailer::send()` set `->locale()` = locale khách đang dùng (fallback
   `LocaleService::default()`) → **queued mail giữ đúng ngôn ngữ** qua serialize.
 - ✅ Test: `OrderMailI18nTest` (render EN, render VI, locale-stamping trên queued mail).
 - ✅ Đính kèm invoice PDF vào `OrderPaidMail` (mục 3 đã xong).
-- ⬜ Còn: branding (logo/màu). Nhãn order-status (`statusLabel`) vẫn theo config Lunar
-  (English) — tách khỏi storefront i18n.
+- ✅ **Branding (2026-07-09):** logo + màu nhấn cho email giao dịch, cấu hình ở Filament
+  Theme Settings → *Email branding* (`brand.email_logo` fallback `general.logo`,
+  `brand.email_accent`). `ThemeSettings::emailLogo()/emailAccent()` +
+  `absoluteImage()` (email render ngoài origin nên URL **phải tuyệt đối** — disk
+  `media` trả `/media` tương đối). Accent validate theo regex hex → không inject được CSS.
+  - Override tối thiểu: `resources/views/vendor/mail/html/header.blade.php` (logo, fallback
+    site name) + **`resources/views/mail/default.blade.php`** (theme CSS). ⚠️ Theme CSS
+    **phải** ở path này, không phải `vendor/mail/html/themes/default.css`:
+    `Illuminate\Mail\Markdown::render()` ưu tiên view `mail.default` và chỉ path đó mới
+    được compile qua Blade (nên accent mới động được). `.logo` đổi sang `height:auto` +
+    `max-width` cho wordmark (mặc định Laravel là ô vuông 75px).
+- ✅ Test: `EmailBrandingTest` (5 case — logo absolute URL, fallback header logo, không
+  logo → site name, accent inline lên button, accent rác bị chặn không inject CSS).
+- ⬜ Còn: nhãn order-status (`statusLabel`) vẫn theo config Lunar (English) — tách khỏi
+  storefront i18n.
 
 ### 7. Facet material + availability — *Catalog (Search)* — ✅ **đã làm**
 - ✅ `DatabaseSearchEngine`: `computeFacets` trả thêm `material` (từ `product_materials`,
@@ -114,7 +127,7 @@
   "Còn hàng") qua `data-value-label-*`. Facet counts tính từ facetBase (trước filter).
 - ✅ Test: `test_material_facet_and_filter` + `test_availability_facet_and_in_stock_filter`.
 
-### 8. Size Intelligence v2 — *Catalog / Customer* — ✅ **hồ sơ số đo xong**
+### 8. Size Intelligence v2 — *Catalog / Customer* — ✅ **đã làm**
 - ✅ Lưu **hồ sơ số đo** khách đăng nhập: bảng `customer_measurements` (1/customer) +
   model `CustomerMeasurement` + relation `Customer::measurement` (extend, không fork) +
   `MeasurementService` (for/save, bỏ blank + unknown key).
@@ -123,8 +136,29 @@
   tự lưu sau khi tìm size nếu opted-in). i18n `save_measurements` EN/VI.
 - ✅ Test: `CustomerMeasurementTest` (5 case — service save/read drop blank+unknown,
   idempotent 1 profile, API get/update, guest 401, validate range).
-- ⬜ Còn (nice-to-have, chưa làm): gợi ý fit theo lịch sử mua/đổi-trả, cảnh báo "giữa
-  hai size".
+- ✅ **Fit theo lịch sử mua/đổi-trả + cảnh báo "giữa hai size" (2026-07-09):**
+  `FitHistoryService` (Catalog) suy ra size thật từ dữ liệu đã có — không thêm bảng mới:
+  - **Tín hiệu:** order line đã PAID có variant mang option `size` = size đã mua;
+    `return_requests` với lý do size = size **không** vừa, kèm **hướng**.
+  - **Tách lý do đổi/trả có hướng:** `wrong-size` → `too-small` / `too-large` (giữ
+    `wrong-size` là legacy, đọc được, không có hướng nên không suy luận). Không có hướng
+    thì không thể nói "size lên/xuống" — đây là thay đổi cốt lõi khiến tính năng khả thi.
+  - **Luật:** size đã *giữ* là bằng chứng mạnh nhất (giữ 1 lần > từng trả); trả vì chật
+    ⇒ lên 1 size, rộng ⇒ xuống 1 size; mâu thuẫn (cùng size vừa chật vừa rộng, hoặc suy
+    ra 2 size khác nhau) ⇒ **không** gợi ý. Return bị `rejected` = khách vẫn giữ hàng.
+  - **Between sizes:** trả size N vì chật *và* size N+1 vì rộng ⇒ cảnh báo thay vì gợi ý.
+  - Thứ tự size lấy từ `SizeChartRow.sort` (tie-break `id`), **không** theo alphabet.
+    "Đã mua" dùng chung `analytics.paid_statuses` (nhất quán với CoPurchaseStrategy).
+  - **API:** `POST /api/v1/products/{slug}/recommend-size` thêm khoá `fit_history`
+    (additive). Endpoint vẫn **public** — guest nhận `fit_history: null` + 200, không 401;
+    user resolve qua guard `sanctum` nên chạy cả cookie SPA lẫn Bearer token.
+  - **UI:** size-finder modal hiện hint; lịch sử **thắng** gợi ý theo số đo khi có
+    (bằng chứng thật > ước lượng), between-sizes chỉ cảnh báo và ẩn nút "Use this size".
+    i18n EN/VI qua `data-label-*` (JS không hardcode chuỗi).
+- ✅ Test: `FitHistoryTest` (16 case — kept/too-small/too-large, unpaid bị bỏ, rejected =
+  giữ, giữ thắng trả, mâu thuẫn → null, legacy `wrong-size` không có hướng, between-sizes,
+  không rò lịch sử khách khác, product không có size chart; API: guest null + 200,
+  cookie session, Bearer token, user chưa có lịch sử).
 
 ### 9. "Frequently bought together" — *Catalog (Recommend)* — ✅ **đã làm**
 - ✅ `CoPurchaseStrategy` (implements `RecommendationStrategy`): 1 query aggregate đọc

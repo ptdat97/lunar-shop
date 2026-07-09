@@ -27,6 +27,7 @@ function initFinder(root) {
     const confEl = root.querySelector('[data-sf-confidence]');
     const fitEl = root.querySelector('[data-sf-fit]');
     const altEl = root.querySelector('[data-sf-alternatives]');
+    const historyEl = root.querySelector('[data-sf-fit-history]');
     const applyBtn = root.querySelector('[data-sf-apply]');
     const saveToggle = root.querySelector('[data-sf-save]');
 
@@ -55,25 +56,75 @@ function initFinder(root) {
         errorBox.hidden = !message;
     }
 
+    // What the shopper kept vs sent back before (logged-in only). Returns the
+    // size it implies, if any, so it can override the measurement guess.
+    function renderHistory(history) {
+        if (!historyEl) return null;
+
+        historyEl.hidden = true;
+
+        if (!history || !history.advice) return null;
+
+        if (history.advice === 'between_sizes' && history.between) {
+            const [low, high] = history.between;
+            historyEl.textContent = (historyEl.dataset.labelBetween || '')
+                .replace(':low', low)
+                .replace(/:high/g, high);
+            historyEl.hidden = false;
+            // Nothing on this chart fit them: warn rather than pick for them.
+            return null;
+        }
+
+        if (history.advice === 'usual_size' && history.recommended) {
+            historyEl.textContent = (historyEl.dataset.labelUsual || '')
+                .replace(':size', history.recommended);
+            historyEl.hidden = false;
+            return history.recommended;
+        }
+
+        return null;
+    }
+
     function render(data) {
+        // Past purchases/returns are stronger evidence than a measurement match,
+        // so resolve them first — they're worth showing even when the body
+        // measurements match nothing on the chart.
+        const fromHistory = renderHistory(data.fit_history);
         const rec = data.recommended;
-        if (!rec) {
-            showError('We couldn’t match a size from those measurements. Try the size chart.');
-            result.hidden = true;
+        // between_sizes yields no size but still has something to tell them.
+        const hasWarning = historyEl && !historyEl.hidden;
+
+        if (!rec && !fromHistory) {
+            if (!hasWarning) {
+                showError('We couldn’t match a size from those measurements. Try the size chart.');
+                result.hidden = true;
+                return;
+            }
+
+            // Show the warning on its own: no size to apply.
+            sizeEl.textContent = '—';
+            confEl.textContent = '';
+            confEl.className = '';
+            fitEl.textContent = '';
+            altEl.textContent = '';
+            if (applyBtn) applyBtn.hidden = true;
+            result.hidden = false;
             return;
         }
 
-        sizeEl.textContent = rec.size;
-        confEl.textContent = `${rec.confidence} confidence`;
-        confEl.className = `badge ${CONFIDENCE_CLASS[rec.confidence] ?? 'bg-secondary'}`;
-        fitEl.textContent = rec.fit ? `(${rec.fit} fit)` : '';
+        const size = fromHistory ?? rec.size;
+
+        sizeEl.textContent = size;
+        confEl.textContent = rec ? `${rec.confidence} confidence` : '';
+        confEl.className = rec ? `badge ${CONFIDENCE_CLASS[rec.confidence] ?? 'bg-secondary'}` : '';
+        fitEl.textContent = rec?.fit ? `(${rec.fit} fit)` : '';
 
         const alts = (data.alternatives ?? []).map((a) => a.size);
         altEl.textContent = alts.length ? `Also consider: ${alts.join(', ')}` : '';
 
         if (applyBtn) {
             applyBtn.hidden = false;
-            applyBtn.dataset.size = rec.size;
+            applyBtn.dataset.size = size;
         }
         result.hidden = false;
     }
