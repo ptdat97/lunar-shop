@@ -43,7 +43,7 @@
     @include m.up(lg) {
         padding: 2.5rem 3rem 3rem 1.5rem;
         // Subtle divider between the two columns, like Shopify.
-        border-right: v.$border-width solid v.$border-color;
+        //border-right: v.$border-width solid v.$border-color;
     }
 }
 
