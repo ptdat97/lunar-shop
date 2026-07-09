@@ -2,6 +2,8 @@
 
 namespace Modules\Assets\Services;
 
+use Illuminate\Support\Facades\Cache;
+use Modules\Assets\Jobs\GenerateConversionJob;
 use Modules\Assets\Services\MediaSettings;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -37,10 +39,15 @@ class MediaUrl
     /**
      * URL for a conversion. Two modes (config `lunar.media.on_demand.sync`):
      *
-     *  - SYNC (default): generate the missing conversion inline, then serve it.
-     *  - ASYNC: never block the request — serve the nearest already-generated
-     *    size (or the original as a last resort) and dispatch a job to produce
-     *    the exact size on the `media` queue for the next visitor.
+     *  - ASYNC (default): never block the page render — return the exact
+     *    conversion URL even when its file is missing. The file is produced by
+     *    whichever comes first: the pre-warm job on the `media` queue, or the
+     *    browser's own image request falling through to the media.conversion
+     *    route (missing file → Laravel), which generates it inline. So images
+     *    work with or without Horizon running.
+     *  - SYNC: generate the missing conversion inline during the page render,
+     *    then serve it (always-correct, but a render with many missing sizes
+     *    generates them serially).
      *
      * Either way the returned URL is always usable. Results are memoized
      * per-request so the same media+conversion pair resolves in O(1) after the
@@ -76,21 +83,31 @@ class MediaUrl
             return $this->conversionMemo[$key] = $media->getUrl();
         }
 
-        // ASYNC: produce the exact size off-request, serve a fallback meanwhile.
-        \Modules\Assets\Jobs\GenerateConversionJob::dispatch($media->id, $conversion);
+        // ASYNC: return the exact URL — the browser's request self-heals it via
+        // the media.conversion route, and the queued job pre-warms the rest.
+        $this->queueWarm($media, $conversion);
 
-        $fallback = $this->generator->nearestExisting($media, $conversion);
+        return $this->conversionMemo[$key] = $media->getUrl($conversion);
+    }
 
-        return $this->conversionMemo[$key] = $fallback
-            ? $media->getUrl($fallback)
-            : $media->getUrl();
+    /**
+     * Dispatch a pre-warm job for one conversion, collapsed across requests: a
+     * hot page re-resolving the same missing size on every view (e.g. while no
+     * worker is running) queues it once per window instead of flooding the
+     * `media` queue with duplicates. Cache::add is atomic on every driver.
+     */
+    protected function queueWarm(Media $media, string $conversion): void
+    {
+        if (Cache::add($this->generator->warmDedupeKey($media, $conversion), true, 600)) {
+            GenerateConversionJob::dispatch($media->id, $conversion);
+        }
     }
 
     /** Whether on-demand generation runs inline (sync) or defers to the queue. */
     protected function syncOnDemand(): bool
     {
         return (bool) app(\Modules\Core\Support\Settings::class)
-            ->get('media.on_demand_sync', config('lunar.media.on_demand.sync', true));
+            ->get('media.on_demand_sync', config('lunar.media.on_demand.sync', false));
     }
 
     /**
@@ -113,6 +130,12 @@ class MediaUrl
             return null;
         }
 
+        $memoKey = $media->id . ':' . implode(',', $widths) . ':' . $base;
+
+        if (array_key_exists($memoKey, $this->responsiveMemo)) {
+            return $this->responsiveMemo[$memoKey];
+        }
+
         $sizes = app(MediaSettings::class)->sizes();
 
         // Build "<url> <w>w" entries for each requested conversion that resolves.
@@ -129,7 +152,7 @@ class MediaUrl
             // No conversions available — fall back to the original as a 1x src.
             $src = $media->getUrl();
 
-            return ['src' => $src, 'srcset' => '', 'webp' => null, 'width' => 0, 'height' => 0];
+            return $this->responsiveMemo[$memoKey] = ['src' => $src, 'srcset' => '', 'webp' => null, 'width' => 0, 'height' => 0];
         }
 
         ksort($entries);
@@ -141,7 +164,7 @@ class MediaUrl
         // conversion is registered at the `large` box in FashionMediaDefinitions).
         $webp = $this->conversion($media, 'webp');
 
-        return [
+        return $this->responsiveMemo[$memoKey] = [
             'src' => $src,
             'srcset' => implode(', ', $entries),
             'webp' => $webp,
@@ -167,7 +190,7 @@ class MediaUrl
                 continue;
             }
 
-            \Modules\Assets\Jobs\GenerateConversionJob::dispatch($media->id, $conversion);
+            $this->queueWarm($media, $conversion);
         }
     }
 }

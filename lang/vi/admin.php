@@ -338,7 +338,7 @@ return [
         'image_sizes' => 'Kích thước ảnh',
         'on_demand' => 'Sinh ảnh theo yêu cầu',
         'on_demand_sync' => 'Sinh ảnh đồng bộ',
-        'on_demand_sync_help' => 'Bật: request đầu tiên cần ảnh sẽ sinh ngay (đơn giản, không cần worker). Tắt: trả ảnh gần nhất có sẵn và sinh ảnh đúng size qua queue media (cần Horizon chạy).',
+        'on_demand_sync_help' => 'Tắt (khuyên dùng): trang luôn render nhanh — ảnh thiếu được sinh qua queue media, hoặc tự sinh ngay khi trình duyệt tải ảnh nếu Horizon chưa chạy. Bật: request đầu tiên sinh toàn bộ ảnh thiếu ngay trong lúc render trang (chậm nếu thiếu nhiều).',
         'conversion_sizes' => 'Kích thước ảnh sinh ra',
         'sizes_desc' => 'Chiều rộng và cao (px) cho mỗi kích thước ảnh được sinh ra. Kích thước lớn cho ảnh nét hơn nhưng file nặng hơn — giữ nhỏ nhất có thể để trang tải nhanh.',
         'width' => 'Rộng (px)',

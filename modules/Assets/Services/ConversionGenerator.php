@@ -231,85 +231,6 @@ class ConversionGenerator
     }
 
     /**
-     * Find the best ALREADY-GENERATED conversion to serve in place of a missing
-     * one, WITHOUT generating anything (non-blocking). Prefers the smallest
-     * existing conversion whose width is >= the target's (so quality/size is at
-     * least as good); if none is larger, falls back to the largest existing one.
-     *
-     * Returns the conversion name, or null when the media has no generated
-     * conversion at all (caller then serves the original).
-     *
-     * Used by {@see MediaUrl::conversion()} so a page whose images aren't fully
-     * generated yet serves an appropriately-sized file (not the heavy original),
-     * while the exact size is produced off-request on the `media` queue.
-     */
-    public function nearestExisting(Media $media, string $conversion): ?string
-    {
-        $collection = ConversionCollection::createForMedia($media);
-        $targetWidth = $this->conversionWidth($collection, $conversion);
-
-        $existing = [];
-        foreach ($collection as $c) {
-            $name = $c->getName();
-            if ($name === $conversion) {
-                continue;
-            }
-            if ($this->fileExists($media, $name)) {
-                $existing[$name] = $this->conversionWidth($collection, $name) ?? PHP_INT_MAX;
-            }
-        }
-
-        if (empty($existing)) {
-            return null;
-        }
-
-        // If we know the target width, prefer the smallest existing conversion
-        // that is at least as wide (upscale-free); otherwise the widest available.
-        if ($targetWidth !== null) {
-            $atLeast = array_filter($existing, fn ($w) => $w >= $targetWidth);
-            if (! empty($atLeast)) {
-                asort($atLeast);
-
-                return array_key_first($atLeast);
-            }
-        }
-
-        arsort($existing);
-
-        return array_key_first($existing);
-    }
-
-    /**
-     * The target width (px) a conversion produces, read from the conversion's own
-     * manipulations — the source of truth for EVERY registered conversion, not
-     * just the admin presets in MediaSettings. Handles both the `fit()` form
-     * (`->fit(Fit::Crop, $w, $h)` → args [Fit, w, h]) and the plain `width()`
-     * form. Returns null when no width manipulation is present (unbounded).
-     */
-    protected function conversionWidth(ConversionCollection $collection, string $conversion): ?int
-    {
-        $c = $collection->first(fn (Conversion $c) => $c->getName() === $conversion);
-
-        if (! $c) {
-            return null;
-        }
-
-        $manipulations = $c->getManipulations();
-
-        $fit = $manipulations->getManipulationArgument('fit');
-        if (is_array($fit) && isset($fit[1]) && is_numeric($fit[1])) {
-            return (int) $fit[1];
-        }
-
-        $width = $manipulations->getFirstManipulationArgument('width');
-        if (is_numeric($width)) {
-            return (int) $width;
-        }
-
-        return null;
-    }
-
-    /**
      * Public, non-generating existence check (cached). Serves the fast path in
      * {@see MediaUrl::conversion()} without ever producing a file.
      */
@@ -346,10 +267,23 @@ class ConversionGenerator
     /**
      * Forget the cached "exists" flag for a conversion (call after regenerating
      * or deleting so a stale positive doesn't hide a rebuilt/removed file).
+     * Also reopens the pre-warm dedupe window ({@see MediaUrl::queueWarm()}) so
+     * the wiped size can be re-queued immediately, not after the window expires.
      */
     public function forgetExists(Media $media, string $conversion): void
     {
         Cache::forget($this->existsKey($media, $conversion));
+        Cache::forget($this->warmDedupeKey($media, $conversion));
+    }
+
+    /**
+     * Cache key that collapses repeated pre-warm dispatches for one conversion.
+     * Owned here (next to the other conversion-state keys) so forgetExists()
+     * can invalidate it together with the "exists" flag.
+     */
+    public function warmDedupeKey(Media $media, string $conversion): string
+    {
+        return "media.warm.{$media->id}.{$conversion}";
     }
 
     protected function existsKey(Media $media, string $conversion): string

@@ -69,7 +69,7 @@ class MediaImageSizes extends Page implements HasForms
         $this->form->fill(array_merge(
             app(MediaSettings::class)->sizes(),
             ['on_demand_sync' => (bool) app(\Modules\Core\Support\Settings::class)
-                ->get('media.on_demand_sync', config('lunar.media.on_demand.sync', true))],
+                ->get('media.on_demand_sync', config('lunar.media.on_demand.sync', false))],
         ));
         $this->refreshBatch();
     }
@@ -134,7 +134,7 @@ class MediaImageSizes extends Page implements HasForms
 
         // On-demand generation mode (sync inline vs async on the media queue).
         app(\Modules\Core\Support\Settings::class)->put('media', [
-            'on_demand_sync' => (bool) ($after['on_demand_sync'] ?? true),
+            'on_demand_sync' => (bool) ($after['on_demand_sync'] ?? false),
         ]);
 
         // A size change makes every existing conversion at that size stale. Flag

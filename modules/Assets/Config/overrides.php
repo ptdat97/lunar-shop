@@ -13,12 +13,14 @@ use Modules\Assets\Definitions\FashionMediaDefinitions;
 return [
     // On-demand conversion behaviour (read by MediaUrl / ConversionGenerator).
     'on_demand' => [
-        // When true (default), the first request for a missing conversion blocks
-        // and generates it synchronously (simple, always-correct). When false,
-        // the request serves the nearest already-generated size immediately and
-        // the exact size is produced off-request on the `media` Horizon queue —
-        // best when a queue worker is running (no request-time image work).
-        'sync' => (bool) env('MEDIA_ON_DEMAND_SYNC', true),
+        // When false (default), a page render never generates images: it emits
+        // the exact conversion URL and the file is produced by the pre-warm job
+        // on the `media` queue OR — when Horizon isn't running — by the
+        // browser's own image request via the media.conversion fallback route
+        // (one size per request, in parallel). When true, the first request for
+        // a missing conversion generates it inline during the render (serial —
+        // a page with many missing sizes renders slowly).
+        'sync' => (bool) env('MEDIA_ON_DEMAND_SYNC', false),
     ],
 
     'definitions' => [
