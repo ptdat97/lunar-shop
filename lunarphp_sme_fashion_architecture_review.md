@@ -7,7 +7,7 @@
 > [lunarphp_sme_fashion_plan.md](lunarphp_sme_fashion_plan.md) (hiện trạng) và
 > [lunarphp_sme_fashion_coding_standards.md](lunarphp_sme_fashion_coding_standards.md).
 >
-> Cập nhật lần cuối: **2026-07-08**.
+> Cập nhật lần cuối: **2026-07-09**.
 
 ---
 
@@ -38,7 +38,7 @@ các **quyết định có chủ đích KHÔNG làm**, và **lộ trình increme
 | Yêu cầu | Hiện trạng | Đánh giá |
 |---|---|---|
 | Modular monolith, module độc lập | 12 module trong `modules/`, provider riêng | ✅ đạt |
-| Controller mỏng (validate → DTO/service → Resource) | Controller lớn nhất 133 dòng, không query DB | ✅ đạt |
+| Controller mỏng (validate → DTO/service → Resource) | Mọi controller ≤ 100 dòng (chuẩn §3/§15), không query DB | ✅ đạt (Increment 2) |
 | Service = orchestration, một nguồn logic | `*Service` trong từng module; web + API dùng chung | ✅ đạt |
 | Action pattern | Không dùng class `*Action` riêng — service method nhỏ đóng vai action | ✅ tương đương (xem §3.1) |
 | Pipelines | Dùng **pipeline của Lunar** (cart/order/pricing) + stage tự viết (`DecrementStock`); promotion chạy trong cart pipeline qua custom `DiscountType` | ✅ đạt, không tự chế pipeline engine |
@@ -52,7 +52,7 @@ các **quyết định có chủ đích KHÔNG làm**, và **lộ trình increme
 | Filament: không sửa Lunar Resources | `ResourceExtension` + `AdminPages::add()` cho resource mới | ✅ đạt |
 | Theme thuần Laravel (`themes/`) | `themes/fashion` chỉ Blade+JS+CSS | ✅ đạt |
 | Cache chỉ read-model | Sitemap 1h, recommendation TTL, settings cache; không cache workflow | ✅ đạt |
-| Test: action/unit + module/feature | 163 test / 541 assertion (2026-07-08), MySQL `lunar_testing` | ✅ xanh; test cạnh module (`modules/*/Tests`) còn trống (todo #13) |
+| Test: action/unit + module/feature | 170 test / 556 assertion (2026-07-09), MySQL `lunar_testing` | ✅ xanh; test cạnh module (`modules/*/Tests`) còn trống (todo #13) |
 | KHÔNG build: plugin SDK, hook engine, registry, dynamic loader, workflow engine | Không có; hook registry cũ đã gỡ khi gộp 24→12 module | ✅ đúng chủ đích |
 
 ## 3. Quyết định kiến trúc có chủ đích (không phải thiếu sót)
@@ -129,6 +129,37 @@ toàn repo; trộn 3 trách nhiệm (query, targeting/eligibility, hiển thị 
 
 **Verify:** `vendor/bin/pint` + full suite `vendor/bin/phpunit` — 163 test /
 541 assertion xanh, không sửa test nào (bằng chứng behaviour-preserving).
+
+### Increment 2 — Compliance sweep controllers/Blade + perf (2026-07-09) ✅
+**Lý do:** audit theo coding standards phát hiện: `product.blade.php` resolve
+service trong Blade (§7) + 354 dòng (>300); 4 controller > 100 dòng (§3/§15);
+`CheckoutController` query `Province::` (model module khác, §10) + đọc Settings
+inline; logic đăng ký user nhân đôi ở 2 auth controller; vài hot-path tính toán
+thừa mỗi request.
+
+**Cách làm (bảo toàn hành vi — URL/route/API shape giữ nguyên):**
+- **Catalog:** `ProductController::show` đẩy `state` (ProductResource) +
+  `selectedVariant`/`selectedValues`/`optionGroups` (method mới trong
+  `ProductService`) vào view; Blade chỉ nhận-và-in (§7), JSON-LD tách ra
+  `partials/product-jsonld` → `product.blade.php` còn 270 dòng. Pricing composer
+  dùng lại `selectedVariant` từ controller (trước đây `resolveSelectedVariant`
+  chạy 2 lần/request). `findBySlug` eager-load thêm `variants.images` (trước bị
+  lazy-load trong Blade).
+- **Customer:** `LocationService` mới (provinces/wards **cached 1 ngày** — dữ
+  liệu seeder tĩnh; §4 chỉ service được cache) dùng chung cho LocationController
+  và checkout; `AddressService` (ownership + one-default-per-type ra khỏi
+  controller); `AuthService` (register + verifyCredentials — gộp logic nhân đôi
+  của AuthController/TokenAuthController).
+- **Checkout:** `CheckoutService::paymentContext()` (đọc Settings) +
+  `paymentRedirectUrl()` (VNPay/MoMo) — controller hết business logic;
+  validation form checkout → `PlaceOrderRequest`; coupon endpoints tách sang
+  `CouponController` (route name/URL không đổi); `CartService` thêm
+  `mutableCart()` — mutator (add/update/remove/coupon) không chạy pipeline
+  calculate 2 lần mỗi write nữa.
+
+**Verify:** `vendor/bin/pint` + full suite `vendor/bin/phpunit` — 170 test /
+556 assertion xanh, không sửa test nào. Mọi controller ≤ 100 dòng, mọi Blade
+≤ 300 dòng, không còn `app()/resolve()/DB::` trong theme.
 
 ### Các increment tiếp theo (theo ROI, làm khi chạm ngưỡng)
 1. **Test cạnh module** (`modules/<Name>/Tests` smoke) — todo #13, làm dần khi

@@ -3,13 +3,11 @@
 namespace Modules\Customer\Http\Controllers\Api\V1;
 
 use App\Models\User;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
 use Modules\Customer\Http\Resources\UserResource;
+use Modules\Customer\Services\AuthService;
 
 /**
  * Token (Personal Access Token) auth for native app / headless clients that
@@ -17,11 +15,13 @@ use Modules\Customer\Http\Resources\UserResource;
  * cookie flow ({@see AuthController}); the only difference is it issues a
  * Sanctum bearer token and does NO session work. The existing `auth:sanctum`
  * routes already accept this token, so nothing downstream changes.
- *
- * The SPA storefront keeps using the cookie endpoints — this is purely additive.
  */
 class TokenAuthController extends Controller
 {
+    public function __construct(
+        protected AuthService $auth,
+    ) {}
+
     /**
      * POST /api/v1/auth/token  { email, password, device_name? }
      * Returns { data: User, token }.
@@ -34,13 +34,7 @@ class TokenAuthController extends Controller
             'device_name' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $user = User::where('email', $data['email'])->first();
-
-        if (! $user || ! Hash::check($data['password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => __('auth.failed'),
-            ]);
-        }
+        $user = $this->auth->verifyCredentials($data['email'], $data['password']);
 
         return $this->respondWithToken($user, $data['device_name'] ?? null);
     }
@@ -58,13 +52,7 @@ class TokenAuthController extends Controller
             'device_name' => ['nullable', 'string', 'max:255'],
         ]);
 
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-        ]);
-
-        event(new Registered($user));
+        $user = $this->auth->register($data);
 
         return $this->respondWithToken($user, $data['device_name'] ?? null, 201);
     }

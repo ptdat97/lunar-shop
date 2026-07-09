@@ -2,22 +2,25 @@
 
 namespace Modules\Customer\Http\Controllers\Api\V1;
 
-use App\Models\User;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use Modules\Customer\Http\Resources\UserResource;
+use Modules\Customer\Services\AuthService;
 
 /**
  * Session/cookie auth for the storefront (Sanctum SPA). Wraps Laravel auth —
- * nothing reimplemented.
+ * nothing reimplemented; account creation lives in AuthService (shared with
+ * the token flow).
  */
 class AuthController extends Controller
 {
+    public function __construct(
+        protected AuthService $auth,
+    ) {}
+
     /**
      * POST /api/v1/auth/register
      */
@@ -29,13 +32,7 @@ class AuthController extends Controller
             'password' => ['required', 'string', 'min:8'],
         ]);
 
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-        ]);
-
-        event(new Registered($user));
+        $user = $this->auth->register($data);
 
         Auth::login($user);
         $request->session()->regenerate();

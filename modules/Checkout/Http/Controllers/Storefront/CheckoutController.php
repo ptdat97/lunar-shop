@@ -4,22 +4,21 @@ namespace Modules\Checkout\Http\Controllers\Storefront;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Validation\ValidationException;
 use Lunar\Facades\CartSession;
+use Modules\Checkout\Http\Requests\PlaceOrderRequest;
 use Modules\Checkout\Services\CheckoutService;
-use Modules\Customer\Models\Province;
 use Modules\Customer\Services\CountryService;
+use Modules\Customer\Services\LocationService;
 use Modules\Order\Services\OrderService;
-use Modules\Checkout\Services\MoMoGateway;
-use Modules\Checkout\Services\VNPayGateway;
 
 class CheckoutController extends Controller
 {
     public function __construct(
         protected CheckoutService $checkout,
         protected CountryService $countries,
+        protected LocationService $locations,
         protected OrderService $orders,
     ) {}
 
@@ -39,12 +38,11 @@ class CheckoutController extends Controller
         return view('theme::pages.checkout', [
             'cart' => $cart,
             'countries' => $this->countries->forSelect(),
-            'provinces' => Province::orderBy('name')->get(['id', 'code', 'name']),
+            'provinces' => $this->locations->provinces(),
             'shippingOptions' => $this->checkout->shippingOptions(),
-            'vnpayEnabled' => filled(app(\Modules\Core\Support\Settings::class)->get('payment.vnpay.tmn_code')),
-            'momoEnabled' => filled(app(\Modules\Core\Support\Settings::class)->get('payment.momo.partner_code')),
-            'defaultPayment' => (string) app(\Modules\Core\Support\Settings::class)->get('payment.default', 'cod'),
             'old' => session()->getOldInput(),
+            // vnpayEnabled / momoEnabled / defaultPayment
+            ...$this->checkout->paymentContext(),
         ]);
     }
 
@@ -53,20 +51,9 @@ class CheckoutController extends Controller
      * Lunar flow server-side (addresses → shipping → authorize → order), so the
      * "Enter your address first" multi-step race can't happen.
      */
-    public function place(Request $request): RedirectResponse
+    public function place(PlaceOrderRequest $request): RedirectResponse
     {
-        $data = $request->validate([
-            'first_name' => ['required', 'string', 'max:255'],
-            'last_name' => ['required', 'string', 'max:255'],
-            'line_one' => ['required', 'string', 'max:255'],
-            'state' => ['required', 'string', 'max:255'],   // Tỉnh/Thành
-            'city' => ['required', 'string', 'max:255'],     // Phường/Xã
-            'country_id' => ['required', 'integer'],
-            'contact_email' => ['required', 'email', 'max:255'],
-            'contact_phone' => ['required', 'string', 'max:32'],
-            'shipping_option' => ['required', 'string'],
-            'payment_type' => ['required', 'string', \Illuminate\Validation\Rule::in($this->checkout->paymentMethods())],
-        ]);
+        $data = $request->validated();
 
         $cart = CartSession::current();
         if (! $cart || $cart->lines->isEmpty()) {
@@ -74,19 +61,8 @@ class CheckoutController extends Controller
         }
 
         try {
-            $this->checkout->setAddresses([
-                'first_name' => $data['first_name'],
-                'last_name' => $data['last_name'],
-                'line_one' => $data['line_one'],
-                'state' => $data['state'],
-                'city' => $data['city'],
-                'country_id' => $data['country_id'],
-                'contact_email' => $data['contact_email'],
-                'contact_phone' => $data['contact_phone'],
-            ]);
-
+            $this->checkout->setAddresses($request->addressData());
             $this->checkout->setShipping($data['shipping_option']);
-
             $order = $this->checkout->placeOrder($data['payment_type']);
         } catch (ValidationException $e) {
             throw $e;
@@ -95,26 +71,16 @@ class CheckoutController extends Controller
         }
 
         // Online gateway: redirect to the provider. Offline (cod/bank): confirmation.
-        if ($data['payment_type'] === 'vnpay') {
-            $gateway = VNPayGateway::fromConfig();
-            if ($gateway->isConfigured()) {
-                return redirect()->away($gateway->buildPaymentUrl($order, $request->ip()));
-            }
+        try {
+            $payUrl = $this->checkout->paymentRedirectUrl($order, $data['payment_type'], (string) $request->ip());
+        } catch (\Throwable $e) {
+            return redirect()->route('storefront.checkout.confirmation', $order->reference)
+                ->with('error', $e->getMessage());
         }
 
-        if ($data['payment_type'] === 'momo') {
-            $gateway = MoMoGateway::fromConfig();
-            if ($gateway->isConfigured()) {
-                try {
-                    return redirect()->away($gateway->createPayment($order));
-                } catch (\Throwable $e) {
-                    return redirect()->route('storefront.checkout.confirmation', $order->reference)
-                        ->with('error', $e->getMessage());
-                }
-            }
-        }
-
-        return redirect()->route('storefront.checkout.confirmation', $order->reference);
+        return $payUrl
+            ? redirect()->away($payUrl)
+            : redirect()->route('storefront.checkout.confirmation', $order->reference);
     }
 
     /**

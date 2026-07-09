@@ -483,7 +483,7 @@ morph-alias-aware, cache 1h) + `robots.txt`. Storefront SSR Blade → crawlable.
 
 # Test
 
-**163 test / 541 assertion, all green (2026-07-08)** — `tests/Feature/`, chạy trên MySQL
+**170 test / 556 assertion, all green (2026-07-09)** — `tests/Feature/`, chạy trên MySQL
 `lunar_testing` (app phụ thuộc JSON functions/facets — SQLite không emulate được).
 `tests/TestCase` dùng `RefreshDatabase`; trait `CreatesStorefrontData` seed base data +
 fixture product/size-chart. Chạy: `vendor/bin/phpunit` (testsuite `Feature`).

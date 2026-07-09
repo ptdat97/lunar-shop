@@ -2,37 +2,15 @@
 @section('body_class', 'page-product')
 
 @php
-  // Presentation data is injected by view composers (standards §7):
-  //   Media   → $zoomSize, $ogImage, $galleryImages
-  //   Pricing → $displayPrice, $lowestPriceAmount, $currencyCode
-  //   Promotion → $sale
+  // Presentation data arrives computed — Blade only formats it (standards §7):
+  //   Controller → $state (ProductResource shape, SSR-first §8), $selectedVariant
+  //                (deep-link ?color=red&size=m), $selectedValues, $optionGroups
+  //   Media composer   → $zoomSize, $ogImage, $galleryImages
+  //   Pricing composer → $displayPrice, $lowestPriceAmount, $currencyCode
+  //   Promotion composer → $sale
   $name = $product->translateAttribute('name');
   $description = $product->translateAttribute('description');
-  // Hydration payload for the variant enhancer — same ProductResource shape as
-  // GET /api/v1/products/{slug} (SSR-first §8). resolve() serialises a Resource,
-  // it isn't a business-service call.
-$state = new \Modules\Catalog\Http\Resources\ProductResource(
-    $product->loadMissing(['variants.values.option', 'variants.images', 'media']),
-)->resolve();
-
-// Deep-link: a query like ?color=red&size=m preselects the matching variant so
-// the SSR page (and no-JS visitors + crawlers) opens on the linked variant.
-// Resolution lives in ProductService (shared with the price view composer so the
-// SSR price matches). enhance/product-variant.js keeps this URL in sync client-side.
-$firstVariant = app(\Modules\Catalog\Services\ProductService::class)
-    ->resolveSelectedVariant($product, request()->query());
-// Pre-selected option values for the SSR button "active" state, keyed by the
-// (translated) option name — same keys the option-group loop uses below.
-$selectedValues = collect($firstVariant?->values ?? [])
-    ->mapWithKeys(fn ($value) => [
-        ($value->option?->translate('name') ?? $value->option?->name ?? 'Option')
-            => ($value->translate('name') ?? $value->name),
-    ])
-    ->all();
-
-$priceAmount = $lowestPriceAmount; // alias for the JSON-LD block below
-$currency = $currencyCode;
-$inStock = $product->variants->sum('stock') > 0;
+  $inStock = $product->variants->sum('stock') > 0;
 @endphp
 
 @section('title', $name . ' — ' . config('app.name'))
@@ -170,22 +148,7 @@ $inStock = $product->variants->sum('stock') > 0;
         </div>
 
         <div class="my-4">
-          @php
-            // Option groups (e.g. Size → [S,M,L]) derived from variants, in
-            // a stable order, for the SSR buttons.
-            $optionGroups = [];
-            foreach ($product->variants as $variant) {
-                foreach ($variant->values as $value) {
-                    $optName = $value->option?->translate('name') ?? ($value->option?->name ?? 'Option');
-                    $valName = $value->translate('name') ?? $value->name;
-                    $optionGroups[$optName] = $optionGroups[$optName] ?? [];
-                    if (!in_array($valName, $optionGroups[$optName], true)) {
-                        $optionGroups[$optName][] = $valName;
-                    }
-                }
-            }
-          @endphp
-
+          {{-- $optionGroups / $selectedValues computed in ProductService (§7). --}}
           @foreach ($optionGroups as $optName => $values)
             <div class="mb-3" data-option-group="{{ $optName }}">
               <label class="form-label small text-uppercase d-block">{{ $optName }}</label>
@@ -200,18 +163,18 @@ $inStock = $product->variants->sum('stock') > 0;
           @endforeach
 
           <div class="small text-muted mb-3" data-product-stock>
-            @if ($firstVariant && $firstVariant->stock > 0)
-              {{ __('storefront.product.in_stock', ['count' => $firstVariant->stock]) }}
-            @elseif($firstVariant)
+            @if ($selectedVariant && $selectedVariant->stock > 0)
+              {{ __('storefront.product.in_stock', ['count' => $selectedVariant->stock]) }}
+            @elseif($selectedVariant)
               {{ __('storefront.product.out_of_stock') }}
             @endif
           </div>
 
           <form method="POST" action="{{ route('storefront.cart') }}" data-add-to-cart>
             @csrf
-            <input type="hidden" name="variant_id" value="{{ $firstVariant?->id }}" data-variant-input>
-            <button class="btn btn-dark btn-lg w-100" type="submit" data-add-to-cart-btn @disabled(!$firstVariant || $firstVariant->stock <= 0)>
-              {{ $firstVariant && $firstVariant->stock > 0 ? __('storefront.product.add_to_cart') : __('storefront.product.out_of_stock') }}
+            <input type="hidden" name="variant_id" value="{{ $selectedVariant?->id }}" data-variant-input>
+            <button class="btn btn-dark btn-lg w-100" type="submit" data-add-to-cart-btn @disabled(!$selectedVariant || $selectedVariant->stock <= 0)>
+              {{ $selectedVariant && $selectedVariant->stock > 0 ? __('storefront.product.add_to_cart') : __('storefront.product.out_of_stock') }}
             </button>
           </form>
 
@@ -235,12 +198,12 @@ $inStock = $product->variants->sum('stock') > 0;
                      Hidden by default; revealed by JS (no JS → add-to-cart above
                      already shows "Out of stock", which is the honest no-JS state). --}}
           <div class="notify-me mt-3" data-notify-me hidden
-            @if ($firstVariant && $firstVariant->stock <= 0) data-initial-out="1" @endif>
+            @if ($selectedVariant && $selectedVariant->stock <= 0) data-initial-out="1" @endif>
             <p class="small text-muted mb-2">
               <i class="bi bi-bell me-1"></i>{{ __('storefront.product.notify_intro') }}
             </p>
             <form class="input-group" data-notify-form>
-              <input type="hidden" name="variant_id" value="{{ $firstVariant?->id }}" data-notify-variant>
+              <input type="hidden" name="variant_id" value="{{ $selectedVariant?->id }}" data-notify-variant>
               <input type="email" name="email" class="form-control" required
                 placeholder="{{ __('storefront.checkout.email') }}" data-notify-email
                 value="{{ optional(auth()->user())->email }}">
@@ -291,54 +254,7 @@ $inStock = $product->variants->sum('stock') > 0;
 @endsection
 
 @push('head')
-  @php
-    $currency = $currencyCode; // injected by the Pricing view composer (standards §7)
-    $jsonLd = [
-        '@context' => 'https://schema.org',
-        '@type' => 'Product',
-        'name' => $name,
-        'description' => \Illuminate\Support\Str::limit(strip_tags((string) $description), 300),
-        'sku' => $firstVariant?->sku,
-        'image' => $ogImage ? [$ogImage] : [],
-        'brand' => $product->brand?->name ? ['@type' => 'Brand', 'name' => $product->brand->name] : null,
-        'offers' =>
-            $priceAmount !== null
-                ? [
-                    '@type' => 'Offer',
-                    'price' => (string) $priceAmount,
-                    'priceCurrency' => $currency,
-                    'availability' => $inStock ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
-                    'url' => url()->current(),
-                ]
-                : null,
-    ];
-    $breadcrumbItems = [['name' => __('storefront.static.home_breadcrumb'), 'url' => route('storefront.home')]];
-    if ($collection = $product->collections->first()) {
-        $breadcrumbItems[] = [
-            'name' => $collection->translateAttribute('name'),
-            'url' => $collection->defaultUrl?->slug
-                ? route('storefront.collection', $collection->defaultUrl->slug)
-                : url()->current(),
-        ];
-    }
-    $breadcrumbItems[] = ['name' => $name, 'url' => url()->current()];
-    $breadcrumbLd = [
-        '@context' => 'https://schema.org',
-        '@type' => 'BreadcrumbList',
-        'itemListElement' => collect($breadcrumbItems)
-            ->map(
-                fn($item, $i) => [
-                    '@type' => 'ListItem',
-                    'position' => $i + 1,
-                    'name' => $item['name'],
-                    'item' => $item['url'],
-                ],
-            )
-            ->all(),
-    ];
-  @endphp
-  <script type="application/ld+json">@json(array_filter($jsonLd), JSON_UNESCAPED_SLASHES)</script>
-  <script type="application/ld+json">@json($breadcrumbLd, JSON_UNESCAPED_SLASHES)</script>
+  @include('theme::partials.product-jsonld')
 
   {{-- PhotoSwipe lightbox styles (public/vendor). --}}
   <link rel="stylesheet" href="{{ asset('vendor/photoswipe/photoswipe.css') }}">

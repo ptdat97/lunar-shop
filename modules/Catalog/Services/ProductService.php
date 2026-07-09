@@ -2,7 +2,9 @@
 
 namespace Modules\Catalog\Services;
 
+use Illuminate\Support\Collection;
 use Lunar\Models\Product;
+use Lunar\Models\ProductVariant;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Data\SearchResult;
@@ -45,10 +47,51 @@ class ProductService
             })
             ->where('lunar_urls.slug', $slug)
             ->with([
-                'variants' => fn ($q) => $q->with(['values.option', 'prices.currency']),
+                'variants' => fn ($q) => $q->with(['values.option', 'prices.currency', 'images']),
                 'thumbnail', 'brand', 'collections.defaultUrl', 'defaultUrl', 'media',
             ])
             ->first();
+    }
+
+    /**
+     * Option groups (e.g. Size → [S, M, L]) derived from the loaded variants,
+     * in a stable first-seen order, for the SSR option buttons. Keys are the
+     * translated option names.
+     *
+     * @return array<string, list<string>>
+     */
+    public function optionGroups(Product $product): array
+    {
+        $groups = [];
+
+        foreach ($product->variants as $variant) {
+            foreach ($variant->values as $value) {
+                $optName = $value->option?->translate('name') ?? ($value->option?->name ?? 'Option');
+                $valName = $value->translate('name') ?? $value->name;
+                $groups[$optName] ??= [];
+
+                if (! in_array($valName, $groups[$optName], true)) {
+                    $groups[$optName][] = $valName;
+                }
+            }
+        }
+
+        return $groups;
+    }
+
+    /**
+     * The selected variant's option values keyed by (translated) option name —
+     * the same keys optionGroups() emits — for the SSR "active" button state.
+     *
+     * @return array<string, string>
+     */
+    public function selectedOptionValues(?ProductVariant $variant): array
+    {
+        return collect($variant?->values ?? [])
+            ->mapWithKeys(fn ($value) => [
+                ($value->option?->translate('name') ?? $value->option?->name ?? 'Option') => ($value->translate('name') ?? $value->name),
+            ])
+            ->all();
     }
 
     /**
@@ -63,7 +106,7 @@ class ProductService
      *
      * @param  array<string, mixed>  $query  request()->query()
      */
-    public function resolveSelectedVariant(Product $product, array $query): ?\Lunar\Models\ProductVariant
+    public function resolveSelectedVariant(Product $product, array $query): ?ProductVariant
     {
         $first = $product->variants->first();
 
@@ -76,8 +119,7 @@ class ProductService
 
         return $product->variants->first(function ($variant) use ($queryOptions) {
             $variantOptions = $variant->values->mapWithKeys(fn ($value) => [
-                strtolower((string) ($value->option?->translate('name') ?? $value->option?->name ?? ''))
-                    => strtolower((string) ($value->translate('name') ?? $value->name)),
+                strtolower((string) ($value->option?->translate('name') ?? $value->option?->name ?? '')) => strtolower((string) ($value->translate('name') ?? $value->name)),
             ]);
 
             // Every queried option must be present on this variant with a matching value.
@@ -93,9 +135,9 @@ class ProductService
      * query; unknown/unpublished slugs are simply dropped.
      *
      * @param  array<int, string>  $slugs
-     * @return \Illuminate\Support\Collection<int, Product>
+     * @return Collection<int, Product>
      */
-    public function bySlugs(array $slugs, int $limit = 12): \Illuminate\Support\Collection
+    public function bySlugs(array $slugs, int $limit = 12): Collection
     {
         $slugs = array_slice(array_values(array_unique(array_filter($slugs))), 0, $limit);
 

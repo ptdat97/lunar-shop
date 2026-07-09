@@ -8,7 +8,7 @@ use Lunar\Facades\Payments;
 use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Cart;
 use Lunar\Models\Order;
-use Modules\Checkout\Services\CartService;
+use Modules\Core\Support\Settings;
 use Modules\Customer\Services\CustomerResolver;
 
 /**
@@ -20,6 +20,7 @@ class CheckoutService
     public function __construct(
         protected CartService $carts,
         protected CustomerResolver $customers,
+        protected Settings $settings,
     ) {}
 
     /** Payment method identifiers built into the app. */
@@ -43,6 +44,47 @@ class CheckoutService
     public function paymentMethods(): array
     {
         return self::DEFAULT_PAYMENT_METHODS;
+    }
+
+    /**
+     * Payment context for the checkout page: which online gateways are enabled
+     * (a gateway with no primary key configured is off) and the pre-selected
+     * method — single source for the SSR form, so controllers/Blade never read
+     * Settings themselves (standards §3/§7).
+     *
+     * @return array{vnpayEnabled: bool, momoEnabled: bool, defaultPayment: string}
+     */
+    public function paymentContext(): array
+    {
+        return [
+            'vnpayEnabled' => filled($this->settings->get('payment.vnpay.tmn_code')),
+            'momoEnabled' => filled($this->settings->get('payment.momo.partner_code')),
+            'defaultPayment' => (string) $this->settings->get('payment.default', 'cod'),
+        ];
+    }
+
+    /**
+     * Where an online gateway takes the shopper after the order is placed
+     * (VNPay/MoMo hosted payment page). Null for offline methods (cod/bank) or
+     * an unconfigured gateway → go straight to the confirmation page.
+     *
+     * @throws \Throwable MoMo create-payment failures bubble up (caller decides UX).
+     */
+    public function paymentRedirectUrl(Order $order, string $paymentType, string $ip): ?string
+    {
+        if ($paymentType === 'vnpay') {
+            $gateway = VNPayGateway::fromConfig();
+
+            return $gateway->isConfigured() ? $gateway->buildPaymentUrl($order, $ip) : null;
+        }
+
+        if ($paymentType === 'momo') {
+            $gateway = MoMoGateway::fromConfig();
+
+            return $gateway->isConfigured() ? $gateway->createPayment($order) : null;
+        }
+
+        return null;
     }
 
     /**

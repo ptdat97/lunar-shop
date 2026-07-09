@@ -3,9 +3,11 @@
 namespace Modules\Checkout\Services;
 
 use Illuminate\Support\Collection;
+use Illuminate\Validation\ValidationException;
 use Lunar\Facades\CartSession;
 use Lunar\Models\Cart;
 use Lunar\Models\CartLine;
+use Lunar\Models\Discount;
 use Lunar\Models\Product;
 use Lunar\Models\ProductVariant;
 
@@ -20,18 +22,29 @@ class CartService
      */
     public function current(): Cart
     {
-        // Fetch (auto-creating, per lunar.cart_session.auto_create) WITHOUT
-        // calculating yet: Lunar's calculate() pipeline throws a TypeError on a
-        // line whose purchasable (variant) was deleted/unpublished while it sat
-        // in the cart, which would 500 the storefront. Prune those lines first,
-        // then calculate on a cart with a fresh `lines` relation.
+        return $this->mutableCart()->calculate();
+    }
+
+    /**
+     * The current cart WITHOUT running the calculate pipeline — for mutators,
+     * which calculate once after the mutation anyway (running it before too
+     * would double the pipeline work on every cart write).
+     *
+     * Fetched (auto-creating, per lunar.cart_session.auto_create) without
+     * calculating: Lunar's calculate() pipeline throws a TypeError on a line
+     * whose purchasable (variant) was deleted/unpublished while it sat in the
+     * cart, which would 500 the storefront. Prune those lines first, then
+     * calculate on a cart with a fresh `lines` relation.
+     */
+    protected function mutableCart(): Cart
+    {
         $cart = CartSession::current(calculate: false);
 
         if ($this->pruneMissingLines($cart)) {
             $cart->load('lines');
         }
 
-        return $cart->calculate();
+        return $cart;
     }
 
     /**
@@ -82,7 +95,7 @@ class CartService
      * modules (Inventory) can veto an oversell before the line is created. The
      * default is Lunar's own stock/backorder check.
      *
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
     public function add(int $variantId, int $quantity = 1): Cart
     {
@@ -91,12 +104,12 @@ class CartService
         // Oversell guard: honour the variant's purchasable mode (in_stock /
         // backorder / always) via Lunar's own check before adding.
         if (! $variant->canBeFulfilledAtQuantity($quantity)) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'quantity' => 'Sorry, there isn\'t enough stock to add that quantity.',
             ]);
         }
 
-        return $this->current()->add($variant, $quantity)->calculate();
+        return $this->mutableCart()->add($variant, $quantity)->calculate();
     }
 
     /**
@@ -104,7 +117,7 @@ class CartService
      */
     public function updateLine(int $lineId, int $quantity): Cart
     {
-        return $this->current()->updateLine($lineId, $quantity)->calculate();
+        return $this->mutableCart()->updateLine($lineId, $quantity)->calculate();
     }
 
     /**
@@ -112,7 +125,7 @@ class CartService
      */
     public function remove(int $lineId): Cart
     {
-        return $this->current()->remove($lineId)->calculate();
+        return $this->mutableCart()->remove($lineId)->calculate();
     }
 
     /**
@@ -128,34 +141,34 @@ class CartService
      * Validates the code exists + is active/usable before applying; throws a
      * ValidationException with a clear message otherwise.
      *
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
     public function applyCoupon(string $code): Cart
     {
         $code = strtoupper(trim($code));
 
-        $discount = \Lunar\Models\Discount::query()
+        $discount = Discount::query()
             ->whereRaw('UPPER(coupon) = ?', [$code])
             ->active()
             ->usable()
             ->first();
 
         if (! $discount) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'code' => 'This coupon code is invalid or has expired.',
             ]);
         }
 
-        $cart = $this->current();
+        $cart = $this->mutableCart();
         $cart->update(['coupon_code' => $code]);
-        $cart = $this->current()->fresh()->calculate();
+        $cart = $cart->fresh()->calculate();
 
         // The code is valid, but it may not apply to this cart's contents
         // (e.g. minimum spend / product restrictions). Surface that clearly.
         if (blank($cart->discountTotal) || $cart->discountTotal->value <= 0) {
             $cart->update(['coupon_code' => null]);
 
-            throw \Illuminate\Validation\ValidationException::withMessages([
+            throw ValidationException::withMessages([
                 'code' => 'This coupon does not apply to the items in your cart.',
             ]);
         }
@@ -168,8 +181,9 @@ class CartService
      */
     public function removeCoupon(): Cart
     {
-        $this->current()->update(['coupon_code' => null]);
+        $cart = $this->mutableCart();
+        $cart->update(['coupon_code' => null]);
 
-        return $this->current()->fresh()->calculate();
+        return $cart->fresh()->calculate();
     }
 }

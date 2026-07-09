@@ -7,12 +7,15 @@ use Illuminate\Support\ServiceProvider;
 use Lunar\Models\Product;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Drivers\DatabaseSearchEngine;
+use Modules\Catalog\Filament\Pages\CatalogSettingsPage;
+use Modules\Catalog\Filament\Resources\SizeChartResource;
 use Modules\Catalog\Models\ProductMaterial;
 use Modules\Catalog\Models\SizeChart;
 use Modules\Catalog\Services\PricingService;
 use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Services\RecommendationService;
 use Modules\Core\Support\AdminPages;
+use Modules\Core\Support\Settings;
 
 class CatalogServiceProvider extends ServiceProvider
 {
@@ -41,18 +44,18 @@ class CatalogServiceProvider extends ServiceProvider
 
             return new RecommendationService(
                 strategies: $strategies,
-                cacheTtl: (int) app(\Modules\Core\Support\Settings::class)->get('recommend.cache_ttl', 3600),
+                cacheTtl: (int) app(Settings::class)->get('recommend.cache_ttl', 3600),
             );
         });
 
         // Standalone Size Charts resource (Catalog group). Registered here
         // because ModulesServiceProvider collects resources during register().
         AdminPages::addResource(
-            \Modules\Catalog\Filament\Resources\SizeChartResource::class,
+            SizeChartResource::class,
         );
 
         // Catalog settings page (recommendation limits + review moderation).
-        AdminPages::add(\Modules\Catalog\Filament\Pages\CatalogSettingsPage::class);
+        AdminPages::add(CatalogSettingsPage::class);
     }
 
     /**
@@ -60,11 +63,11 @@ class CatalogServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
-        $this->loadViewsFrom(__DIR__ . '/../Resources/views', 'catalog-admin');
+        $this->loadMigrationsFrom(__DIR__.'/../Database/Migrations');
+        $this->loadViewsFrom(__DIR__.'/../Resources/views', 'catalog-admin');
 
-        $this->loadRoutesFrom(__DIR__ . '/../Routes/web.php');
-        $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
+        $this->loadRoutesFrom(__DIR__.'/../Routes/web.php');
+        $this->loadRoutesFrom(__DIR__.'/../Routes/api.php');
 
         $this->registerSizeRelationships();
         $this->composeThemePrices();
@@ -116,11 +119,13 @@ class CatalogServiceProvider extends ServiceProvider
 
             // Price the deep-linked variant (?color=red&size=m) so the SSR price
             // is correct for no-JS visitors + crawlers; falls back to the first
-            // variant. enhance/product-variant.js keeps this in sync client-side.
-            $selectedVariant = $product
-                ? $this->app->make(ProductService::class)
-                    ->resolveSelectedVariant($product, request()->query())
-                : null;
+            // variant. The controller already resolved it (passed as
+            // $selectedVariant) — reuse instead of resolving twice per request.
+            $selectedVariant = $view->getData()['selectedVariant']
+                ?? ($product
+                    ? $this->app->make(ProductService::class)
+                        ->resolveSelectedVariant($product, request()->query())
+                    : null);
 
             $view->with([
                 'displayPrice' => $selectedVariant
@@ -136,7 +141,7 @@ class CatalogServiceProvider extends ServiceProvider
         // enhance/recently-viewed.js reads it from a data-* attribute instead of
         // a hardcoded number.
         View::composer('theme::partials.recently-viewed', function ($view): void {
-            $limit = (int) app(\Modules\Core\Support\Settings::class)
+            $limit = (int) app(Settings::class)
                 ->get('recently_viewed.limit', 8);
             $view->with('recentlyViewedLimit', max(1, min(12, $limit)));
         });
