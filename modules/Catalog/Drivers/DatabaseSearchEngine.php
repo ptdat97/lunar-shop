@@ -26,7 +26,7 @@ class DatabaseSearchEngine implements SearchEngine
             // not N+1. `media` is included here so callers never need a follow-up
             // loadMissing(['media']) — one place, one query.
             ->with([
-                'variants.prices.currency',
+                'variants.prices',
                 'brand',
                 'defaultUrl',
                 'collections',

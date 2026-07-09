@@ -336,7 +336,7 @@ return [
         'image_sizes' => 'Image Sizes',
         'on_demand' => 'On-demand generation',
         'on_demand_sync' => 'Generate images synchronously',
-        'on_demand_sync_help' => 'Off (recommended): pages always render fast — missing sizes are generated on the media queue, or on the fly by the browser\'s own image request when Horizon isn\'t running. On: the first page request generates every missing size inline while rendering (slow when many are missing).',
+        'on_demand_sync_help' => 'Off (recommended): fastest renders — no image checks during the page render; a missing size is generated on the fly by the browser\'s own image request (uploads are pre-generated on the media queue). On: the first page request generates every missing size inline while rendering (slow when many are missing).',
         'conversion_sizes' => 'Conversion sizes',
         'sizes_desc' => 'Width and height (px) for each generated image size. Larger sizes mean sharper images but bigger files — keep them as small as the design allows for fast page loads.',
         'width' => 'Width (px)',

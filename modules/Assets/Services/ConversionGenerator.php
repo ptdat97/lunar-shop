@@ -44,13 +44,34 @@ class ConversionGenerator
     ) {}
 
     /**
+     * Per-request memo of conversion names, keyed by media id. Building a
+     * ConversionCollection re-runs every registered conversion closure (which
+     * also re-reads MediaSettings), so doing it once per media per request
+     * instead of once per URL resolution matters on image-heavy pages.
+     * Registered scoped() in AssetsServiceProvider.
+     *
+     * @var array<int, list<string>>
+     */
+    private array $namesMemo = [];
+
+    /**
+     * Per-request memo of POSITIVE existence results ("mediaId:conversion"),
+     * layered over the cross-request cache so a page resolving the same
+     * media+conversion many times makes at most one cache/disk round trip —
+     * with a database cache store each Cache::get is a DB query.
+     *
+     * @var array<string, true>
+     */
+    private array $existsMemo = [];
+
+    /**
      * The conversion names registered for a media item.
      *
      * @return list<string>
      */
     public function conversionNames(Media $media): array
     {
-        return ConversionCollection::createForMedia($media)
+        return $this->namesMemo[$media->id] ??= ConversionCollection::createForMedia($media)
             ->map(fn (Conversion $c) => $c->getName())
             ->values()
             ->all();
@@ -246,7 +267,15 @@ class ConversionGenerator
      */
     protected function existsCached(Media $media, string $conversion): bool
     {
+        $memoKey = $media->id . ':' . $conversion;
+
+        if (isset($this->existsMemo[$memoKey])) {
+            return true;
+        }
+
         if (Cache::get($this->existsKey($media, $conversion))) {
+            $this->existsMemo[$memoKey] = true;
+
             return true;
         }
 
@@ -261,6 +290,7 @@ class ConversionGenerator
 
     protected function rememberExists(Media $media, string $conversion): void
     {
+        $this->existsMemo[$media->id . ':' . $conversion] = true;
         Cache::put($this->existsKey($media, $conversion), true, self::EXISTS_TTL);
     }
 
@@ -272,6 +302,7 @@ class ConversionGenerator
      */
     public function forgetExists(Media $media, string $conversion): void
     {
+        unset($this->existsMemo[$media->id . ':' . $conversion]);
         Cache::forget($this->existsKey($media, $conversion));
         Cache::forget($this->warmDedupeKey($media, $conversion));
     }

@@ -15,12 +15,26 @@ class ThemeSettings
     protected const CACHE_KEY = 'theme.settings';
 
     /**
+     * In-object memo. The service is a singleton and all() is read by every
+     * layout partial (topbar, header, footer, …) — a storefront page was
+     * measured making 18 cache reads for this one key, each a DB round trip on
+     * a database cache store. Cleared on every write (set/setScalar/forgetCache).
+     *
+     * @var array<string, mixed>|null
+     */
+    private ?array $allMemo = null;
+
+    /**
      * All settings merged over defaults, keyed by top-level group.
      *
      * @return array<string, mixed>
      */
     public function all(): array
     {
+        if ($this->allMemo !== null) {
+            return $this->allMemo;
+        }
+
         $stored = Cache::rememberForever(self::CACHE_KEY, function () {
             return DB::table('theme_settings')->pluck('value', 'key')
                 ->map(fn ($v) => json_decode($v, true))
@@ -30,7 +44,7 @@ class ThemeSettings
         // Shallow replace: any group the admin has saved (present in DB) wins
         // entirely. Recursive merge would resurrect deleted list items
         // (e.g. clearing all social links would still show the defaults).
-        return array_replace(static::defaults(), $stored);
+        return $this->allMemo = array_replace(static::defaults(), $stored);
     }
 
     /**
@@ -77,7 +91,7 @@ class ThemeSettings
             ['value' => json_encode($value), 'updated_at' => now(), 'created_at' => now()],
         );
 
-        Cache::forget(self::CACHE_KEY);
+        $this->forgetCache();
     }
 
     /**
@@ -90,11 +104,12 @@ class ThemeSettings
             ['value' => json_encode($value), 'updated_at' => now(), 'created_at' => now()],
         );
 
-        Cache::forget(self::CACHE_KEY);
+        $this->forgetCache();
     }
 
     public function forgetCache(): void
     {
+        $this->allMemo = null;
         Cache::forget(self::CACHE_KEY);
     }
 

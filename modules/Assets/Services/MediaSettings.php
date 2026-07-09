@@ -16,6 +16,17 @@ class MediaSettings
     protected const CACHE_KEY = 'media.image_sizes';
 
     /**
+     * Per-request memo. sizes() is called for EVERY media item on a page (each
+     * ConversionCollection::createForMedia re-registers conversions, which read
+     * the sizes) — with a database cache store, each un-memoized call is a DB
+     * round trip; a section-heavy homepage was measured making hundreds of them.
+     * Registered scoped() in AssetsServiceProvider so this lives per request.
+     *
+     * @var array<string, array{width:int, height:int}>|null
+     */
+    private ?array $sizesMemo = null;
+
+    /**
      * Built-in defaults (used until an admin overrides them).
      *
      * @return array<string, array{width:int, height:int}>
@@ -69,6 +80,10 @@ class MediaSettings
      */
     public function sizes(): array
     {
+        if ($this->sizesMemo !== null) {
+            return $this->sizesMemo;
+        }
+
         $stored = Cache::rememberForever(self::CACHE_KEY, function () {
             $row = DB::table('media_settings')->where('key', self::KEY)->value('value');
 
@@ -77,7 +92,7 @@ class MediaSettings
 
         $sizes = static::defaults();
 
-        foreach ($sizes as $key => $default) {
+        foreach (array_keys($sizes) as $key) {
             if (isset($stored[$key]['width'], $stored[$key]['height'])) {
                 $sizes[$key] = [
                     'width' => (int) $stored[$key]['width'],
@@ -86,7 +101,7 @@ class MediaSettings
             }
         }
 
-        return $sizes;
+        return $this->sizesMemo = $sizes;
     }
 
     /**
@@ -111,5 +126,6 @@ class MediaSettings
         );
 
         Cache::forget(self::CACHE_KEY);
+        $this->sizesMemo = null;
     }
 }

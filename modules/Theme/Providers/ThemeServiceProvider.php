@@ -22,7 +22,9 @@ class ThemeServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(base_path('config/theme.php'), 'theme');
 
-        $this->app->singleton(ThemeSettings::class);
+        // Scoped (one instance per request, Octane-safe) so the in-object memo
+        // of theme settings holds across every layout partial in a request.
+        $this->app->scoped(ThemeSettings::class);
 
         // Contribute the admin page (registered by ModulesServiceProvider).
         AdminPages::add(

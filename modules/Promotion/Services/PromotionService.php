@@ -120,7 +120,7 @@ class PromotionService
             // `media` powers the card hover (second) image; the `thumbnail`
             // (primary media) is back-filled from it below instead of being a
             // second, primary-filtered media query.
-            ->with(['variants.prices.currency', 'brand', 'collections', 'defaultUrl', 'media']);
+            ->with(['variants.prices', 'brand', 'collections', 'defaultUrl', 'media']);
 
         $productIds = $this->targets->targetedProductIds($discount);
         $collectionIds = $this->targets->targetedCollectionIds($discount);
@@ -187,7 +187,7 @@ class PromotionService
         // (previously one query set PER promotion — an N+1 over promotions).
         $query = Product::query()
             ->where('status', 'published')
-            ->with(['variants.prices.currency', 'brand', 'collections', 'defaultUrl', 'media']);
+            ->with(['variants.prices', 'brand', 'collections', 'defaultUrl', 'media']);
 
         // When no promotion is cart-wide, scope to just the targeted products
         // (by id or by membership of a targeted collection). Otherwise leave the

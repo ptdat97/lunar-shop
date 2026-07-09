@@ -20,6 +20,23 @@ class PricingService
     private array $priceMemo = [];
 
     /**
+     * Per-request map of ALL currencies keyed by id (the table holds a handful
+     * of rows). Used to prime price->currency without eager-loading `currency`
+     * in every product pipeline — each of those eager loads was one identical
+     * `lunar_currencies` query per section/page. One query here covers every
+     * price in the request, in any currency.
+     *
+     * @var array<int, \Lunar\Models\Currency>|null
+     */
+    private ?array $currenciesById = null;
+
+    /** @return array<int, \Lunar\Models\Currency> */
+    protected function currenciesById(): array
+    {
+        return $this->currenciesById ??= \Lunar\Models\Currency::all()->keyBy('id')->all();
+    }
+
+    /**
      * The matched price for a variant via Lunar's Pricing engine (honours
      * currency, customer group and tiers). This is the single place the
      * pricing engine is invoked for presentation — Blade/Resources call here
@@ -44,22 +61,19 @@ class PricingService
             // again (one query per price) unless we point it back at the variant
             // we already have. Saves a query per product card on listing pages.
             //
-            // Also prime the price->currency relation. Downstream formatting
-            // (e.g. PromotionService reading $matched->currency for a sale badge)
-            // would otherwise lazy-load the currency once PER product — the same
-            // `select … lunar_currencies where id in (…)` repeated across a grid.
-            // The default currency is Blink-cached (one query for the request),
-            // so setting it here collapses N queries into 0 extra.
+            // Also prime the price->currency relation from the per-request
+            // currency map, so product pipelines don't need to eager-load
+            // `prices.currency` at all (that eager load repeated an identical
+            // `lunar_currencies` query per section) and downstream formatting
+            // (e.g. PromotionService reading $matched->currency for a sale
+            // badge) never lazy-loads a currency per product.
             if ($variant->relationLoaded('prices')) {
-                $defaultCurrency = \Lunar\Models\Currency::getDefault();
-                $variant->prices->each(function (Price $price) use ($variant, $defaultCurrency): void {
+                $currencies = $this->currenciesById();
+                $variant->prices->each(function (Price $price) use ($variant, $currencies): void {
                     $price->setRelation('priceable', $variant);
-                    // Only prime when it isn't already loaded and the ids match,
-                    // so multi-currency stores still resolve the correct currency.
                     if (! $price->relationLoaded('currency')
-                        && $defaultCurrency
-                        && (int) $price->currency_id === (int) $defaultCurrency->id) {
-                        $price->setRelation('currency', $defaultCurrency);
+                        && isset($currencies[(int) $price->currency_id])) {
+                        $price->setRelation('currency', $currencies[(int) $price->currency_id]);
                     }
                 });
             }

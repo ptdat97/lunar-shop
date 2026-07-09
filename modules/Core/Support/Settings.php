@@ -20,11 +20,21 @@ class Settings
     protected const CACHE_KEY = 'app.settings';
 
     /**
+     * In-object memo: every get()/group() call otherwise re-reads the cache
+     * store, which is a DB round trip per call on a database cache store.
+     * Registered scoped() so the memo lives exactly one request; cleared on
+     * every write (put/forgetCache).
+     *
+     * @var array<string, mixed>|null
+     */
+    private ?array $storedMemo = null;
+
+    /**
      * All stored groups (raw), cached. @return array<string, mixed>
      */
     protected function stored(): array
     {
-        return Cache::rememberForever(self::CACHE_KEY, function () {
+        return $this->storedMemo ??= Cache::rememberForever(self::CACHE_KEY, function () {
             return DB::table('app_settings')->pluck('value', 'key')
                 ->map(fn ($v) => json_decode($v, true))
                 ->all();
@@ -77,11 +87,12 @@ class Settings
             ['value' => json_encode($value), 'updated_at' => now(), 'created_at' => now()],
         );
 
-        Cache::forget(self::CACHE_KEY);
+        $this->forgetCache();
     }
 
     public function forgetCache(): void
     {
+        $this->storedMemo = null;
         Cache::forget(self::CACHE_KEY);
     }
 }

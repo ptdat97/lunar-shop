@@ -39,15 +39,18 @@ class MediaUrl
     /**
      * URL for a conversion. Two modes (config `lunar.media.on_demand.sync`):
      *
-     *  - ASYNC (default): never block the page render — return the exact
-     *    conversion URL even when its file is missing. The file is produced by
-     *    whichever comes first: the pre-warm job on the `media` queue, or the
-     *    browser's own image request falling through to the media.conversion
-     *    route (missing file → Laravel), which generates it inline. So images
-     *    work with or without Horizon running.
-     *  - SYNC: generate the missing conversion inline during the page render,
-     *    then serve it (always-correct, but a render with many missing sizes
-     *    generates them serially).
+     *  - ASYNC (default): a pure URL build — NO cache, disk, or queue IO on the
+     *    render path. The exact conversion URL is returned whether or not the
+     *    file exists yet: the web server serves it statically when present, and
+     *    a missing file falls through to the media.conversion route on the
+     *    browser's own image request, which generates it once and streams it.
+     *    (Uploads pre-warm all sizes via warm(), so this is only the first-hit
+     *    path for legacy/regenerated media.) A homepage was measured spending
+     *    ~60 DB cache reads on per-image existence checks whose answer didn't
+     *    change the returned URL at all — this mode skips them entirely.
+     *  - SYNC: check existence and generate the missing conversion inline
+     *    during the page render (always-correct, but a render with many missing
+     *    sizes generates them serially).
      *
      * Either way the returned URL is always usable. Results are memoized
      * per-request so the same media+conversion pair resolves in O(1) after the
@@ -70,31 +73,27 @@ class MediaUrl
             return $this->conversionMemo[$key] = $media->getUrl();
         }
 
-        // Already on disk (cheap cached check) → serve it directly.
+        // ASYNC: trust the URL; the media.conversion route self-heals misses.
+        if (! $this->syncOnDemand()) {
+            return $this->conversionMemo[$key] = $media->getUrl($conversion);
+        }
+
+        // SYNC: already on disk (cheap cached check) → serve it directly.
         if ($this->generator->exists($media, $conversion)) {
             return $this->conversionMemo[$key] = $media->getUrl($conversion);
         }
 
-        if ($this->syncOnDemand()) {
-            if ($this->generator->ensure($media, $conversion)) {
-                return $this->conversionMemo[$key] = $media->getUrl($conversion);
-            }
-
-            return $this->conversionMemo[$key] = $media->getUrl();
+        if ($this->generator->ensure($media, $conversion)) {
+            return $this->conversionMemo[$key] = $media->getUrl($conversion);
         }
 
-        // ASYNC: return the exact URL — the browser's request self-heals it via
-        // the media.conversion route, and the queued job pre-warms the rest.
-        $this->queueWarm($media, $conversion);
-
-        return $this->conversionMemo[$key] = $media->getUrl($conversion);
+        return $this->conversionMemo[$key] = $media->getUrl();
     }
 
     /**
-     * Dispatch a pre-warm job for one conversion, collapsed across requests: a
-     * hot page re-resolving the same missing size on every view (e.g. while no
-     * worker is running) queues it once per window instead of flooding the
-     * `media` queue with duplicates. Cache::add is atomic on every driver.
+     * Dispatch a pre-warm job for one conversion, collapsed across requests /
+     * repeat uploads: Cache::add is atomic on every driver, so a burst queues
+     * one job per window instead of flooding the `media` queue with duplicates.
      */
     protected function queueWarm(Media $media, string $conversion): void
     {
@@ -103,10 +102,13 @@ class MediaUrl
         }
     }
 
+    /** Per-request memo of the sync/async mode (a Settings read per image adds up). */
+    private ?bool $syncMemo = null;
+
     /** Whether on-demand generation runs inline (sync) or defers to the queue. */
     protected function syncOnDemand(): bool
     {
-        return (bool) app(\Modules\Core\Support\Settings::class)
+        return $this->syncMemo ??= (bool) app(\Modules\Core\Support\Settings::class)
             ->get('media.on_demand_sync', config('lunar.media.on_demand.sync', false));
     }
 

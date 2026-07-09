@@ -2,6 +2,7 @@
 
 namespace Modules\Content\Services;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\HtmlString;
 use Modules\Content\Models\PageSection;
@@ -31,11 +32,34 @@ class SectionRenderer
      */
     public function render(string $pageHandle = 'home'): HtmlString
     {
-        $html = PageSection::forPageHandle($pageHandle)->get()
+        $html = $this->sections($pageHandle)
             ->map(fn (PageSection $section) => $this->renderSection($section))
             ->implode("\n");
 
         return new HtmlString($html);
+    }
+
+    /**
+     * The page's section CONFIG (type/sort/settings rows), cached forever and
+     * busted by PageSection model events on any admin change. Only the config
+     * is cached — each section's DATA (products, prices, media) still comes
+     * live from its provider on every request.
+     *
+     * Raw attribute rows are cached (not model instances) and rehydrated, so
+     * the cache payload stays driver-agnostic and casts run normally.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, PageSection>
+     */
+    protected function sections(string $pageHandle): \Illuminate\Database\Eloquent\Collection
+    {
+        $rows = Cache::rememberForever(
+            PageSection::cacheKey($pageHandle),
+            fn () => PageSection::forPageHandle($pageHandle)->get()
+                ->map(fn (PageSection $s) => $s->getAttributes())
+                ->all(),
+        );
+
+        return PageSection::hydrate($rows);
     }
 
     protected function renderSection(PageSection $section): string

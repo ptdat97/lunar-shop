@@ -16,9 +16,10 @@ class CoreServiceProvider extends ServiceProvider
     public function register(): void
     {
         // Admin-configurable feature settings (payment/shipping/membership/…),
-        // DB-backed with config/env fallback. Singleton so the per-request cache
-        // read is shared.
-        $this->app->singleton(Settings::class);
+        // DB-backed with config/env fallback. Scoped (one instance per request,
+        // Octane-safe) so its in-object memo makes the cache-store read happen
+        // at most once per request.
+        $this->app->scoped(Settings::class);
     }
 
     public function boot(): void

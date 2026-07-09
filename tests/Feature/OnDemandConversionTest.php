@@ -77,7 +77,7 @@ class OnDemandConversionTest extends TestCase
         $this->assertNull($urls->conversion(null, 'medium'));
     }
 
-    public function test_async_mode_returns_exact_url_and_queues_generation(): void
+    public function test_async_mode_is_a_pure_url_build(): void
     {
         Config::set('lunar.media.on_demand.sync', false);
 
@@ -92,24 +92,33 @@ class OnDemandConversionTest extends TestCase
 
         // The EXACT conversion URL is returned even though the file is missing:
         // the browser's own image request self-heals it via the media.conversion
-        // fallback route, so nothing was generated inline during the "render".
+        // fallback route. The render itself does no image work at all — nothing
+        // generated inline, nothing queued (uploads pre-warm via warm()).
         $this->assertStringContainsString('-zoom', $url);
         $this->assertFalse($generator->fileExists($media->fresh(), 'zoom'));
+        Queue::assertNothingPushed();
+    }
 
-        // The exact size was also queued on the media queue (pre-warm).
+    public function test_upload_warm_queues_each_missing_conversion_once(): void
+    {
+        $media = $this->mediaWithImage();
+        $generator = app(ConversionGenerator::class);
+
+        Storage::disk($media->conversions_disk)->delete($media->getPathRelativeToRoot('zoom'));
+        $generator->forgetExists($media, 'zoom');
+
+        Queue::fake();
+        app(MediaUrl::class)->warm($media->fresh());
+
         Queue::assertPushed(
             GenerateConversionJob::class,
             fn (GenerateConversionJob $job) => $job->conversion === 'zoom' && $job->queue === 'media',
         );
 
-        // A later render (fresh resolver → no per-request memo) must NOT queue a
-        // duplicate: the Cache::add window in queueWarm() collapses repeats.
-        app()->make(MediaUrl::class)->conversion($media->fresh(), 'zoom');
-        Queue::assertPushed(
-            GenerateConversionJob::class,
-            fn (GenerateConversionJob $job) => $job->conversion === 'zoom',
-        );
-        Queue::assertCount(1);
+        // Re-warming inside the dedupe window must not queue duplicates.
+        $pushed = Queue::pushed(GenerateConversionJob::class)->count();
+        app(MediaUrl::class)->warm($media->fresh());
+        $this->assertSame($pushed, Queue::pushed(GenerateConversionJob::class)->count());
     }
 
     public function test_missing_conversion_is_generated_by_fallback_route(): void

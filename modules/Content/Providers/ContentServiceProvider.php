@@ -19,8 +19,16 @@ class ContentServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // SectionRenderer must stay a SINGLETON: modules register their section
+        // data providers on it during boot, which under Octane runs once per
+        // worker — a scoped binding would flush those registrations away after
+        // the first request. It holds no per-request state (its config cache
+        // lives in the Cache store).
         $this->app->singleton(SectionRenderer::class);
-        $this->app->singleton(MenuRenderer::class);
+
+        // MenuRenderer is pure per-request memo state (loaded menu trees + the
+        // shared linked-collection map), so scoped is the correct lifetime.
+        $this->app->scoped(MenuRenderer::class);
 
         // Register Content Filament resources into Lunar's admin panel.
         // Must be in register() because ModulesServiceProvider collects
@@ -131,9 +139,10 @@ class ContentServiceProvider extends ServiceProvider
                 : Product::query()
                     ->whereIn('id', $allIds)
                     ->where('status', 'published')
-                    // prices.currency so the card price renders without a per-grid
-                    // currency lazy-load; media powers the hover image.
-                    ->with(['variants.prices.currency', 'thumbnail', 'brand', 'media'])
+                    // PricingService primes price->currency from its per-request
+                    // currency map, so `prices` alone is enough here; media
+                    // powers the hover image.
+                    ->with(['variants.prices', 'thumbnail', 'brand', 'media'])
                     ->get()
                     ->keyBy('id');
 

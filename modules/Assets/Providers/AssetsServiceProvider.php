@@ -27,6 +27,16 @@ class AssetsServiceProvider extends ServiceProvider
         AdminPages::add(MediaImageSizes::class);
         AdminPages::add(MediaLibrary::class);
         AdminPages::add(QueueWorkers::class);
+
+        // One instance per request (scoped, so Octane-safe) so their in-object
+        // memos — image sizes, conversion names, exists flags, resolved URLs —
+        // hold across every view composer and API resource in the request. A
+        // section-heavy page resolves hundreds of image URLs; without this each
+        // resolution re-read settings + existence through the cache store,
+        // which on a database cache store meant hundreds of DB round trips.
+        $this->app->scoped(MediaSettings::class);
+        $this->app->scoped(\Modules\Assets\Services\ConversionGenerator::class);
+        $this->app->scoped(MediaUrl::class);
     }
 
     /**

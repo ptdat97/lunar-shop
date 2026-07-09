@@ -24,7 +24,9 @@ class CatalogServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(base_path('config/review.php'), 'review');
         $this->mergeConfigFrom(base_path('config/recommend.php'), 'recommend');
 
-        $this->app->singleton(PricingService::class);
+        // Scoped (per request, Octane-safe): holds per-request memos of matched
+        // prices and the currency map used to prime price->currency.
+        $this->app->scoped(PricingService::class);
 
         // Storefront/API talk only to the SearchEngine contract, so swapping the
         // implementation later (e.g. Meilisearch) is a one-line binding change.

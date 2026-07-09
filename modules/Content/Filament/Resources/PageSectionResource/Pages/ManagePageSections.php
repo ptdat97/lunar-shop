@@ -16,6 +16,24 @@ class ManagePageSections extends ManageRecords
 {
     protected static string $resource = PageSectionResource::class;
 
+    /**
+     * Filament's drag-reorder writes `sort` with one bulk query-builder update,
+     * so PageSection's model events (which bust the rendered section-config
+     * cache) never fire. Bust the affected pages' caches here instead.
+     *
+     * @param  array<int|string>  $order
+     */
+    public function reorderTable(array $order): void
+    {
+        parent::reorderTable($order);
+
+        PageSection::query()
+            ->whereIn((new PageSection)->getKeyName(), array_values($order))
+            ->distinct()
+            ->pluck('page_handle')
+            ->each(fn (string $handle) => \Illuminate\Support\Facades\Cache::forget(PageSection::cacheKey($handle)));
+    }
+
     protected function getHeaderActions(): array
     {
         return [

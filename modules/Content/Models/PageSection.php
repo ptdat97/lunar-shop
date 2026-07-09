@@ -3,6 +3,7 @@
 namespace Modules\Content\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Cache;
 
 /**
  * A storefront page section. `type` maps to a Blade partial in the active
@@ -40,6 +41,36 @@ class PageSection extends Model
         'enabled' => 'boolean',
         'settings' => 'array',
     ];
+
+    /**
+     * Cache key for a page's section CONFIG (rows: type/sort/settings), used by
+     * SectionRenderer. Only the configuration is cached — the data each section
+     * shows (products, prices, media) is fetched live by its provider.
+     */
+    public static function cacheKey(string $handle): string
+    {
+        return "content.sections.{$handle}";
+    }
+
+    /**
+     * Any admin change to a section (create/edit/reorder/toggle/delete) busts
+     * the rendered page's config cache — including the OLD page when a section
+     * is moved between handles.
+     */
+    protected static function booted(): void
+    {
+        $bust = function (self $section): void {
+            Cache::forget(static::cacheKey($section->page_handle));
+
+            $original = $section->getOriginal('page_handle');
+            if ($original && $original !== $section->page_handle) {
+                Cache::forget(static::cacheKey($original));
+            }
+        };
+
+        static::saved($bust);
+        static::deleted($bust);
+    }
 
     /**
      * Enabled sections for a page handle, ordered.

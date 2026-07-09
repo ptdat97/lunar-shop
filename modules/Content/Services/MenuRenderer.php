@@ -2,8 +2,10 @@
 
 namespace Modules\Content\Services;
 
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\HtmlString;
+use Lunar\Models\Collection as LunarCollection;
 use Modules\Content\Models\Menu;
 use Modules\Content\Models\MenuItem;
 
@@ -26,12 +28,24 @@ class MenuRenderer
     protected array $rootsCache = [];
 
     /**
+     * Linked collections (with defaultUrl) shared across ALL menus in the
+     * request, keyed by collection id (missing ids map to null). Header and
+     * footer typically link the same few collections; per-menu eager loading
+     * fetched them once per menu — this map fetches each id once per request.
+     *
+     * @var array<int, LunarCollection|null>
+     */
+    protected array $collectionsCache = [];
+
+    /**
      * Load a menu's root items with the whole tree eager-loaded (2 levels deep
      * covers mega → column → links), memoised per handle for the request.
+     * Linked collections are attached from the shared per-request map instead
+     * of per-menu eager loads.
      *
-     * @return \Illuminate\Support\Collection<int, MenuItem>
+     * @return Collection<int, MenuItem>
      */
-    protected function loadRoots(string $handle): \Illuminate\Support\Collection
+    protected function loadRoots(string $handle): Collection
     {
         if (isset($this->rootsCache[$handle])) {
             return $this->rootsCache[$handle];
@@ -39,15 +53,62 @@ class MenuRenderer
 
         $menu = Menu::findByHandle($handle);
 
-        return $this->rootsCache[$handle] = $menu
-            ? $menu->rootItems()
-                ->with([
-                    'collection.defaultUrl',
-                    'children.collection.defaultUrl',
-                    'children.children.collection.defaultUrl',
-                ])
-                ->get()
-            : collect();
+        if (! $menu) {
+            return $this->rootsCache[$handle] = collect();
+        }
+
+        $roots = $menu->rootItems()
+            ->with('children.children')
+            ->get();
+
+        $this->attachCollections($this->flatten($roots));
+
+        return $this->rootsCache[$handle] = $roots;
+    }
+
+    /**
+     * Every item in the tree (roots + loaded descendants), flattened.
+     *
+     * @param  Collection<int, MenuItem>  $items
+     * @return Collection<int, MenuItem>
+     */
+    protected function flatten(Collection $items): Collection
+    {
+        return $items->flatMap(fn (MenuItem $item) => collect([$item])->merge(
+            $item->relationLoaded('children') ? $this->flatten($item->children) : collect(),
+        ));
+    }
+
+    /**
+     * Set each item's `collection` relation from the shared map, loading any
+     * ids not seen yet in ONE query (with defaultUrl). Items without a linked
+     * collection get null so partials never trigger a lazy load.
+     *
+     * @param  Collection<int, MenuItem>  $items
+     */
+    protected function attachCollections(Collection $items): void
+    {
+        $ids = $items->pluck('collection_id')->filter()->unique()->values();
+
+        $missing = $ids->reject(fn ($id) => array_key_exists((int) $id, $this->collectionsCache));
+
+        if ($missing->isNotEmpty()) {
+            $loaded = LunarCollection::query()
+                ->with('defaultUrl')
+                ->findMany($missing->all())
+                ->keyBy('id');
+
+            foreach ($missing as $id) {
+                $this->collectionsCache[(int) $id] = $loaded->get((int) $id);
+            }
+        }
+
+        foreach ($items as $item) {
+            $item->setRelation(
+                'collection',
+                $item->collection_id ? $this->collectionsCache[(int) $item->collection_id] ?? null : null,
+            );
+        }
     }
 
     /**
