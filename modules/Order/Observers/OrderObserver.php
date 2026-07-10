@@ -3,19 +3,28 @@
 namespace Modules\Order\Observers;
 
 use Lunar\Models\Order;
+use Modules\Order\Events\OrderStatusUpdated;
 use Modules\Order\Mail\OrderStatusUpdatedMail;
 use Modules\Order\Services\OrderMailer;
+use Modules\Order\Support\OrderStatus;
 
 /**
- * Emails the customer when an order's status changes (e.g. via Filament admin).
- * Lunar fires no order-status event, so we observe the model's `status` dirty
- * state. Payment statuses are skipped — they have dedicated emails
- * (confirmation / payment-received) and shouldn't double-notify.
+ * Watches an order's status. Lunar fires no order-status event, so we observe
+ * the model's dirty `status` and raise our own domain event from here.
+ *
+ * The status-update *email* keeps its skip list: payment statuses already have
+ * dedicated emails (confirmation / payment-received) and must not double-notify.
+ * The domain event has no such exclusion — an app has no other channel, so it
+ * should hear about every transition.
  */
 class OrderObserver
 {
     /** Statuses handled by other emails (no status-update mail for these). */
-    protected const SKIP = ['awaiting-payment', 'payment-offline', 'payment-received'];
+    protected const SKIP_MAIL = [
+        OrderStatus::AWAITING_PAYMENT,
+        OrderStatus::PAYMENT_OFFLINE,
+        OrderStatus::PAYMENT_RECEIVED,
+    ];
 
     public function __construct(
         protected OrderMailer $mailer,
@@ -29,7 +38,9 @@ class OrderObserver
 
         $previous = (string) $order->getOriginal('status');
 
-        if (in_array($order->status, self::SKIP, true)) {
+        OrderStatusUpdated::dispatch($order, $previous);
+
+        if (in_array($order->status, self::SKIP_MAIL, true)) {
             return;
         }
 

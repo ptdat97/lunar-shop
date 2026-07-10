@@ -9,10 +9,14 @@ use Modules\Catalog\Http\Controllers\Api\V1\ReviewController;
 use Modules\Catalog\Http\Controllers\Api\V1\SearchController;
 use Modules\Catalog\Http\Controllers\Api\V1\SizeController;
 
+// Health probe: no middleware. The `api` group resolves the storefront locale
+// through a cached settings store, so a Redis outage would 500 this endpoint
+// before it could report which dependency is down. A probe must depend on as
+// little as possible — it is the thing that tells you the rest is broken.
+Route::get('api/v1/health', HealthController::class)->name('api.v1.health');
+
 // API routes for the Catalog module. Self-prefixed with /api/v1.
 Route::prefix('api/v1')->middleware('api')->group(function (): void {
-    Route::get('health', HealthController::class)->name('api.v1.health');
-
     // Products
     Route::get('products', [ProductController::class, 'index'])->name('api.v1.products.index');
     Route::get('products/{slug}', [ProductController::class, 'show'])->name('api.v1.products.show');
@@ -33,17 +37,18 @@ Route::prefix('api/v1')->middleware('api')->group(function (): void {
         ->name('api.v1.products.recommendations');
 });
 
-// Reviews — no `api` middleware group in the original (public read/write on the
-// bare api/v1 prefix); preserved as-is.
-Route::prefix('api/v1')->group(function (): void {
+// Reviews. Previously registered on the bare `api/v1` prefix with no middleware
+// group at all, so they resolved no API locale — reviews came back in the store
+// default whatever the client asked for.
+Route::prefix('api/v1')->middleware('api')->group(function (): void {
     Route::get('products/{product}/reviews', [ReviewController::class, 'index'])
         ->name('api.v1.products.reviews.index');
     Route::post('products/{product}/reviews', [ReviewController::class, 'store'])
         ->name('api.v1.products.reviews.store');
+});
 
-    // Cart recommendations need the storefront session for the current cart.
-    Route::middleware('storefront')->group(function (): void {
-        Route::get('cart/recommendations', [RecommendationController::class, 'forCart'])
-            ->name('api.v1.cart.recommendations');
-    });
+// Cart recommendations need the storefront session for the current cart.
+Route::prefix('api/v1')->middleware('storefront')->group(function (): void {
+    Route::get('cart/recommendations', [RecommendationController::class, 'forCart'])
+        ->name('api.v1.cart.recommendations');
 });

@@ -8,6 +8,7 @@ use Lunar\Models\Customer;
 use Lunar\Models\CustomerGroup;
 use Lunar\Models\Order;
 use Modules\Core\Support\Settings;
+use Modules\Order\Support\OrderStatus;
 
 /**
  * Spend-based loyalty tiers, layered on Lunar's native CustomerGroup system.
@@ -34,14 +35,18 @@ class MembershipService
 
     /**
      * Lifetime paid spend (minor units) for a customer across their orders.
+     *
+     * "Paid" is defined in exactly one place — {@see OrderStatus::paid()} — the
+     * same source the sales dashboard, co-purchase recommendations and fit
+     * history read. A separate membership list previously omitted
+     * `payment-offline`, so COD orders counted as revenue but never toward a
+     * tier.
      */
     public function lifetimeSpend(Customer $customer): int
     {
-        $statuses = config('promotion.membership.paid_statuses', ['payment-received']);
-
         return (int) Order::query()
             ->where('customer_id', $customer->id)
-            ->whereIn('status', $statuses)
+            ->whereIn('status', OrderStatus::paid())
             ->sum('total');
     }
 
@@ -127,12 +132,19 @@ class MembershipService
      */
     public function currentTier(Customer $customer): ?array
     {
-        $groupIds = $customer->customerGroups()->pluck($customer->customerGroups()->getTable().'.id');
+        $tiers = $this->tiers();
+
+        if ($tiers === []) {
+            return null;
+        }
+
+        // The customer's group handles, and every tier's group, in two queries —
+        // this used to run one `CustomerGroup::where(handle)` per configured tier.
+        $handles = $customer->customerGroups()->pluck('handle');
 
         $current = null;
-        foreach ($this->tiers() as $tier) {
-            $group = CustomerGroup::where('handle', $tier['handle'])->first();
-            if ($group && $groupIds->contains($group->id)) {
+        foreach ($tiers as $tier) {
+            if ($handles->contains($tier['handle'])) {
                 $current = $tier; // tiers ascending → last match is highest
             }
         }

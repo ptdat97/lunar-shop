@@ -73,9 +73,8 @@ modules/<Name>/
 └── Providers/<Name>ServiceProvider.php
 ```
 
-> Tên module hiện có: Catalog, Product, Collection, Inventory, Pricing, Cart,
-> Checkout, Customer, Order, CMS, Menu, Theme, SectionBuilder, Media, FileManager,
-> Search, Recommend, Promotion, Shipping, Payment, Location, Hook, Analytics.
+> Tên module hiện có (12, sau đợt gộp 24→12): **Core** (hạ tầng), Analytics, Assets,
+> Catalog, Checkout, Content, Customer, Inventory, Order, Promotion, Shipping, Theme.
 
 ---
 
@@ -240,18 +239,73 @@ jQuery chỉ cho plugin/tiện ích nhỏ; Axios gọi `/api/v1/*`.
 
 ---
 
-## 10. Hook & Event (liên-module)
+## 10. Giao tiếp liên-module (service công khai + Event)
 
-Module giao tiếp qua module `Hook` (facade `Hook`, registry `Hooks::*`) — **không**
-truy cập thẳng logic/model nội bộ module khác.
+> Module `Hook` và facade `Hook::applyFilters()` **đã bị gỡ** khi gộp 24→12 module
+> (hook/plugin engine nằm ngoài phạm vi SME, xem §16). Không dùng lại.
 
-* **FILTER** — enrich payload không tạo phụ thuộc:
-  `Hook::applyFilters(Hooks::PRODUCT_RESOURCE, $data, [$product])`. Consumer đăng
-  ký `Hook::addFilter(...)` trong `<Module>\Support\*Hooks::register()` gọi từ
-  provider (mẫu: `InventoryHooks`, `PromotionHooks`).
-* **ACTION (domain event)** bắt buộc cho Order/Payment/Customer/Inventory/Promotion:
-  `order.placed` / `order.paid` / `order.status_changed`. Email / đồng bộ dữ liệu
-  đi qua **Event + Listener**, không gọi thẳng trong service đang xử lý nghiệp vụ.
+Module giao tiếp qua **service công khai** của module khác hoặc **domain event** —
+**không** truy cập model/logic nội bộ của nhau.
+
+* **Gọi trực tiếp service công khai** khi cần dữ liệu ngay và chấp nhận phụ thuộc
+  (vd `Checkout` → `CustomerResolver`, `Catalog\FitHistoryService` → `Order` models
+  qua truy vấn đọc). Đây là mặc định: ít lớp nhất.
+* **Domain event** khi cần **coupling lỏng / nhiều consumer / side-effect**:
+  `Modules\Order\Events\OrderPaid` (consumer: email thanh toán ở Order, sync
+  membership ở Promotion); `Modules\Order\Events\OrderStatusUpdated` (consumer:
+  notification ở Notification, trả tồn kho ở Inventory). Đặt event trong module
+  **sở hữu** nghiệp vụ, không nhét vào `Core`.
+* **Event của Lunar** (`PaymentAttemptEvent`, `MediaHasBeenAddedEvent`…) là điểm hook
+  chính chủ — ưu tiên trước khi tự tạo event mới.
+* **Chỉ thêm domain event mới khi đã có consumer thứ hai.** Event "phòng xa" là
+  abstraction thừa.
+* Side-effect không-rollback-được (gửi mail, gọi API ngoài) đi qua **Event + Listener**
+  (queued), **không** gọi trong khối `DB::transaction` (§4).
+
+> ⚠️ Một event phải có **ngữ nghĩa rõ**. Ví dụ `OrderPaid` = *"được tính là đã thanh
+> toán"* (chi tiêu + doanh thu), **không** phải *"đã nhận được tiền"* — COD bắn
+> `OrderPaid` lúc đặt hàng nhưng khách trả tiền khi giao. Listener nào cần "tiền đã về
+> tay" phải tự kiểm tra `status === 'payment-received'`.
+
+> ⚠️ **Listener queued hay đồng bộ?** Side-effect (mail, push, sync ngoài) → **queued**.
+> **Bất biến đúng-sai** (trả tồn kho, ghi sổ tiền) → **đồng bộ**: queue chết thì hàng/tiền
+> sai im lặng, không ai biết. Xem `ReleaseStockOnOrderClosed` (đồng bộ) so với
+> `SendOrderStatusNotification` (queued).
+
+---
+
+## 17. Guard phải được *chứng minh là có chạy*
+
+Một guard viết đúng vẫn có thể **chưa từng chạy một lần nào**.
+
+Thực tế đã xảy ra: `DecrementStock` có conditional UPDATE atomic chống oversell, và
+`CartService` cũng kiểm tra tồn kho — nhưng cả hai đều (đúng theo thiết kế) **miễn trừ**
+variant `backorder`/`always`. Mà cột `lunar_product_variants.purchasable` mặc định là
+`always` trong migration của Lunar, và **không một seeder/fixture/admin nào từng đổi** →
+toàn bộ 66 variant đều `always` → **không guard nào từng kích hoạt**. Test cũ vẫn xanh vì
+nó tự `update(['purchasable' => 'in_stock'])`.
+
+Kết quả đo được: stock 2, đặt 10 → checkout **200 OK**, stock **−8**.
+
+**Quy tắc:**
+1. Test guard phải chạy trên **dữ liệu như production**, không phải dữ liệu tự dựng cho
+   guard đó chạy. Nếu fixture phải sửa một trường để guard hoạt động → hỏi ngay: *production
+   có trường đó không?*
+2. **Mutation-check mọi guard**: tắt guard → test phải đỏ. Test không đỏ = test không bảo vệ gì.
+3. Nghi ngờ mọi **default của vendor**. `purchasable = always`, `sanctum.expiration = null`,
+   `throttleApi()` chỉ phủ group `api` — cả ba đều từng làm cả một lớp bảo vệ thành trang trí.
+4. **Cờ hiển thị ≠ guard.** `OrderResource.can_return` trông y như một luật nghiệp vụ, nhưng
+   nó chỉ **ẩn cái nút**: `ReturnService::open()` không hề kiểm tra status, nên gọi thẳng
+   endpoint là mở được RMA trên đơn chưa từng giao — rồi hoàn tiền. Với mỗi cờ dạng
+   `can_*` / `is_*` trong Resource, hỏi: **ai ép luật này ở phía service?** Nếu không ai,
+   đó là lỗ hổng, không phải cờ.
+
+**Định nghĩa "đã thanh toán" chỉ có một nguồn:** `Modules\Order\Support\OrderStatus::paid()`
+(bọc `config('analytics.paid_statuses')`, dùng bởi `AnalyticsService`, `MembershipService`,
+`CoPurchaseStrategy`, `FitHistoryService`, `DispatchOrderPaidForOfflineOrder`). Trước đây
+mảng fallback bị copy-paste ra **5 nơi** — đúng loại drift đã sinh ra bug COD-không-lên-hạng.
+Tương tự: `OrderStatus::RETURNABLE`, `OrderStatus::CLOSED`. Không tạo danh sách status riêng
+cho từng module — chúng sẽ trôi khỏi nhau.
 
 ---
 

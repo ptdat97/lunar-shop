@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Lunar\Models\Customer;
 use Lunar\Models\Product;
 use Modules\Order\Models\ReturnRequest;
+use Modules\Order\Support\OrderStatus;
 
 /**
  * Size Intelligence v2: infer a shopper's true size from what they actually kept
@@ -23,22 +24,15 @@ class FitHistoryService
 {
     /** Return reasons that mean "the size was wrong", mapped to a direction. */
     public const REASON_TOO_SMALL = 'too-small';
+
     public const REASON_TOO_LARGE = 'too-large';
 
     /** Legacy reason from before the split: wrong size, direction unknown. */
     public const REASON_WRONG_SIZE = 'wrong-size';
 
-    /** @var list<string> order statuses that count as a real purchase */
-    protected array $paidStatuses;
-
     public function __construct(
         protected SizeChartService $charts,
-        ?array $paidStatuses = null,
-    ) {
-        // Same definition of "purchased" as analytics + co-purchase recommend.
-        $this->paidStatuses = $paidStatuses
-            ?? config('analytics.paid_statuses', ['payment-offline', 'payment-received', 'dispatched', 'completed']);
-    }
+    ) {}
 
     /**
      * Fit signal for a customer on a product, or null when there is nothing to
@@ -239,7 +233,7 @@ class FitHistoryService
             ->where('opt.handle', 'size')
             ->where('pv.product_id', $product->id)
             ->where('o.customer_id', $customer->id)
-            ->whereIn('o.status', $this->paidStatuses)
+            ->whereIn('o.status', OrderStatus::paid())
             // A size return against this exact order line, if any.
             ->leftJoin('return_request_lines as rrl', 'rrl.order_line_id', '=', 'ol.id')
             ->leftJoin('return_requests as rr', function ($join) {
@@ -263,6 +257,7 @@ class FitHistoryService
         foreach ($rows as $row) {
             if ((int) $row->always_returned !== 1) {
                 $out[(string) $row->size] = null; // kept at least once ⇒ it fits
+
                 continue;
             }
 

@@ -40,8 +40,10 @@ return [
     'membership' => [
         'enabled' => true,
 
-        // Order statuses that count toward lifetime spend (mirror analytics).
-        'paid_statuses' => ['payment-received', 'paid', 'completed', 'dispatched'],
+        // Statuses counting toward lifetime spend live in `analytics.paid_statuses`
+        // (single source, read by MembershipService). A duplicate list here had
+        // drifted: it omitted `payment-offline`, so COD orders counted as revenue
+        // but never advanced a membership tier.
 
         'tiers' => [
             [

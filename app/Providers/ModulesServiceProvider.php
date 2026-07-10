@@ -31,6 +31,7 @@ class ModulesServiceProvider extends ServiceProvider
         'Checkout',
         'Customer',
         'Order',
+        'Notification',   // listens to Order's domain events
         'Content',
         'Assets',
         'Promotion',

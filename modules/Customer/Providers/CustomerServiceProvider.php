@@ -10,7 +10,8 @@ class CustomerServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        // Personal-access-token policy (TTL + abilities) for app/POS clients.
+        $this->mergeConfigFrom(__DIR__.'/../Config/customer.php', 'customer');
     }
 
     /**
@@ -18,10 +19,10 @@ class CustomerServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
+        $this->loadMigrationsFrom(__DIR__.'/../Database/Migrations');
 
-        $this->loadRoutesFrom(__DIR__ . '/../Routes/web.php');
-        $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
+        $this->loadRoutesFrom(__DIR__.'/../Routes/web.php');
+        $this->loadRoutesFrom(__DIR__.'/../Routes/api.php');
 
         // Size Intelligence v2: attach the saved measurement profile to Lunar's
         // Customer without forking the vendor model (extend, don't fork).

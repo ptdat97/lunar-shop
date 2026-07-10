@@ -2,11 +2,14 @@
 
 namespace Modules\Catalog\Http\Controllers\Api\V1;
 
-use Modules\Catalog\Services\ReviewService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
 use Lunar\Models\Product;
+use Modules\Catalog\Http\Resources\ReviewResource;
+use Modules\Catalog\Services\ReviewService;
+use Modules\Core\Support\ApiPagination;
 
 class ReviewController extends Controller
 {
@@ -14,18 +17,25 @@ class ReviewController extends Controller
         protected ReviewService $reviews,
     ) {}
 
-    /** GET /api/v1/products/{product}/reviews */
-    public function index(Product $product): JsonResponse
+    /**
+     * GET /api/v1/products/{product}/reviews
+     *
+     * `meta` carries the pagination counters used everywhere else in the API;
+     * the rating roll-up moved to `summary` when this endpoint was paginated.
+     */
+    public function index(Request $request, Product $product): AnonymousResourceCollection
     {
-        return response()->json([
-            'data' => $this->reviews->forProduct($product->id)->map(fn ($r) => [
-                'author' => $r->author,
-                'rating' => $r->rating,
-                'body' => $r->body,
-                'created_at' => $r->created_at?->toDateString(),
-            ]),
-            'meta' => $this->reviews->summaryFor($product->id),
-        ]);
+        $reviews = $this->reviews->forProduct(
+            $product->id,
+            perPage: ApiPagination::perPage($request, default: 20, max: 50),
+            page: ApiPagination::page($request),
+        );
+
+        return ReviewResource::collection($reviews->getCollection())
+            ->additional([
+                'summary' => $this->reviews->summaryFor($product->id),
+                'meta' => ApiPagination::meta($reviews),
+            ]);
     }
 
     /** POST /api/v1/products/{product}/reviews */

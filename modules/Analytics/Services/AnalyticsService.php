@@ -9,6 +9,7 @@ use Lunar\Models\Order;
 use Lunar\Models\OrderLine;
 use Lunar\Models\Product;
 use Lunar\Models\ProductVariant;
+use Modules\Order\Support\OrderStatus;
 
 /**
  * Sales reporting over Lunar's orders. Read-only aggregation — feeds the admin
@@ -29,12 +30,10 @@ class AnalyticsService
      */
     public function paidStatuses(): array
     {
-        return config('analytics.paid_statuses', [
-            'payment-offline',
-            'payment-received',
-            'dispatched',
-            'completed',
-        ]);
+        // Delegates to the order lifecycle rather than re-stating it: "paid"
+        // must mean the same thing here, to membership spend, and to the
+        // recommendations built from purchase history.
+        return OrderStatus::paid();
     }
 
     /** Base query scoped to paid orders. */

@@ -4,12 +4,14 @@ namespace Modules\Order\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Lunar\Models\Order;
+use Modules\Order\Support\OrderStatus;
 
 /**
  * Stable JSON contract for a customer-facing order (list + detail). Shared by
  * the storefront account pages and /api/v1/orders.
  *
- * @mixin \Lunar\Models\Order
+ * @mixin Order
  */
 class OrderResource extends JsonResource
 {
@@ -19,14 +21,19 @@ class OrderResource extends JsonResource
             'id' => $this->id,
             'reference' => $this->reference,
             'status' => $this->status,
+            // The raw handle stays (clients switch on it); the label is what a
+            // human reads, localised — Lunar's config only has English, and only
+            // for the four statuses it ships with.
+            'status_label' => OrderStatus::label($this->status),
             'placed_at' => $this->placed_at?->toIso8601String(),
             'total' => $this->total?->formatted(),
             'sub_total' => $this->subTotal?->formatted(),
             'shipping_total' => $this->shippingTotal?->formatted(),
             'tax_total' => $this->taxTotal?->formatted(),
             // Returnable when the order is in a paid/fulfilled state (customer can
-            // open an RMA from the account order-detail).
-            'can_return' => in_array($this->status, ['payment-received', 'dispatched', 'completed'], true),
+            // open an RMA from the account order-detail). ReturnService enforces
+            // the same rule — this flag only hides the button.
+            'can_return' => OrderStatus::isReturnable($this->status),
             'lines' => $this->whenLoaded('lines', fn () => $this->lines->map(fn ($line) => [
                 'id' => $line->id,
                 'description' => $line->description,

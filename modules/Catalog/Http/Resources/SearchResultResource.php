@@ -4,8 +4,8 @@ namespace Modules\Catalog\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Modules\Catalog\Http\Resources\ProductResource;
 use Modules\Catalog\Data\SearchResult;
+use Modules\Core\Support\ApiPagination;
 
 /**
  * Canonical JSON contract for a paginated, faceted listing.
@@ -26,12 +26,12 @@ class SearchResultResource
     {
         $additional = [
             'facets' => $result->facets,
-            'meta' => [
-                'total' => $result->total,
-                'page' => $result->page,
-                'per_page' => $result->perPage,
-                'last_page' => $result->lastPage(),
-            ],
+            'meta' => ApiPagination::metaFor(
+                $result->page,
+                $result->perPage,
+                $result->lastPage(),
+                $result->total,
+            ),
         ];
 
         return ProductResource::collection($result->items)->additional($additional);

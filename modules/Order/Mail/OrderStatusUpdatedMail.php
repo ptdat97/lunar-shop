@@ -10,6 +10,7 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Lunar\Models\Order;
 use Modules\Core\Support\Queues;
+use Modules\Order\Support\OrderStatus;
 
 /**
  * Sent when an order's status changes (e.g. dispatched, completed, cancelled).
@@ -41,7 +42,9 @@ class OrderStatusUpdatedMail extends Mailable implements ShouldQueue
         return new Content(markdown: 'order::mail.order-status-updated', with: [
             'order' => $this->order,
             'previousStatus' => $this->previousStatus,
-            'statusLabel' => config("lunar.orders.statuses.{$this->order->status}.label", $this->order->status),
+            // Localised: Lunar's config carries English labels only, and none at
+            // all for `completed` / `refunded` / `cancelled`.
+            'statusLabel' => OrderStatus::label($this->order->status),
         ]);
     }
 }

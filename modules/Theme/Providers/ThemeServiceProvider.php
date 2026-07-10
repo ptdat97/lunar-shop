@@ -81,11 +81,18 @@ class ThemeServiceProvider extends ServiceProvider
             InitStorefrontSession::class,
         ]);
 
-        // Headless /api/v1 is session-less, so it can't use the storefront
-        // locale group. Resolve locale per request (?locale= → Accept-Language →
-        // default) so API payloads (Lunar translateAttribute + __()) come back
-        // in the client's language. Appended to the framework `api` group used
-        // by every module's api routes.
+        // Resolve the locale for every /api/v1 request (?locale= → Accept-Language
+        // → default) so payloads (Lunar translateAttribute + __()) come back in
+        // the client's language.
+        //
+        // Pushed onto BOTH groups: only 17 of the 52 API routes live in the
+        // framework `api` group — cart, checkout, orders and account are
+        // registered under `web`/`storefront` because Lunar's cart needs a
+        // session, and so resolved no API locale at all. The middleware guards on
+        // the `api/v1/*` URI, so it is a no-op for HTML pages, and it runs before
+        // SetStorefrontLocale inside the `storefront` group (which is `web` +
+        // extras) — a visitor's language switch still outranks `?locale=`.
         $router->pushMiddlewareToGroup('api', SetApiLocale::class);
+        $router->pushMiddlewareToGroup('web', SetApiLocale::class);
     }
 }

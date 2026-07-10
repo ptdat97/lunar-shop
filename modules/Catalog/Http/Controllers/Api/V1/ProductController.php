@@ -5,11 +5,12 @@ namespace Modules\Catalog\Http\Controllers\Api\V1;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
+use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Http\Resources\ProductResource;
 use Modules\Catalog\Services\ProductService;
-use Modules\Catalog\Services\SizeChartService;
 use Modules\Catalog\Services\RecommendationService;
-use Modules\Catalog\Data\SearchQuery;
+use Modules\Catalog\Services\SizeChartService;
+use Modules\Core\Support\ApiPagination;
 
 class ProductController extends Controller
 {
@@ -40,12 +41,12 @@ class ProductController extends Controller
 
         return ProductResource::collection($result->items)
             ->additional([
-                'meta' => [
-                    'total' => $result->total,
-                    'page' => $result->page,
-                    'per_page' => $result->perPage,
-                    'last_page' => $result->lastPage(),
-                ],
+                'meta' => ApiPagination::metaFor(
+                    $result->page,
+                    $result->perPage,
+                    $result->lastPage(),
+                    $result->total,
+                ),
             ]);
     }
 

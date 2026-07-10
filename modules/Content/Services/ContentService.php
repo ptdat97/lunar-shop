@@ -2,6 +2,7 @@
 
 namespace Modules\Content\Services;
 
+use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Modules\Content\Models\Banner;
 use Modules\Content\Models\Lookbook;
 use Modules\Content\Models\Page;
@@ -9,11 +10,18 @@ use Modules\Content\Models\Page;
 class ContentService
 {
     /**
-     * Get published pages.
+     * Published pages, newest first.
+     *
+     * Paginated: an unbounded list endpoint grows with the CMS, and every other
+     * list in the API answers `?page=` / `?per_page=`.
+     *
+     * @return LengthAwarePaginator<int, Page>
      */
-    public function pages(): array
+    public function pages(int $perPage = 20, int $page = 1)
     {
-        return Page::published()->get()->all();
+        return Page::published()
+            ->latest('id')
+            ->paginate(perPage: $perPage, page: $page);
     }
 
     /**

@@ -6,10 +6,12 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Facades\Discounts;
+use Modules\Core\Support\AdminPages;
 use Modules\Order\Events\OrderPaid;
+use Modules\Promotion\Console\BackfillMembershipTiers;
+use Modules\Promotion\Filament\Pages\MembershipSettingsPage;
 use Modules\Promotion\Services\MembershipService;
 use Modules\Promotion\Services\PromotionService;
-use Modules\Core\Support\AdminPages;
 
 class PromotionServiceProvider extends ServiceProvider
 {
@@ -18,7 +20,7 @@ class PromotionServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__ . '/../Config/promotion.php', 'promotion');
+        $this->mergeConfigFrom(__DIR__.'/../Config/promotion.php', 'promotion');
 
         // Singleton so per-request memoization in the service (active automatic
         // discounts + their eager-loaded relations) is shared across the many
@@ -26,7 +28,7 @@ class PromotionServiceProvider extends ServiceProvider
         $this->app->singleton(PromotionService::class);
 
         // Admin page to configure spend-based membership tiers.
-        AdminPages::add(\Modules\Promotion\Filament\Pages\MembershipSettingsPage::class);
+        AdminPages::add(MembershipSettingsPage::class);
     }
 
     /**
@@ -34,15 +36,19 @@ class PromotionServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
-        $this->loadViewsFrom(__DIR__ . '/../Resources/views', 'promotion-admin');
+        $this->loadMigrationsFrom(__DIR__.'/../Database/Migrations');
+        $this->loadViewsFrom(__DIR__.'/../Resources/views', 'promotion-admin');
 
-        $this->loadRoutesFrom(__DIR__ . '/../Routes/web.php');
-        $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
+        $this->loadRoutesFrom(__DIR__.'/../Routes/web.php');
+        $this->loadRoutesFrom(__DIR__.'/../Routes/api.php');
 
         $this->registerDiscountTypes();
         $this->registerMembershipSync();
         $this->shareFlashSale();
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([BackfillMembershipTiers::class]);
+        }
     }
 
     /**

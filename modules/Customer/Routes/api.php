@@ -6,6 +6,7 @@ use Modules\Customer\Http\Controllers\Api\V1\AuthController;
 use Modules\Customer\Http\Controllers\Api\V1\CustomerController;
 use Modules\Customer\Http\Controllers\Api\V1\LocationController;
 use Modules\Customer\Http\Controllers\Api\V1\MeasurementController;
+use Modules\Customer\Http\Controllers\Api\V1\RecentlyViewedController;
 use Modules\Customer\Http\Controllers\Api\V1\TokenAuthController;
 use Modules\Customer\Http\Controllers\Api\V1\WishlistController;
 
@@ -46,7 +47,12 @@ Route::prefix('api/v1')->middleware('web')->group(function (): void {
 
 // Authenticated customer endpoints. Accept either Sanctum token (app/headless)
 // or the SPA cookie session.
-Route::prefix('api/v1')->middleware(['web', 'auth:sanctum'])->group(function (): void {
+//
+// `token.ability:customer:*` scopes *bearer tokens* to the customer surface. A
+// staff/POS token minted with `pos:*` gets a 403 here rather than silently
+// acting as the customer. The SPA cookie session passes through untouched — it
+// is already authenticated by cookie + CSRF and carries no ability list.
+Route::prefix('api/v1')->middleware(['web', 'auth:sanctum', 'token.ability:customer:*'])->group(function (): void {
     Route::patch('customer', [CustomerController::class, 'update'])->name('api.v1.customer.update');
     Route::patch('customer/password', [CustomerController::class, 'password'])->name('api.v1.customer.password');
     Route::get('customer/orders', [CustomerController::class, 'orders'])->name('api.v1.customer.orders');
@@ -62,6 +68,17 @@ Route::prefix('api/v1')->middleware(['web', 'auth:sanctum'])->group(function ():
     // Size Intelligence v2: saved body-measurement profile.
     Route::put('customer/measurements', [MeasurementController::class, 'update'])->name('api.v1.customer.measurements.update');
 
+    // Recently viewed, server-side: follows the shopper from web to app.
+    Route::get('customer/recently-viewed', [RecentlyViewedController::class, 'index'])
+        ->name('api.v1.customer.recently-viewed.index');
+    Route::post('customer/recently-viewed', [RecentlyViewedController::class, 'store'])
+        ->name('api.v1.customer.recently-viewed.store');
+    Route::delete('customer/recently-viewed', [RecentlyViewedController::class, 'destroy'])
+        ->name('api.v1.customer.recently-viewed.destroy');
+
     // Token logout (app/headless): revoke the PAT used for this request.
     Route::post('auth/token/revoke', [TokenAuthController::class, 'revoke'])->name('api.v1.auth.token.revoke');
+
+    // Roll a token forward before it expires (the old one is revoked).
+    Route::post('auth/token/refresh', [TokenAuthController::class, 'refresh'])->name('api.v1.auth.token.refresh');
 });

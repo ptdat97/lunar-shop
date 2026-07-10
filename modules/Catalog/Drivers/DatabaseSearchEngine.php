@@ -3,11 +3,13 @@
 namespace Modules\Catalog\Drivers;
 
 use Illuminate\Database\Eloquent\Builder;
-use Lunar\Models\Collection as LunarCollection;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Lunar\Models\Product;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Data\SearchResult;
+use Modules\Catalog\Support\MediaThumbnails;
 
 /**
  * Phase 1 driver — queries the database directly (no search server).
@@ -49,17 +51,22 @@ class DatabaseSearchEngine implements SearchEngine
         $this->applyFilters($builder, $query->filters);
         $this->applySort($builder, $query->sort);
 
+        // Count before paginating: forPage() puts a LIMIT/OFFSET on the builder,
+        // and a clone taken afterwards counts only the rows on the current page —
+        // `total` came back as 0 (and `last_page` as 1) for every page past the
+        // first, breaking the pager. Only the faceted path pays for the count;
+        // a plain list (home carousels, API list) derives it from the page.
+        $total = $query->withFacets ? (clone $builder)->count() : null;
+
         $items = $builder
             ->forPage($query->page, $query->perPage)
             ->get();
 
-        \Modules\Catalog\Support\MediaThumbnails::backfill($items);
+        MediaThumbnails::backfill($items);
 
-        // Without facets, skip the separate count() too and derive `total` from
-        // the page: exact enough for a carousel (no pager rendered).
-        $total = $query->withFacets
-            ? (clone $builder)->count()
-            : ($query->page - 1) * $query->perPage + $items->count();
+        // Without facets, skip the separate count() and derive `total` from the
+        // page: exact enough for a carousel (no pager rendered).
+        $total ??= ($query->page - 1) * $query->perPage + $items->count();
 
         return new SearchResult(
             items: $items,
@@ -96,7 +103,7 @@ class DatabaseSearchEngine implements SearchEngine
 
         // Lunar stores translatable attributes as JSONB in `attribute_data`.
         // Match against the extracted name value (case-insensitive) + variant SKU.
-        $needle = '%' . mb_strtolower($term) . '%';
+        $needle = '%'.mb_strtolower($term).'%';
 
         $builder->where(function ($q) use ($needle, $term) {
             $q->whereRaw(
@@ -124,7 +131,7 @@ class DatabaseSearchEngine implements SearchEngine
                         ->where('u.default', '=', 1);
                 })
                 ->join('lunar_collection_product as cp', 'cp.collection_id', '=', 'c.id')
-                ->where('cp.product_id', '=', \Illuminate\Support\Facades\DB::raw('lunar_products.id'))
+                ->where('cp.product_id', '=', DB::raw('lunar_products.id'))
                 ->where('u.slug', $scope);
         });
     }
@@ -149,7 +156,7 @@ class DatabaseSearchEngine implements SearchEngine
      */
     protected function applyPriceSort(Builder $builder, string $direction): void
     {
-        $minPrice = \Illuminate\Support\Facades\DB::table('lunar_product_variants as pv')
+        $minPrice = DB::table('lunar_product_variants as pv')
             ->join('lunar_prices as pr', function ($join) {
                 $join->on('pr.priceable_id', '=', 'pv.id')
                     ->where('pr.priceable_type', '=', 'product_variant');
@@ -255,7 +262,7 @@ class DatabaseSearchEngine implements SearchEngine
         }
 
         // Fetch option facets (size/color)
-        $rows = \Illuminate\Support\Facades\DB::table('lunar_product_option_values as ov')
+        $rows = DB::table('lunar_product_option_values as ov')
             ->join('lunar_product_option_value_product_variant as pivot', 'pivot.value_id', '=', 'ov.id')
             ->join('lunar_product_variants as pv', 'pv.id', '=', 'pivot.variant_id')
             ->join('lunar_product_options as o', 'o.id', '=', 'ov.product_option_id')
@@ -288,12 +295,12 @@ class DatabaseSearchEngine implements SearchEngine
     /**
      * Material buckets (value => count) from product_materials over the result set.
      *
-     * @param  \Illuminate\Support\Collection<int, int>  $productIds
+     * @param  Collection<int, int>  $productIds
      * @return array<int, array{value:string, count:int}>
      */
     protected function materialFacet($productIds): array
     {
-        return \Illuminate\Support\Facades\DB::table('product_materials as pm')
+        return DB::table('product_materials as pm')
             ->whereIn('pm.product_id', $productIds)
             ->whereNotNull('pm.material')
             ->where('pm.material', '!=', '')
@@ -309,12 +316,12 @@ class DatabaseSearchEngine implements SearchEngine
      * Availability facet — a single "in_stock" bucket counting products with at
      * least one in-stock variant. Rendered as one checkbox in the sidebar.
      *
-     * @param  \Illuminate\Support\Collection<int, int>  $productIds
+     * @param  Collection<int, int>  $productIds
      * @return array<int, array{value:string, count:int}>
      */
     protected function availabilityFacet($productIds): array
     {
-        $inStock = \Illuminate\Support\Facades\DB::table('lunar_product_variants as pv')
+        $inStock = DB::table('lunar_product_variants as pv')
             ->whereIn('pv.product_id', $productIds)
             ->where('pv.stock', '>', 0)
             ->distinct()
@@ -328,13 +335,13 @@ class DatabaseSearchEngine implements SearchEngine
     /**
      * Brand buckets + price bounds in a single query pass.
      *
-     * @param  \Illuminate\Support\Collection<int, int>  $productIds
+     * @param  Collection<int, int>  $productIds
      * @return array{brand:array, price:array|null}
      */
     protected function brandAndPriceFacets($productIds): array
     {
         // Get brand counts
-        $brands = \Illuminate\Support\Facades\DB::table('lunar_products as p')
+        $brands = DB::table('lunar_products as p')
             ->join('lunar_brands as b', 'b.id', '=', 'p.brand_id')
             ->whereIn('p.id', $productIds)
             ->selectRaw('b.name as value, COUNT(DISTINCT p.id) as count')
@@ -345,7 +352,7 @@ class DatabaseSearchEngine implements SearchEngine
             ->all();
 
         // Get min/max price
-        $row = \Illuminate\Support\Facades\DB::table('lunar_product_variants as pv')
+        $row = DB::table('lunar_product_variants as pv')
             ->join('lunar_prices as pr', function ($join) {
                 $join->on('pr.priceable_id', '=', 'pv.id')
                     ->where('pr.priceable_type', '=', 'product_variant');

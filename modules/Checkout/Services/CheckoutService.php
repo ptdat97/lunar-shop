@@ -158,6 +158,14 @@ class CheckoutService
     {
         $cart = $this->carts->current();
 
+        // An empty cart cannot become an order. This is also what a double-click
+        // on "Place order" looks like: the first submit consumed the cart, and
+        // the second found the fresh empty one that replaced it — which used to
+        // surface as a 500 ("A billing address is required").
+        if ($cart->lines->isEmpty()) {
+            abort(422, 'Your cart is empty.');
+        }
+
         // Link the cart to the logged-in user's customer so the order shows up
         // in their order history (guests place orders without a customer).
         if (Auth::check() && ! $cart->customer_id) {

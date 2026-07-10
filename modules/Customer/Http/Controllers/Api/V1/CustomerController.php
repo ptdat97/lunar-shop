@@ -5,12 +5,11 @@ namespace Modules\Customer\Http\Controllers\Api\V1;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
-use Illuminate\Validation\ValidationException;
 use Modules\Customer\Http\Resources\UserResource;
+use Modules\Customer\Services\AuthService;
 use Modules\Customer\Services\CustomerResolver;
-use Modules\Order\Http\Resources\OrderResource;
+use Modules\Order\Http\Resources\CustomerOrderPage;
 use Modules\Order\Services\OrderService;
 
 class CustomerController extends Controller
@@ -18,6 +17,7 @@ class CustomerController extends Controller
     public function __construct(
         protected CustomerResolver $customers,
         protected OrderService $orders,
+        protected AuthService $auth,
     ) {}
 
     /**
@@ -47,13 +47,7 @@ class CustomerController extends Controller
         ]);
 
         $user->update($data);
-
-        // Keep the linked customer's name in sync.
-        $customer = $this->customers->existingForUser($user);
-        if ($customer) {
-            $parts = preg_split('/\s+/', trim($data['name']), 2) ?: [];
-            $customer->update(['first_name' => $parts[0] ?? '', 'last_name' => $parts[1] ?? '']);
-        }
+        $this->customers->syncName($user);
 
         return UserResource::make($user->refresh())->response();
     }
@@ -63,20 +57,12 @@ class CustomerController extends Controller
      */
     public function password(Request $request): JsonResponse
     {
-        $user = $request->user();
-
         $data = $request->validate([
             'current_password' => ['required', 'string'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        if (! Hash::check($data['current_password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'current_password' => 'The current password is incorrect.',
-            ]);
-        }
-
-        $user->update(['password' => Hash::make($data['password'])]);
+        $this->auth->changePassword($request->user(), $data['current_password'], $data['password']);
 
         return response()->json(['data' => ['status' => 'password_updated']]);
     }
@@ -86,14 +72,11 @@ class CustomerController extends Controller
      */
     public function orders(Request $request): JsonResponse
     {
-        $customer = $this->customers->existingForUser($request->user());
-
-        if (! $customer) {
-            return response()->json(['data' => []]);
-        }
-
-        return response()->json([
-            'data' => OrderResource::collection($this->orders->customerOrders($customer->id))->resolve(),
-        ]);
+        // The very same payload as `GET /api/v1/orders` — one shape, one place.
+        return CustomerOrderPage::for(
+            $request,
+            $this->customers->existingForUser($request->user()),
+            $this->orders,
+        );
     }
 }

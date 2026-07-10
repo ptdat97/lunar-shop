@@ -160,6 +160,37 @@ class ProductService
     }
 
     /**
+     * Published products for a list of ids, returned IN THE GIVEN ORDER.
+     *
+     * The server-side "recently viewed" list stores ids rather than slugs — a
+     * slug can be edited in the admin, an id cannot. One query; unknown or
+     * unpublished ids are dropped.
+     *
+     * @param  array<int, int>  $ids
+     * @return Collection<int, Product>
+     */
+    public function byIds(array $ids, int $limit = 12): Collection
+    {
+        $ids = array_slice(array_values(array_unique(array_filter($ids))), 0, $limit);
+
+        if (empty($ids)) {
+            return collect();
+        }
+
+        $products = Product::query()
+            ->where('status', 'published')
+            ->whereIn('id', $ids)
+            ->with(['variants.prices', 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media'])
+            ->get();
+
+        $order = array_flip($ids);
+
+        return $products
+            ->sortBy(fn (Product $p) => $order[$p->id] ?? PHP_INT_MAX)
+            ->values();
+    }
+
+    /**
      * Products related to the given one (same collections), excluding itself.
      */
     public function related(Product $product, int $limit = 8)

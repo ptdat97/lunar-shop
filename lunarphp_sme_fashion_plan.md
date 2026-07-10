@@ -208,11 +208,11 @@ app/
  └── Models/User.php                         # auth user (Lunar customer riêng)
 
 routes/{web,api}.php                         # gom routes từ các module
-modules/                                     # 12 module (11 feature + Core hạ tầng)
+modules/                                     # 13 module (12 feature + Core hạ tầng)
 themes/fashion/                              # theme active (view + JS + CSS)
 ```
 
-## 12 module (11 feature + Core)
+## 13 module (12 feature + Core)
 
 Codebase từng có 24 module scaffold; đã **hợp nhất còn 11 feature module** để hợp quy mô
 single-store (gộp các sub-domain tương đồng vào một module, bỏ ~13 service provider),
@@ -230,11 +230,12 @@ page/resource module đóng góp), `Support\LunarConfigOverride` (re-apply overr
 | **Content** | CMS + SectionBuilder + Menu | Nội dung storefront admin-managed | Models: `Page`, `Banner`, `Lookbook`(+Image/Item), `Redirect`, `PageSection`, `Menu`(+Item). Services: `ContentService`, `SectionRenderer`, `MenuRenderer`, `MenuTree`. 20 file Filament (6 resource: Page/Banner/Lookbook/Redirect/PageSection/Menu). |
 | **Assets** | Media + FileManager | Ảnh/file | Services: `MediaUrl`, `ConversionGenerator`, `MediaRegenerator`, `MediaSettings`, `FileManager`. On-demand conversion + media library. 3 file Filament (MediaImageSizes, MediaLibrary, MediaPicker). |
 | **Checkout** | Checkout + Cart + Payment | Luồng cart → checkout → payment | Services: `CartService`, `CheckoutService`, `VNPayGateway`, `VNPayPaymentProcessor`. PaymentTypes: `VNPayPayment`. VNPay controller + return/IPN. Config override `cart-overrides.php` + `payment-overrides.php`. |
-| **Customer** | Customer + Location | Khách, địa chỉ, auth, wishlist, địa giới VN | Services: `CustomerResolver`, `WishlistService`, `CountryService`. Models: `WishlistItem`, `Province`, `Ward`. Auth web + Sanctum (cookie + PAT), address book, order history, VN provinces/wards API + seeder dataset. |
-| **Order** | — | Order, trạng thái, email giao dịch | Services: `OrderService`, `OrderMailer`. 3 mailable queued + observer/listeners. |
+| **Customer** | Customer + Location | Khách, địa chỉ, auth, wishlist, địa giới VN | Services: `CustomerResolver`, `AuthService`, `TokenIssuer`, `WishlistService`, `RecentlyViewedService`, `CountryService`. Models: `WishlistItem`, `Province`, `Ward`. Auth web + Sanctum (cookie + PAT), address book, order history, VN provinces/wards API + seeder dataset. |
+| **Order** | — | Order, trạng thái, email giao dịch, RMA | Services: `OrderService`, `OrderMailer`, `ReturnService`, `InvoiceService`, `OrderTimeline`. Support: `OrderStatus` (**một nguồn** cho status handle, nhãn i18n, `PAID`/`CLOSED`/`RETURNABLE`). Events: `OrderPaid`, `OrderStatusUpdated`. 4 mailable queued + observer/listeners. |
 | **Promotion** | — | Discount nâng cao hiển thị storefront | Services: `PromotionService` (facade: queries + coupon + memoization), `PromotionTargetResolver` (targeting/eligibility), `SaleBadgeService` (badge/banner/describe), `MembershipService`. Custom discount types + flash sale + membership. |
-| **Inventory** | — | Stock per-variant, reserve, notify-me | Services: `InventoryService`, `StockNotificationService`, `BackInStockNotifier`. Model `StockNotification`. Filament page Stock Overview. |
+| **Inventory** | — | Stock per-variant, reserve **+ release**, notify-me | Services: `InventoryService`, `StockReleaser`, `StockNotificationService`, `BackInStockNotifier`. Pipeline `DecrementStock`. Command `orders:expire-abandoned`. Model `StockNotification`. Filament page Stock Overview. |
 | **Shipping** | — | Zone/rate DB-backed | Services: `ShippingService`, `ShippingZoneResolver`. Model `ShippingZone`. Filament resource. |
+| **Notification** | — | In-app inbox + push cho mobile | Notification `OrderStatusChanged` (channel `database` + `PushChannel`). Contract `PushSender` + `NullPushSender`. Models `DeviceToken`. API inbox + device registry. **Không** đụng 4 mailable đang chạy. |
 | **Analytics** | — | Dashboard bán hàng | `AnalyticsService` + Filament Sales Dashboard. |
 | **Theme** | — | Active theme, locale, view namespace | Services: `LocaleService`, `ThemeSettings`. 11 file Filament (Theme settings + resource swaps). Middleware storefront/locale. |
 
@@ -288,21 +289,37 @@ GET    /api/v1/cart/recommendations
 GET    /api/v1/checkout/shipping-options · POST /checkout/{addresses,shipping} · POST /checkout
 POST   /api/v1/auth/{register,login,logout}              (Sanctum SPA cookie)
 POST   /api/v1/auth/token · /auth/token/register         (PAT — app/headless)
+POST   /api/v1/auth/token/refresh · /auth/token/revoke   (xoay / thu hồi token)
+GET    /api/v1/orders · /orders/{id} · /orders/{id}/timeline
+GET    /api/v1/notifications  ·  POST /notifications/{id}/read · /notifications/read-all
+POST   /api/v1/devices  ·  DELETE /devices               (push token registry)
+GET,POST,DELETE /api/v1/customer/recently-viewed
 GET    /api/v1/customer  ·  wishlist
 GET    /api/v1/locations/provinces  ·  /provinces/{province}/wards
 POST   /api/v1/inventory/notify-me
 GET    /api/v1/promotions  ·  /promotions/membership
-GET    /api/v1/health
+GET    /api/v1/health   (probe thật: DB+cache+queue → 503 khi hỏng; không middleware)
 ```
 
 Đặc điểm API-first đã đạt:
 - Storefront và API cùng gọi một service + cùng một API Resource; SSR nhúng đúng shape
   `{data,facets,meta}` (search/collection).
-- Error envelope chuẩn cho `api/v1/*`: `{message, errors?}` bất kể `Accept` header (map
-  401/403/404/status/500 trong `bootstrap/app.php`). Success: `{data, meta?}`.
+- Error envelope chuẩn cho `api/v1/*`: `{message, errors?}` bất kể `Accept` header
+  (`Modules\Core\Support\ApiErrorResponse`, gắn ở `bootstrap/app.php`). Success:
+  `{data, meta?}`. Guest gọi route cần auth luôn nhận **401 JSON**, không redirect
+  HTML (`redirectGuestsTo` trả `null` cho `api/v1/*`). Khi response đã gửi mà shutdown
+  ném tiếp exception → **không nối thêm body** (tránh JSON hỏng).
+- **Phân trang một chuẩn:** request `?page=` + `?per_page=` (clamp `[1,100]`), response
+  `meta{page,per_page,last_page,total}` — `Modules\Core\Support\ApiPagination`.
 - Versioning: mọi route tự prefix `api/v1`.
+- **Locale mọi route** `api/v1` (51/52, trừ `health`): `?locale=` → `Accept-Language` →
+  default. Ngôn ngữ khách chọn trên storefront (session) thắng `?locale=`.
 - Sanctum: SPA cookie (guard `web`) + Personal Access Token (`POST /auth/token`) cho
-  app/headless — mọi route `auth:sanctum` nhận cả Bearer token.
+  app/headless — mọi route `auth:sanctum` nhận cả Bearer token. Token mới có
+  `expires_at` (60 ngày, `API_TOKEN_TTL_DAYS`) + ability `customer:*`; xoay qua
+  `/auth/token/refresh`. **Không** bật `sanctum.expiration` (nó tính từ `created_at`
+  nên sẽ giết token đã phát hành). Ability chỉ ràng buộc **bearer token**
+  (`token.ability` middleware), cookie session đi qua nguyên vẹn.
 - Storefront controller không chạm model xuyên module (gom về service:
   `WishlistService`, `CountryService`, `OrderService::findByReference`).
 
@@ -318,6 +335,8 @@ attributes. Các bảng fashion-specific thêm trong module tương ứng:
 - **Content:** `pages`, `banners`, `lookbooks` (+images, items có `pos_x/pos_y/image_id`
   cho hotspot shoppable), `redirects`, `page_sections`, `menus`(+items).
 - **Assets:** `media_settings`.
+- **Checkout:** `lunar_carts.public_token` (nullable, unique) — handle để client headless
+  (`X-Cart-Token`) nhận lại giỏ; cart của storefront không có giá trị này.
 - **Customer:** `wishlist_items`, `vn_locations` (provinces/wards).
 - **Inventory:** `stock_notifications`.
 - **Shipping:** `shipping_zones`.
@@ -416,6 +435,14 @@ theo session không cần crawl (cart drawer/page, wishlist).
   CLS).
 
 ## Cart & Checkout & Payment
+- **Headless (2026-07-10):** cart/checkout chạy được **không cần session**.
+  `TokenAwareCartSession extends CartSessionManager` (rebind `CartSessionInterface` —
+  singleton chính chủ của Lunar, không sửa vendor) resolve giỏ theo `X-Cart-Token`
+  (cột `lunar_carts.public_token`) rồi tới cart active của user sau Bearer token.
+  Guest gọi lần đầu gửi `X-Client: app` để nhận handle. Request có cookie đi **nguyên
+  đường Lunar cũ**; `cart_token` **không** lộ vào payload SSR. CSRF miễn trừ request
+  stateless (`VerifyCsrfTokenUnlessStateless`) — chúng không mang credential ngầm.
+  Cart có `user_id` không claim được chỉ bằng handle.
 - Cart = Lunar Cart (server-side) qua `CartService`. Coupon + free-ship threshold +
   applied-discounts.
 - Checkout pipeline Lunar (validate→pricing→promotions→shipping→tax→payment→order) qua
@@ -428,7 +455,10 @@ theo session không cần crawl (cart drawer/page, wishlist).
 ## Order & Email
 - Order history + order detail. **3 mailable queued** (`OrderConfirmationMail`,
   `OrderPaidMail`, `OrderStatusUpdatedMail`) + markdown templates + `OrderMailer`.
-  Wiring: confirm qua `PaymentAttemptEvent`, paid qua event `OrderPaid` (VNPay callback),
+  Wiring: confirm qua `PaymentAttemptEvent`, paid qua event `OrderPaid` (gateway callback
+  **và** COD qua `DispatchOrderPaidForOfflineOrder` — gate theo `analytics.paid_statuses`
+  nên bank-transfer/gateway lúc authorize không bắn; `SendOrderPaidEmail` chỉ gửi khi
+  `payment-received` vì khách COD chưa trả tiền lúc đặt),
   status-update qua `OrderObserver`.
 - **Branding email:** logo + màu nhấn từ Theme Settings (`ThemeSettings::emailLogo()` —
   URL tuyệt đối vì email render ngoài origin; `emailAccent()` validate hex). Override
@@ -449,9 +479,23 @@ theo session không cần crawl (cart drawer/page, wishlist).
   → tối ưu N+1 trên product card.
 
 ## Inventory
-- Stock per-variant. Reserve khi tạo order (`DecrementStock` pipeline) + oversell guard
-  (atomic, honor backorder). Notify-me back-in-stock (model + API `/inventory/notify-me`
-  + email queued khi restock). Filament page Stock Overview.
+- Stock per-variant. **Reserve** khi tạo order (`DecrementStock` pipeline) + oversell guard
+  (conditional UPDATE atomic, tôn trọng `backorder`/`always`).
+- **Mặc định `purchasable = in_stock`** (migration đổi default của Lunar, vốn là `always`).
+  ⚠️ Trước 2026-07-10 mọi variant đều `always` nên **guard chống oversell chưa từng chạy**
+  (đo được: stock=2, đặt 10 → checkout 200, stock **−8**). Admin vẫn chọn backorder/always
+  cho từng variant khi muốn bán trước.
+- **Release** stock khi đơn `cancelled`/`refunded` (`StockReleaser`, nghe `OrderStatusUpdated`;
+  **cố ý đồng bộ** — stock là bất biến đúng-sai, queue chết thì hàng mất im lặng).
+  Idempotent qua cột `lunar_orders.stock_released_at`.
+- Đơn gateway giữ stock **trước khi** khách trả tiền → command `orders:expire-abandoned`
+  (scheduler 10'/lần) huỷ đơn quá hạn và trả stock. **Chỉ** đơn gateway (lọc
+  `meta.payment_type`); bank-transfer cũng ở `awaiting-payment` nhưng thu tay, không bị
+  timer đụng tới.
+- `InsufficientStockException` trả **422** (không phải 500): người khác lấy mất units cuối
+  là chuyện của người mua, không phải lỗi server.
+- Notify-me back-in-stock (model + API `/inventory/notify-me` + email queued khi restock).
+  Filament page Stock Overview.
 
 ## Shipping
 - Zone/rate DB-backed (`ShippingZone`: country + states → rate + free-threshold,
@@ -496,7 +540,7 @@ morph-alias-aware, cache 1h) + `robots.txt`. Storefront SSR Blade → crawlable.
 
 # Test
 
-**191 test / 596 assertion, all green (2026-07-09)** — `tests/Feature/`, chạy trên MySQL
+**349 test / 1513 assertion, all green (2026-07-10)** — `tests/Feature/`, chạy trên MySQL
 `lunar_testing` (app phụ thuộc JSON functions/facets — SQLite không emulate được).
 `tests/TestCase` dùng `RefreshDatabase`; trait `CreatesStorefrontData` seed base data +
 fixture product/size-chart. Chạy: `vendor/bin/phpunit` (testsuite `Feature`).

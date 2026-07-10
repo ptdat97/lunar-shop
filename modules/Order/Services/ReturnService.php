@@ -4,9 +4,13 @@ namespace Modules\Order\Services;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use InvalidArgumentException;
 use Lunar\Models\Order;
+use Modules\Checkout\Services\RefundService;
 use Modules\Order\Mail\ReturnStatusMail;
 use Modules\Order\Models\ReturnRequest;
+use Modules\Order\Models\ReturnRequestLine;
+use Modules\Order\Support\OrderStatus;
 
 /**
  * Return / RMA workflow: a customer opens a request against a paid order (line +
@@ -23,13 +27,27 @@ class ReturnService
     public function open(Order $order, array $lines, string $reason, ?string $comment = null): ReturnRequest
     {
         $order->loadMissing('lines');
-        $valid = $this->validLines($order, $lines);
 
-        if (empty($valid)) {
-            throw new \InvalidArgumentException('No returnable lines selected.');
+        // There is nothing to send back from an order that was never paid for
+        // and never shipped. `can_return` in OrderResource only hid the button;
+        // the endpoint itself accepted an RMA against an `awaiting-payment`
+        // order, and staff could then refund it.
+        if (! OrderStatus::isReturnable($order->status)) {
+            throw new InvalidArgumentException('This order cannot be returned.');
         }
 
-        return DB::transaction(function () use ($order, $valid, $reason, $comment) {
+        $request = DB::transaction(function () use ($order, $lines, $reason, $comment) {
+            // Validate INSIDE the transaction, after locking the order's existing
+            // return lines: two requests opened at once would otherwise each see
+            // the same remaining quantity and both pass.
+            $this->lockReturnLines($order);
+
+            $valid = $this->validLines($order, $lines);
+
+            if (empty($valid)) {
+                throw new InvalidArgumentException('No returnable lines selected.');
+            }
+
             $request = ReturnRequest::create([
                 'order_id' => $order->id,
                 'customer_id' => $order->customer_id,
@@ -46,11 +64,27 @@ class ReturnService
                 ]);
             }
 
-            $request->load('lines');
-            $this->notify($request);
-
-            return $request;
+            return $request->load('lines');
         });
+
+        // Email is a side effect that cannot be rolled back — it must not run
+        // inside the transaction (coding standards §4).
+        $this->notify($request);
+
+        return $request;
+    }
+
+    /**
+     * Take a row lock over the order's existing return lines, so a concurrent
+     * request cannot claim quantity we are about to spend.
+     */
+    protected function lockReturnLines(Order $order): void
+    {
+        ReturnRequestLine::query()
+            ->join('return_requests as rr', 'rr.id', '=', 'return_request_lines.return_request_id')
+            ->where('rr.order_id', $order->id)
+            ->lockForUpdate()
+            ->get(['return_request_lines.id']);
     }
 
     /**
@@ -93,14 +127,18 @@ class ReturnService
      */
     public function refund(ReturnRequest $request): ReturnRequest
     {
-        $amount = $this->refundableAmount($request);
         $order = $request->order;
+        $amount = $this->cappedRefund($request, $order);
 
-        $refundService = app(\Modules\Checkout\Services\RefundService::class);
+        if ($amount <= 0) {
+            throw new \RuntimeException('Nothing left to refund on this order.');
+        }
+
+        $refundService = app(RefundService::class);
 
         // Only call the gateway when there's a gateway capture to refund.
         if ($refundService->captureTransaction($order)) {
-            $result = $refundService->refund($order, $amount, 'return:' . $request->reference);
+            $result = $refundService->refund($order, $amount, 'return:'.$request->reference);
 
             if (! $result->success) {
                 throw new \RuntimeException($result->message ?: 'Gateway refund failed.');
@@ -134,6 +172,29 @@ class ReturnService
     }
 
     /**
+     * The request's value, never more than the order still has left to give.
+     *
+     * Defence in depth. `validLines()` already stops a line being claimed twice,
+     * but an offline (cod/bank) order has no gateway to enforce a ceiling — the
+     * gateway path is capped by RefundService — so the total refunded across
+     * every request on this order must be bounded here too.
+     */
+    protected function cappedRefund(ReturnRequest $request, Order $order): int
+    {
+        $orderTotal = (int) ($order->total?->value ?? 0);
+
+        $alreadyRefunded = (int) ReturnRequest::query()
+            ->where('order_id', $order->id)
+            ->where('status', ReturnRequest::REFUNDED)
+            ->whereKeyNot($request->id)
+            ->sum('refund_amount');
+
+        $remaining = max(0, $orderTotal - $alreadyRefunded);
+
+        return min($this->refundableAmount($request), $remaining);
+    }
+
+    /**
      * Total value (minor units) of the request's returned lines, prorated by
      * quantity of each order line.
      */
@@ -154,24 +215,59 @@ class ReturnService
     }
 
     /**
-     * Keep only lines that belong to the order and whose quantity is 1..line qty.
+     * How many units of each order line are still returnable, after subtracting
+     * everything already claimed by this order's other return requests.
+     *
+     * Rejected requests release their claim; every other status (requested,
+     * approved, refunded, completed) holds it.
+     *
+     * @return array<int, int> order_line_id => remaining quantity
+     */
+    public function remainingQuantities(Order $order, ?int $ignoreRequestId = null): array
+    {
+        $order->loadMissing('lines');
+
+        $claimed = ReturnRequestLine::query()
+            ->join('return_requests as rr', 'rr.id', '=', 'return_request_lines.return_request_id')
+            ->where('rr.order_id', $order->id)
+            ->where('rr.status', '!=', ReturnRequest::REJECTED)
+            ->when($ignoreRequestId, fn ($q) => $q->where('rr.id', '!=', $ignoreRequestId))
+            ->groupBy('return_request_lines.order_line_id')
+            ->selectRaw('return_request_lines.order_line_id as line_id, SUM(return_request_lines.quantity) as claimed')
+            ->pluck('claimed', 'line_id');
+
+        return $order->lines
+            ->mapWithKeys(fn ($line) => [
+                $line->id => max(0, (int) $line->quantity - (int) ($claimed[$line->id] ?? 0)),
+            ])
+            ->all();
+    }
+
+    /**
+     * Keep only lines that belong to the order and whose quantity is within what
+     * is *still* returnable.
+     *
+     * Previously this compared against the order line's full quantity, so the
+     * same line could be claimed by request after request — two RMAs each
+     * refunding the whole line drained more than the order was ever worth (the
+     * gateway path was capped by RefundService, but COD/bank had no cap at all).
      *
      * @param  array<int, array{order_line_id:int, quantity:int}>  $lines
      * @return array<int, array{order_line_id:int, quantity:int}>
      */
     protected function validLines(Order $order, array $lines): array
     {
-        $byId = $order->lines->keyBy('id');
+        $remaining = $this->remainingQuantities($order);
 
         return collect($lines)
             ->map(fn ($l) => [
                 'order_line_id' => (int) ($l['order_line_id'] ?? 0),
                 'quantity' => (int) ($l['quantity'] ?? 0),
             ])
-            ->filter(function ($l) use ($byId) {
-                $orderLine = $byId->get($l['order_line_id']);
+            ->filter(function ($l) use ($remaining) {
+                $available = $remaining[$l['order_line_id']] ?? 0;
 
-                return $orderLine && $l['quantity'] >= 1 && $l['quantity'] <= $orderLine->quantity;
+                return $l['quantity'] >= 1 && $l['quantity'] <= $available;
             })
             ->values()
             ->all();
@@ -180,7 +276,7 @@ class ReturnService
     protected function reference(): string
     {
         do {
-            $ref = 'RMA-' . strtoupper(Str::random(8));
+            $ref = 'RMA-'.strtoupper(Str::random(8));
         } while (ReturnRequest::where('reference', $ref)->exists());
 
         return $ref;

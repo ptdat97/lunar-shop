@@ -44,6 +44,25 @@ class CustomerResolver
     }
 
     /**
+     * Keep the linked customer's name in step with the user's.
+     *
+     * No-op when the user has no customer yet — one is created with the right
+     * name the first time they need it.
+     */
+    public function syncName(User $user): void
+    {
+        $customer = $this->existingForUser($user);
+
+        if (! $customer) {
+            return;
+        }
+
+        [$first, $last] = $this->splitName($user->name);
+
+        $customer->update(['first_name' => $first, 'last_name' => $last]);
+    }
+
+    /**
      * @return array{0: string, 1: string}
      */
     protected function splitName(?string $name): array

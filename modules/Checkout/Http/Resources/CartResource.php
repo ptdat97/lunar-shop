@@ -4,12 +4,19 @@ namespace Modules\Checkout\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Lunar\DataTypes\Price;
+use Lunar\Models\Cart;
+use Lunar\Models\Currency;
+use Modules\Assets\Services\MediaUrl;
+use Modules\Checkout\Services\TokenAwareCartSession;
+use Modules\Core\Support\Settings;
+use Modules\Promotion\Services\PromotionService;
 
 /**
  * Stable JSON contract for the cart. Used by the cart drawer island,
  * checkout, and future app/headless clients.
  *
- * @mixin \Lunar\Models\Cart
+ * @mixin Cart
  */
 class CartResource extends JsonResource
 {
@@ -45,6 +52,13 @@ class CartResource extends JsonResource
             'free_shipping' => $this->freeShippingInfo(),
         ];
 
+        // Handle for stateless clients to send back as `X-Cart-Token`. Only ever
+        // returned to the token client that owns the cart — never embedded in the
+        // SSR storefront payload, where it would leak into the page HTML.
+        if (TokenAwareCartSession::isStatelessRequest($request)) {
+            $data['cart_token'] = $this->public_token;
+        }
+
         return $data;
     }
 
@@ -57,7 +71,7 @@ class CartResource extends JsonResource
      */
     protected function appliedDiscounts(): array
     {
-        return app(\Modules\Promotion\Services\PromotionService::class)->appliedTo($this->resource);
+        return app(PromotionService::class)->appliedTo($this->resource);
     }
 
     /**
@@ -69,17 +83,17 @@ class CartResource extends JsonResource
         $media = $line->purchasable?->product?->thumbnail;
 
         // Generates the `small` conversion on demand if its file is missing.
-        return app(\Modules\Assets\Services\MediaUrl::class)->conversion($media, 'small');
+        return app(MediaUrl::class)->conversion($media, 'small');
     }
 
     /**
      * Free-shipping progress info based on the configured threshold.
      *
-     * @return array<string, mixed>|null  null when the threshold is disabled
+     * @return array<string, mixed>|null null when the threshold is disabled
      */
     protected function freeShippingInfo(): ?array
     {
-        $threshold = (int) app(\Modules\Core\Support\Settings::class)->get('shipping.free_threshold', 0);
+        $threshold = (int) app(Settings::class)->get('shipping.free_threshold', 0);
 
         if ($threshold <= 0) {
             return null;
@@ -87,14 +101,13 @@ class CartResource extends JsonResource
 
         $subTotal = $this->subTotal?->value ?? 0;
         $remaining = max(0, $threshold - $subTotal);
-        $currency = $this->currency ?? \Lunar\Models\Currency::getDefault();
+        $currency = $this->currency ?? Currency::getDefault();
 
         return [
             'qualified' => $subTotal >= $threshold,
-            'threshold' => (new \Lunar\DataTypes\Price($threshold, $currency))->formatted(),
-            'remaining' => (new \Lunar\DataTypes\Price($remaining, $currency))->formatted(),
+            'threshold' => (new Price($threshold, $currency))->formatted(),
+            'remaining' => (new Price($remaining, $currency))->formatted(),
             'progress' => $threshold > 0 ? min(100, (int) round($subTotal / $threshold * 100)) : 0,
         ];
     }
 }
-

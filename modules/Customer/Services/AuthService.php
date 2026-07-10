@@ -50,4 +50,20 @@ class AuthService
 
         return $user;
     }
+
+    /**
+     * Change a password after proving the current one.
+     *
+     * @throws ValidationException when the current password does not match
+     */
+    public function changePassword(User $user, string $currentPassword, string $newPassword): void
+    {
+        if (! Hash::check($currentPassword, $user->password)) {
+            throw ValidationException::withMessages([
+                'current_password' => 'The current password is incorrect.',
+            ]);
+        }
+
+        $user->update(['password' => Hash::make($newPassword)]);
+    }
 }

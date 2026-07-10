@@ -6,6 +6,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Lunar\Models\Product;
 use Modules\Catalog\Contracts\RecommendationStrategy;
+use Modules\Order\Support\OrderStatus;
 
 /**
  * "Frequently bought together": products that appear in the same paid orders as
@@ -21,15 +22,14 @@ use Modules\Catalog\Contracts\RecommendationStrategy;
  */
 class CoPurchaseStrategy implements RecommendationStrategy
 {
-    /** @var list<string> order statuses that count as a real purchase */
-    protected array $paidStatuses;
-
-    public function __construct(?array $paidStatuses = null)
+    /**
+     * Statuses that count as a real purchase — one definition across the app.
+     *
+     * @return list<string>
+     */
+    protected function paidStatuses(): array
     {
-        // Reuse the "paid" statuses the analytics dashboard already defines, so
-        // "purchased" means the same thing across the app (single source).
-        $this->paidStatuses = $paidStatuses
-            ?? config('analytics.paid_statuses', ['payment-offline', 'payment-received', 'dispatched', 'completed']);
+        return OrderStatus::paid();
     }
 
     public function for(Product $product, int $limit = 8): Collection
@@ -42,7 +42,7 @@ class CoPurchaseStrategy implements RecommendationStrategy
             })
             ->join('lunar_orders as o', 'o.id', '=', 'ol.order_id')
             ->where('pv.product_id', $product->id)
-            ->whereIn('o.status', $this->paidStatuses)
+            ->whereIn('o.status', $this->paidStatuses())
             ->distinct()
             ->pluck('ol.order_id');
 

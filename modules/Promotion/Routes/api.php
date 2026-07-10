@@ -10,8 +10,9 @@ Route::prefix('api/v1')->middleware('api')->group(function (): void {
         ->name('api.v1.promotions.index');
 });
 
-// Authenticated: the customer's loyalty/membership tier + progress.
-Route::prefix('api/v1')->middleware(['web', 'auth:sanctum'])->group(function (): void {
+// Authenticated: the customer's loyalty/membership tier + progress. Scoped to
+// customer tokens, like the rest of the account surface.
+Route::prefix('api/v1')->middleware(['web', 'auth:sanctum', 'token.ability:customer:*'])->group(function (): void {
     Route::get('promotions/membership', [PromotionController::class, 'membership'])
         ->name('api.v1.promotions.membership');
 });

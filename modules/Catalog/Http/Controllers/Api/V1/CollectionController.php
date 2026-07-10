@@ -5,8 +5,9 @@ namespace Modules\Catalog\Http\Controllers\Api\V1;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Catalog\Http\Resources\CollectionResource;
-use Modules\Catalog\Services\CollectionService;
 use Modules\Catalog\Http\Resources\ProductResource;
+use Modules\Catalog\Services\CollectionService;
+use Modules\Core\Support\ApiPagination;
 
 class CollectionController extends Controller
 {
@@ -32,12 +33,7 @@ class CollectionController extends Controller
         return (new CollectionResource($collection))
             ->additional([
                 'products' => ProductResource::collection($products),
-                'meta' => [
-                    'total' => $products->total(),
-                    'page' => $products->currentPage(),
-                    'per_page' => $products->perPage(),
-                    'last_page' => $products->lastPage(),
-                ],
+                'meta' => ApiPagination::meta($products),
             ]);
     }
 }

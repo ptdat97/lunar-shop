@@ -5,10 +5,11 @@ namespace Modules\Checkout\Http\Controllers\Api\V1;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
+use Illuminate\Validation\Rule;
 use Modules\Checkout\Http\Resources\CartResource;
-use Modules\Checkout\Http\Resources\OrderResource;
 use Modules\Checkout\Http\Resources\ShippingOptionResource;
 use Modules\Checkout\Services\CheckoutService;
+use Modules\Order\Http\Resources\OrderResource;
 
 class CheckoutController extends Controller
 {
@@ -64,15 +65,20 @@ class CheckoutController extends Controller
 
     /**
      * POST /api/v1/checkout  { payment_type }
+     *
+     * Returns the Order module's OrderResource — one order contract for the
+     * whole API, so this and GET /api/v1/orders/{id} give clients the same shape.
      */
     public function place(Request $request): OrderResource
     {
         $data = $request->validate([
-            'payment_type' => ['nullable', 'string', \Illuminate\Validation\Rule::in($this->checkout->paymentMethods())],
+            'payment_type' => ['nullable', 'string', Rule::in($this->checkout->paymentMethods())],
         ]);
 
         $order = $this->checkout->placeOrder($data['payment_type'] ?? 'cod');
 
-        return new OrderResource($order->load('lines'));
+        // Eager-load what OrderResource exposes; its whenLoaded() guards would
+        // otherwise silently drop the addresses from the placed-order payload.
+        return new OrderResource($order->load(['lines', 'shippingAddress', 'billingAddress']));
     }
 }

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Testing\TestResponse;
 use Lunar\Models\ProductVariant;
 use Modules\Inventory\Mail\BackInStockMail;
 use Modules\Inventory\Models\StockNotification;
@@ -19,7 +20,7 @@ class InventoryTest extends TestCase
     use CreatesStorefrontData;
 
     /** Drive the cart to an order for the given variant + quantity. */
-    private function placeOrder(ProductVariant $variant, int $quantity): \Illuminate\Testing\TestResponse
+    private function placeOrder(ProductVariant $variant, int $quantity): TestResponse
     {
         $this->postJson('/api/v1/cart', ['variant_id' => $variant->id, 'quantity' => $quantity]);
         $this->postJson('/api/v1/checkout/addresses', ['shipping' => $this->shippingPayload()])->assertSuccessful();
@@ -52,7 +53,12 @@ class InventoryTest extends TestCase
 
         $this->postJson('/api/v1/checkout/addresses', ['shipping' => $this->shippingPayload()])->assertSuccessful();
         $this->postJson('/api/v1/checkout/shipping', ['identifier' => 'standard'])->assertSuccessful();
-        $this->postJson('/api/v1/checkout', ['payment_type' => 'cod'])->assertStatus(500);
+        // 422, not the 500 this used to answer: somebody else took the last
+        // units, which is a shopper problem with a clear message rather than a
+        // server fault.
+        $this->postJson('/api/v1/checkout', ['payment_type' => 'cod'])
+            ->assertStatus(422)
+            ->assertJsonStructure(['message']);
 
         // Order creation rolled back → stock untouched, no order persisted.
         $this->assertSame(1, (int) $variant->fresh()->stock);

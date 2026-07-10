@@ -7,14 +7,17 @@ use Lunar\Models\Order;
 class OrderService
 {
     /**
-     * Get orders for a customer.
+     * A customer's orders, newest first.
+     *
+     * `$page` is explicit rather than left to the resolver's `?page=` sniffing,
+     * so the caller controls it and the controller can clamp the input.
      */
-    public function customerOrders(int $customerId, int $perPage = 20)
+    public function customerOrders(int $customerId, int $perPage = 20, int $page = 1)
     {
         return Order::where('customer_id', $customerId)
             ->with(['lines', 'currency', 'shippingAddress', 'billingAddress'])
             ->latest()
-            ->paginate($perPage);
+            ->paginate(perPage: $perPage, page: $page);
     }
 
     /**

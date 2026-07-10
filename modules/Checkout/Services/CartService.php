@@ -100,24 +100,61 @@ class CartService
     public function add(int $variantId, int $quantity = 1): Cart
     {
         $variant = ProductVariant::findOrFail($variantId);
+        $cart = $this->mutableCart();
 
-        // Oversell guard: honour the variant's purchasable mode (in_stock /
-        // backorder / always) via Lunar's own check before adding.
-        if (! $variant->canBeFulfilledAtQuantity($quantity)) {
-            throw ValidationException::withMessages([
-                'quantity' => 'Sorry, there isn\'t enough stock to add that quantity.',
-            ]);
-        }
+        // Guard the RESULTING quantity, not the increment. Checking `$quantity`
+        // alone let a shopper past the last unit by adding 1 five times over.
+        $this->guardStock($variant, $this->quantityInCart($cart, $variantId) + $quantity);
 
-        return $this->mutableCart()->add($variant, $quantity)->calculate();
+        return $cart->add($variant, $quantity)->calculate();
     }
 
     /**
      * Update a line's quantity.
+     *
+     * @throws ValidationException
      */
     public function updateLine(int $lineId, int $quantity): Cart
     {
-        return $this->mutableCart()->updateLine($lineId, $quantity)->calculate();
+        $cart = $this->mutableCart();
+        $line = $cart->lines->firstWhere('id', $lineId);
+
+        // This path had no guard at all: PATCH quantity=999 on a variant stocked
+        // at 3 was accepted, and only blew up (or oversold, for a backorder
+        // variant) at checkout.
+        if ($line && $line->purchasable instanceof ProductVariant) {
+            $this->guardStock($line->purchasable, $quantity);
+        }
+
+        return $cart->updateLine($lineId, $quantity)->calculate();
+    }
+
+    /**
+     * How many units of a variant the cart already holds.
+     */
+    protected function quantityInCart(Cart $cart, int $variantId): int
+    {
+        return (int) $cart->lines
+            ->where('purchasable_type', (new ProductVariant)->getMorphClass())
+            ->where('purchasable_id', $variantId)
+            ->sum('quantity');
+    }
+
+    /**
+     * Refuse a quantity the variant cannot fulfil.
+     *
+     * Delegates to Lunar's own check, so `backorder` / `always` variants are
+     * still allowed past the stock level — that is what those modes mean.
+     *
+     * @throws ValidationException
+     */
+    protected function guardStock(ProductVariant $variant, int $quantity): void
+    {
+        if ($quantity >= 1 && ! $variant->canBeFulfilledAtQuantity($quantity)) {
+            throw ValidationException::withMessages([
+                'quantity' => 'Sorry, there isn\'t enough stock to add that quantity.',
+            ]);
+        }
     }
 
     /**

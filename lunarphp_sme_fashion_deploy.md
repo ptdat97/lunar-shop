@@ -110,11 +110,20 @@ stopwaitsecs=3600
 ```
 
 Cron (chạy schedule trong `routes/console.php`: horizon:snapshot 5' /
-sanctum:prune-expired daily / queue:prune-failed weekly):
+sanctum:prune-expired daily / queue:prune-failed weekly /
+**orders:expire-abandoned 10'**):
 
 ```cron
 * * * * * cd /var/www/lunar-shop && php artisan schedule:run >> /dev/null 2>&1
 ```
+
+> ⚠️ **`orders:expire-abandoned` là bắt buộc, không phải dọn dẹp cho đẹp.** Đơn thanh toán
+> qua gateway giữ tồn kho **trước khi** khách trả tiền (Lunar tạo order ở
+> `authorize()`, rồi mới redirect sang VNPay/MoMo). Không chạy cron này thì mỗi khách
+> đóng tab giữa chừng sẽ **khoá tồn kho vĩnh viễn**. Command chỉ đụng đơn gateway
+> (`meta.payment_type`); bank-transfer thu tay nên an toàn.
+>
+> Chạy thử trước khi bật: `php artisan orders:expire-abandoned --dry-run`.
 
 ## 5. nginx (điểm chính)
 
@@ -149,14 +158,39 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
 
 ## 6. Bảo mật đã wired trong code (2026-07-08)
 
-- **Rate limiting**: `throttle:api` toàn bộ nhóm `api` (120 req/phút/user-hoặc-IP);
-  `throttle:auth` 10 req/phút/IP trên `auth/login`, `auth/register`,
-  `auth/token`, `auth/token/register` (chống brute-force).
+- **Rate limiting** (sửa 2026-07-09): `Modules\Core\Http\Middleware\ThrottleApiV1`
+  (prepend global, guard theo URI `api/v1/*`) phủ **mọi** route `api/v1` — 120
+  req/phút/user-hoặc-IP. Trước đó dùng `throttleApi()` vốn chỉ áp cho nhóm middleware
+  `api`, nên **48/52 route không có limiter** (cart/checkout/orders/customer chạy nhóm
+  `web`/`storefront` vì cần session) — kể cả `POST /api/v1/checkout`.
+  - `throttle:checkout` **10 req/phút** cho `POST /api/v1/checkout` (write đắt: tạo
+    order, giữ kho, gọi gateway).
+  - `throttle:auth` 10 req/phút/IP trên `auth/login`, `auth/register`, `auth/token`,
+    `auth/token/register` (chống brute-force).
+  - `GET /api/v1/health` **miễn trừ** (limiter dùng cache; probe phải sống khi cache chết).
+- **Health probe**: `GET /api/v1/health` kiểm tra thật DB + cache + queue, trả **503
+  `degraded`** khi bất kỳ cái nào hỏng (trước đây luôn trả `"ok"` → load balancer giữ
+  node chết trong rotation). Chạy **không middleware**. Dùng cho readiness probe.
 - **Horizon dashboard** (`/horizon`): chỉ **Lunar staff có cờ admin** (guard
   `staff`) truy cập ở non-local. Đăng nhập admin Filament trước rồi mở /horizon.
 - **Error pages** 404/500/503/403/419: tự chứa (không phụ thuộc DB/theme),
   song ngữ EN/VI, `noindex` — không lộ stack trace khi `APP_DEBUG=false`.
-- **CSRF**: bật toàn bộ trừ `payment/momo/ipn` (xác thực bằng HMAC chữ ký).
+- **CSRF** (cập nhật 2026-07-10): bật toàn bộ, trừ
+  - `payment/momo/ipn` (xác thực bằng HMAC chữ ký), và
+  - **request stateless** — mang `Authorization: Bearer`, `X-Cart-Token`, hoặc
+    `X-Client` (`Modules\Core\Http\Middleware\VerifyCsrfTokenUnlessStateless`).
+    Cart/checkout nằm group `web` (Lunar cart cần session) nên trước đây 419 mọi ghi
+    từ app/POS. Request stateless **không mang credential ngầm** (browser không tự gắn
+    `Authorization` cross-site; header tuỳ biến phải qua CORS preflight, mà
+    `cors.supports_credentials=false`), nên không có gì để forge. Khách **đã đăng nhập
+    bằng cookie thì không bao giờ được miễn trừ**.
+- **Token API** (app/POS): `expires_at` 60 ngày (`API_TOKEN_TTL_DAYS`), ability
+  `customer:*`, xoay qua `POST /api/v1/auth/token/refresh` (thu hồi token cũ).
+  ⚠️ **Không bật `sanctum.expiration`** — nó tính từ `created_at` nên sẽ vô hiệu hoá
+  **mọi token đã phát hành**.
+- ⚠️ **Chạy test:** luôn `php artisan optimize:clear` trước. `config:cache` che các
+  `<env>` trong `phpunit.xml`, khiến `runningUnitTests()` = false → CSRF chạy thật →
+  test checkout đỏ 419. (Hành vi Laravel, có từ trước; tái hiện được trên code cũ.)
 - **API error envelope**: 500 không leak message nội bộ (bootstrap/app.php).
 - **VNPay/MoMo IPN**: idempotent + verify chữ ký (test phủ tamper case).
 

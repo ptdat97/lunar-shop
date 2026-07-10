@@ -21,3 +21,11 @@ Schedule::command('sanctum:prune-expired --hours=24')->daily();
 
 // Failed queue jobs older than a week have been investigated or never will be.
 Schedule::command('queue:prune-failed --hours=168')->weekly();
+
+// A gateway order reserves its stock the moment it is created — before the
+// customer reaches VNPay/MoMo. Someone who closes the tab would hold those units
+// forever, so cancel unpaid gateway orders and put the stock back. Bank transfers
+// sit in the same status but are settled by hand; the command leaves them alone.
+Schedule::command('orders:expire-abandoned --minutes=60')
+    ->everyTenMinutes()
+    ->withoutOverlapping();
