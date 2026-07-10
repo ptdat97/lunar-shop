@@ -2,6 +2,12 @@
 
 namespace Tests\Feature;
 
+use Lunar\FieldTypes\Text;
+use Lunar\Models\Collection;
+use Lunar\Models\CollectionGroup;
+use Lunar\Models\Language;
+use Lunar\Models\Url;
+use Modules\Content\Models\Page;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -32,6 +38,29 @@ class SeoTest extends TestCase
         $this->assertNotFalse(simplexml_load_string($xml), 'sitemap must be valid XML');
     }
 
+    /**
+     * The sitemap pulls CMS pages through ContentService (Content owns the
+     * "is it public?" rule). Unpublished pages must never leak into it.
+     */
+    public function test_sitemap_lists_published_pages_only(): void
+    {
+        $this->seedBaseData();
+
+        Page::create([
+            'title' => 'Shipping Policy', 'slug' => 'shipping-policy',
+            'content' => '<p>…</p>', 'published' => true,
+        ]);
+        Page::create([
+            'title' => 'Secret Draft', 'slug' => 'secret-draft',
+            'content' => '<p>…</p>', 'published' => false,
+        ]);
+
+        $xml = $this->get('/sitemap.xml')->assertOk()->getContent();
+
+        $this->assertStringContainsString('/pages/shipping-policy', $xml);
+        $this->assertStringNotContainsString('secret-draft', $xml, 'unpublished page leaked');
+    }
+
     public function test_collection_page_emits_itemlist_jsonld(): void
     {
         $this->seedBaseData();
@@ -46,23 +75,23 @@ class SeoTest extends TestCase
     /**
      * Minimal collection with one published product attached + a default Url.
      */
-    private function createCollectionWithProduct(): \Lunar\Models\Collection
+    private function createCollectionWithProduct(): Collection
     {
         $product = $this->createProduct(['name' => 'In Collection', 'slug' => 'in-collection']);
 
-        $group = \Lunar\Models\CollectionGroup::firstOrCreate(['handle' => 'main'], ['name' => 'Main']);
-        $collection = \Lunar\Models\Collection::create([
+        $group = CollectionGroup::firstOrCreate(['handle' => 'main'], ['name' => 'Main']);
+        $collection = Collection::create([
             'collection_group_id' => $group->id,
-            'attribute_data' => ['name' => new \Lunar\FieldTypes\Text('Test Collection')],
+            'attribute_data' => ['name' => new Text('Test Collection')],
         ]);
         $collection->products()->attach($product->id, ['position' => 1]);
 
-        \Lunar\Models\Url::create([
+        Url::create([
             'slug' => 'test-collection',
             'element_type' => $collection->getMorphClass(),
             'element_id' => $collection->id,
             'default' => true,
-            'language_id' => \Lunar\Models\Language::getDefault()->id,
+            'language_id' => Language::getDefault()->id,
         ]);
 
         return $collection->fresh(['urls']);
@@ -72,7 +101,7 @@ class SeoTest extends TestCase
     {
         $this->seedBaseData();
 
-        \Modules\Content\Models\Page::create([
+        Page::create([
             'title' => 'About Us',
             'slug' => 'about-us',
             'content' => '<p>Our story.</p>',
@@ -95,7 +124,7 @@ class SeoTest extends TestCase
     {
         $this->seedBaseData();
 
-        \Modules\Content\Models\Page::create([
+        Page::create([
             'title' => 'Draft', 'slug' => 'draft-page',
             'content' => 'x', 'published' => false,
         ]);

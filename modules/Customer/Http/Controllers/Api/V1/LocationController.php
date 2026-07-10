@@ -2,8 +2,9 @@
 
 namespace Modules\Customer\Http\Controllers\Api\V1;
 
-use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
+use Modules\Customer\Http\Resources\LocationResource;
 use Modules\Customer\Models\Province;
 use Modules\Customer\Services\LocationService;
 
@@ -20,20 +21,16 @@ class LocationController extends Controller
     /**
      * GET /api/v1/locations/provinces
      */
-    public function provinces(): JsonResponse
+    public function provinces(): AnonymousResourceCollection
     {
-        return response()->json([
-            'data' => $this->locations->provinces(),
-        ]);
+        return LocationResource::collection($this->locations->provinces());
     }
 
     /**
      * GET /api/v1/locations/provinces/{province}/wards
      */
-    public function wards(Province $province): JsonResponse
+    public function wards(Province $province): AnonymousResourceCollection
     {
-        return response()->json([
-            'data' => $this->locations->wards($province),
-        ]);
+        return LocationResource::collection($this->locations->wards($province));
     }
 }

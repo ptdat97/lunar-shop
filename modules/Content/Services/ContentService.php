@@ -3,6 +3,7 @@
 namespace Modules\Content\Services;
 
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Modules\Content\Models\Banner;
 use Modules\Content\Models\Lookbook;
 use Modules\Content\Models\Page;
@@ -30,6 +31,22 @@ class ContentService
     public function page(string $slug): ?Page
     {
         return Page::published()->where('slug', $slug)->first();
+    }
+
+    /**
+     * Every published page's slug + last-modified, for the sitemap.
+     *
+     * Unpaginated on purpose — a sitemap needs the whole set. It lives here, not
+     * in Catalog, because "which pages are public" is Content's rule to state
+     * (§10: cross-module traffic goes through the owning service, never its
+     * models). Catalog used to run `Page::where('published', true)` itself, a
+     * second spelling of `Page::published()` free to drift from it.
+     *
+     * @return Collection<int, Page>
+     */
+    public function publishedPageUrls(): Collection
+    {
+        return Page::published()->get(['slug', 'updated_at']);
     }
 
     /**

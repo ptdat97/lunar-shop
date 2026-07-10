@@ -22,6 +22,17 @@ class MeasurementService
     }
 
     /**
+     * The customer's profile record, or null when they have never saved one.
+     *
+     * The API renders it through a Resource (§6), which needs the model rather
+     * than the flattened map {@see self::for()} returns.
+     */
+    public function profileFor(Customer $customer): ?CustomerMeasurement
+    {
+        return $customer->measurement;
+    }
+
+    /**
      * Create/update the customer's profile from a measurement map. Only known
      * keys are stored; blank/null values clear that measurement.
      *

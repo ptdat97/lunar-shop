@@ -14,10 +14,7 @@ Route::middleware('storefront')->group(function (): void {
     Route::post('checkout', [CheckoutController::class, 'place'])->name('storefront.checkout.place');
     Route::get('checkout/confirmation/{reference}', [CheckoutController::class, 'confirmation'])->name('storefront.checkout.confirmation');
 
-    // VNPay callbacks. `return` is the browser redirect (storefront session group);
-    // `start` builds the redirect URL for the checkout island.
-    Route::get('payment/vnpay/start/{order}', [VNPayController::class, 'start'])
-        ->name('payment.vnpay.start');
+    // VNPay callback: `return` is the browser redirect (storefront session group).
     Route::get('payment/vnpay/return', [VNPayController::class, 'return'])
         ->name('payment.vnpay.return');
 

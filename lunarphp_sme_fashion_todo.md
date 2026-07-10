@@ -6,7 +6,7 @@
 >
 > **Trước khi build bất cứ gì:** kiểm tra `vendor/lunarphp` đã có chưa (Nguyên tắc #1) —
 > có thì kế thừa/mở rộng, không thì mới build trong module tương ứng. Giữ phạm vi
-> single-store SME. `vendor/bin/phpunit` xanh trước khi coi là xong (365 test), và
+> single-store SME. `vendor/bin/phpunit` xanh trước khi coi là xong (367 test), và
 > `vendor/bin/pint --test <file bạn đã sửa>` xanh — **không** phải cả repo: chạy
 > `pint --test` trên toàn repo hiện đỏ **131 file** có từ trước (không có `pint.json`,
 > preset `laravel` mặc định bắt cả migration/seeder/config publish từ Lunar).

@@ -5,7 +5,7 @@
 > (native của Lunar), storefront **100% Blade SSR + vanilla JS** (không Vue).
 > Chỉ ghi những gì đã có trong code.
 >
-> Cập nhật lần cuối: **2026-07-10** — 13 module, 62 route `api/v1`, 365 test xanh.
+> Cập nhật lần cuối: **2026-07-10** — 13 module, 62 route `api/v1`, 367 test xanh.
 
 ## Bản đồ tài liệu
 
@@ -619,7 +619,7 @@ morph-alias-aware, cache 1h) + `robots.txt`. Storefront SSR Blade → crawlable.
 
 # Test
 
-**365 test / 1572 assertion, all green (2026-07-10)** — `tests/Feature/`, chạy trên MySQL
+**367 test / 1587 assertion, all green (2026-07-10)** — `tests/Feature/`, chạy trên MySQL
 `lunar_testing` (app phụ thuộc JSON functions/facets — SQLite không emulate được).
 `tests/TestCase` dùng `RefreshDatabase`; trait `CreatesStorefrontData` seed base data +
 fixture product/size-chart. Chạy: `vendor/bin/phpunit` (testsuite `Feature`).
@@ -685,6 +685,7 @@ sau quyết định bằng dữ kiện chứ không bằng cảm tính.
 | 8 | 2026-07-10 | **Siết payment callback** — `GatewayReconciler` chung cho VNPay+MoMo: chặn thiếu tiền, chặn hồi sinh đơn đã đóng, khoá chống race + unique index | 356 test; mutation-check từng guard |
 | 9 | 2026-07-10 | **Siết refund** — RMA claim dưới khoá (COD/bank trước đây không có trần nào), nhả claim khi gateway fail, reference refund duy nhất | 360 test; mutation-check từng guard |
 | 10 | 2026-07-10 | **Dọn đơn mồ côi** — `orders:expire-abandoned` quét thêm `placed_at IS NULL` (order đã trừ kho nhưng driver chưa kịp ghi `meta`) | 365 test; mutation-check cả 2 nhánh + bank-transfer |
+| 11 | 2026-07-10 | **Rà soát tuân thủ standards** — gỡ 2 import model cross-module (§10), Blade thôi resolve service (§7), `DeviceRegistry`/`NotifyMeRequest` đưa logic khỏi controller (§3/§4), 3 Resource mới (§6); xoá endpoint chết `payment/vnpay/start` | 367 test; mutation-check từng guard |
 
 > **Quy tắc cho mọi refactor:** giải thích *why* trước khi viết code · không sửa `vendor/`
 > · public API (service + shape `/api/v1`) chỉ mở rộng tương thích ngược · `vendor/bin/phpunit`

@@ -244,8 +244,9 @@ img {
 }
 
 {{-- Laravel renders this theme file through Blade before inlining, so the
-     store's accent colour (Theme settings → Branding) can drive the button. --}}
-@php($accent = app(\Modules\Theme\Services\ThemeSettings::class)->emailAccent())
+     store's accent colour (Theme settings → Branding) can drive the button.
+     `$accent` is injected by a View Composer (ThemeServiceProvider) — Blade
+     must not resolve services itself (§7). --}}
 .button-blue,
 .button-primary {
     background-color: {{ $accent }};

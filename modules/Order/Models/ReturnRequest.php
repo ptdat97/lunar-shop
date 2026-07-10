@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Lunar\Models\Customer;
 use Lunar\Models\Order;
+use Modules\Order\Support\ReturnStatus;
 
 /**
  * A customer's return/RMA request against a paid order. Line-level (which items
@@ -24,12 +25,16 @@ class ReturnRequest extends Model
         'resolved_at' => 'datetime',
     ];
 
-    /** Lifecycle statuses. */
-    public const REQUESTED = 'requested';
-    public const APPROVED = 'approved';
-    public const REJECTED = 'rejected';
-    public const REFUNDED = 'refunded';
-    public const COMPLETED = 'completed';
+    /** Lifecycle statuses — aliases of {@see ReturnStatus}, which other modules read. */
+    public const REQUESTED = ReturnStatus::REQUESTED;
+
+    public const APPROVED = ReturnStatus::APPROVED;
+
+    public const REJECTED = ReturnStatus::REJECTED;
+
+    public const REFUNDED = ReturnStatus::REFUNDED;
+
+    public const COMPLETED = ReturnStatus::COMPLETED;
 
     public function order(): BelongsTo
     {

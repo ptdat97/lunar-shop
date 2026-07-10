@@ -60,6 +60,17 @@ class ThemeServiceProvider extends ServiceProvider
             $view->with('theme', $this->app->make(ThemeSettings::class));
         });
 
+        // Email accent colour. `mail.default` is rendered by Laravel's mail
+        // pipeline, not by a controller, so nothing pushed data into it and it
+        // resolved ThemeSettings inline — exactly what §7 forbids.
+        //
+        // The sibling override `vendor/mail/html/header.blade.php` is a Blade
+        // *component* (`@props`), which a View Composer does not reach; its logo
+        // lookup stays inline. Verified: composing it blanks the logo.
+        View::composer('mail.default', function ($view) {
+            $view->with('accent', $this->app->make(ThemeSettings::class)->emailAccent());
+        });
+
         // Language switcher data for the header (no service resolution in Blade).
         View::composer('theme::partials.header', function ($view) {
             $locales = $this->app->make(LocaleService::class);

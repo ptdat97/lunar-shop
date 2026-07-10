@@ -149,9 +149,15 @@ code trong `vendor/`.
 
 ## 6. API
 
-* Mọi endpoint dùng `JsonResource`; route tự prefix `api/v1` (mở `v2` không phá v1).
+* Mọi endpoint **trả model** đều dùng `JsonResource`; route tự prefix `api/v1`
+  (mở `v2` không phá v1).
 * **Success** `{ data, meta? }` — **Error** `{ message, errors? }` (envelope chuẩn
   cho mọi request `api/v1/*`, bất kể `Accept` header).
+* **Ba ngoại lệ hợp lệ** (không có model để bọc — đừng "sửa" chúng):
+  `HealthController` (probe hạ tầng), `StockNotificationController` (chỉ trả
+  `{message}` xác nhận), `SizeController` (trả mảng tính toán, không phải bản ghi).
+* `->response()` của Resource trả **201** khi `wasRecentlyCreated`. Với `PUT` upsert
+  phải `->setStatusCode(200)`, nếu không sẽ đổi status mà client đang phụ thuộc.
 * Web SSR hydrate từ **chính** shape của Resource (xem §7), không nhân đôi shape.
 * Shape mới phải là **superset tương thích ngược** — không đổi URL/return shape
   đang chạy (island + headless phụ thuộc).
@@ -189,6 +195,14 @@ service (qua controller/composer/component); Blade chỉ *nhận và in ra*.
 > `route()`, `asset()`) vẫn được dùng — đó không phải resolve service nghiệp vụ.
 > `->map()/->filter()` để format collection hiển thị (gallery, breadcrumb JSON-LD)
 > là **format dữ liệu** → hợp lệ.
+
+**View của mail** không do controller render. Đẩy dữ liệu vào bằng **View Composer**
+(xem `ThemeServiceProvider`: `View::composer('mail.default', …)` bơm `$accent`).
+
+> ⚠️ Composer **không** với tới Blade **component** (`@props`). Override
+> `resources/views/vendor/mail/html/header.blade.php` là component, nên nó vẫn phải
+> resolve `ThemeSettings` inline. Đã thử composer cho nó: logo biến mất, test đỏ.
+> Đây là ngoại lệ **đã kiểm chứng**, không phải nợ kỹ thuật.
 
 **Component:** UI lặp ≥ 3 lần phải tách (`<x-theme::price>`,
 `<x-theme::product-card>`…). Component có logic lấy data → **class-based**. Không

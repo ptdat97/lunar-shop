@@ -3,10 +3,8 @@
 namespace Modules\Inventory\Http\Controllers\Api\V1;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Lunar\Models\ProductVariant;
-use Modules\Inventory\Services\InventoryService;
+use Modules\Inventory\Http\Requests\NotifyMeRequest;
 use Modules\Inventory\Services\StockNotificationService;
 
 /**
@@ -18,30 +16,18 @@ class StockNotificationController extends Controller
 {
     public function __construct(
         protected StockNotificationService $subscriptions,
-        protected InventoryService $inventory,
     ) {}
 
-    public function store(Request $request): JsonResponse
+    public function store(NotifyMeRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'variant_id' => ['required', 'integer'],
-            'email' => ['required', 'email', 'max:255'],
-        ]);
+        // The "is it out of stock?" rule lives in the service, which aborts 422.
+        $this->subscriptions->subscribe(
+            $request->integer('variant_id'),
+            $request->string('email')->toString(),
+        );
 
-        $variant = ProductVariant::findOrFail($data['variant_id']);
-
-        // Only meaningful when the variant has no physical stock — matching the
-        // storefront's "Hết hàng" state. NOTE: don't use inStock()/
-        // canBeFulfilledAtQuantity() here: a stock=0 "backorder/always" variant
-        // is still shown as out of stock, so the shopper must be able to subscribe.
-        if ($this->inventory->hasPhysicalStock($variant->id)) {
-            return response()->json([
-                'message' => 'This item is already in stock.',
-            ], 422);
-        }
-
-        $this->subscriptions->subscribe($variant, $data['email']);
-
+        // An acknowledgement, not a resource: the subscription row is private
+        // bookkeeping the shopper never addresses again.
         return response()->json([
             'message' => "We'll email you when this item is back in stock.",
         ], 201);

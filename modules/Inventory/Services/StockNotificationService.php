@@ -10,15 +10,35 @@ use Modules\Inventory\Models\StockNotification;
  */
 class StockNotificationService
 {
+    public function __construct(
+        protected InventoryService $inventory,
+    ) {}
+
     /**
-     * Subscribe an email to be notified when a variant is restocked.
+     * Subscribe an email to a variant that is currently out of stock.
+     *
+     * Owns the whole rule, including "is it actually out of stock?" — that used
+     * to sit in the controller, where nothing stopped a second caller (an admin
+     * action, a job) from subscribing someone to an in-stock variant.
+     *
+     * Deliberately *not* `inStock()` / `canBeFulfilledAtQuantity()`: a `stock=0`
+     * backorder/always variant still reads as out of stock on the storefront, so
+     * the shopper must be able to subscribe to it.
      *
      * Idempotent: re-subscribing the same email to the same variant returns the
      * existing pending row (and resets it to pending if it was already notified
      * but has since sold out again).
      */
-    public function subscribe(ProductVariant $variant, string $email): StockNotification
+    public function subscribe(int $variantId, string $email): StockNotification
     {
+        $variant = ProductVariant::findOrFail($variantId);
+
+        abort_if(
+            $this->inventory->hasPhysicalStock($variant->id),
+            422,
+            'This item is already in stock.',
+        );
+
         $email = mb_strtolower(trim($email));
 
         return StockNotification::updateOrCreate(

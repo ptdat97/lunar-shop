@@ -6,15 +6,21 @@ use Illuminate\Support\Collection;
 use Lunar\Models\Collection as LunarCollection;
 use Lunar\Models\Product;
 use Lunar\Models\Url;
-use Modules\Content\Models\Page;
+use Modules\Content\Services\ContentService;
 
 /**
  * Builds the storefront sitemap URL set. Lives in Catalog because it coordinates
  * catalog-wide SEO (the module's stated job). One service = one source, so the
  * controller stays thin and no Blade/controller touches models directly.
+ *
+ * CMS pages come from Content's service, not its models (§10).
  */
 class SitemapService
 {
+    public function __construct(
+        protected ContentService $content,
+    ) {}
+
     /**
      * All indexable storefront URLs as { loc, lastmod?, changefreq, priority }.
      *
@@ -41,9 +47,9 @@ class SitemapService
                 route('storefront.collection', $url->slug), $url->updated_at?->toAtomString(), 'weekly', '0.7',
             )));
 
-        // Published CMS pages.
-        Page::query()->where('published', true)->get(['slug', 'updated_at'])
-            ->each(fn (Page $page) => $entries->push($this->entry(
+        // Published CMS pages — Content owns the "is it public?" rule.
+        $this->content->publishedPageUrls()
+            ->each(fn ($page) => $entries->push($this->entry(
                 route('storefront.page', $page->slug), $page->updated_at?->toAtomString(), 'monthly', '0.4',
             )));
 

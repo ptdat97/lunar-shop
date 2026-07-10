@@ -119,12 +119,37 @@ class NotificationApiTest extends TestCase
 
         $payload = ['token' => 'fcm-abc', 'platform' => 'android', 'device_name' => 'Pixel 8'];
 
-        $this->actingAs($user)->postJson('/api/v1/devices', $payload)->assertStatus(201);
+        $this->actingAs($user)->postJson('/api/v1/devices', $payload)
+            ->assertStatus(201)
+            // The published contract (§6). The push token must never echo back.
+            ->assertJsonStructure(['data' => ['id', 'platform']])
+            ->assertJsonPath('data.platform', 'android')
+            ->assertJsonMissingPath('data.token');
 
         // The app re-registers on every launch.
         $this->actingAs($user)->postJson('/api/v1/devices', $payload)->assertStatus(200);
 
         $this->assertSame(1, DeviceToken::where('user_id', $user->id)->count());
+    }
+
+    public function test_a_device_token_can_only_be_revoked_by_its_owner(): void
+    {
+        $this->seedBaseData();
+        $owner = $this->createUser();
+        $stranger = $this->createUser();
+
+        $payload = ['token' => 'fcm-owned', 'platform' => 'ios'];
+        $this->actingAs($owner)->postJson('/api/v1/devices', $payload)->assertSuccessful();
+
+        $this->actingAs($stranger)->deleteJson('/api/v1/devices', ['token' => 'fcm-owned'])
+            ->assertOk()
+            ->assertJsonPath('data.deleted', false);
+        $this->assertSame(1, DeviceToken::where('user_id', $owner->id)->count());
+
+        $this->actingAs($owner)->deleteJson('/api/v1/devices', ['token' => 'fcm-owned'])
+            ->assertOk()
+            ->assertJsonPath('data.deleted', true);
+        $this->assertSame(0, DeviceToken::where('user_id', $owner->id)->count());
     }
 
     public function test_a_device_token_moves_to_whoever_registers_it_last(): void

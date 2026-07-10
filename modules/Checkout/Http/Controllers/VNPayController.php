@@ -3,16 +3,13 @@
 namespace Modules\Checkout\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Lunar\Models\Order;
-use Modules\Checkout\Services\VNPayGateway;
 use Modules\Checkout\Services\VNPayPaymentProcessor;
 
 /**
- * VNPay redirect + callbacks.
- *   start  — build the signed redirect URL for an awaiting-payment order.
+ * VNPay callbacks.
  *   return — browser comes back here after paying; verify + reconcile + redirect
  *            to the storefront confirmation page.
  *   ipn    — server-to-server notification; the source of truth for marking paid.
@@ -23,25 +20,6 @@ class VNPayController extends Controller
     public function __construct(
         protected VNPayPaymentProcessor $processor,
     ) {}
-
-    /**
-     * GET /payment/vnpay/start/{order} — returns the redirect URL (JSON) so the
-     * checkout island can send the shopper to VNPay.
-     */
-    public function start(Request $request, int $order): JsonResponse
-    {
-        $gateway = VNPayGateway::fromConfig();
-
-        if (! $gateway->isConfigured()) {
-            return response()->json(['message' => 'VNPay is not configured.'], 422);
-        }
-
-        $model = Order::findOrFail($order);
-
-        return response()->json([
-            'data' => ['redirect_url' => $gateway->buildPaymentUrl($model, $request->ip())],
-        ]);
-    }
 
     /**
      * GET /payment/vnpay/return — shopper redirected back from VNPay.

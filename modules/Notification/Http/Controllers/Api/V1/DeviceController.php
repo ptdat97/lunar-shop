@@ -3,60 +3,52 @@
 namespace Modules\Notification\Http\Controllers\Api\V1;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Validation\Rule;
-use Modules\Notification\Models\DeviceToken;
+use Modules\Notification\Http\Requests\RegisterDeviceRequest;
+use Modules\Notification\Http\Requests\RevokeDeviceRequest;
+use Modules\Notification\Http\Resources\DeviceResource;
+use Modules\Notification\Services\DeviceRegistry;
 
 /**
- * Push targets for the mobile app.
+ * Push targets for the mobile app. Validate → delegate → respond (§3).
  */
 class DeviceController extends Controller
 {
+    public function __construct(
+        protected DeviceRegistry $devices,
+    ) {}
+
     /**
      * POST /api/v1/devices  { token, platform, device_name? }
-     *
-     * Idempotent: the app re-registers on every launch, and the platform may
-     * hand the same token to a different account after a sign-out, so the token
-     * is claimed by whoever registers it last.
      */
-    public function store(Request $request): JsonResponse
+    public function store(RegisterDeviceRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'token' => ['required', 'string', 'max:512'],
-            'platform' => ['required', Rule::in(DeviceToken::PLATFORMS)],
-            'device_name' => ['nullable', 'string', 'max:255'],
-        ]);
-
-        $device = DeviceToken::updateOrCreate(
-            ['token' => $data['token']],
-            [
-                'user_id' => $request->user()->id,
-                'platform' => $data['platform'],
-                'device_name' => $data['device_name'] ?? null,
-                'last_used_at' => now(),
-            ],
+        $device = $this->devices->register(
+            $request->user(),
+            $request->string('token')->toString(),
+            $request->string('platform')->toString(),
+            $request->input('device_name'),
         );
 
-        return response()->json([
-            'data' => ['id' => $device->id, 'platform' => $device->platform],
-        ], $device->wasRecentlyCreated ? 201 : 200);
+        return DeviceResource::make($device)
+            ->response()
+            ->setStatusCode($device->wasRecentlyCreated ? 201 : 200);
     }
 
     /**
      * DELETE /api/v1/devices — stop pushing to this device (sign-out).
+     *
+     * Answers `{data:{deleted}}` rather than 204: the app distinguishes "we
+     * removed it" from "it was never ours", and once the row is gone there is no
+     * model left for a JsonResource to wrap.
      */
-    public function destroy(Request $request): JsonResponse
+    public function destroy(RevokeDeviceRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'token' => ['required', 'string', 'max:512'],
-        ]);
+        $deleted = $this->devices->revoke(
+            $request->user(),
+            $request->string('token')->toString(),
+        );
 
-        // Scoped to the caller: a token they do not own must not be revocable.
-        $deleted = DeviceToken::where('user_id', $request->user()->id)
-            ->where('token', $data['token'])
-            ->delete();
-
-        return response()->json(['data' => ['deleted' => (bool) $deleted]]);
+        return response()->json(['data' => ['deleted' => $deleted]]);
     }
 }

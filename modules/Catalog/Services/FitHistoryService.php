@@ -5,8 +5,8 @@ namespace Modules\Catalog\Services;
 use Illuminate\Support\Facades\DB;
 use Lunar\Models\Customer;
 use Lunar\Models\Product;
-use Modules\Order\Models\ReturnRequest;
 use Modules\Order\Support\OrderStatus;
+use Modules\Order\Support\ReturnStatus;
 
 /**
  * Size Intelligence v2: infer a shopper's true size from what they actually kept
@@ -239,7 +239,7 @@ class FitHistoryService
             ->leftJoin('return_requests as rr', function ($join) {
                 $join->on('rr.id', '=', 'rrl.return_request_id')
                     ->whereIn('rr.reason', [self::REASON_TOO_SMALL, self::REASON_TOO_LARGE, self::REASON_WRONG_SIZE])
-                    ->where('rr.status', '!=', ReturnRequest::REJECTED);
+                    ->where('rr.status', '!=', ReturnStatus::REJECTED);
             })
             ->selectRaw('JSON_UNQUOTE(JSON_EXTRACT(ov.name, "$.en")) as size')
             // Distinct reasons seen for this size: exactly one means an
