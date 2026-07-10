@@ -4,16 +4,21 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
+use Livewire\Livewire;
+use Lunar\Admin\Models\Staff;
 use Lunar\Models\Channel;
 use Lunar\Models\Currency;
 use Lunar\Models\Order;
 use Lunar\Models\OrderAddress;
+use Modules\Core\Support\Settings;
 use Modules\Notification\Channels\PushChannel;
 use Modules\Notification\Contracts\PushSender;
 use Modules\Notification\Data\PushMessage;
 use Modules\Notification\Drivers\NullPushSender;
+use Modules\Notification\Filament\Pages\NotificationSettingsPage;
 use Modules\Notification\Models\DeviceToken;
 use Modules\Notification\Notifications\OrderStatusChanged;
+use Modules\Notification\Support\PushSettings;
 use Modules\Order\Mail\OrderStatusUpdatedMail;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
@@ -163,6 +168,84 @@ class NotificationTest extends TestCase
         // An uninstalled app must not be pushed to forever.
         $this->assertNull(DeviceToken::where('token', 'dead-token')->first());
         $this->assertNotNull(DeviceToken::where('token', 'live-token')->first());
+    }
+
+    /**
+     * The kill-switch an operator reaches for at 2am. It silences push only —
+     * the in-app inbox (`database` channel) is unaffected, so the customer still
+     * sees the update when they open the app.
+     */
+    public function test_push_can_be_switched_off_without_touching_the_inbox(): void
+    {
+        $this->seedBaseData();
+        $user = $this->createUser();
+        DeviceToken::create(['user_id' => $user->id, 'token' => 'live-token', 'platform' => 'ios']);
+
+        $reached = false;
+        $this->app->instance(PushSender::class, new class($reached) implements PushSender
+        {
+            public function __construct(public bool &$reached) {}
+
+            public function send(array $tokens, PushMessage $message): array
+            {
+                $this->reached = true;
+
+                return [];
+            }
+        });
+
+        app(Settings::class)->put('notification', ['push_enabled' => false]);
+
+        $order = $this->order(['user_id' => $user->id]);
+        $notification = new OrderStatusChanged($order, 'payment-received');
+
+        app(PushChannel::class)->send($user, $notification);
+        $this->assertFalse($reached, 'the provider must not be called at all');
+
+        // The device is kept: this is a pause, not an unsubscribe.
+        $this->assertNotNull(DeviceToken::where('token', 'live-token')->first());
+
+        // And the inbox still records it.
+        $user->notify($notification);
+        $this->assertSame(1, $user->notifications()->count());
+    }
+
+    public function test_the_admin_page_toggles_push(): void
+    {
+        $staff = Staff::factory()->create(['admin' => true]);
+        $this->actingAs($staff, 'staff');
+
+        Livewire::test(NotificationSettingsPage::class)
+            ->fillForm(['push_enabled' => false])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertFalse(PushSettings::enabled());
+    }
+
+    public function test_push_is_on_by_default(): void
+    {
+        $this->seedBaseData();
+        $user = $this->createUser();
+        DeviceToken::create(['user_id' => $user->id, 'token' => 'live-token', 'platform' => 'ios']);
+
+        $reached = false;
+        $this->app->instance(PushSender::class, new class($reached) implements PushSender
+        {
+            public function __construct(public bool &$reached) {}
+
+            public function send(array $tokens, PushMessage $message): array
+            {
+                $this->reached = true;
+
+                return [];
+            }
+        });
+
+        $order = $this->order(['user_id' => $user->id]);
+        app(PushChannel::class)->send($user, new OrderStatusChanged($order, 'payment-received'));
+
+        $this->assertTrue($reached, 'no setting saved -> push sends');
     }
 
     public function test_a_push_provider_outage_never_breaks_the_caller(): void

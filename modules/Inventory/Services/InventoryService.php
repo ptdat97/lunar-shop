@@ -4,6 +4,7 @@ namespace Modules\Inventory\Services;
 
 use Lunar\Models\Product;
 use Lunar\Models\ProductVariant;
+use Modules\Core\Support\Settings;
 
 class InventoryService
 {
@@ -88,8 +89,35 @@ class InventoryService
      */
     public function lowStockThreshold(): int
     {
-        return (int) app(\Modules\Core\Support\Settings::class)
+        return (int) app(Settings::class)
             ->get('inventory.low_stock_threshold', self::DEFAULT_LOW_THRESHOLD);
+    }
+
+    /** How long an unpaid gateway order may hold its stock, by default. */
+    public const DEFAULT_HOLD_MINUTES = 60;
+
+    /** Lower bound: below this, a slow bank page would cancel live checkouts. */
+    public const MIN_HOLD_MINUTES = 10;
+
+    /** Upper bound (a week): past this the units are effectively lost anyway. */
+    public const MAX_HOLD_MINUTES = 10080;
+
+    /**
+     * Minutes an unpaid gateway order keeps its reserved stock before
+     * `orders:expire-abandoned` cancels it and returns the units.
+     *
+     * A shop decision, not a deployment one: during a sale you want the units
+     * back in twenty minutes; on a normal week two hours is kinder to a shopper
+     * fetching their card. Clamped, because a 0 here would cancel orders while
+     * the shopper is still on the bank's page, and the admin gets no second
+     * chance to notice — the stock is already gone.
+     */
+    public function holdMinutes(): int
+    {
+        $minutes = (int) app(Settings::class)
+            ->get('inventory.hold_minutes', self::DEFAULT_HOLD_MINUTES);
+
+        return max(self::MIN_HOLD_MINUTES, min(self::MAX_HOLD_MINUTES, $minutes));
     }
 
     /**

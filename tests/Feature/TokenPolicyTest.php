@@ -4,6 +4,11 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Carbon;
 use Laravel\Sanctum\PersonalAccessToken;
+use Livewire\Livewire;
+use Lunar\Admin\Models\Staff;
+use Modules\Core\Support\Settings;
+use Modules\Customer\Filament\Pages\CustomerSettingsPage;
+use Modules\Customer\Services\TokenIssuer;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -43,10 +48,93 @@ class TokenPolicyTest extends TestCase
         $stored = $user->tokens()->first();
         $this->assertNotNull($stored->expires_at);
         $this->assertEqualsWithDelta(
-            Carbon::now()->addDays(config('customer.tokens.ttl_days'))->timestamp,
+            Carbon::now()->addDays(app(TokenIssuer::class)->ttlDays())->timestamp,
             $stored->expires_at->timestamp,
             60,
         );
+    }
+
+    public function test_the_saved_ttl_decides_a_new_tokens_expiry(): void
+    {
+        app(Settings::class)->put('customer', ['ttl_days' => 7]);
+
+        [$user] = $this->issueToken();
+
+        $this->assertEqualsWithDelta(
+            Carbon::now()->addDays(7)->timestamp,
+            $user->tokens()->first()->expires_at->timestamp,
+            60,
+        );
+    }
+
+    /** `0` is a real choice: kiosk-style clients that must never be signed out. */
+    public function test_zero_days_means_no_expiry(): void
+    {
+        app(Settings::class)->put('customer', ['ttl_days' => 0]);
+
+        [$user] = $this->issueToken();
+
+        $this->assertNull($user->tokens()->first()->expires_at);
+    }
+
+    /**
+     * Lowering the TTL must not log anyone out: each token carries its own
+     * `expires_at`, unlike Sanctum's global `expiration` which measures from
+     * `created_at` and would retroactively kill every token in the wild.
+     */
+    public function test_lowering_the_ttl_leaves_existing_tokens_alone(): void
+    {
+        app(Settings::class)->put('customer', ['ttl_days' => 90]);
+        [$user] = $this->issueToken();
+        $original = $user->tokens()->first()->expires_at;
+
+        app(Settings::class)->put('customer', ['ttl_days' => 1]);
+
+        $this->assertTrue($original->equalTo($user->tokens()->first()->fresh()->expires_at));
+    }
+
+    public function test_the_ttl_is_clamped(): void
+    {
+        $issuer = app(TokenIssuer::class);
+        $settings = app(Settings::class);
+
+        $settings->put('customer', ['ttl_days' => -5]);
+        $this->assertSame(0, $issuer->ttlDays());
+
+        $settings->put('customer', ['ttl_days' => 99999]);
+        $this->assertSame(TokenIssuer::MAX_TTL_DAYS, $issuer->ttlDays());
+    }
+
+    public function test_it_falls_back_to_config_when_unset(): void
+    {
+        $this->assertSame(
+            (int) config('customer.ttl_days'),
+            app(TokenIssuer::class)->ttlDays(),
+        );
+    }
+
+    public function test_the_admin_page_saves_the_ttl(): void
+    {
+        $staff = Staff::factory()->create(['admin' => true]);
+        $this->actingAs($staff, 'staff');
+
+        Livewire::test(CustomerSettingsPage::class)
+            ->fillForm(['ttl_days' => 14])
+            ->call('save')
+            ->assertHasNoFormErrors();
+
+        $this->assertSame(14, app(TokenIssuer::class)->ttlDays());
+    }
+
+    /** Abilities are a security scope; the page must not expose them. */
+    public function test_the_admin_page_does_not_expose_token_abilities(): void
+    {
+        $staff = Staff::factory()->create(['admin' => true]);
+        $this->actingAs($staff, 'staff');
+
+        Livewire::test(CustomerSettingsPage::class)
+            ->assertFormFieldExists('ttl_days')
+            ->assertFormFieldDoesNotExist('abilities');
     }
 
     public function test_sanctums_global_expiration_stays_off(): void

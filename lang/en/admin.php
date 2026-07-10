@@ -239,6 +239,24 @@ return [
         'refund_failed' => 'Refund failed',
     ],
 
+    'customer_settings' => [
+        'title' => 'Customers',
+        'save' => 'Save',
+        'saved' => 'Customer settings saved.',
+        'section' => 'Mobile app sign-in',
+        'ttl_days' => 'Keep app sign-ins for (days)',
+        'ttl_days_help' => 'How long before the mobile app asks a customer to sign in again. Use 0 to never expire. Only affects sign-ins from now on — nobody currently signed in is logged out.',
+    ],
+
+    'notification_settings' => [
+        'title' => 'Notifications',
+        'save' => 'Save',
+        'saved' => 'Notification settings saved.',
+        'section' => 'Push notifications',
+        'push_enabled' => 'Send push notifications',
+        'push_enabled_help' => 'Turn off to stop sending push notifications to the mobile app — useful when the push provider is having an outage. The in-app inbox keeps working either way.',
+    ],
+
     'inventory_settings' => [
         'title' => 'Inventory Settings',
         'save' => 'Save',
@@ -246,6 +264,8 @@ return [
         'section' => 'Stock thresholds',
         'low_stock_threshold' => 'Low-stock threshold',
         'low_stock_threshold_help' => 'Variants at or below this stock level are flagged "low" in Stock Overview.',
+        'hold_minutes' => 'Hold unpaid orders for (minutes)',
+        'hold_minutes_help' => 'A gateway order reserves its stock before the shopper pays. After this long, unpaid orders are cancelled and the units go back on sale. Lower during a sale; higher if shoppers often pay slowly.',
     ],
 
     'section' => [

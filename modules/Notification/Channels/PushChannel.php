@@ -7,6 +7,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
 use Modules\Notification\Contracts\PushSender;
 use Modules\Notification\Models\DeviceToken;
+use Modules\Notification\Support\PushSettings;
 use Throwable;
 
 /**
@@ -24,6 +25,14 @@ class PushChannel
 
     public function send(mixed $notifiable, Notification $notification): void
     {
+        // Checked here rather than in the provider: the driver is bound in
+        // `register()`, before the database is reachable, whereas an operator
+        // flips this switch at runtime when the provider is melting down.
+        // The in-app inbox (`database` channel) keeps working either way.
+        if (! PushSettings::enabled()) {
+            return;
+        }
+
         if (! method_exists($notification, 'toPush')) {
             return;
         }

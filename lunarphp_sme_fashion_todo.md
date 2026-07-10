@@ -6,7 +6,7 @@
 >
 > **Trước khi build bất cứ gì:** kiểm tra `vendor/lunarphp` đã có chưa (Nguyên tắc #1) —
 > có thì kế thừa/mở rộng, không thì mới build trong module tương ứng. Giữ phạm vi
-> single-store SME. `vendor/bin/phpunit` xanh trước khi coi là xong (367 test), và
+> single-store SME. `vendor/bin/phpunit` xanh trước khi coi là xong (383 test), và
 > `vendor/bin/pint --test <file bạn đã sửa>` xanh — **không** phải cả repo: chạy
 > `pint --test` trên toàn repo hiện đỏ **131 file** có từ trước (không có `pint.json`,
 > preset `laravel` mặc định bắt cả migration/seeder/config publish từ Lunar).
@@ -78,13 +78,23 @@ size (gắn với RMA), export báo cáo.
 
 ## Cấu hình: cái gì ra admin, cái gì ở lại config
 
-**Đã ra Filament** (đọc qua `App\Support\Settings`, DB → fallback config/env): payment keys
+**Đã ra Filament** (đọc qua `Modules\Core\Support\Settings`, DB → fallback config/env): payment keys
 (VNPay/MoMo) + default method · shipping flat-rate + free-threshold · membership tiers ·
-recommendations (limit/TTL) · review auto-approve · media on-demand mode · low-stock threshold.
+recommendations (limit/TTL) · review auto-approve · media on-demand mode · low-stock threshold ·
+**thời gian giữ hàng đơn chưa trả** (`inventory.hold_minutes`) · **bật/tắt push**
+(`notification.push_enabled`) · **TTL đăng nhập app** (`customer.ttl_days`).
 
-**Cố ý giữ trong config** (kỹ thuật, không phải quyết định kinh doanh):
+**Cố ý giữ trong config** (kỹ thuật/bảo mật, không phải quyết định kinh doanh):
 `recommend.strategies` · `inventory`/`cart`/`media` pipeline-overrides · tax-inclusive ·
-Scout/Typesense · FFmpeg · media disks.
+Scout/Typesense · FFmpeg · media disks · `theme.locales` (cần file dịch tồn tại) ·
+`notification.push.driver` (tên **class**, resolve trong `register()` **trước khi** DB sẵn
+sàng — chọn driver chưa cài là vỡ mọi request) · `customer.tokens.abilities` (scope bảo
+mật; nới rộng từ web form là privilege escalation).
+
+> **Bẫy `Settings::put()`:** nó thay **cả group**. Trang admin phải ghi **mọi** khoá nó sở
+> hữu ở mỗi lần lưu, nếu không lưu một field sẽ xoá field kia thành `NULL` (đo được).
+> Group chỉ **một cấp**: `get('customer.ttl_days')` → group `customer`, key `ttl_days` —
+> nên khoá đưa ra admin phải nằm **phẳng** trong config, không lồng.
 
 > `analytics.paid_statuses` vẫn là config key (admin chỉnh được), nhưng **code không đọc
 > trực tiếp** — mọi nơi đi qua `Modules\Order\Support\OrderStatus::paid()`. Trước đây mảng

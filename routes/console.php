@@ -26,6 +26,9 @@ Schedule::command('queue:prune-failed --hours=168')->weekly();
 // customer reaches VNPay/MoMo. Someone who closes the tab would hold those units
 // forever, so cancel unpaid gateway orders and put the stock back. Bank transfers
 // sit in the same status but are settled by hand; the command leaves them alone.
-Schedule::command('orders:expire-abandoned --minutes=60')
+//
+// No --minutes here: how long to hold stock is a shop decision, set in
+// Admin → Settings → Inventory. Passing it would silently outrank that page.
+Schedule::command('orders:expire-abandoned')
     ->everyTenMinutes()
     ->withoutOverlapping();

@@ -21,11 +21,25 @@ return [
     */
 
     'tokens' => [
-        'ttl_days' => (int) env('API_TOKEN_TTL_DAYS', 60),
-
         'abilities' => [
             'customer' => ['customer:*'],
         ],
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Token lifetime (days)
+    |--------------------------------------------------------------------------
+    |
+    | The default only. The live value is edited in Admin → Settings → Customers
+    | and read via TokenIssuer::ttlDays(). `0` disables expiry.
+    |
+    | Flat rather than under `tokens` because a Settings group is one level deep:
+    | `Settings::get('customer.ttl_days')` reads group `customer`, key `ttl_days`
+    | — and falls back to *this* config path when the admin has saved nothing.
+    |
+    */
+
+    'ttl_days' => (int) env('API_TOKEN_TTL_DAYS', 60),
 
 ];

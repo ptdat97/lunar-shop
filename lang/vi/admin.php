@@ -241,6 +241,24 @@ return [
         'refund_failed' => 'Hoàn tiền thất bại',
     ],
 
+    'customer_settings' => [
+        'title' => 'Khách hàng',
+        'save' => 'Lưu',
+        'saved' => 'Đã lưu cấu hình khách hàng.',
+        'section' => 'Đăng nhập trên app',
+        'ttl_days' => 'Giữ đăng nhập app (ngày)',
+        'ttl_days_help' => 'Sau bao lâu app yêu cầu khách đăng nhập lại. Đặt 0 để không hết hạn. Chỉ áp dụng cho các lần đăng nhập từ giờ trở đi — khách đang đăng nhập không bị đăng xuất.',
+    ],
+
+    'notification_settings' => [
+        'title' => 'Thông báo',
+        'save' => 'Lưu',
+        'saved' => 'Đã lưu cấu hình thông báo.',
+        'section' => 'Thông báo đẩy (push)',
+        'push_enabled' => 'Gửi thông báo đẩy',
+        'push_enabled_help' => 'Tắt để ngừng gửi push tới app — dùng khi nhà cung cấp push gặp sự cố. Hộp thư trong app vẫn hoạt động bình thường.',
+    ],
+
     'inventory_settings' => [
         'title' => 'Cấu hình kho',
         'save' => 'Lưu',
@@ -248,6 +266,8 @@ return [
         'section' => 'Ngưỡng tồn kho',
         'low_stock_threshold' => 'Ngưỡng sắp hết hàng',
         'low_stock_threshold_help' => 'Variant có tồn kho từ mức này trở xuống sẽ bị đánh dấu "sắp hết" ở Stock Overview.',
+        'hold_minutes' => 'Giữ hàng cho đơn chưa thanh toán (phút)',
+        'hold_minutes_help' => 'Đơn thanh toán qua cổng giữ tồn kho ngay khi tạo, trước khi khách trả tiền. Quá thời gian này, đơn chưa trả sẽ bị huỷ và hàng được trả lại kho. Đặt thấp khi chạy sale; đặt cao nếu khách hay thanh toán chậm.',
     ],
 
     'section' => [

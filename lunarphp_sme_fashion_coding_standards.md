@@ -343,6 +343,17 @@ Kết quả đo được: stock 2, đặt 10 → checkout **200 OK**, stock **�
    diện bản ghi (ở đây: `meta.payment_type`), hỏi: **cột đó được ghi ở transaction nào?**
    Job dọn dẹp phải nhận diện bằng thứ được ghi **trong** transaction, hoặc bằng sự *vắng
    mặt* của thứ ghi sau nó (ở đây: `placed_at IS NULL`).
+10. **`Settings::put()` thay cả group, không merge.** Trang admin phải ghi **mọi** khoá nó
+    sở hữu ở mỗi lần lưu. Đo được: lưu riêng `hold_minutes` làm `low_stock_threshold`
+    thành `NULL`. Và group chỉ **một cấp** — `get('customer.ttl_days')` đọc group
+    `customer`, key `ttl_days`; khoá lồng như `customer.tokens.ttl_days` **không** ra
+    admin được, phải làm phẳng trong config trước.
+11. **Cái gì ra admin: quyết định kinh doanh. Cái gì ở lại config: kỹ thuật + bảo mật.**
+    Thời gian giữ hàng, TTL đăng nhập, bật/tắt push → admin (chủ shop đổi lúc 2 giờ sáng).
+    Tên **class** driver → config (resolve trong `register()`, trước khi DB sẵn sàng; chọn
+    driver chưa cài là vỡ mọi request). **Scope quyền** (`tokens.abilities`) → config; nới
+    rộng từ web form là privilege escalation. Mọi giá trị ra admin phải **clamp** ở service:
+    admin gõ `0` vào "giữ hàng" thì đơn bị huỷ khi khách còn ở trang ngân hàng.
 
 **Định nghĩa "đã thanh toán" chỉ có một nguồn:** `Modules\Order\Support\OrderStatus::paid()`
 (bọc `config('analytics.paid_statuses')`, dùng bởi `AnalyticsService`, `MembershipService`,

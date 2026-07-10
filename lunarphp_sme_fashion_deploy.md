@@ -150,6 +150,11 @@ sanctum:prune-expired daily / queue:prune-failed weekly /
 >
 > Số lớn bất thường → xem lại vài đơn trước khi để cron chạy; chúng đáng lẽ không tồn tại.
 >
+> **Thời gian giữ hàng** (mặc định 60') giờ nằm ở **Admin → Cấu hình → Kho**
+> (`inventory.hold_minutes`, clamp 10–10080). Scheduler **không** truyền `--minutes`
+> nữa — truyền vào sẽ âm thầm ghi đè lựa chọn của chủ shop. Cờ chỉ để quét thủ công
+> một lần (`--minutes=5` sau khi vừa sửa gateway).
+>
 > Chạy thử trước khi bật: `php artisan orders:expire-abandoned --dry-run`.
 
 ## 5. nginx (điểm chính)

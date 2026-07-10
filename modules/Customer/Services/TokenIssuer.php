@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Support\Carbon;
 use Laravel\Sanctum\NewAccessToken;
 use Laravel\Sanctum\PersonalAccessToken;
+use Modules\Core\Support\Settings;
 
 /**
  * Personal access token policy for app / POS clients: how long a token lives,
@@ -71,10 +72,36 @@ class TokenIssuer
         return true;
     }
 
+    /** Default token lifetime when the shop hasn't chosen one. */
+    public const DEFAULT_TTL_DAYS = 60;
+
+    /** A year. Past this a stolen token is a liability, not a convenience. */
+    public const MAX_TTL_DAYS = 365;
+
+    /**
+     * How many days a newly issued token lives. `0` disables expiry entirely.
+     *
+     * Admin-configurable (Admin → Settings → Customers): how often the app makes
+     * someone sign in again is a shop decision. Only tokens minted *after* a
+     * change are affected — each carries its own `expires_at` — so lowering it
+     * never locks out the customers already signed in.
+     *
+     * `abilities()` deliberately stays in config: it is a security scope, not a
+     * shop preference, and widening it from a web form would be a privilege
+     * escalation waiting to happen.
+     */
+    public function ttlDays(): int
+    {
+        $days = (int) app(Settings::class)
+            ->get('customer.ttl_days', self::DEFAULT_TTL_DAYS);
+
+        return max(0, min(self::MAX_TTL_DAYS, $days));
+    }
+
     /** When a newly issued token stops working, or null when TTL is disabled. */
     public function expiry(): ?Carbon
     {
-        $days = (int) config('customer.tokens.ttl_days', 0);
+        $days = $this->ttlDays();
 
         return $days > 0 ? Carbon::now()->addDays($days) : null;
     }

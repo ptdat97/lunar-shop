@@ -4,6 +4,7 @@ namespace Modules\Inventory\Console;
 
 use Illuminate\Console\Command;
 use Lunar\Models\Order;
+use Modules\Inventory\Services\InventoryService;
 use Modules\Order\Support\OrderStatus;
 
 /**
@@ -28,14 +29,20 @@ use Modules\Order\Support\OrderStatus;
 class ExpireAbandonedOrders extends Command
 {
     protected $signature = 'orders:expire-abandoned
-                            {--minutes=60 : How long an unpaid order may hold stock}
+                            {--minutes= : Override how long an unpaid order may hold stock}
                             {--dry-run : Report what would be cancelled}';
 
     protected $description = 'Cancel unpaid gateway orders and return their reserved stock';
 
-    public function handle(): int
+    public function handle(InventoryService $inventory): int
     {
-        $minutes = max(1, (int) $this->option('minutes'));
+        // No flag → the shop's own setting (Admin → Inventory). The flag stays for
+        // one-off sweeps ("clear anything older than 5 minutes, we just fixed the
+        // gateway") without touching what the scheduler does every ten minutes.
+        $minutes = $this->option('minutes') !== null
+            ? max(1, (int) $this->option('minutes'))
+            : $inventory->holdMinutes();
+
         $cutoff = now()->subMinutes($minutes);
         $dryRun = (bool) $this->option('dry-run');
 

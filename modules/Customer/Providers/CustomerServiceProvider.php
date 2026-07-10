@@ -4,6 +4,8 @@ namespace Modules\Customer\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Lunar\Models\Customer;
+use Modules\Core\Support\AdminPages;
+use Modules\Customer\Filament\Pages\CustomerSettingsPage;
 use Modules\Customer\Models\CustomerMeasurement;
 
 class CustomerServiceProvider extends ServiceProvider
@@ -12,6 +14,8 @@ class CustomerServiceProvider extends ServiceProvider
     {
         // Personal-access-token policy (TTL + abilities) for app/POS clients.
         $this->mergeConfigFrom(__DIR__.'/../Config/customer.php', 'customer');
+
+        AdminPages::add(CustomerSettingsPage::class);
     }
 
     /**
@@ -20,6 +24,7 @@ class CustomerServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/../Database/Migrations');
+        $this->loadViewsFrom(__DIR__.'/../Resources/views', 'customer');
 
         $this->loadRoutesFrom(__DIR__.'/../Routes/web.php');
         $this->loadRoutesFrom(__DIR__.'/../Routes/api.php');

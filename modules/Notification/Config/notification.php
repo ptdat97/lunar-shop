@@ -26,4 +26,21 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Push kill-switch
+    |--------------------------------------------------------------------------
+    |
+    | The default only. The live value is edited in Admin → Settings →
+    | Notifications and read through Modules\Notification\Support\PushSettings,
+    | so an operator can silence a misbehaving provider without a deploy.
+    |
+    | Flat rather than nested under `push` because a Settings group is one level
+    | deep: `Settings::get('notification.push_enabled')` reads group
+    | `notification`, key `push_enabled`.
+    |
+    */
+
+    'push_enabled' => true,
+
 ];
