@@ -300,6 +300,35 @@ Kết quả đo được: stock 2, đặt 10 → checkout **200 OK**, stock **�
    endpoint là mở được RMA trên đơn chưa từng giao — rồi hoàn tiền. Với mỗi cờ dạng
    `can_*` / `is_*` trong Resource, hỏi: **ai ép luật này ở phía service?** Nếu không ai,
    đó là lỗ hổng, không phải cờ.
+5. **Chữ ký hợp lệ ≠ nội dung đúng.** Chữ ký của payment gateway chứng minh *ai gửi*, không
+   chứng minh *bao nhiêu tiền* hay *có còn muốn nhận không*. `VNPayPaymentProcessor` từng
+   tin luôn `vnp_Amount` trong callback → callback ký đúng cho **1 đồng** vẫn đẩy đơn sang
+   `payment-received`. Và callback về muộn còn **hồi sinh đơn đã `cancelled`** — đơn đã trả
+   stock về kho, `stock_released_at` đã đóng dấu nên không bao giờ trừ lại → bán hàng không
+   có hàng. Với mọi input từ bên ngoài đã xác thực: **xác thực xong mới bắt đầu kiểm tra.**
+6. **Guard chống race không mutation-check được bằng phpunit.** `lockForUpdate` trong
+   `GatewayReconciler` tắt đi thì test **vẫn xanh**, vì phpunit chạy tuần tự — race cần hai
+   connection đồng thời. Đừng tự nhận là đã kiểm chứng. Cách duy nhất chứng minh được ở
+   tầng test: đẩy bất biến xuống **DB constraint** (unique index) rồi mutation-check *nó*.
+   Khoá vẫn giữ để tránh ném exception vào mặt khách; index là lưới an toàn cuối.
+7. **Guard nằm nhờ trên một nhánh thì nhánh kia không có guard.** Trần chống hoàn tiền hai
+   lần thật ra sống trong `RefundService::refundedTotal()` — nhưng `ReturnService::refund()`
+   chỉ gọi `RefundService` **khi có gateway capture**. Đơn COD/bank không có capture → bỏ qua
+   luôn cả trần. Bấm "Refund" hai lần là chuyển tiền đôi. Khi thấy `if (điều kiện) { gọi thứ
+   đang giữ luật }`, hỏi ngay: **nhánh `else` ai giữ luật?** Đặt guard ở nơi *luật thuộc về*
+   (chính RMA), không ở nơi tình cờ có nó.
+8. **Đọc-rồi-ghi quanh một lệnh gọi mạng là cửa sổ cho double-spend.** Claim trạng thái
+   **dưới khoá trước** khi gọi gateway; gọi gateway **ngoài** transaction (§4); gateway fail
+   thì **nhả claim** để retry. Không claim → double-click hoàn tiền hai lần. Claim mà không
+   nhả → outage biến RMA thành `refunded` vĩnh viễn dù chưa chuyển đồng nào.
+9. **"Vendor đã bọc transaction" không có nghĩa thao tác của bạn nằm trong đó.**
+   `Lunar\Actions\Carts\CreateOrder` bọc `DB::transaction` quanh pipeline (nên order lines +
+   `DecrementStock` là atomic — tốt), **rồi commit**. Driver thanh toán mới `update(status,
+   placed_at, meta)` ở câu lệnh **riêng, ngoài** transaction đó. Chết giữa hai bước → order
+   tồn tại, kho đã trừ, `meta` rỗng. Trước khi dựa vào một cột do vendor/driver ghi để nhận
+   diện bản ghi (ở đây: `meta.payment_type`), hỏi: **cột đó được ghi ở transaction nào?**
+   Job dọn dẹp phải nhận diện bằng thứ được ghi **trong** transaction, hoặc bằng sự *vắng
+   mặt* của thứ ghi sau nó (ở đây: `placed_at IS NULL`).
 
 **Định nghĩa "đã thanh toán" chỉ có một nguồn:** `Modules\Order\Support\OrderStatus::paid()`
 (bọc `config('analytics.paid_statuses')`, dùng bởi `AnalyticsService`, `MembershipService`,

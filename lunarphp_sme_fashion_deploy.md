@@ -92,6 +92,21 @@ php artisan up
 Rollback: `git checkout <tag trước> && composer install ... && php artisan
 migrate:rollback --step=N` (chỉ khi migration mới gây lỗi) + lại bước 4–5.
 
+> ⚠️ **Lần deploy đầu sau bản siết payment callback:** migration
+> `unique_gateway_capture_per_order` tạo unique index trên `lunar_transactions`. Trước
+> đây **không có gì** ngăn hai capture trùng (return-URL + IPN cùng lúc), nên production
+> có thể đã có sẵn bản ghi trùng → migration sẽ **fail giữa chừng**. Kiểm tra trước khi
+> `migrate --force`:
+>
+> ```sql
+> SELECT order_id, driver, reference, COUNT(*) c
+> FROM lunar_transactions WHERE type = 'capture'
+> GROUP BY order_id, driver, reference HAVING c > 1;
+> ```
+>
+> Có kết quả → đối soát tay với sao kê gateway, giữ **một** dòng mỗi nhóm rồi mới migrate.
+> Đừng xoá bừa: mỗi dòng là một lần tiền thật đã chuyển.
+
 ## 4. Supervisor + Cron
 
 Horizon (đã cấu hình 2 supervisor trong `config/horizon.php`: `supervisor-app`
@@ -120,8 +135,20 @@ sanctum:prune-expired daily / queue:prune-failed weekly /
 > ⚠️ **`orders:expire-abandoned` là bắt buộc, không phải dọn dẹp cho đẹp.** Đơn thanh toán
 > qua gateway giữ tồn kho **trước khi** khách trả tiền (Lunar tạo order ở
 > `authorize()`, rồi mới redirect sang VNPay/MoMo). Không chạy cron này thì mỗi khách
-> đóng tab giữa chừng sẽ **khoá tồn kho vĩnh viễn**. Command chỉ đụng đơn gateway
-> (`meta.payment_type`); bank-transfer thu tay nên an toàn.
+> đóng tab giữa chừng sẽ **khoá tồn kho vĩnh viễn**. Bank-transfer thu tay nên an toàn
+> (nó có `placed_at`).
+>
+> Command cũng dọn **đơn mồ côi** (`placed_at IS NULL`) — order đã tạo và trừ kho nhưng
+> process chết trước khi driver kịp ghi `placed_at`/`meta`.
+>
+> ⚠️ **Lần chạy đầu sau bản vá này** có thể huỷ một loạt đơn mồ côi tồn đọng từ trước
+> (trước đây **không có gì** dọn chúng). Đếm trước:
+>
+> ```sql
+> SELECT COUNT(*) FROM lunar_orders WHERE placed_at IS NULL AND stock_released_at IS NULL;
+> ```
+>
+> Số lớn bất thường → xem lại vài đơn trước khi để cron chạy; chúng đáng lẽ không tồn tại.
 >
 > Chạy thử trước khi bật: `php artisan orders:expire-abandoned --dry-run`.
 

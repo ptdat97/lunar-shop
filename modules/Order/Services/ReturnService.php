@@ -128,28 +128,52 @@ class ReturnService
     public function refund(ReturnRequest $request): ReturnRequest
     {
         $order = $request->order;
-        $amount = $this->cappedRefund($request, $order);
 
-        if ($amount <= 0) {
-            throw new \RuntimeException('Nothing left to refund on this order.');
-        }
+        // Claim the request under a lock before anything with a side effect runs.
+        // Two admins clicking "Refund" together, or one double-click, must not both
+        // reach the gateway. On a gateway order `RefundService` would still cap the
+        // total, but a COD/bank order never touches RefundService — nothing else
+        // stops the second call from paying out and emailing the customer again.
+        $amount = DB::transaction(function () use ($request, $order) {
+            $fresh = ReturnRequest::whereKey($request->id)->lockForUpdate()->first();
+
+            if (! $fresh || $fresh->status === ReturnRequest::REFUNDED) {
+                throw new \RuntimeException('This return has already been refunded.');
+            }
+
+            $amount = $this->cappedRefund($fresh, $order);
+
+            if ($amount <= 0) {
+                throw new \RuntimeException('Nothing left to refund on this order.');
+            }
+
+            $fresh->update([
+                'status' => ReturnRequest::REFUNDED,
+                'refund_amount' => $amount,
+                'resolved_at' => now(),
+            ]);
+
+            return $amount;
+        });
 
         $refundService = app(RefundService::class);
 
-        // Only call the gateway when there's a gateway capture to refund.
+        // Gateway call stays *outside* the transaction (§4: no un-rollbackable
+        // side effects inside). Only call it when there's a capture to refund;
+        // COD/bank orders are settled by hand.
         if ($refundService->captureTransaction($order)) {
             $result = $refundService->refund($order, $amount, 'return:'.$request->reference);
 
             if (! $result->success) {
+                // Release the claim so staff can retry once the gateway recovers.
+                ReturnRequest::whereKey($request->id)->update([
+                    'status' => ReturnRequest::APPROVED,
+                    'refund_amount' => null,
+                ]);
+
                 throw new \RuntimeException($result->message ?: 'Gateway refund failed.');
             }
         }
-
-        $request->update([
-            'status' => ReturnRequest::REFUNDED,
-            'refund_amount' => $amount,
-            'resolved_at' => now(),
-        ]);
 
         $request = $request->fresh();
         $this->notify($request);
@@ -178,6 +202,10 @@ class ReturnService
      * but an offline (cod/bank) order has no gateway to enforce a ceiling — the
      * gateway path is capped by RefundService — so the total refunded across
      * every request on this order must be bounded here too.
+     *
+     * Note it excludes `$request` itself (`whereKeyNot`), so it cannot stop the
+     * *same* request being refunded twice. {@see self::refund()} owns that, by
+     * claiming the request under a lock before any side effect runs.
      */
     protected function cappedRefund(ReturnRequest $request, Order $order): int
     {

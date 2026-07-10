@@ -74,6 +74,20 @@ class OrderStatus
     }
 
     /**
+     * Is this order finished with, such that a payment can no longer land on it?
+     *
+     * A cancelled or refunded order has already given its reserved stock back
+     * (Inventory listens for `OrderStatusUpdated` and releases it). Letting a
+     * late gateway callback flip it to `payment-received` would sell units that
+     * are no longer held — and `stock_released_at` is already stamped, so they
+     * would never be reserved again.
+     */
+    public static function isClosed(?string $status): bool
+    {
+        return $status !== null && in_array($status, self::CLOSED, true);
+    }
+
+    /**
      * The statuses that count as paid, honouring the admin-tunable config key
      * but never depending on it being present.
      *

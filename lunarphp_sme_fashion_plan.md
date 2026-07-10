@@ -5,7 +5,7 @@
 > (native của Lunar), storefront **100% Blade SSR + vanilla JS** (không Vue).
 > Chỉ ghi những gì đã có trong code.
 >
-> Cập nhật lần cuối: **2026-07-10** — 13 module, 62 route `api/v1`, 349 test xanh.
+> Cập nhật lần cuối: **2026-07-10** — 13 module, 62 route `api/v1`, 365 test xanh.
 
 ## Bản đồ tài liệu
 
@@ -254,7 +254,7 @@ page/resource module đóng góp), `Support\LunarConfigOverride` (re-apply overr
 | **Catalog** | Catalog + Product + Pricing + Review + Recommend + Search + Collection | Toàn bộ hiển thị/truy vấn sản phẩm | Services: `ProductService`, `PricingService`, `ReviewService`, `RecommendationService`, `CollectionService`, `SitemapService`, `SizeChartService`, `SizeRecommender`, `FitHistoryService`. Models: `ProductMaterial`, `SizeChart`, `SizeChartRow`, `Review`. Contracts/Drivers: `SearchEngine` + `DatabaseSearchEngine`. Strategies: `Association`, `Collection`. 7 file Filament (SizeChartResource + ProductSizeExtension). Home/sitemap/health + seeders demo. |
 | **Content** | CMS + SectionBuilder + Menu | Nội dung storefront admin-managed | Models: `Page`, `Banner`, `Lookbook`(+Image/Item), `Redirect`, `PageSection`, `Menu`(+Item). Services: `ContentService`, `SectionRenderer`, `MenuRenderer`, `MenuTree`. 20 file Filament (6 resource: Page/Banner/Lookbook/Redirect/PageSection/Menu). |
 | **Assets** | Media + FileManager | Ảnh/file | Services: `MediaUrl`, `ConversionGenerator`, `MediaRegenerator`, `MediaSettings`, `FileManager`. On-demand conversion + media library. 3 file Filament (MediaImageSizes, MediaLibrary, MediaPicker). |
-| **Checkout** | Checkout + Cart + Payment | Luồng cart → checkout → payment | Services: `CartService`, `CheckoutService`, `VNPayGateway`, `VNPayPaymentProcessor`. PaymentTypes: `VNPayPayment`. VNPay controller + return/IPN. Config override `cart-overrides.php` + `payment-overrides.php`. |
+| **Checkout** | Checkout + Cart + Payment | Luồng cart → checkout → payment | Services: `CartService`, `CheckoutService`, `TokenAwareCartSession`, `RefundService`. Gateway: `VNPayGateway`/`MoMoGateway` + `*PaymentProcessor` kế thừa **`GatewayReconciler`** (nơi duy nhất giữ luật callback: chữ ký → số tiền → đơn đã đóng → khoá chống race). PaymentTypes: `VNPayPayment`, `MoMoPayment`. Config override `cart-overrides.php` + `payment-overrides.php`. |
 | **Customer** | Customer + Location | Khách, địa chỉ, auth, wishlist, địa giới VN | Services: `CustomerResolver`, `AuthService`, `TokenIssuer`, `WishlistService`, `RecentlyViewedService`, `CountryService`. Models: `WishlistItem`, `Province`, `Ward`. Auth web + Sanctum (cookie + PAT), address book, order history, VN provinces/wards API + seeder dataset. |
 | **Order** | — | Order, trạng thái, email giao dịch, RMA | Services: `OrderService`, `OrderMailer`, `ReturnService`, `InvoiceService`, `OrderTimeline`. Support: `OrderStatus` (**một nguồn** cho status handle, nhãn i18n, `PAID`/`CLOSED`/`RETURNABLE`). Events: `OrderPaid`, `OrderStatusUpdated`. 4 mailable queued + observer/listeners. |
 | **Promotion** | — | Discount nâng cao hiển thị storefront | Services: `PromotionService` (facade: queries + coupon + memoization), `PromotionTargetResolver` (targeting/eligibility), `SaleBadgeService` (badge/banner/describe), `MembershipService`. Custom discount types + flash sale + membership. |
@@ -518,7 +518,18 @@ theo session không cần crawl (cart drawer/page, wishlist).
 - **Một line chỉ trả được một lần**: `remainingQuantities()` trừ mọi RMA chưa `rejected`,
   validate **trong** transaction sau `lockForUpdate`. Thêm `cappedRefund()` — tổng hoàn không
   vượt order total (COD không có gateway làm trần).
-- Email trạng thái gửi **ngoài** transaction (side effect không rollback được).
+- **Một RMA chỉ hoàn tiền được một lần**: `refund()` **claim** request dưới `lockForUpdate`
+  (kiểm `status !== REFUNDED` rồi đánh dấu ngay) **trước** khi gọi gateway. Trước 2026-07-10
+  chỉ đường gateway có trần (`RefundService::refundedTotal()`); đơn **COD/bank không có
+  capture** nên bỏ qua `RefundService` hoàn toàn → bấm "Refund" hai lần là hoàn tiền đôi và
+  gửi email đôi. Lưu ý `cappedRefund()` **không** chặn được ca này vì nó tự loại chính request
+  (`whereKeyNot`).
+- Gateway fail → **nhả claim** về `approved` + `refund_amount = null` để staff retry, thay vì
+  kẹt ở `refunded` mà tiền chưa bao giờ chuyển.
+- Refund không có reference từ gateway dùng `refund-{order_id}-{random}`, **không** phải
+  `refund-{order_id}` — hai lần hoàn từng phần từng trùng chuỗi, không đối soát nổi với sao kê.
+- Email trạng thái gửi **ngoài** transaction (side effect không rollback được); lệnh gọi
+  gateway (HTTP) cũng vậy — §4.
 - **Branding email:** logo + màu nhấn từ Theme Settings (`ThemeSettings::emailLogo()` —
   URL tuyệt đối vì email render ngoài origin; `emailAccent()` validate hex). Override
   `resources/views/vendor/mail/html/header.blade.php` (logo, fallback site name) và
@@ -548,9 +559,18 @@ theo session không cần crawl (cart drawer/page, wishlist).
   **cố ý đồng bộ** — stock là bất biến đúng-sai, queue chết thì hàng mất im lặng).
   Idempotent qua cột `lunar_orders.stock_released_at`.
 - Đơn gateway giữ stock **trước khi** khách trả tiền → command `orders:expire-abandoned`
-  (scheduler 10'/lần) huỷ đơn quá hạn và trả stock. **Chỉ** đơn gateway (lọc
-  `meta.payment_type`); bank-transfer cũng ở `awaiting-payment` nhưng thu tay, không bị
-  timer đụng tới.
+  (scheduler 10'/lần) huỷ đơn quá hạn và trả stock. Quét **hai** loại:
+  (a) đơn gateway bỏ ngang (`status = awaiting-payment` + `meta.payment_type`);
+  (b) **đơn mồ côi** `placed_at IS NULL`. Bank-transfer cũng ở `awaiting-payment` nhưng
+  thu tay và **có** `placed_at`, nên không bị timer đụng tới.
+- **Vì sao có đơn mồ côi:** `Lunar\Actions\Carts\CreateOrder` bọc `DB::transaction` (order
+  lines + `DecrementStock` là atomic) và **commit**; driver thanh toán *sau đó* mới
+  `update(status, placed_at, meta)` ở câu lệnh riêng. Chết giữa hai bước → order tồn tại,
+  kho đã trừ, `meta = null` nên nhánh (a) **mù**. Đo được: sweeper dọn 0 đơn, 2 units kẹt
+  vĩnh viễn. Mọi driver đều set `placed_at` ngay khi `authorize()` thành công, nên
+  `placed_at IS NULL` là dấu hiệu tin cậy "checkout chưa bao giờ hoàn tất".
+  (Double-submit **không** phải nguyên nhân: Lunar chặn bằng `ValidateCartForOrderCreation`
+  — cart đã có `completedOrder` thì `createOrder()` ném `CartException`.)
 - `InsufficientStockException` trả **422** (không phải 500): người khác lấy mất units cuối
   là chuyện của người mua, không phải lỗi server.
 - Notify-me back-in-stock (model + API `/inventory/notify-me` + email queued khi restock).
@@ -599,7 +619,7 @@ morph-alias-aware, cache 1h) + `robots.txt`. Storefront SSR Blade → crawlable.
 
 # Test
 
-**349 test / 1513 assertion, all green (2026-07-10)** — `tests/Feature/`, chạy trên MySQL
+**365 test / 1572 assertion, all green (2026-07-10)** — `tests/Feature/`, chạy trên MySQL
 `lunar_testing` (app phụ thuộc JSON functions/facets — SQLite không emulate được).
 `tests/TestCase` dùng `RefreshDatabase`; trait `CreatesStorefrontData` seed base data +
 fixture product/size-chart. Chạy: `vendor/bin/phpunit` (testsuite `Feature`).
@@ -662,6 +682,9 @@ sau quyết định bằng dữ kiện chứ không bằng cảm tính.
 | 5 | 2026-07-10 | **Phase 3** — mobile: module `Notification` (in-app + push contract), order timeline từ `activity_log`, recently-viewed server-side | 315 test |
 | 6 | 2026-07-10 | **Rà soát ecommerce cốt lõi** — tìm + sửa 6 bug tiền/tồn kho (E1–E6), xem [audit](lunarphp_sme_fashion_platform_audit.md) | 347 test |
 | 7 | 2026-07-10 | **Dọn mã nguồn** — `paid_statuses` 5 bản sao → 1; controller về dưới 100 dòng; gỡ N+1 | 349 test |
+| 8 | 2026-07-10 | **Siết payment callback** — `GatewayReconciler` chung cho VNPay+MoMo: chặn thiếu tiền, chặn hồi sinh đơn đã đóng, khoá chống race + unique index | 356 test; mutation-check từng guard |
+| 9 | 2026-07-10 | **Siết refund** — RMA claim dưới khoá (COD/bank trước đây không có trần nào), nhả claim khi gateway fail, reference refund duy nhất | 360 test; mutation-check từng guard |
+| 10 | 2026-07-10 | **Dọn đơn mồ côi** — `orders:expire-abandoned` quét thêm `placed_at IS NULL` (order đã trừ kho nhưng driver chưa kịp ghi `meta`) | 365 test; mutation-check cả 2 nhánh + bank-transfer |
 
 > **Quy tắc cho mọi refactor:** giải thích *why* trước khi viết code · không sửa `vendor/`
 > · public API (service + shape `/api/v1`) chỉ mở rộng tương thích ngược · `vendor/bin/phpunit`

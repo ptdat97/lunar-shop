@@ -3,6 +3,7 @@
 namespace Modules\Checkout\Services;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Lunar\Models\Order;
 use Lunar\Models\Transaction;
 use Modules\Checkout\Data\RefundResult;
@@ -58,7 +59,7 @@ class RefundService
             'type' => 'refund',
             'driver' => $driver,
             'amount' => $amount,
-            'reference' => $result['reference'] ?? ('refund-' . $order->id),
+            'reference' => $result['reference'] ?? $this->fallbackReference($order),
             'status' => 'refunded',
             'card_type' => (string) ($capture->card_type ?? ''),
             'last_four' => '',
@@ -85,6 +86,19 @@ class RefundService
             ->where('success', true)
             ->latest('id')
             ->first();
+    }
+
+    /**
+     * A reference for a refund the gateway did not give one for.
+     *
+     * It used to be `refund-{order_id}`, which is the same string for every
+     * partial refund on an order — two rows that reconciliation against the bank
+     * statement cannot tell apart. A counter would race; the random suffix is
+     * unique without a read, and still names the order it belongs to.
+     */
+    private function fallbackReference(Order $order): string
+    {
+        return "refund-{$order->id}-".Str::lower(Str::random(8));
     }
 
     /** Total already refunded (minor units) for an order. */
