@@ -4,6 +4,21 @@
 > SME (single-store) trên Laravel 12 (PHP 8.4) + LunarPHP 1.0, admin Filament 3
 > (native của Lunar), storefront **100% Blade SSR + vanilla JS** (không Vue).
 > Chỉ ghi những gì đã có trong code.
+>
+> Cập nhật lần cuối: **2026-07-10** — 13 module, 62 route `api/v1`, 349 test xanh.
+
+## Bản đồ tài liệu
+
+Đây là **nguồn sự thật duy nhất về hiện trạng**. Các file khác không lặp lại nó:
+
+| File | Trả lời câu hỏi |
+|---|---|
+| **plan.md** (file này) | *Hệ thống hiện có những gì, hoạt động ra sao?* |
+| [coding_standards.md](lunarphp_sme_fashion_coding_standards.md) | *Viết code ở đây theo quy tắc nào?* |
+| [deploy.md](lunarphp_sme_fashion_deploy.md) | *Đưa lên production thế nào, vận hành ra sao?* |
+| [theme_plan.md](lunarphp_sme_fashion_theme_plan.md) | *Theme `fashion` cấu tạo thế nào?* |
+| [todo.md](lunarphp_sme_fashion_todo.md) | *Còn việc gì chưa làm?* |
+| [platform_audit.md](lunarphp_sme_fashion_platform_audit.md) | *Biên bản lịch sử: đã tìm ra và sửa những bug nào, bằng chứng gì?* |
 
 ---
 
@@ -137,11 +152,21 @@ method của model core.
 `Event::listen(LunarEvent::class, Listener)` trong `boot()`. Cách tách rời nhất: nhiều
 module cùng nghe một event, không biết nhau.
 
-- ✅ **Đang dùng:** `PaymentAttemptEvent` (Order → email xác nhận, mọi driver);
-  domain event của dự án `Modules\Order\Events\OrderPaid` (Promotion nghe để sync
-  membership, Checkout dispatch từ callback VNPay/MoMo).
+- ✅ **Đang dùng:** `PaymentAttemptEvent` (Order → email xác nhận + `DispatchOrderPaidForOfflineOrder`);
+  `MediaHasBeenAddedEvent` (Assets). Domain event của dự án:
+  - `Order\Events\OrderPaid` — consumer: email đã-thanh-toán (Order), sync membership (Promotion).
+  - `Order\Events\OrderStatusUpdated` — consumer: notification (Notification), **trả tồn kho**
+    (Inventory).
 - Quy ước: event **domain của dự án** đặt trong module sở hữu (vd `OrderPaid` ở Order),
   không nhét vào Core (Core chỉ hạ tầng, không business).
+- **Chỉ thêm event mới khi đã có consumer thứ hai.** Event "phòng xa" là abstraction thừa.
+- Listener **queued** cho side-effect (mail, push); **đồng bộ** cho bất biến đúng-sai
+  (trả tồn kho): queue chết thì hàng/tiền sai im lặng.
+
+> ⚠️ Event phải có **ngữ nghĩa rõ**. `OrderPaid` = *"được tính là đã thanh toán"* (chi tiêu
+> + doanh thu), **không** phải *"đã nhận được tiền"* — COD bắn `OrderPaid` lúc đặt hàng
+> nhưng khách trả khi giao. Listener cần "tiền đã về tay" phải tự kiểm `status ===
+> 'payment-received'`.
 
 ## (6) Filament admin — Extension classes (không fork resource)
 
@@ -256,17 +281,33 @@ page/resource module đóng góp), `Support\LunarConfigOverride` (re-apply overr
 modules/<Name>/
  ├── Http/Controllers/{Storefront,Api/V1}/   # Blade (theme::) và JSON (/api/v1)
  ├── Http/{Requests,Resources}/              # validation + API Resource (JSON contract)
- ├── Services/                               # business logic (web + API gọi chung)
- ├── Models/                                 # model fashion-specific (extend Lunar)
- ├── Filament/                               # admin resources của module
- ├── Database/{Migrations,Seeders}/
+ ├── Services/                               # business logic (web + API gọi chung, ≤ 500 dòng)
+ ├── Support/                                # value object, hằng số (vd OrderStatus)
+ ├── Data/                                   # DTO / result object, bất biến
+ ├── Contracts/                              # CHỈ khi có ≥ 2 implementation (SearchEngine, PushSender)
+ ├── Models/ Events/ Listeners/ Jobs/ Observers/
+ ├── Pipelines/                              # stage chèn vào pipeline Lunar (DecrementStock)
+ ├── DiscountTypes/ | PaymentTypes/ | Modifiers/ | Strategies/ | Drivers/
+ ├── Console/                                # artisan command của module
+ ├── Filament/  Database/{Migrations,Seeders}  Config/
  ├── Routes/{web,api}.php                    # api tự prefix /api/v1
  └── Providers/<Name>ServiceProvider.php
 ```
 
 Namespace PSR-4 `Modules\<Name>` → `modules/<Name>`. `ModulesServiceProvider` quét mảng
 module, đăng ký provider từng module rồi đăng ký Lunar panel cuối cùng (để gom Filament
-page/resource do module đóng góp).
+page/resource do module đóng góp). Thứ tự trong mảng có ý nghĩa khi module này phụ thuộc
+binding của module kia (vd `Notification` sau `Order`).
+
+**Chiều phụ thuộc** (kiểm bằng review):
+
+```text
+themes/ ──view──▶ modules/<X>/Http ──▶ modules/<X>/Services ──▶ Lunar
+                     │ cross-module CHỈ qua: service/Support công khai của module khác,
+                     ▼ domain event, hoặc contract — KHÔNG chạm model nội bộ
+routes/ ──gom──▶ modules/*/Routes
+app/    ──boot──▶ modules/*/Providers   (Core trước, Lunar panel cuối)
+```
 
 ---
 
@@ -453,13 +494,31 @@ theo session không cần crawl (cart drawer/page, wishlist).
   payment-received). VNPay chỉ nhận VND.
 
 ## Order & Email
-- Order history + order detail. **3 mailable queued** (`OrderConfirmationMail`,
-  `OrderPaidMail`, `OrderStatusUpdatedMail`) + markdown templates + `OrderMailer`.
+- Order history + order detail + **timeline** (`OrderTimeline` đọc `activity_log` của Lunar,
+  **không** tạo bảng riêng; chỉ lấy event `status-update`, vì cùng bảng đó chứa row `updated`
+  với full column diff — không được lộ ra).
+- **`OrderStatus` là một nguồn duy nhất** cho status handle, nhãn i18n (`label()`), và các
+  tập `PAID` / `CLOSED` / `RETURNABLE`. Trước đây mảng "đã thanh toán" bị copy-paste ra
+  5 service và đã trôi khỏi nhau (COD tính doanh thu nhưng không lên hạng).
+- **4 mailable queued** (`OrderConfirmationMail`, `OrderPaidMail`, `OrderStatusUpdatedMail`,
+  `ReturnStatusMail`) + markdown templates + `OrderMailer` (locale-aware).
   Wiring: confirm qua `PaymentAttemptEvent`, paid qua event `OrderPaid` (gateway callback
-  **và** COD qua `DispatchOrderPaidForOfflineOrder` — gate theo `analytics.paid_statuses`
-  nên bank-transfer/gateway lúc authorize không bắn; `SendOrderPaidEmail` chỉ gửi khi
+  **và** COD qua `DispatchOrderPaidForOfflineOrder` — gate theo `OrderStatus::paid()` nên
+  bank-transfer/gateway lúc authorize không bắn; `SendOrderPaidEmail` chỉ gửi khi
   `payment-received` vì khách COD chưa trả tiền lúc đặt),
-  status-update qua `OrderObserver`.
+  status-update qua `OrderObserver` (bắn `OrderStatusUpdated` cho **mọi** transition; email
+  vẫn giữ skip-list riêng).
+
+## Đổi/trả (RMA)
+- `ReturnRequest` + `ReturnRequestLine` (line-level qty), staff approve/reject/refund.
+- **Chỉ trả được từ `payment-received` / `dispatched` / `completed`** (`OrderStatus::RETURNABLE`).
+  ⚠️ `can_return` trong `OrderResource` chỉ **ẩn nút**; `ReturnService::open()` mới là chỗ
+  ép luật — trước 2026-07-10 nó không kiểm gì, mở được RMA trên đơn chưa từng giao rồi
+  hoàn tiền. COD ở `payment-offline` không trả được: hàng còn trên đường.
+- **Một line chỉ trả được một lần**: `remainingQuantities()` trừ mọi RMA chưa `rejected`,
+  validate **trong** transaction sau `lockForUpdate`. Thêm `cappedRefund()` — tổng hoàn không
+  vượt order total (COD không có gateway làm trần).
+- Email trạng thái gửi **ngoài** transaction (side effect không rollback được).
 - **Branding email:** logo + màu nhấn từ Theme Settings (`ThemeSettings::emailLogo()` —
   URL tuyệt đối vì email render ngoài origin; `emailAccent()` validate hex). Override
   `resources/views/vendor/mail/html/header.blade.php` (logo, fallback site name) và
@@ -552,7 +611,20 @@ coupon), address book CRUD + ownership, checkout→order COD + API + order histo
 (provinces/wards), on-demand media conversion, token auth, recommendations, i18n,
 product/collection page smoke render, SEO (sitemap + JSON-LD), facet price/brand +
 recently-viewed, email branding (logo absolute URL + accent, chặn CSS injection),
-fit history (kept/returned → size, between-sizes, cách ly theo customer).
+fit history (kept/returned → size, between-sizes, cách ly theo customer), cart headless
+(X-Cart-Token, không claim được cart của người khác), token policy (expiry/abilities/refresh),
+oversell + release tồn kho, RMA (không trả 2 lần, không trả đơn chưa giao), notification.
+
+**Kỷ luật test:**
+- **Mutation-check mọi guard**: tắt guard → test phải đỏ. Không đỏ = test không bảo vệ gì.
+- Test guard phải chạy trên **dữ liệu như production**. Nếu fixture phải sửa một trường để
+  guard hoạt động → hỏi ngay *production có trường đó không?* (bug `purchasable = always`
+  lọt qua vì test tự set `in_stock`).
+- ⚠️ **Luôn `php artisan optimize:clear` trước khi chạy test.** `config:cache` che các `<env>`
+  trong `phpunit.xml` → `DB_DATABASE` trỏ về DB dev và `RefreshDatabase` **xoá sạch nó**.
+
+⬜ **Còn thiếu:** `modules/<Name>/Tests` vẫn trống (toàn bộ 54 file ở `tests/Feature`); chưa
+phủ phần thuần-JS (picture/srcset, search-panel, lookbook) — cần browser driver.
 
 ---
 
@@ -562,3 +634,36 @@ Dự án cố ý **không** xây: multi-vendor/marketplace, visual drag-drop edi
 microservices/GraphQL-first, headless SPA tách rời (giữ API sẵn nhưng không tách), AI
 recommendations, plugin/platform SDK, hook/workflow engine. Cross-module gọi service
 trực tiếp; giữ ít lớp nhất.
+
+## Quyết định có chủ đích — *không phải thiếu sót*
+
+Mỗi mục dưới đây từng được cân nhắc và **cố ý bỏ qua**, kèm **ngưỡng kích hoạt** để lần
+sau quyết định bằng dữ kiện chứ không bằng cảm tính.
+
+| Không làm | Vì sao | Ngưỡng để làm |
+|---|---|---|
+| Class `*Action` riêng | Method nhỏ trong service đã đóng vai action; tách ra chỉ thêm file + indirection, không thêm testability | Một service vượt **500 dòng**, *hoặc* một nghiệp vụ được gọi từ **≥ 2 orchestrator** |
+| Repository | Lunar Eloquent **đã là** tầng data; không có nhu cầu đổi store | Cần cache/đổi store thật |
+| Interface cho service nội bộ | Contract chỉ đặt ở **ranh giới thay thế được** (`SearchEngine`, payment driver, shipping modifier, `PushSender`); service nội bộ là class cụ thể — container vẫn mock được | Xuất hiện implementation thứ hai |
+| Module ERP / CRM / Marketing / Loyalty rỗng | **Loyalty** = membership tiers (đã ở `Promotion`, là biến thể discount). **Marketing** = `Promotion` + `Content`. **ERP/CRM**: chưa có hệ thống ngoài nào để nối | Có hệ thống thật → module `Integrations/<System>` + contract + queued job nghe domain event |
+| Cây `app/Domain\|Application\|Infrastructure` | `app/` chỉ ~4 file bootstrap; toàn bộ domain sống trong `modules/` | Xuất hiện logic cross-module không thuộc module nào (`Core` chỉ hạ tầng) |
+| ViewModel / Presenter | Blade đã sạch (0 `app()`/`DB::` trong theme); **API Resource chính là** presenter | — |
+| BFF | 1 storefront + 1 app; `/api/v1` là contract chung. Thêm sau **không** phá Domain layer | ≥ 2 client mâu thuẫn nhau về shape/chattiness |
+| Plugin SDK / hook engine | Đã cố ý gỡ khi gộp 24→13 module | — |
+
+## Increment log
+
+| # | Ngày | Việc | Bằng chứng bảo toàn hành vi |
+|---|---|---|---|
+| 1 | 2026-07-08 | Tách `PromotionService` (712 dòng) → `PromotionTargetResolver` + `SaleBadgeService`; public API giữ nguyên | 163 test xanh, **không sửa test nào** |
+| 2 | 2026-07-09 | Compliance sweep: controller ≤ 100 dòng, Blade ≤ 300, gỡ service-resolve khỏi theme | 170 test xanh, không sửa test |
+| 3 | 2026-07-09 | **Phase 1** — sửa nợ P0: một nguồn `paid_statuses`, `OrderPaid` cho COD, rate-limit toàn `api/v1`, health-check thật | 218 test |
+| 4 | 2026-07-10 | **Phase 2** — headless: `TokenAwareCartSession` (rebind singleton của Lunar), CSRF cho client stateless, pagination một chuẩn, token expiry + abilities | 279 test |
+| 5 | 2026-07-10 | **Phase 3** — mobile: module `Notification` (in-app + push contract), order timeline từ `activity_log`, recently-viewed server-side | 315 test |
+| 6 | 2026-07-10 | **Rà soát ecommerce cốt lõi** — tìm + sửa 6 bug tiền/tồn kho (E1–E6), xem [audit](lunarphp_sme_fashion_platform_audit.md) | 347 test |
+| 7 | 2026-07-10 | **Dọn mã nguồn** — `paid_statuses` 5 bản sao → 1; controller về dưới 100 dòng; gỡ N+1 | 349 test |
+
+> **Quy tắc cho mọi refactor:** giải thích *why* trước khi viết code · không sửa `vendor/`
+> · public API (service + shape `/api/v1`) chỉ mở rộng tương thích ngược · `vendor/bin/phpunit`
+> xanh + `pint --test` xanh **trên file đã sửa** (không phải toàn repo — xem standards §15)
+> trước khi coi là xong · cập nhật tài liệu này (ngày tuyệt đối).

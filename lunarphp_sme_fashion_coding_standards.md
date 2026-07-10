@@ -73,8 +73,9 @@ modules/<Name>/
 └── Providers/<Name>ServiceProvider.php
 ```
 
-> Tên module hiện có (12, sau đợt gộp 24→12): **Core** (hạ tầng), Analytics, Assets,
-> Catalog, Checkout, Content, Customer, Inventory, Order, Promotion, Shipping, Theme.
+> Tên module hiện có (**13**): **Core** (hạ tầng), Analytics, Assets, Catalog, Checkout,
+> Content, Customer, Inventory, Notification, Order, Promotion, Shipping, Theme.
+> Danh sách sống ở `app/Providers/ModulesServiceProvider::$modules`.
 
 ---
 
@@ -241,7 +242,7 @@ jQuery chỉ cho plugin/tiện ích nhỏ; Axios gọi `/api/v1/*`.
 
 ## 10. Giao tiếp liên-module (service công khai + Event)
 
-> Module `Hook` và facade `Hook::applyFilters()` **đã bị gỡ** khi gộp 24→12 module
+> Module `Hook` và facade `Hook::applyFilters()` **đã bị gỡ** khi gộp 24→12 module (nay 13, thêm Notification)
 > (hook/plugin engine nằm ngoài phạm vi SME, xem §16). Không dùng lại.
 
 Module giao tiếp qua **service công khai** của module khác hoặc **domain event** —
@@ -359,7 +360,10 @@ qua `Discounts::addType(...)` để hiện trong panel + chạy trong cart pipel
 
 ## 15. Chất lượng & refactor
 
-* **Format bắt buộc:** `vendor/bin/pint` (đã cài) trước khi commit.
+* **Format bắt buộc:** `vendor/bin/pint <file bạn đã sửa>` trước khi commit.
+  **Đừng** chạy `vendor/bin/pint` trần trên toàn repo: chưa có `pint.json`, nên preset
+  `laravel` mặc định sẽ format lại **131 file có sẵn** (migration/seeder/config publish
+  từ Lunar) và trộn chúng vào diff của bạn. Dọn một lượt = commit riêng (xem todo P1).
 * **Khuyến nghị (chưa wire CI):** PHPStan/Larastan level cao dần khi thêm; bật khi
   cài. Không merge code có dead code hoặc duplicated business logic.
 * **Phải refactor khi:** Controller > 100, Blade > 300, Service > 500, function >
