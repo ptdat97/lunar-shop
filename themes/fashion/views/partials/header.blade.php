@@ -24,7 +24,8 @@
             </a>
 
             {{-- Desktop menu (real links → crawlable, no-JS friendly) --}}
-            <ul class="navbar-nav d-none d-lg-flex flex-row gap-3 mx-auto mb-0">
+            {{-- Horizontal gap handled by .nav-item padding in CSS --}}
+            <ul class="navbar-nav d-none d-lg-flex flex-row mx-auto mb-0">
                 {!! $menus->render('header') !!}
             </ul>
 

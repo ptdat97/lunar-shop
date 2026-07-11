@@ -1,6 +1,6 @@
 {{-- Simple dropdown: a top-level label with a flat list of child links. --}}
 <li class="nav-item dropdown">
-    <a class="nav-link p-0 dropdown-toggle" href="{{ $item->resolveUrl() }}"
+    <a class="nav-link dropdown-toggle" href="{{ $item->resolveUrl() }}"
        role="button" data-bs-toggle="dropdown" aria-expanded="false">
         {{ $item->label }}
     </a>

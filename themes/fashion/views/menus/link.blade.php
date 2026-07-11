@@ -5,7 +5,7 @@
     $isActive = $href && $href !== '#' && rtrim(url()->current(), '/') === rtrim($href, '/');
 @endphp
 <li class="nav-item">
-    <a class="nav-link p-0 d-inline-flex align-items-center gap-1 {{ $isActive ? 'is-active' : '' }}"
+    <a class="nav-link {{ $isActive ? 'is-active' : '' }}"
        href="{{ $href }}"
        @if($isActive) aria-current="page" @endif
        @if($item->target) target="{{ $item->target }}" @endif>

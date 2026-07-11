@@ -60,25 +60,36 @@
 
     // Nav links
     .navbar-nav {
+        // ── Shared link styles ───────────────────────────────────────────────
+        // 1) Force every .nav-link to use flexbox so vertical alignment is
+        //    identical regardless of content (plain text vs. dropdown caret).
+        // 2) Consistent line-height avoids the "jump" that Bootstrap dropdown
+        //    toggles add via their ::after caret.
         .nav-link {
+            display: flex;
+            align-items: center;
             font-family: v.$font-body;
             font-size: v.$font-size-xs;
             font-weight: v.$font-weight-semibold;
             letter-spacing: v.$letter-spacing-wide;
             text-transform: uppercase;
             color: v.$accent;
-            padding: .5rem .85rem;
             text-decoration: none;
             transition: all v.$transition-fast;
             position: relative;
+            // No padding-x on the link itself — we use nav-item gap instead,
+            // so every nav link, dropdown toggle, and mega toggle share the
+            // same clickable region without fighting Bootstrap's dropdown caret.
+            padding: .5rem 0;
+            line-height: 1;
 
             // Animated underline on hover
             &::after {
                 content: '';
                 position: absolute;
-                bottom: .25rem;
-                left: .85rem;
-                right: .85rem;
+                bottom: .15rem;
+                left: 0;
+                right: 0;
                 height: 1px;
                 background: v.$accent;
                 transform: scaleX(0);
@@ -105,10 +116,38 @@
                     transform-origin: left;
                 }
             }
+
+            // ── Neutralise Bootstrap dropdown caret ─────────────────────────
+            // Bootstrap prepends an invisible pseudo-element to .dropdown-toggle
+            // that can throw off spacing.  We suppress it here and re-add a
+            // smaller, vertically-centred caret via the NavItem renderer.
+            &.dropdown-toggle::after {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                vertical-align: baseline;
+                margin: 0 0 0 .35rem;
+                border: 0;
+                width: auto;
+                height: auto;
+                content: '';
+                // Chevron-down via inline SVG (data URI) — always centred.
+                background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'%3E%3Cpath fill='%230a0a0a' d='M4 6L0 0h8z'/%3E%3C/svg%3E");
+                background-repeat: no-repeat;
+                background-position: center;
+                background-size: contain;
+                width: 8px;
+                height: 6px;
+            }
         }
 
         // Small square badge on nav items (New / Sale) — not a pill.
+        // Absolutely positioned so it never shifts the link's vertical alignment,
+        // which otherwise causes items with badges to appear taller than siblings.
         .nav-link__badge {
+            position: absolute;
+            top: -.15rem;
+            right: -.15rem;
             font-family: v.$font-body;
             font-size: 9px;
             font-weight: v.$font-weight-semibold;
@@ -119,6 +158,14 @@
             background: v.$error;
             color: #fff;
             border-radius: v.$radius-sm;
+            pointer-events: none;
+        }
+
+        // ── Nav item spacing ────────────────────────────────────────────────
+        // With nav-links using `padding: .5rem 0`, we define the horizontal
+        // gap on the li so every item (link, dropdown, mega) is identical.
+        .nav-item {
+            padding: 0 .65rem;
         }
 
         // Mega menu support (dropdown with columns)

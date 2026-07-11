@@ -1,7 +1,7 @@
 {{-- Mega menu: a top-level label opening a full-width panel of columns.
      Children are `mega-column` items (and a `banner`), rendered inline here. --}}
 <li class="nav-item dropdown position-static">
-    <a class="nav-link p-0 dropdown-toggle" href="{{ $item->resolveUrl() }}"
+    <a class="nav-link dropdown-toggle" href="{{ $item->resolveUrl() }}"
        role="button" data-bs-toggle="dropdown" aria-expanded="false">
         {{ $item->label }}
     </a>
