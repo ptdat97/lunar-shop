@@ -24,16 +24,16 @@ function lineHtml(line) {
         : '<div class="bg-light rounded" style="width:64px;height:80px"></div>';
     const url = line.slug ? `/products/${esc(line.slug)}` : '#';
     return `
-<div class="d-flex gap-3 py-3 border-bottom" data-line="${line.id}">
+<div class="d-flex gap-3 py-3" data-line="${line.id}">
     ${img}
     <div class="flex-grow-1">
         <a href="${url}" class="text-dark text-decoration-none small fw-semibold d-block">${esc(line.name)}</a>
         <div class="text-muted small">${esc(line.sku ?? '')}</div>
         <div class="d-flex align-items-center justify-content-between mt-2">
             <div class="input-group input-group-sm" style="width:104px">
-                <button class="btn btn-outline-secondary" type="button" data-qty-dec aria-label="Decrease">−</button>
+                <button class="btn" type="button" data-qty-dec aria-label="Decrease">−</button>
                 <input class="form-control text-center" value="${line.quantity}" data-qty inputmode="numeric" aria-label="Quantity">
-                <button class="btn btn-outline-secondary" type="button" data-qty-inc aria-label="Increase">+</button>
+                <button class="btn" type="button" data-qty-inc aria-label="Increase">+</button>
             </div>
             <span class="small fw-semibold">${esc(line.sub_total ?? '')}</span>
         </div>
