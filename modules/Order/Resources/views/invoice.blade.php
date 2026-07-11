@@ -80,8 +80,8 @@
                 <tr>
                     <td>{{ $line->description }}</td>
                     <td class="center">{{ $line->quantity }}</td>
-                    <td class="num">{{ $line->unitPrice?->formatted() }}</td>
-                    <td class="num">{{ $line->subTotal?->formatted() }}</td>
+                    <td class="num">{{ $line->unit_price?->formatted() }}</td>
+                    <td class="num">{{ $line->sub_total?->formatted() }}</td>
                 </tr>
             @endforeach
         </tbody>
@@ -90,15 +90,15 @@
     <table class="totals">
         <tr>
             <td>{{ __('mail.invoice.subtotal') }}</td>
-            <td class="num">{{ $order->subTotal?->formatted() }}</td>
+            <td class="num">{{ $order->sub_total?->formatted() }}</td>
         </tr>
         <tr>
             <td>{{ __('mail.invoice.shipping') }}</td>
-            <td class="num">{{ $order->shippingTotal?->formatted() }}</td>
+            <td class="num">{{ $order->shipping_total?->formatted() }}</td>
         </tr>
         <tr>
             <td>{{ __('mail.invoice.tax') }}</td>
-            <td class="num">{{ $order->taxTotal?->formatted() }}</td>
+            <td class="num">{{ $order->tax_total?->formatted() }}</td>
         </tr>
         <tr class="grand">
             <td>{{ __('mail.invoice.total') }}</td>

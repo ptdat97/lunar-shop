@@ -48,6 +48,8 @@ export default function (root = document) {
         input.value = code;
 
         summary.querySelector('[data-sum-subtotal]').textContent = t.sub_total ?? '—';
+        const shipEl = summary.querySelector('[data-sum-shipping]');
+        if (shipEl) shipEl.textContent = t.shipping_total ?? '—';
         summary.querySelector('[data-sum-tax]').textContent = t.tax_total ?? '—';
         summary.querySelector('[data-sum-total]').textContent = t.total ?? '—';
 

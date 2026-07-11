@@ -27,9 +27,12 @@ class OrderResource extends JsonResource
             'status_label' => OrderStatus::label($this->status),
             'placed_at' => $this->placed_at?->toIso8601String(),
             'total' => $this->total?->formatted(),
-            'sub_total' => $this->subTotal?->formatted(),
-            'shipping_total' => $this->shippingTotal?->formatted(),
-            'tax_total' => $this->taxTotal?->formatted(),
+            // Lunar's Order exposes a camelCase accessor only for `total`; the
+            // other totals must be read snake_case (they're Price-cast columns),
+            // otherwise they serialize as null.
+            'sub_total' => $this->sub_total?->formatted(),
+            'shipping_total' => $this->shipping_total?->formatted(),
+            'tax_total' => $this->tax_total?->formatted(),
             // Returnable when the order is in a paid/fulfilled state (customer can
             // open an RMA from the account order-detail). ReturnService enforces
             // the same rule — this flag only hides the button.
@@ -39,8 +42,8 @@ class OrderResource extends JsonResource
                 'description' => $line->description,
                 'identifier' => $line->identifier,
                 'quantity' => $line->quantity,
-                'unit_price' => $line->unitPrice?->formatted(),
-                'sub_total' => $line->subTotal?->formatted(),
+                'unit_price' => $line->unit_price?->formatted(),
+                'sub_total' => $line->sub_total?->formatted(),
             ])->values()),
             'shipping_address' => $this->whenLoaded('shippingAddress', fn () => $this->address($this->shippingAddress)),
             'billing_address' => $this->whenLoaded('billingAddress', fn () => $this->address($this->billingAddress)),

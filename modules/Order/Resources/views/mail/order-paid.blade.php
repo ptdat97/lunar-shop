@@ -7,7 +7,7 @@
 | {{ __('mail.table_item') }} | {{ __('mail.table_qty') }} | {{ __('mail.table_subtotal') }} |
 | :--- | :-: | -------: |
 @foreach($order->lines as $line)
-| {{ $line->description }} | {{ $line->quantity }} | {{ $line->subTotal?->formatted() }} |
+| {{ $line->description }} | {{ $line->quantity }} | {{ $line->sub_total?->formatted() }} |
 @endforeach
 @endcomponent
 

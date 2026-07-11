@@ -52,6 +52,7 @@ return [
         'product' => 'Sản phẩm',
         'subtotal' => 'Tạm tính',
         'discount' => 'Giảm giá',
+        'shipping' => 'Phí vận chuyển',
         'tax' => 'Thuế',
         'total' => 'Tổng cộng',
         'you_saved' => 'Bạn đã tiết kiệm',

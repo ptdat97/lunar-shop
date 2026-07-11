@@ -35,11 +35,28 @@ class CheckoutController extends Controller
             return redirect()->route('storefront.home');
         }
 
+        $shippingOptions = $this->checkout->shippingOptions();
+
+        // Pre-select the first shipping option so the summary total already
+        // includes shipping on first paint — otherwise it renders the cart
+        // before any option is applied and understates the total (the shopper
+        // sees a total without shipping, then gets charged for it at place()).
+        // The radio group defaults to this same first option, and the summary
+        // enhancer recalculates in place when the shopper picks another.
+        //
+        // Requires a shipping address (setShippingOption stores the option on
+        // that row). A returning shopper has one; a first-time guest doesn't yet
+        // — for them the summary paints shipping as 0 and the enhancer fills it
+        // in once they enter an address, and placeOrder() applies it regardless.
+        if ($shippingOptions->isNotEmpty() && $cart->shippingAddress && ! $cart->getShippingOption()) {
+            $cart = $this->checkout->setShipping($shippingOptions->first()->getIdentifier());
+        }
+
         return view('theme::pages.checkout', [
             'cart' => $cart,
             'countries' => $this->countries->forSelect(),
             'provinces' => $this->locations->provinces(),
-            'shippingOptions' => $this->checkout->shippingOptions(),
+            'shippingOptions' => $shippingOptions,
             'old' => session()->getOldInput(),
             // vnpayEnabled / momoEnabled / defaultPayment
             ...$this->checkout->paymentContext(),

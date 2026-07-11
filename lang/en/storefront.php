@@ -52,6 +52,7 @@ return [
         'product' => 'Product',
         'subtotal' => 'Subtotal',
         'discount' => 'Discount',
+        'shipping' => 'Shipping',
         'tax' => 'Tax',
         'total' => 'Total',
         'you_saved' => 'You saved',

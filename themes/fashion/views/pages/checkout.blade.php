@@ -255,6 +255,23 @@
                 @endforeach
             </div>
 
+            @php
+                // Until the shopper enters an address, Lunar can't apply a
+                // shipping option to the cart, so $cart->shippingTotal is null
+                // and the cart total excludes shipping. Show the *selected*
+                // option's price instead (radio defaults to the first option)
+                // and add it to the displayed total, so the summary matches what
+                // they'll pay. Once an address is set the cart carries a real
+                // shippingTotal and this falls through to it. The JS enhancer
+                // repaints these from the recalculated cart on any change.
+                $selectedShip = $shippingOptions->first(fn ($o) => old('shipping_option', $shippingOptions->first()?->getIdentifier()) === $o->getIdentifier())
+                    ?? $shippingOptions->first();
+                $shipApplied = $cart->shippingTotal?->value ? true : false;
+                $shipPrice = $shipApplied ? $cart->shippingTotal : $selectedShip?->price;
+                $displayTotal = $shipApplied
+                    ? $cart->total
+                    : new \Lunar\DataTypes\Price(($cart->total?->value ?? 0) + ($selectedShip?->price->value ?? 0), $cart->currency, 1);
+            @endphp
             <dl class="checkout-summary__totals mb-0">
                 <div class="checkout-summary__row">
                     <dt>{{ __('storefront.cart.subtotal') }}</dt>
@@ -265,12 +282,16 @@
                     <dd class="text-success" data-sum-discount>−{{ $cart->discountTotal?->formatted() }}</dd>
                 </div>
                 <div class="checkout-summary__row">
+                    <dt>{{ __('storefront.cart.shipping') }}</dt>
+                    <dd data-sum-shipping>{{ $shipPrice?->formatted() }}</dd>
+                </div>
+                <div class="checkout-summary__row">
                     <dt>{{ __('storefront.cart.tax') }}</dt>
                     <dd data-sum-tax>{{ $cart->taxTotal?->formatted() }}</dd>
                 </div>
                 <div class="checkout-summary__row checkout-summary__row--total">
                     <dt>{{ __('storefront.cart.total') }}</dt>
-                    <dd data-sum-total>{{ $cart->total?->formatted() }}</dd>
+                    <dd data-sum-total>{{ $displayTotal?->formatted() }}</dd>
                 </div>
             </dl>
         </div>
