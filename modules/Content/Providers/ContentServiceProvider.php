@@ -182,6 +182,23 @@ class ContentServiceProvider extends ServiceProvider
             ];
         });
 
+        // flash-sale → the soonest-to-expire flash sale (`data.flash_sale` = true
+        // + ends_at) with its covered products and a describe() summary. Renders
+        // nothing when no flash sale is running, so the section can stay enabled
+        // year-round and light up only during a sale.
+        $renderer->provide('flash-sale', function (array $settings) {
+            $promotions = $this->app->make(\Modules\Promotion\Services\PromotionService::class);
+            $flashSale = $promotions->currentFlashSale();
+
+            return [
+                'flashSale' => $flashSale,
+                'flashSaleDescription' => $flashSale ? $promotions->describe($flashSale) : null,
+                'products' => $flashSale
+                    ? $promotions->productsForPromotion($flashSale, (int) ($settings['limit'] ?? 8))
+                    : collect(),
+            ];
+        });
+
         // promotion-slider → on-sale products (via the shared PromotionService).
         // `promotion` setting pins to one promotion handle; empty = all on-sale.
         $renderer->provide('promotion-slider', function (array $settings) {

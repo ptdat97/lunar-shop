@@ -393,44 +393,25 @@ body::after {
     }
 }
 
-// ── Home: testimonials section ─────────────────────────────────────────────
-// Editorial pull-quote card: no border, warm surface, serif italic quote so it
-// reads as an endorsement rather than a boxed UI review.
-.testimonial-card {
-    background: v.$bg-primary;
-    border: 0;
-    border-radius: v.$radius-lg;
-    padding: v.$spacing-xl;
-    box-shadow: v.$shadow-sm;
-    transition: box-shadow v.$transition-base, transform v.$transition-base;
-
-    &:hover {
-        transform: translateY(-4px);
-        box-shadow: v.$shadow-md;
+// ── Flash-sale section ───────────────────────────────────────────────────────
+// Dark urgency band (same warm near-black family as the hero scrim) holding a
+// live countdown chip and a product slider. Rendered only while a flash sale
+// is running — see sections/flash-sale.blade.php.
+.flash-sale {
+    &__band {
+        background: linear-gradient(135deg, rgb(20, 16, 12) 0%, rgb(58, 32, 20) 100%);
     }
 
-    &__stars {
-        color: v.$warning;
-        font-size: v.$font-size-sm;
-        letter-spacing: .1em;
+    &__countdown {
+        font-size: v.$font-size-base;
+        padding: .45em .65em;
+        letter-spacing: .06em;
+        font-variant-numeric: tabular-nums; // no jitter while ticking
     }
 
-    &__text {
-        font-family: v.$font-display;
-        font-size: v.$font-size-xl;
-        font-style: italic;
-        font-weight: v.$font-weight-normal;
-        line-height: v.$line-height-relaxed;
-        color: v.$text-primary;
-        margin: 0;
-        // No stray quote glyphs — the serif italic carries the voice.
-    }
-
-    &__avatar {
-        object-fit: cover;
-        flex: 0 0 auto;
-        border-radius: v.$radius-lg; // squircle, not a circle — less generic
-    }
+    // Swiper chrome sits on the dark band — flip it to white.
+    .swiper-button-prev,
+    .swiper-button-next { color: #fff; }
 }
 
 // ── Header search panel + autocomplete ──────────────────────────────────────

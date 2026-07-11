@@ -1,6 +1,8 @@
-// Flash-sale countdown. Enhances the SSR promo bar (partials/promo-bar.blade.php)
-// by ticking a live "ends in" timer. The bar renders server-side regardless;
-// this only fills in the countdown badge. No fetch — reads data-ends-at.
+// Flash-sale countdown. Enhances every SSR [data-flash-sale] element (promo
+// bar, home flash-sale section, promotion page header) by ticking a live
+// "ends in" timer. The markup renders server-side regardless; this only fills
+// in the countdown badge. No fetch — reads data-ends-at (and an optional
+// localized data-ended-text).
 
 function format(ms) {
     if (ms <= 0) return '00:00:00';
@@ -15,9 +17,9 @@ function format(ms) {
     return days > 0 ? `${days}d ${hms}` : hms;
 }
 
-export default function flashSale(root = document) {
-    const bar = root.querySelector?.('[data-flash-sale]') ?? document.querySelector('[data-flash-sale]');
-    if (!bar) return;
+function enhance(bar) {
+    if (bar.dataset.countdownInit) return;
+    bar.dataset.countdownInit = '1';
 
     const endsAt = bar.dataset.endsAt;
     const badge = bar.querySelector('[data-flash-countdown]');
@@ -29,7 +31,7 @@ export default function flashSale(root = document) {
     const tick = () => {
         const remaining = end - Date.now();
         if (remaining <= 0) {
-            badge.textContent = 'Ended';
+            badge.textContent = bar.dataset.endedText || 'Ended';
             bar.classList.add('opacity-50');
             clearInterval(timer);
             return;
@@ -39,4 +41,9 @@ export default function flashSale(root = document) {
 
     tick();
     const timer = setInterval(tick, 1000);
+}
+
+export default function flashSale(root = document) {
+    const scope = root.querySelectorAll ? root : document;
+    scope.querySelectorAll('[data-flash-sale]').forEach(enhance);
 }

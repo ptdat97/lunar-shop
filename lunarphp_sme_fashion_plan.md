@@ -411,10 +411,12 @@ theo session không cần crawl (cart drawer/page, wishlist).
 
 ## Các trang & tính năng storefront đã có
 
-- **Home** — promotions-strip, hero-slider, collection-grid, product-tabs,
-  promotion-slider, lookbook, testimonial, iconbox (SectionBuilder render 8 section
-  từ JSON; section `instagram` đã gỡ 2026-07-09 — migration
-  `remove_instagram_page_sections` dọn row cũ).
+- **Home** — promotions-strip, hero-slider, flash-sale, collection-grid,
+  product-tabs, promotion-slider, lookbook, iconbox (SectionBuilder render 8
+  section từ JSON; section `instagram` đã gỡ 2026-07-09 — migration
+  `remove_instagram_page_sections` dọn row cũ; section `testimonial` đã gỡ
+  2026-07-11, thay bằng `flash-sale` — band đếm ngược + slider sản phẩm của
+  flash sale đang chạy, tự ẩn khi không có flash sale).
 - **Product** — gallery Swiper + PhotoSwipe (thumbs-first DOM, responsive `<picture>`
   cho LCP), variant picker (`enhance/product-variant.js`). **Deep-link variant**
   (`?color=red&size=m`): SSR preselect variant + active buttons + **giá đúng variant**

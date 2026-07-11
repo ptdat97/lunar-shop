@@ -91,6 +91,7 @@ return [
         'title' => 'Promotions',
         'ends' => 'Ends :date',
         'ends_in' => 'Ends in',
+        'ended' => 'Ended',
         'no_products' => 'No products in this promotion yet.',
         'none_active' => 'There are no active promotions right now. Check back soon!',
     ],

@@ -43,19 +43,18 @@
     @include m.up(lg) {
         padding: 2.5rem 3rem 3rem 1.5rem;
         // Subtle divider between the two columns, like Shopify.
-        //border-right: v.$border-width solid v.$border-color;
+        border-right: v.$border-width solid v.$border-color;
     }
 }
 
 .checkout__form { max-width: 520px; margin-inline: auto; }
 
 .checkout__aside {
-    //background: $checkout-grey;
-    padding: 2rem 1rem;
+    //padding: 2rem 1rem;
 
     @include m.up(lg) {
         padding: 2.5rem 1.5rem 3rem 3rem;
-        border-left: v.$border-width solid v.$border-color;
+        //border-left: v.$border-width solid v.$border-color;
         margin-left: -1px; // collapse with the form's right border
         min-height: calc(100vh - #{v.$header-height});
     }

@@ -92,4 +92,42 @@ class PromotionPageTest extends TestCase
         $this->assertStringContainsString('On Sale Now', $html);
         $this->assertStringContainsString('Sale Tee', $html);
     }
+
+    public function test_homepage_flash_sale_section_renders_countdown_and_products(): void
+    {
+        $this->seedFlashSale();
+
+        \Modules\Content\Models\PageSection::create([
+            'page_handle' => 'home',
+            'type' => 'flash-sale',
+            'sort' => 0,
+            'enabled' => true,
+            'settings' => ['heading' => '', 'limit' => 8],
+        ]);
+
+        $html = app(\Modules\Content\Services\SectionRenderer::class)->render('home');
+
+        $this->assertStringContainsString('data-flash-sale', $html);       // countdown hook
+        $this->assertStringContainsString('data-flash-countdown', $html);  // ticking badge
+        $this->assertStringContainsString('Flash Sale — 25% Off', $html);  // blank heading → discount name
+        $this->assertStringContainsString('Sale Tee', $html);
+        $this->assertStringContainsString(route('storefront.promotion', 'flash-sale'), $html);
+    }
+
+    public function test_flash_sale_section_renders_nothing_without_an_active_flash_sale(): void
+    {
+        $this->seedBaseData();
+
+        \Modules\Content\Models\PageSection::create([
+            'page_handle' => 'home',
+            'type' => 'flash-sale',
+            'sort' => 0,
+            'enabled' => true,
+            'settings' => ['heading' => '', 'limit' => 8],
+        ]);
+
+        $html = app(\Modules\Content\Services\SectionRenderer::class)->render('home');
+
+        $this->assertStringNotContainsString('data-flash-sale', $html);
+    }
 }

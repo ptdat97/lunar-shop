@@ -124,25 +124,6 @@ class PageSectionResource extends Resource
                         ->columns(2)->collapsible()->reorderable()->itemLabel(fn (array $state) => $state['pin_title'] ?? __('admin.section.slide')),
                 ]),
 
-            FormSection::make(__('admin.section.testimonials'))
-                ->visible(fn (Get $get) => $get('type') === 'testimonial')
-                ->schema([
-                    TextInput::make('settings.heading')->label(__('admin.common.heading')),
-                    TextInput::make('settings.subheading')->label(__('admin.common.subheading')),
-                    Repeater::make('settings.items')
-                        ->label(__('admin.section.reviews'))
-                        ->schema([
-                            FileUpload::make('image')->label(__('admin.section.review_image'))->image()->disk('media')->directory('sections/testimonial'),
-                            FileUpload::make('avatar')->label(__('admin.section.avatar'))->image()->disk('media')->directory('sections/testimonial'),
-                            TextInput::make('author')->label(__('admin.section.author')),
-                            TextInput::make('rating')->label(__('admin.section.rating'))->numeric()->minValue(1)->maxValue(5)->default(5),
-                            Textarea::make('text')->label(__('admin.section.text'))->rows(3)->columnSpanFull(),
-                            TextInput::make('product_name')->label(__('admin.section.product')),
-                            TextInput::make('product_price')->label(__('admin.section.product_price')),
-                        ])
-                        ->columns(2)->collapsible()->reorderable()->itemLabel(fn (array $state) => $state['author'] ?? __('admin.section.review')),
-                ]),
-
             // Collection grid: admin curates which collections show and can
             // override each tile's image (blank → the collection's thumbnail).
             FormSection::make(__('admin.section.collection_grid'))
@@ -202,6 +183,18 @@ class PageSectionResource extends Resource
                         ->collapsible()->reorderable()
                         ->itemLabel(fn (array $state) => $state['label'] ?? __('admin.section.tab'))
                         ->addActionLabel(__('admin.section.add_tab')),
+                ]),
+
+            FormSection::make(__('admin.section.flash_sale'))
+                ->description(__('admin.section.flash_sale_help'))
+                ->visible(fn (Get $get) => $get('type') === 'flash-sale')
+                ->columns(2)
+                ->schema([
+                    TextInput::make('settings.heading')->label(__('admin.common.heading'))
+                        ->helperText(__('admin.section.flash_sale_heading_help')),
+                    TextInput::make('settings.limit')->label(__('admin.section.promotion_count'))
+                        ->numeric()->minValue(1)->maxValue(24)->default(8)
+                        ->helperText(__('admin.section.promotion_count_help')),
                 ]),
 
             FormSection::make(__('admin.section.promotion_section'))

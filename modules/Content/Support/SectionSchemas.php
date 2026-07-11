@@ -65,6 +65,13 @@ class SectionSchemas
 
             'promotions-strip' => [],
 
+            'flash-sale' => [
+                // Blank heading → the flash-sale promotion's own name is shown.
+                'heading' => '',
+                // How many product cards the slider holds (configurable in admin).
+                'limit' => 8,
+            ],
+
             'promotion-slider' => [
                 'heading' => 'On Sale Now',
                 'subheading' => 'Grab these deals before they’re gone.',
@@ -106,40 +113,6 @@ class SectionSchemas
                 ],
             ],
 
-            'testimonial' => [
-                'heading' => 'Customer Say!',
-                'subheading' => 'Our customers adore our products, and we constantly aim to delight them.',
-                'items' => [
-                    [
-                        'image' => '/demo/IMG_5805.jpeg',
-                        'rating' => 5,
-                        'text' => 'Fantastic shop! Great selection, fair prices, and friendly staff. Highly recommended. The quality of the products is exceptional, and the prices are very reasonable!',
-                        'author' => 'Sybil Sharp',
-                        'avatar' => '/demo/IMG_5806.jpeg',
-                        'product_name' => 'Contrasting sheepskin sweatshirt',
-                        'product_price' => '$60.00',
-                    ],
-                    [
-                        'image' => '/demo/IMG_5807.jpeg',
-                        'rating' => 5,
-                        'text' => 'Amazing quality and fast shipping. The team was super helpful with my questions. I will definitely shop here again!',
-                        'author' => 'Coyle Eric',
-                        'avatar' => '/demo/DTT_8954.jpg',
-                        'product_name' => 'Yarn-dyed striped sweater',
-                        'product_price' => '$45.00',
-                    ],
-                    [
-                        'image' => '/demo/DTT_9009.jpg',
-                        'rating' => 5,
-                        'text' => 'Beautiful pieces and excellent customer service. Everything arrived perfectly packaged. A wonderful shopping experience overall.',
-                        'author' => 'Sybil Sharp',
-                        'avatar' => '/demo/IMG_5806.jpeg',
-                        'product_name' => 'Contrasting sheepskin sweatshirt',
-                        'product_price' => '$60.00',
-                    ],
-                ],
-            ],
-
             default => [],
         };
     }
@@ -149,6 +122,6 @@ class SectionSchemas
      */
     public static function isDynamic(string $type): bool
     {
-        return in_array($type, ['collection-grid', 'product-tabs', 'promotion-slider', 'promotions-strip'], true);
+        return in_array($type, ['collection-grid', 'product-tabs', 'promotion-slider', 'promotions-strip', 'flash-sale'], true);
     }
 }

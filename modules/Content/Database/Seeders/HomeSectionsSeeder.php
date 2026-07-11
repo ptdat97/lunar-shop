@@ -17,11 +17,11 @@ class HomeSectionsSeeder extends Seeder
         $order = [
             'promotions-strip',
             'hero-slider',
+            'flash-sale',
             'collection-grid',
             'product-tabs',
             'promotion-slider',
             'lookbook',
-            'testimonial',
             'iconbox',
         ];
 

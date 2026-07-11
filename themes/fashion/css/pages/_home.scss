@@ -312,31 +312,4 @@
             @media (hover: none) { opacity: 1; transform: none; }
         }
     }
-
-    // ── Testimonials band ──────────────────────────────────────────────────────
-    // Warm surface, a large muted opening quote as a backdrop, cards that read
-    // as editorial pull-quotes rather than boxed reviews.
-    .testimonials {
-        position: relative;
-        padding-block: v.$spacing-3xl;
-        background: v.$bg-secondary;
-        border-block: v.$border-width solid v.$border-color;
-
-        // Oversized serif quotation mark, decorative.
-        &::before {
-            content: '\201C';
-            position: absolute;
-            top: -.15em;
-            left: 50%;
-            transform: translateX(-50%);
-            font-family: v.$font-display;
-            font-size: 16rem;
-            line-height: 1;
-            color: v.$border-color;
-            opacity: .5;
-            pointer-events: none;
-        }
-
-        .container { position: relative; z-index: 1; }
-    }
 }

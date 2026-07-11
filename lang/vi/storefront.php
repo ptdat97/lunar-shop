@@ -91,6 +91,7 @@ return [
         'title' => 'Khuyến mãi',
         'ends' => 'Kết thúc :date',
         'ends_in' => 'Kết thúc sau',
+        'ended' => 'Đã kết thúc',
         'no_products' => 'Chưa có sản phẩm trong khuyến mãi này.',
         'none_active' => 'Hiện chưa có khuyến mãi nào. Vui lòng quay lại sau!',
     ],

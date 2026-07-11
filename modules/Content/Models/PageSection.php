@@ -21,11 +21,11 @@ class PageSection extends Model
     public const TYPES = [
         'promotions-strip' => 'Promotions Strip',
         'hero-slider' => 'Hero Slider',
+        'flash-sale' => 'Flash Sale',
         'collection-grid' => 'Collection Grid',
         'product-tabs' => 'Product Tabs',
         'promotion-slider' => 'Promotion Slider',
         'lookbook' => 'Lookbook',
-        'testimonial' => 'Testimonial',
         'iconbox' => 'Icon Box',
     ];
 
