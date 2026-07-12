@@ -8,9 +8,11 @@ use Lunar\Models\Collection as LunarCollection;
 use Lunar\Models\Product;
 use Modules\Content\Services\MenuRenderer;
 use Modules\Content\Services\SectionRenderer;
+use Modules\Catalog\Http\Resources\ProductResource;
 use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Data\SearchQuery;
 use Modules\Core\Support\AdminPages;
+use Modules\Promotion\Http\Resources\PromotionResource;
 
 class ContentServiceProvider extends ServiceProvider
 {
@@ -54,7 +56,51 @@ class ContentServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
 
         $this->registerSectionData();
+        $this->registerSectionPayloads();
         $this->composeMenus();
+    }
+
+    /**
+     * How each dynamic section becomes JSON for `GET /api/v1/home-feed`.
+     *
+     * These reuse the SAME providers the Blade partials get, then map the
+     * Eloquent models through the shared API Resources — so a headless client
+     * and the SSR home page can never show different data, and no model
+     * internals reach the wire. A section left unmapped here is omitted from
+     * the feed (SectionRenderer::sectionPayload), not serialised raw.
+     *
+     * `promotions-strip` is serialised by the Promotion module: it owns the data.
+     */
+    protected function registerSectionPayloads(): void
+    {
+        $renderer = $this->app->make(SectionRenderer::class);
+
+        // collection-grid's provider already returns flat presentation arrays
+        // (name/url/image) — no models to map.
+        $renderer->serialize('collection-grid', fn (array $data) => [
+            'items' => array_values($data['items']->all()),
+        ]);
+
+        $renderer->serialize('product-tabs', fn (array $data) => [
+            'tabs' => $data['tabs']->map(fn (array $tab) => [
+                'label' => $tab['label'],
+                'products' => ProductResource::collection($tab['products'])->resolve(),
+            ])->all(),
+        ]);
+
+        $renderer->serialize('flash-sale', fn (array $data) => [
+            'flash_sale' => $data['flashSale']
+                ? (new PromotionResource($data['flashSale']))->resolve()
+                : null,
+            'products' => ProductResource::collection($data['products'])->resolve(),
+        ]);
+
+        $renderer->serialize('promotion-slider', fn (array $data) => [
+            'pinned_promotion' => $data['pinnedPromotion']
+                ? (new PromotionResource($data['pinnedPromotion']))->resolve()
+                : null,
+            'products' => ProductResource::collection($data['products'])->resolve(),
+        ]);
     }
 
     /**

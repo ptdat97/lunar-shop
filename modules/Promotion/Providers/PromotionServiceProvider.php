@@ -6,10 +6,12 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Facades\Discounts;
+use Modules\Content\Services\SectionRenderer;
 use Modules\Core\Support\AdminPages;
 use Modules\Order\Events\OrderPaid;
 use Modules\Promotion\Console\BackfillMembershipTiers;
 use Modules\Promotion\Filament\Pages\MembershipSettingsPage;
+use Modules\Promotion\Http\Resources\PromotionResource;
 use Modules\Promotion\Services\MembershipService;
 use Modules\Promotion\Services\PromotionService;
 
@@ -45,10 +47,31 @@ class PromotionServiceProvider extends ServiceProvider
         $this->registerDiscountTypes();
         $this->registerMembershipSync();
         $this->shareFlashSale();
+        $this->serializePromotionsStrip();
 
         if ($this->app->runningInConsole()) {
             $this->commands([BackfillMembershipTiers::class]);
         }
+    }
+
+    /**
+     * JSON for the `promotions-strip` section (GET /api/v1/home-feed).
+     *
+     * This section has no SectionRenderer provider — the Blade partial is fed by
+     * the view composer in shareFlashSale(), which a JSON response never runs.
+     * So the serializer reads the service directly. It lives here, not in
+     * Content, because Promotion owns the data and the Resource.
+     */
+    protected function serializePromotionsStrip(): void
+    {
+        $this->app->make(SectionRenderer::class)->serialize(
+            'promotions-strip',
+            fn () => [
+                'promotions' => PromotionResource::collection(
+                    $this->app->make(PromotionService::class)->activeAutomatic(),
+                )->resolve(),
+            ],
+        );
     }
 
     /**
