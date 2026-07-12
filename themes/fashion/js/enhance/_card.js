@@ -61,7 +61,9 @@ export function cardHtml(product) {
         <h3 class="product-card__title mb-1">
             <a href="${url}" class="text-dark text-decoration-none">${name}</a>
         </h3>
+        <div class="product-card__price-wrap mb-1">
         ${priceHtml(product)}
+        </div>
     </div>
 </article>`;
 }

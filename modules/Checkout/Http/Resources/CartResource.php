@@ -34,7 +34,15 @@ class CartResource extends JsonResource
                 'sku' => $line->purchasable?->sku,
                 'thumbnail' => $this->lineThumbnail($line),
                 'unit_price' => $line->unitPrice?->formatted(),
-                'sub_total' => $line->subTotal?->formatted(),
+                // What the line actually costs after promotions (flash sale,
+                // buy-2, …). `subTotal` is the pre-discount figure — showing it
+                // as the line price contradicts the discounted price the shopper
+                // saw on the product page. `sub_total_original` is only set when
+                // a discount applies, so the UI can strike it through.
+                'sub_total' => ($line->subTotalDiscounted ?? $line->subTotal)?->formatted(),
+                'sub_total_original' => $line->discountTotal?->value
+                    ? $line->subTotal?->formatted()
+                    : null,
             ])->values(),
             'coupon_code' => $this->coupon_code,
             // Promotions actually applied to this cart (flash sale, buy-2,

@@ -35,7 +35,10 @@ function lineHtml(line) {
                 <input class="form-control text-center" value="${line.quantity}" data-qty inputmode="numeric" aria-label="Quantity">
                 <button class="btn" type="button" data-qty-inc aria-label="Increase">+</button>
             </div>
-            <span class="small fw-semibold">${esc(line.sub_total ?? '')}</span>
+            <span class="small fw-semibold">
+                ${esc(line.sub_total ?? '')}
+                ${line.sub_total_original ? `<s class="text-muted fw-normal ms-1">${esc(line.sub_total_original)}</s>` : ''}
+            </span>
         </div>
         <button class="btn btn-link btn-sm text-danger p-0 mt-1" type="button" data-line-remove>Remove</button>
     </div>

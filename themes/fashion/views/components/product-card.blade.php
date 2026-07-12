@@ -50,6 +50,8 @@
         <h3 class="product-card__title mb-1">
             <a href="{{ $url }}" class="text-dark text-decoration-none">{{ $name }}</a>
         </h3>
-        @include('theme::components.price', ['product' => $product])
+        <div class="product-card__price-wrap mb-1">
+            @include('theme::components.price', ['product' => $product])
+        </div>
     </div>
 </article>

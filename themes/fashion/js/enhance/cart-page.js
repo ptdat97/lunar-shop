@@ -33,7 +33,10 @@ function rowHtml(line) {
             <button class="btn btn-outline-secondary" type="button" data-qty-inc>+</button>
         </div>
     </td>
-    <td class="text-end fw-semibold">${esc(line.sub_total ?? '')}</td>
+    <td class="text-end fw-semibold">
+        ${esc(line.sub_total ?? '')}
+        ${line.sub_total_original ? `<s class="text-muted fw-normal ms-1">${esc(line.sub_total_original)}</s>` : ''}
+    </td>
     <td class="text-end"><button class="btn btn-link btn-sm text-danger p-0" data-line-remove>✕</button></td>
 </tr>`;
 }

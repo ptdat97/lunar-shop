@@ -216,7 +216,15 @@
                         <div class="checkout-summary__info">
                             <span class="checkout-summary__name">{{ $line->purchasable->getDescription() }}</span>
                         </div>
-                        <span class="checkout-summary__price">{{ $line->subTotal->formatted() }}</span>
+                        {{-- Discounted line price (what they pay). `subTotal` is
+                             pre-discount and would contradict the sale price
+                             shown on the product page. --}}
+                        <span class="checkout-summary__price">
+                            {{ ($line->subTotalDiscounted ?? $line->subTotal)?->formatted() }}
+                            @if($line->discountTotal?->value)
+                                <s class="text-muted fw-normal ms-1">{{ $line->subTotal?->formatted() }}</s>
+                            @endif
+                        </span>
                     </li>
                 @endforeach
             </ul>
