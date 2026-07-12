@@ -22,10 +22,16 @@ class MeasurementController extends Controller
         protected MeasurementService $measurements,
     ) {}
 
-    /** GET /api/v1/customer/measurements — the saved profile (or empty). */
+    /**
+     * GET /api/v1/customer/measurements — the saved profile (or empty).
+     *
+     * Resolved through the **sanctum** guard: this public probe sits in the
+     * `web` group, whose default guard cannot see a bearer token, so a
+     * token-authenticated client would always look like a guest.
+     */
     public function show(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user = $request->user('sanctum');
         $customer = $user ? $this->customers->existingForUser($user) : null;
         $profile = $customer ? $this->measurements->profileFor($customer) : null;
 

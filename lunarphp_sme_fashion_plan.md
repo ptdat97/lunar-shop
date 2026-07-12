@@ -5,7 +5,13 @@
 > (native của Lunar), storefront **100% Blade SSR + vanilla JS** (không Vue).
 > Chỉ ghi những gì đã có trong code.
 >
-> Cập nhật lần cuối: **2026-07-10** — 13 module, 62 route `api/v1`, 383 test xanh.
+> Cập nhật lần cuối: **2026-07-12** — 13 module, 63 route `api/v1`, 394 test xanh.
+>
+> **Client thứ hai đã tồn tại:** storefront Next.js 16 ở `../storefront` (App Router, TS,
+> Tailwind 4) — tiêu thụ `/api/v1` qua bearer token + `X-Cart-Token`, **không** đụng DB.
+> Blade storefront **vẫn là** storefront chính và không bị ảnh hưởng. Chính client này đã
+> làm lộ bug bearer-token ở 3 probe công khai (increment #14) — đúng như dự đoán của audit:
+> có những thứ chỉ lộ ra khi có client thật.
 
 ## Bản đồ tài liệu
 
@@ -334,6 +340,7 @@ POST   /api/v1/auth/token/refresh · /auth/token/revoke   (xoay / thu hồi toke
 GET    /api/v1/orders · /orders/{id} · /orders/{id}/timeline
 GET    /api/v1/notifications  ·  POST /notifications/{id}/read · /notifications/read-all
 POST   /api/v1/devices  ·  DELETE /devices               (push token registry)
+GET    /api/v1/home-feed                                 (trang chủ dạng JSON cho client headless)
 GET,POST,DELETE /api/v1/customer/recently-viewed
 GET    /api/v1/customer  ·  wishlist
 GET    /api/v1/locations/provinces  ·  /provinces/{province}/wards
@@ -689,6 +696,8 @@ sau quyết định bằng dữ kiện chứ không bằng cảm tính.
 | 10 | 2026-07-10 | **Dọn đơn mồ côi** — `orders:expire-abandoned` quét thêm `placed_at IS NULL` (order đã trừ kho nhưng driver chưa kịp ghi `meta`) | 365 test; mutation-check cả 2 nhánh + bank-transfer |
 | 11 | 2026-07-10 | **Rà soát tuân thủ standards** — gỡ 2 import model cross-module (§10), Blade thôi resolve service (§7), `DeviceRegistry`/`NotifyMeRequest` đưa logic khỏi controller (§3/§4), 3 Resource mới (§6); xoá endpoint chết `payment/vnpay/start` | 367 test; mutation-check từng guard |
 | 12 | 2026-07-10 | **Config → admin** — `inventory.hold_minutes` (giữ hàng đơn chưa trả), `notification.push_enabled` (kill-switch push), `customer.ttl_days` (TTL đăng nhập app). 3 trang Filament + **test Filament đầu tiên** (Livewire) | 383 test; mutation-check cả service lẫn trang admin |
+| 13 | 2026-07-12 | **`GET /api/v1/home-feed`** — `SectionRenderer::payload()` song song với `render()` (**cùng provider** → web/JSON không lệch); mỗi section dynamic có **serializer** map model qua Resource sẵn có; section dynamic thiếu serializer bị **bỏ khỏi payload** (không serialise thô) | 390 test; mutation-check guard "thiếu serializer → bỏ" |
+| 14 | 2026-07-12 | **Bug thật do client headless lộ ra** — 3 probe công khai (`GET /customer`, `/wishlist`, `/customer/measurements`) nằm ở group `web`, guard mặc định là **session** nên **không thấy bearer token**: client có token hợp lệ vẫn nhận `200 {"data":null}` = "khách vãng lai". Next.js đọc đó là "chưa đăng nhập" → **đá ngược về /login vô hạn**, không lỗi nào hiện ra. Sửa: `$request->user('sanctum')` (guard sanctum đọc **cả** cookie session lẫn bearer, vẫn trả null cho guest thật) | 394 test; mutation-check: trả về `user()` → test đỏ |
 
 > **Quy tắc cho mọi refactor:** giải thích *why* trước khi viết code · không sửa `vendor/`
 > · public API (service + shape `/api/v1`) chỉ mở rộng tương thích ngược · `vendor/bin/phpunit`

@@ -24,10 +24,18 @@ class CustomerController extends Controller
      * GET /api/v1/customer  — the current user's profile, or `null` for a
      * guest. Public on purpose: the storefront calls this on load to detect
      * login state, so a guest must get 200 + null rather than a 401 error.
+     *
+     * Resolved through the **sanctum** guard, not the default one. This route
+     * sits in the `web` group (it has to: the SPA flow is cookie-based), and the
+     * default guard there is session-backed — it cannot see a bearer token. A
+     * token client therefore got `200 + null`, i.e. "you are a guest", while
+     * holding a perfectly valid token, and no amount of correct client code
+     * could fix it. The `sanctum` guard resolves BOTH a cookie session and a
+     * bearer token, and still returns null for a real guest.
      */
     public function show(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user = $request->user('sanctum');
 
         return response()->json([
             'data' => $user ? UserResource::make($user)->resolve($request) : null,

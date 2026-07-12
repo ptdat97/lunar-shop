@@ -43,11 +43,14 @@ Xem [deploy.md](lunarphp_sme_fashion_deploy.md) cho runbook đầy đủ.
 Modal xem nhanh sản phẩm từ grid (vanilla, đọc `/api/v1/products/{slug}`), add-to-cart không
 rời trang listing. Đã chừa chỗ, cố ý hoãn.
 
-### 4. `GET /api/v1/home-feed` — *Content* (hoãn có lý do)
-Audit ước lượng "tái dùng `SectionRenderer`" là dễ. Thực tế `render()` trả **HTML**, và 3
-provider dynamic trả view-data chứa **Eloquent model** — serialise thẳng sẽ lộ model
-internals. Làm đúng phải viết resource cho từng loại section.
-**Chưa có app nào tiêu thụ** → làm khi có client thật, để biết shape cần gì.
+### 4. ~~`GET /api/v1/home-feed`~~ — *Content* ✅ **XONG 2026-07-12**
+Đã làm khi client thật xuất hiện (storefront Next.js ở `../storefront`) — đúng như điều kiện
+đặt ra. `SectionRenderer::payload()` chạy song song với `render()`: **cùng một provider**, nên
+web SSR và JSON không thể lệch nhau. Mỗi section dynamic đăng ký một **serializer** map
+Eloquent model qua chính `ProductResource`/`PromotionResource` đang dùng — không lộ model
+internals. Section dynamic **không** có serializer thì bị **bỏ khỏi payload**, không serialise
+thô (guard, có mutation-check). `promotions-strip` do module Promotion tự serialize (nó sở hữu
+dữ liệu; Blade lấy qua view composer mà JSON không chạy composer).
 
 ### 5. Size Intelligence — phần nice-to-have
 Đã có: hồ sơ số đo, fit history (giữ vs trả, between-sizes).

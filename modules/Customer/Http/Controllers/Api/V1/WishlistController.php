@@ -18,10 +18,16 @@ class WishlistController extends Controller
      * GET /api/v1/wishlist — the user's wishlist products. Public on purpose:
      * the storefront loads this on every page to mark hearts, so a guest must
      * get an empty list (200) rather than a 401 error in the console.
+     *
+     * Resolved through the **sanctum** guard: this route lives in the `web`
+     * group, whose default guard is session-backed and blind to a bearer token,
+     * so a signed-in app/headless client would otherwise be handed an empty
+     * wishlist. `sanctum` reads both a cookie session and a bearer token, and
+     * still returns null for a genuine guest.
      */
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
+        $user = $request->user('sanctum');
 
         if (! $user) {
             return response()->json(['data' => [], 'product_ids' => []]);
