@@ -298,7 +298,7 @@
                     <dd data-sum-tax>{{ $cart->taxTotal?->formatted() }}</dd>
                 </div>
                 <div class="checkout-summary__row checkout-summary__row--total">
-                    <dt>{{ __('storefront.cart.total') }}</dt>
+                    <dt>{{ __('storefront.checkout.grand_total') }}</dt>
                     <dd data-sum-total>{{ $displayTotal?->formatted() }}</dd>
                 </div>
             </dl>

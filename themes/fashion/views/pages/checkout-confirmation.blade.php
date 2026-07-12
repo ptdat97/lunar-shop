@@ -59,7 +59,7 @@
                         <dd class="mb-0">{{ $order->tax_total?->formatted() }}</dd>
                     </div>
                     <div class="d-flex justify-content-between fw-bold border-top pt-2">
-                        <dt>{{ __('storefront.cart.total') }}</dt>
+                        <dt>{{ __('storefront.checkout.grand_total') }}</dt>
                         <dd class="mb-0">{{ $order->total?->formatted() }}</dd>
                     </div>
                 </dl>

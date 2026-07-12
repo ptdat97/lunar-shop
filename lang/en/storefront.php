@@ -169,6 +169,9 @@ return [
         'no_shipping_options' => 'No shipping options available.',
         'payment' => 'Payment',
         'place_order' => 'Place order',
+        // The checkout/confirmation grand total includes shipping, so it reads
+        // "amount payable" rather than the cart's plain "Total".
+        'grand_total' => 'Total payable',
         'cod' => 'Cash on delivery',
         'bank_transfer' => 'Bank transfer',
         'thank_you' => 'Thank you for your order!',

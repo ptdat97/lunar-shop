@@ -169,6 +169,9 @@ return [
         'no_shipping_options' => 'Không có phương thức vận chuyển.',
         'payment' => 'Thanh toán',
         'place_order' => 'Đặt hàng',
+        // The checkout/confirmation grand total includes shipping, so it reads
+        // "amount payable" rather than the cart's plain "Tổng cộng".
+        'grand_total' => 'Tổng thanh toán',
         'cod' => 'Thanh toán khi nhận hàng',
         'bank_transfer' => 'Chuyển khoản ngân hàng',
         'thank_you' => 'Cảm ơn bạn đã đặt hàng!',

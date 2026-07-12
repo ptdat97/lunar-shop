@@ -48,6 +48,13 @@
                 <span><i class="bi bi-tags-fill"></i> {{ __('storefront.cart.you_saved') }}</span>
                 <strong data-cart-savings></strong>
             </div>
+            {{-- Grand total — what they actually pay (subtotal less discounts).
+                 Shipping isn't known here (no address yet), so this is the goods
+                 total; checkout adds shipping on top. --}}
+            <div class="d-flex justify-content-between align-items-center border-top pt-2 mb-3">
+                <span class="fw-semibold">{{ __('storefront.cart.total') }}</span>
+                <strong class="fs-5" data-cart-total></strong>
+            </div>
             <a href="{{ route('storefront.cart') }}" class="btn btn-outline-dark w-100 mb-2">{{ __('storefront.cart.view_cart') }}</a>
             <a href="{{ route('storefront.checkout') }}" class="btn btn-dark w-100">{{ __('storefront.cart.checkout') }}</a>
         </div>

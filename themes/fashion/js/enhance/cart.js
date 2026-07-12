@@ -96,6 +96,9 @@ function renderDrawer(cart) {
     const subtotal = document.querySelector('#shoppingCart [data-cart-subtotal]');
     if (subtotal) subtotal.textContent = cart.totals?.sub_total ?? '';
 
+    const total = document.querySelector('#shoppingCart [data-cart-total]');
+    if (total) total.textContent = cart.totals?.total ?? '';
+
     // Applied promotions (flash sale / quantity / combo / coupon / membership).
     const discounts = document.querySelector('#shoppingCart [data-cart-discounts]');
     if (discounts) discounts.innerHTML = appliedDiscountsHtml(cart);
