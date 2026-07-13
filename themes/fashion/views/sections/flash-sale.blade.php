@@ -17,7 +17,7 @@
              data-flash-sale
              data-ends-at="{{ $flashSale->ends_at?->toIso8601String() }}"
              data-ended-text="{{ __('storefront.promotion.ended') }}">
-        <div class="container">
+        <div class="container-fluid">
             <div class="flash-sale__band rounded p-4 p-lg-5">
                 <div class="d-flex align-items-end justify-content-between mb-4 gap-3 flex-wrap">
                     <div>
