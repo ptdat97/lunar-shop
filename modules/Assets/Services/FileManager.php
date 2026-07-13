@@ -139,10 +139,14 @@ class FileManager
     }
 
     /**
-     * Resolve a picker value (Asset id) to a public URL, optionally for a
-     * named conversion (e.g. 'thumb', 'webp', 'large'). Returns null if the
-     * asset/media or conversion is missing. Use this anywhere a MediaPicker
+     * Resolve a picker value (Asset id) to a public conversion URL, optionally
+     * for a named conversion (e.g. 'thumb', 'webp', 'large'). Returns null if
+     * the asset/media or conversion is missing. Use this anywhere a MediaPicker
      * value is rendered (storefront, API resources).
+     *
+     * Always returns a conversion URL — never the original full-size image,
+     * which would lag the storefront. When no conversion is requested, defaults
+     * to 'large' (the standard storefront display size).
      */
     public function url(int|string|null $assetId, ?string $conversion = null): ?string
     {
@@ -156,11 +160,11 @@ class FileManager
             return null;
         }
 
-        if ($conversion && in_array($conversion, array_keys($media->generated_conversions ?? []), true)) {
-            return $media->getUrl($conversion);
-        }
+        // Default to 'large' when no conversion is specified — never serve
+        // the original full-size image, which would lag the storefront.
+        $conversion = $conversion ?: 'large';
 
-        return $media->getUrl();
+        return app(MediaUrl::class)->conversion($media, $conversion);
     }
 
     /**

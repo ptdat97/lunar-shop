@@ -68,9 +68,11 @@ class MediaUrl
             return $this->conversionMemo[$key];
         }
 
-        // Unknown conversion name → original (no generation possible).
+        // Unknown conversion name → null (never serve the original full-size
+        // image, which would lag the storefront). The caller must handle null
+        // gracefully (e.g. product-card falls back to text, gallery skips).
         if (! in_array($conversion, $this->generator->conversionNames($media), true)) {
-            return $this->conversionMemo[$key] = $media->getUrl();
+            return $this->conversionMemo[$key] = null;
         }
 
         // ASYNC: trust the URL; the media.conversion route self-heals misses.
@@ -87,7 +89,9 @@ class MediaUrl
             return $this->conversionMemo[$key] = $media->getUrl($conversion);
         }
 
-        return $this->conversionMemo[$key] = $media->getUrl();
+        // Generation failed — return null rather than the original full-size
+        // image, which would lag the storefront. The caller handles null.
+        return $this->conversionMemo[$key] = null;
     }
 
     /**
@@ -151,10 +155,11 @@ class MediaUrl
         }
 
         if (empty($entries)) {
-            // No conversions available — fall back to the original as a 1x src.
-            $src = $media->getUrl();
-
-            return $this->responsiveMemo[$memoKey] = ['src' => $src, 'srcset' => '', 'webp' => null, 'width' => 0, 'height' => 0];
+            // No conversions available — return null so the view can skip
+            // rendering the <picture> entirely (falls back to text, placeholder,
+            // or no image). Never serve the original full-size image, which
+            // would lag the storefront.
+            return $this->responsiveMemo[$memoKey] = null;
         }
 
         ksort($entries);
