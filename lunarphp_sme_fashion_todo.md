@@ -2,15 +2,18 @@
 
 > **Chỉ ghi việc CHƯA làm.** Hiện trạng ở [plan.md](lunarphp_sme_fashion_plan.md);
 > lịch sử bug đã sửa ở [platform_audit.md](lunarphp_sme_fashion_platform_audit.md).
-> Xếp theo ROI giảm dần. Cập nhật: **2026-07-10**.
+> Xếp theo ROI giảm dần. Cập nhật: **2026-07-13**.
 >
-> **Trước khi build bất cứ gì:** kiểm tra `vendor/lunarphp` đã có chưa (Nguyên tắc #1) —
-> có thì kế thừa/mở rộng, không thì mới build trong module tương ứng. Giữ phạm vi
+> **Trước khi build bất cứ gì:** kiểm tra Lunar đã có chưa (Nguyên tắc #1) — Lunar nay
+> là code trong repo: `modules/Lunar` (core) + `modules/LunarAdmin` (Filament panel),
+> không còn `vendor/lunarphp`. Có thì kế thừa/mở rộng, không thì mới build trong module
+> tương ứng; sửa thẳng core là **lựa chọn cuối** (coding_standards §5). Giữ phạm vi
 > single-store SME. `vendor/bin/phpunit` xanh trước khi coi là xong (383 test), và
 > `vendor/bin/pint --test <file bạn đã sửa>` xanh — **không** phải cả repo: chạy
-> `pint --test` trên toàn repo hiện đỏ **131 file** có từ trước (không có `pint.json`,
-> preset `laravel` mặc định bắt cả migration/seeder/config publish từ Lunar).
-> Dọn một lượt là commit khổng lồ trộn lẫn với thay đổi thật → xem P1 mục 1.
+> `pint --test` trên toàn repo hiện đỏ **241 file** có từ trước (không có `pint.json`,
+> preset `laravel` mặc định bắt cả code fork của Lunar — **119/241 file nằm trong
+> `modules/Lunar` + `modules/LunarAdmin`**). Dọn một lượt là commit khổng lồ trộn lẫn
+> với thay đổi thật → xem P1 mục 1.
 
 ---
 
@@ -20,10 +23,13 @@
 - ⬜ **CDN** cho `public/` (media + build assets) khi deploy.
 - ⬜ **Error tracker** (Sentry) — chưa cài, chờ ngân sách.
 - ⬜ **CI** — chưa có `.github/workflows`. Tối thiểu: `phpunit`.
-  Muốn thêm `pint --test` thì trước đó phải quyết một trong hai: (a) thêm `pint.json`
-  `exclude` các thư mục publish-from-vendor (migration/seeder/config), hoặc (b) chạy
-  `pint` một lần trên toàn repo trong **commit riêng, không kèm thay đổi logic**.
-  Hiện `pint --test` đỏ **131 file** có sẵn → bật thẳng vào CI sẽ đỏ ngay ngày đầu.
+  Muốn thêm `pint --test` thì trước đó phải thêm **`pint.json`** `exclude`
+  **`modules/Lunar` + `modules/LunarAdmin`** (code fork từ upstream — reformat nó là
+  phá mọi diff đối chiếu với Lunar gốc) và các thư mục publish-from-vendor
+  (migration/seeder/config), rồi chạy `pint` một lần trên phần code **của mình**
+  trong **commit riêng, không kèm thay đổi logic**.
+  Hiện `pint --test` đỏ **241 file** có sẵn (119 trong fork) → bật thẳng vào CI sẽ đỏ
+  ngay ngày đầu.
 - ⬜ Rà lại DB index sau khi có traffic thật (`add_performance_indexes` đã làm nền).
 
 Xem [deploy.md](lunarphp_sme_fashion_deploy.md) cho runbook đầy đủ.

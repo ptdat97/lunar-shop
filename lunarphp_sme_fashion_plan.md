@@ -5,7 +5,11 @@
 > (native của Lunar), storefront **100% Blade SSR + vanilla JS** (không Vue).
 > Chỉ ghi những gì đã có trong code.
 >
-> Cập nhật lần cuối: **2026-07-12** — 13 module, 63 route `api/v1`, 394 test xanh.
+> Cập nhật lần cuối: **2026-07-13** — 13 module nghiệp vụ, 63 route `api/v1`, 394 test xanh.
+>
+> **Lunar không còn là composer package:** đã fork vào repo — `modules/Lunar` (core engine,
+> namespace `Lunar\`) + `modules/LunarAdmin` (Filament panel, `Lunar\Admin\`). Xem
+> § [Lunar là code trong repo](#lunar-là-code-trong-repo-không-còn-composer-package).
 >
 > **Client thứ hai đã tồn tại:** storefront Next.js 16 ở `../storefront` (App Router, TS,
 > Tailwind 4) — tiêu thụ `/api/v1` qua bearer token + `X-Cart-Token`, **không** đụng DB.
@@ -49,7 +53,9 @@ Ecommerce fashion cho SME single-store:
 1. **Không dựng lại tính năng Lunar đã có — chỉ kế thừa và mở rộng.** Cách mở rộng
    theo thứ tự ưu tiên: cấu hình `config/lunar/*` → điểm mở rộng chính chủ của Lunar
    (bind model, pipelines cart/checkout, custom field/attribute, Filament hook,
-   events) → wrap bằng service trong module. Không sửa code trong `vendor/`.
+   events) → wrap bằng service trong module → **cuối cùng** mới sửa thẳng
+   `modules/Lunar`. Lunar nay là code trong repo (fork), nên sửa core là *khả thi* —
+   nhưng mỗi dòng sửa là một dòng phải tự bảo trì (xem § dưới).
 2. **Lunar là source of truth** cho catalog, cart, pricing, order, customer. Bọc qua
    service/API, không nhân bản dữ liệu/logic.
 3. **Một service là nguồn logic duy nhất**, cả Storefront controller lẫn API
@@ -61,12 +67,47 @@ Ecommerce fashion cho SME single-store:
 
 ---
 
-# Can thiệp Core Lunar (vendor) mà KHÔNG sửa code
+# Lunar là code trong repo (không còn composer package)
 
-> Nguyên tắc #1: **không bao giờ sửa `vendor/`**. Lunar cung cấp nhiều điểm mở rộng
-> chính chủ; dùng chúng theo thứ tự ưu tiên **nhẹ → nặng** dưới đây. Mỗi kỹ thuật kèm
-> trạng thái thực tế (✅ đang dùng / ⚪ có sẵn, chưa dùng) và nơi đăng ký
-> (`register()` vs `boot()` của service provider).
+LunarPHP đã được **fork thẳng vào repo** (2026-07-13). Không còn `vendor/lunarphp`,
+không còn `composer require lunarphp/*`:
+
+| | Trước | Nay |
+|---|---|---|
+| Core engine (`Lunar\`) | `vendor/lunarphp/core` | **`modules/Lunar/src`** |
+| Admin panel (`Lunar\Admin\`) | `vendor/lunarphp/admin` | **`modules/LunarAdmin/src`** |
+| Autoload | composer package | PSR-4 tay trong `composer.json` (+ `files`: 2 `helpers.php`) |
+| Provider | package auto-discovery | khai báo tay trong `bootstrap/providers.php` |
+
+```php
+// bootstrap/providers.php — không còn auto-discovery nên phải đăng ký tay,
+// và phải đứng TRƯỚC ModulesServiceProvider (nó cấu hình Lunar panel trong register()).
+Lunar\LunarServiceProvider::class,
+Lunar\Admin\LunarPanelProvider::class,
+```
+
+**Hệ quả cần nhớ:**
+
+* **`composer update` không còn nâng cấp Lunar.** Muốn lấy fix từ upstream: đối chiếu
+  tay với repo `lunarphp/lunar` rồi port sang `modules/Lunar`. Vì thế **giữ diff với
+  upstream càng nhỏ càng tốt** — đừng reformat, đừng refactor tiện tay (đây cũng là lý
+  do `pint` phải loại trừ hai thư mục này, xem coding_standards §15).
+* **Sửa core là được phép, nhưng là bậc cuối** trong thang mở rộng. Thứ tự vẫn:
+  config → điểm mở rộng chính chủ → service wrap → *rồi mới* sửa `modules/Lunar`.
+  Sửa core thì commit riêng, diff tối thiểu, nói rõ vì sao không dùng được extension point.
+* **Config có hai bản:** `modules/Lunar/config/*.php` (default của engine, `mergeConfigFrom`)
+  và `config/lunar/*.php` (bản đã publish — **bản này thắng**, vì `mergeConfigFrom` chỉ
+  điền khoá còn thiếu). Đổi hành vi thì sửa `config/lunar/*` hoặc dùng
+  `LunarConfigOverride`; sửa `modules/Lunar/config` **một mình** sẽ không có tác dụng nếu
+  khoá đó đã tồn tại trong bản publish.
+* `vendor/` từ nay chỉ còn package bên thứ ba thật (Laravel, Filament, Spatie…) —
+  quy tắc "không sửa `vendor/`" vẫn nguyên với chúng.
+
+## Điểm mở rộng chính chủ của Lunar (ưu tiên trước khi sửa core)
+
+> Dùng theo thứ tự **nhẹ → nặng** dưới đây. Mỗi kỹ thuật kèm trạng thái thực tế
+> (✅ đang dùng / ⚪ có sẵn, chưa dùng) và nơi đăng ký (`register()` vs `boot()` của
+> service provider).
 
 ## Cây quyết định nhanh
 
@@ -83,14 +124,19 @@ Cần THÊM lên model core (Product, Customer, Order…)?
 Cần PHẢN ỨNG khi có sự kiện?             → (5) Event::listen(LunarEvent)
 Cần đổi ADMIN (Filament)?                → (6) ResourceExtension / *PageExtension
                                            (hoặc reuse action native của Lunar)
+
+Không cách nào ở trên chạm tới được?     → (7) sửa thẳng modules/Lunar — BẬC CUỐI:
+                                           commit riêng, diff tối thiểu, ghi rõ lý do
 ```
 
 ## (1) Config / pipeline override — nhẹ nhất, không cần code
 
-Lunar đọc hành vi từ `config/lunar/*` (cart, orders, pricing, payments, media, taxes…).
-Ghi đè trực tiếp, hoặc dùng **`Modules\Core\Support\LunarConfigOverride`** để re-apply
-override lên config đã publish — an toàn trước `php artisan vendor:publish --tag=lunar
---force` (chạy trong `boot()`).
+Lunar đọc hành vi từ `config/lunar/*` (cart, orders, pricing, payments, media, taxes…) —
+bản **đã publish** từ default của engine ở `modules/Lunar/config/*`, và **bản publish
+thắng** (`mergeConfigFrom` chỉ điền khoá còn thiếu). Ghi đè trực tiếp ở `config/lunar/*`,
+hoặc dùng **`Modules\Core\Support\LunarConfigOverride`** để re-apply override lên config
+đã publish — an toàn trước `php artisan vendor:publish --tag=lunar --force` (chạy trong
+`boot()`).
 
 - **Pipelines** (`cart.pipelines.*`, `orders.pipelines.creation`): chèn / đổi / bỏ bước
   xử lý. Stage là class implement pipeline; muốn thêm logic thì viết stage riêng và
@@ -122,7 +168,7 @@ Lunar expose facade có `extend()` / `add*()` để cắm implementation mới m
 > kế thừa `AbstractPayment`; discount type kế thừa `AbstractDiscountType`), đăng ký qua
 > facade — **không** copy code Lunar ra.
 
-## (3) `Model::resolveRelationUsing()` — thêm quan hệ vào model vendor
+## (3) `Model::resolveRelationUsing()` — thêm quan hệ vào model core
 
 Laravel-native. Gắn relation vào model Lunar (Product/Customer/Order…) mà không subclass,
 đăng ký trong `boot()`.
@@ -149,7 +195,7 @@ app(\Lunar\Base\ModelManifestInterface::class)
     ->replace(\Lunar\Models\Contracts\Product::class, \Modules\Catalog\Models\CustomProduct::class);
 ```
 
-Subclass kế thừa toàn bộ hành vi Lunar → không sửa vendor. ⚪ **Chưa dùng** — hiện
+Subclass kế thừa toàn bộ hành vi Lunar → không phải đụng vào core. ⚪ **Chưa dùng** — hiện
 `resolveRelationUsing` + service wrap là đủ; chỉ leo lên mức này khi thực sự cần đổi
 method của model core.
 
@@ -487,7 +533,7 @@ theo session không cần crawl (cart drawer/page, wishlist).
 ## Cart & Checkout & Payment
 - **Headless (2026-07-10):** cart/checkout chạy được **không cần session**.
   `TokenAwareCartSession extends CartSessionManager` (rebind `CartSessionInterface` —
-  singleton chính chủ của Lunar, không sửa vendor) resolve giỏ theo `X-Cart-Token`
+  singleton chính chủ của Lunar, không phải đụng vào core) resolve giỏ theo `X-Cart-Token`
   (cột `lunar_carts.public_token`) rồi tới cart active của user sau Bearer token.
   Guest gọi lần đầu gửi `X-Client: app` để nhận handle. Request có cookie đi **nguyên
   đường Lunar cũ**; `cart_token` **không** lộ vào payload SSR. CSRF miễn trừ request
@@ -698,8 +744,11 @@ sau quyết định bằng dữ kiện chứ không bằng cảm tính.
 | 12 | 2026-07-10 | **Config → admin** — `inventory.hold_minutes` (giữ hàng đơn chưa trả), `notification.push_enabled` (kill-switch push), `customer.ttl_days` (TTL đăng nhập app). 3 trang Filament + **test Filament đầu tiên** (Livewire) | 383 test; mutation-check cả service lẫn trang admin |
 | 13 | 2026-07-12 | **`GET /api/v1/home-feed`** — `SectionRenderer::payload()` song song với `render()` (**cùng provider** → web/JSON không lệch); mỗi section dynamic có **serializer** map model qua Resource sẵn có; section dynamic thiếu serializer bị **bỏ khỏi payload** (không serialise thô) | 390 test; mutation-check guard "thiếu serializer → bỏ" |
 | 14 | 2026-07-12 | **Bug thật do client headless lộ ra** — 3 probe công khai (`GET /customer`, `/wishlist`, `/customer/measurements`) nằm ở group `web`, guard mặc định là **session** nên **không thấy bearer token**: client có token hợp lệ vẫn nhận `200 {"data":null}` = "khách vãng lai". Next.js đọc đó là "chưa đăng nhập" → **đá ngược về /login vô hạn**, không lỗi nào hiện ra. Sửa: `$request->user('sanctum')` (guard sanctum đọc **cả** cookie session lẫn bearer, vẫn trả null cho guest thật) | 394 test; mutation-check: trả về `user()` → test đỏ |
+| 15 | 2026-07-13 | **Fork Lunar vào repo** — `vendor/lunarphp/{core,admin}` → **`modules/Lunar`** + **`modules/LunarAdmin`**; PSR-4 khai báo tay trong `composer.json`, provider đăng ký tay ở `bootstrap/providers.php` (mất package auto-discovery). Đổi bậc cuối của thang mở rộng: sửa core nay *khả thi* nhưng vẫn là lựa chọn sau cùng — đánh đổi là **tự bảo trì + tự port fix upstream** | Xem § "Lunar là code trong repo" |
 
-> **Quy tắc cho mọi refactor:** giải thích *why* trước khi viết code · không sửa `vendor/`
-> · public API (service + shape `/api/v1`) chỉ mở rộng tương thích ngược · `vendor/bin/phpunit`
-> xanh + `pint --test` xanh **trên file đã sửa** (không phải toàn repo — xem standards §15)
-> trước khi coi là xong · cập nhật tài liệu này (ngày tuyệt đối).
+> **Quy tắc cho mọi refactor:** giải thích *why* trước khi viết code · sửa `modules/Lunar`
+> là **bậc cuối** (thử hết extension point trước; nếu sửa thì commit riêng, diff tối thiểu)
+> và không sửa `vendor/` (package bên thứ ba) · public API (service + shape `/api/v1`) chỉ
+> mở rộng tương thích ngược · `vendor/bin/phpunit` xanh + `pint --test` xanh **trên file đã
+> sửa** (không phải toàn repo — xem standards §15) trước khi coi là xong · cập nhật tài liệu
+> này (ngày tuyệt đối).

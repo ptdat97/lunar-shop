@@ -67,8 +67,10 @@ SESSION_DOMAIN=your-domain.com
 
 ```bash
 # 1. Code + dependencies
-git pull --ff-only
+git pull --ff-only                 # kéo cả Lunar: modules/Lunar + modules/LunarAdmin
+                                   # (fork trong repo, không còn tải qua composer)
 composer install --no-dev --prefer-dist --optimize-autoloader
+                                   # vẫn bắt buộc: dựng lại autoload PSR-4 trỏ vào modules/Lunar
 npm ci && npm run build            # hoặc build ở CI, rsync public/build
 
 # 2. Maintenance window (trang 503 branded đã có)
@@ -247,8 +249,14 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
   tracker (Sentry/Flare) khi có ngân sách — chưa wired.
 - **Monitor**: uptime check `/up`; Horizon dashboard cho queue lag; disk cho
   `public/media` (conversion tăng dần).
-- **Nâng cấp**: `composer outdated` hàng tháng; Lunar theo minor — chạy full
+- **Nâng cấp**: `composer outdated` hàng tháng (Laravel, Filament, Spatie…) — chạy full
   test suite trước khi lên.
+  ⚠️ **Lunar KHÔNG nằm trong `composer outdated` nữa.** Nó đã fork vào repo
+  (`modules/Lunar` + `modules/LunarAdmin`, xem plan.md), nên **không có bản vá nào tự về**
+  — kể cả security patch. Phải chủ động: theo dõi release/advisory của
+  [`lunarphp/lunar`](https://github.com/lunarphp/lunar), đối chiếu tay và port sang
+  `modules/Lunar`. Đây là **cái giá đã chấp nhận khi fork** — đưa vào lịch rà hằng tháng
+  cùng `composer outdated`, đừng để nó rơi vào quên lãng.
 
 ## 9. Chưa làm (chấp nhận được ở quy mô SME, làm khi cần)
 

@@ -14,8 +14,8 @@
 ## 0. Nguyên tắc cốt lõi
 
 1. **Inherit Lunar, đừng dựng lại** — Lunar là source of truth cho catalog, cart,
-   pricing, order, customer, discount, media, payment. Kiểm tra `vendor/lunarphp`
-   trước; có → extend, không → mới build (xem §5).
+   pricing, order, customer, discount, media, payment. Kiểm tra `modules/Lunar` +
+   `modules/LunarAdmin` trước; có → extend, không → mới build (xem §5).
 2. **Service-first** — business logic, transaction (`DB::transaction`) và cache
    chỉ sống trong Service. Cấm ở Controller, Blade, JS, Model, Resource (§3, §4, §7).
 3. **SSR-first** — nội dung SEO render HTML thật ở server; JS chỉ *enhance* (§7, §9).
@@ -130,11 +130,17 @@ gọi service, không tự `Cache::remember`.
 
 ## 5. Lunar — kiểm tra trước khi build (BẮT BUỘC)
 
+> **Lunar không còn là composer package.** Nó đã được fork vào repo:
+> `modules/Lunar` (core engine, namespace `Lunar\`) và `modules/LunarAdmin`
+> (Filament panel, namespace `Lunar\Admin\`). Autoload khai báo trong
+> `composer.json`; provider đăng ký tay ở `bootstrap/providers.php` (không còn
+> package-discovery). Xem plan.md § "Lunar là code trong repo".
+
 Trước khi viết một dòng code cho tính năng mới, **phải** kiểm tra Lunar đã có chưa.
 Checklist (dừng ngay khi tìm thấy):
 
-1. **Model/nghiệp vụ?** `grep -ri "<feature>" vendor/lunarphp/*/src --include=*.php -l`
-2. **Admin (Filament resource)?** `find vendor/lunarphp -path "*Resources*Resource.php" | grep -i "<feature>"`
+1. **Model/nghiệp vụ?** `grep -ri "<feature>" modules/Lunar/src --include=*.php -l`
+2. **Admin (Filament resource)?** `find modules/LunarAdmin -path "*Resources*Resource.php" | grep -i "<feature>"`
 3. **Config / điểm mở rộng?** xem `config/lunar/*` + pipelines/events Lunar expose.
 
 **Kết luận:**
@@ -142,8 +148,23 @@ Checklist (dừng ngay khi tìm thấy):
   Filament hook) → wrap bằng service. **Không** copy ra module viết lại.
 * **Không** → build mới trong module, ghi rõ "Lunar không có" trong PR/commit.
 
-**Cấm:** copy code từ `vendor/`, fork logic Lunar, nhân bản dữ liệu Lunar, sửa
-code trong `vendor/`.
+**Sửa thẳng `modules/Lunar` — được, nhưng là lựa chọn cuối.** Fork bỏ rào cản kỹ
+thuật, **không** bỏ lý do của quy tắc: mỗi dòng sửa trong core là một dòng phải tự
+bảo trì và tự merge lại khi lấy fix từ upstream. Thứ tự vẫn là:
+
+```text
+config/lunar/* → điểm mở rộng chính chủ (pipeline, ModelManifest::replace,
+Payments::extend, Discounts::addType, Event::listen, ResourceExtension)
+→ wrap bằng service trong module  →  (cuối cùng) sửa modules/Lunar
+```
+
+Chỉ sửa core khi **không có điểm mở rộng nào chạm tới** được. Khi đó:
+* Commit **riêng**, message nói rõ *tại sao không dùng được extension point*.
+* Sửa **tối thiểu**, không refactor tiện tay — diff càng nhỏ càng dễ đối chiếu upstream.
+
+**Vẫn cấm:** copy code Lunar ra module rồi viết lại (fork logic), nhân bản dữ liệu
+Lunar sang bảng của mình, và sửa code trong `vendor/` (nay chỉ còn package bên thứ ba
+thật sự: Laravel, Filament, Spatie…).
 
 ---
 
@@ -416,8 +437,11 @@ qua `Discounts::addType(...)` để hiện trong panel + chạy trong cart pipel
 
 * **Format bắt buộc:** `vendor/bin/pint <file bạn đã sửa>` trước khi commit.
   **Đừng** chạy `vendor/bin/pint` trần trên toàn repo: chưa có `pint.json`, nên preset
-  `laravel` mặc định sẽ format lại **131 file có sẵn** (migration/seeder/config publish
-  từ Lunar) và trộn chúng vào diff của bạn. Dọn một lượt = commit riêng (xem todo P1).
+  `laravel` mặc định sẽ format lại **241 file có sẵn** và trộn chúng vào diff của bạn.
+  Từ khi fork Lunar vào repo, **119/241 file đó nằm trong `modules/Lunar` +
+  `modules/LunarAdmin`** — reformat code upstream là tự tay làm mọi diff đối chiếu với
+  Lunar gốc thành vô dụng. Dọn một lượt = commit riêng + `pint.json` loại trừ hai thư mục
+  fork (xem todo P1).
 * **Khuyến nghị (chưa wire CI):** PHPStan/Larastan level cao dần khi thêm; bật khi
   cài. Không merge code có dead code hoặc duplicated business logic.
 * **Phải refactor khi:** Controller > 100, Blade > 300, Service > 500, function >
