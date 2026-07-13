@@ -11,11 +11,17 @@
 > namespace `Lunar\`) + `modules/LunarAdmin` (Filament panel, `Lunar\Admin\`). Xem
 > § [Lunar là code trong repo](#lunar-là-code-trong-repo-không-còn-composer-package).
 >
-> **Client thứ hai đã tồn tại:** storefront Next.js 16 ở `../storefront` (App Router, TS,
-> Tailwind 4) — tiêu thụ `/api/v1` qua bearer token + `X-Cart-Token`, **không** đụng DB.
-> Blade storefront **vẫn là** storefront chính và không bị ảnh hưởng. Chính client này đã
-> làm lộ bug bearer-token ở 3 probe công khai (increment #14) — đúng như dự đoán của audit:
-> có những thứ chỉ lộ ra khi có client thật.
+> **Storefront Next.js: ⏸ TẠM HOÃN (2026-07-13).** Đã từng tồn tại (Next.js 16, App Router,
+> TS, Tailwind 4 ở `../storefront`) và tiêu thụ `/api/v1` qua bearer token + `X-Cart-Token`
+> — nay **cố ý dừng để tập trung vào Blade SSR**, là storefront chính thức và duy nhất.
+> `../storefront` không còn trong workspace.
+>
+> **Nó đã trả đủ tiền vé, không phải công cốc:** chính client đó làm lộ bug bearer-token ở
+> 3 probe công khai (increment #14) — đúng như dự đoán của audit: *có những thứ chỉ lộ ra
+> khi có client thật*. `/api/v1` (67 route), `/home-feed`, `TokenAwareCartSession`, token
+> abilities **giữ nguyên**: chúng đang xanh, không nợ, và là nền sẵn sàng cho khi quay lại
+> headless/mobile. Quy tắc: **giữ, KHÔNG mở rộng** — không thêm endpoint/shape mới cho một
+> client chưa tồn tại (xem § Quyết định có chủ đích).
 
 ## Bản đồ tài liệu
 
@@ -723,7 +729,8 @@ sau quyết định bằng dữ kiện chứ không bằng cảm tính.
 | Module ERP / CRM / Marketing / Loyalty rỗng | **Loyalty** = membership tiers (đã ở `Promotion`, là biến thể discount). **Marketing** = `Promotion` + `Content`. **ERP/CRM**: chưa có hệ thống ngoài nào để nối | Có hệ thống thật → module `Integrations/<System>` + contract + queued job nghe domain event |
 | Cây `app/Domain\|Application\|Infrastructure` | `app/` chỉ ~4 file bootstrap; toàn bộ domain sống trong `modules/` | Xuất hiện logic cross-module không thuộc module nào (`Core` chỉ hạ tầng) |
 | ViewModel / Presenter | Blade đã sạch (0 `app()`/`DB::` trong theme); **API Resource chính là** presenter | — |
-| BFF | 1 storefront + 1 app; `/api/v1` là contract chung. Thêm sau **không** phá Domain layer | ≥ 2 client mâu thuẫn nhau về shape/chattiness |
+| BFF | Nay chỉ còn **1 client** (Blade SSR); `/api/v1` là contract chung. Thêm sau **không** phá Domain layer | ≥ 2 client mâu thuẫn nhau về shape/chattiness |
+| **Storefront Next.js ⏸** (2026-07-13) | Đã từng chạy, **cố ý dừng để tập trung Blade SSR**. Giữ `/api/v1` + `/home-feed` + token abilities: đang xanh, không nợ, là nền sẵn sàng. **Giữ, KHÔNG mở rộng** — không thêm endpoint/shape cho client chưa tồn tại | Quyết định quay lại headless/mobile app **thật** (có người dùng, không phải "phòng xa") |
 | Plugin SDK / hook engine | Đã cố ý gỡ khi gộp 24→13 module | — |
 
 ## Increment log
@@ -745,6 +752,7 @@ sau quyết định bằng dữ kiện chứ không bằng cảm tính.
 | 13 | 2026-07-12 | **`GET /api/v1/home-feed`** — `SectionRenderer::payload()` song song với `render()` (**cùng provider** → web/JSON không lệch); mỗi section dynamic có **serializer** map model qua Resource sẵn có; section dynamic thiếu serializer bị **bỏ khỏi payload** (không serialise thô) | 390 test; mutation-check guard "thiếu serializer → bỏ" |
 | 14 | 2026-07-12 | **Bug thật do client headless lộ ra** — 3 probe công khai (`GET /customer`, `/wishlist`, `/customer/measurements`) nằm ở group `web`, guard mặc định là **session** nên **không thấy bearer token**: client có token hợp lệ vẫn nhận `200 {"data":null}` = "khách vãng lai". Next.js đọc đó là "chưa đăng nhập" → **đá ngược về /login vô hạn**, không lỗi nào hiện ra. Sửa: `$request->user('sanctum')` (guard sanctum đọc **cả** cookie session lẫn bearer, vẫn trả null cho guest thật) | 394 test; mutation-check: trả về `user()` → test đỏ |
 | 15 | 2026-07-13 | **Fork Lunar vào repo** — `vendor/lunarphp/{core,admin}` → **`modules/Lunar`** + **`modules/LunarAdmin`**; PSR-4 khai báo tay trong `composer.json`, provider đăng ký tay ở `bootstrap/providers.php` (mất package auto-discovery). Đổi bậc cuối của thang mở rộng: sửa core nay *khả thi* nhưng vẫn là lựa chọn sau cùng — đánh đổi là **tự bảo trì + tự port fix upstream** | Xem § "Lunar là code trong repo" |
+| 16 | 2026-07-13 | **Hoãn headless, chốt Blade SSR** — storefront Next.js (`../storefront`) cố ý dừng; Blade SSR là storefront duy nhất. `/api/v1` + `/home-feed` (#13) + token abilities (#4) **giữ nguyên** làm nền, quy tắc **"giữ, KHÔNG mở rộng"**. Hai increment #13/#14 vẫn có giá trị: #14 là bug thật do chính client đó phát hiện | Không đổi code; xanh nguyên trạng |
 
 > **Quy tắc cho mọi refactor:** giải thích *why* trước khi viết code · sửa `modules/Lunar`
 > là **bậc cuối** (thử hết extension point trước; nếu sửa thì commit riêng, diff tối thiểu)
