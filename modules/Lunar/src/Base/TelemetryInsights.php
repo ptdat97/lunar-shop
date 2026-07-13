@@ -31,7 +31,11 @@ class TelemetryInsights implements ProvidesTelemetryInsights
 
     public function lunarVersion(): string
     {
-        return InstalledVersions::getPrettyVersion('lunarphp/core') ?? 'dev';
+        // Lunar lives in-repo (modules/Lunar), not as a composer package, so
+        // there is no installed-version metadata to look up.
+        return InstalledVersions::isInstalled('lunarphp/core')
+            ? InstalledVersions::getPrettyVersion('lunarphp/core')
+            : '1.3.0-fork';
     }
 
     public function dbDriver(): string

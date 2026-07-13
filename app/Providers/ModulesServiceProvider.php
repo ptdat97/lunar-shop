@@ -5,10 +5,9 @@ namespace App\Providers;
 use Filament\Navigation\NavigationGroup;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Admin\Filament\Resources as Lunar;
-use Lunar\Admin\Filament\Resources\ProductResource;
 use Lunar\Admin\LunarPanelManager;
 use Lunar\Admin\Support\Facades\LunarPanel;
-use Modules\Catalog\Filament\Extensions\ProductSizeExtension;
+use Modules\Catalog\Filament\Resources as Catalog;
 use Modules\Core\Support\AdminPages;
 use Modules\Theme\Filament\Resources as Custom;
 
@@ -62,12 +61,6 @@ class ModulesServiceProvider extends ServiceProvider
         $pages = AdminPages::all();
         $extraResources = AdminPages::resources();
 
-        // Fashion sizing: add Size Chart + Material managers to the product editor.
-        // Extensions are read while resources build, so register before panel().
-        LunarPanel::extensions([
-            ProductResource::class => ProductSizeExtension::class,
-        ]);
-
         // Swap selected Lunar resources for our subclasses (custom navigation /
         // grouping). Keyed by the base class we drop → the replacement we add.
         // Re-grouped so the sidebar mirrors how the data is actually organised:
@@ -77,6 +70,8 @@ class ModulesServiceProvider extends ServiceProvider
         //  - Settings: Tax Class/Rate/Zone kept here but hidden from the menu
         //    (managed via the consolidated "Taxes" page).
         $swaps = [
+            // Single-page product editor (BeikeShop-style) — see Catalog module.
+            Lunar\ProductResource::class => Catalog\ProductResource::class,
             Lunar\ProductTypeResource::class => Custom\ProductTypeResource::class,
             Lunar\ProductOptionResource::class => Custom\ProductOptionResource::class,
             Lunar\AttributeGroupResource::class => Custom\AttributeGroupResource::class,

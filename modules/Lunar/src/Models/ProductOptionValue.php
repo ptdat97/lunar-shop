@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Support\Carbon;
 use Lunar\Base\BaseModel;
 use Lunar\Base\Traits\HasMacros;
 use Lunar\Base\Traits\HasMedia;
@@ -19,8 +20,8 @@ use Spatie\MediaLibrary\HasMedia as SpatieHasMedia;
  * @property AsArrayObject $name
  * @property int $position
  * @property ?AsArrayObject $meta
- * @property ?\Illuminate\Support\Carbon $created_at
- * @property ?\Illuminate\Support\Carbon $updated_at
+ * @property ?Carbon $created_at
+ * @property ?Carbon $updated_at
  */
 class ProductOptionValue extends BaseModel implements Contracts\ProductOptionValue, SpatieHasMedia
 {
@@ -28,6 +29,12 @@ class ProductOptionValue extends BaseModel implements Contracts\ProductOptionVal
     use HasMacros;
     use HasMedia;
     use HasTranslations;
+
+    /**
+     * Media collection holding the single swatch image for this value
+     * (registered in Base\OptionValueMediaDefinitions).
+     */
+    public const SWATCH_COLLECTION = 'swatch';
 
     /**
      * Define which attributes should be cast.
@@ -53,6 +60,41 @@ class ProductOptionValue extends BaseModel implements Contracts\ProductOptionVal
     protected static function newFactory()
     {
         return ProductOptionValueFactory::new();
+    }
+
+    /**
+     * Hex display colour for this value (e.g. '#1a1a1a'), stored in meta so
+     * no schema change is needed. Null when the value has no colour swatch.
+     */
+    public function getSwatchColorAttribute(): ?string
+    {
+        return data_get($this->meta, 'swatch') ?: null;
+    }
+
+    public function setSwatchColorAttribute(?string $hex): void
+    {
+        $meta = collect($this->meta ?? [])->toArray();
+        $meta['swatch'] = $hex ?: null;
+
+        $this->meta = $meta;
+    }
+
+    /**
+     * URL of the swatch image, if one was uploaded. Storefront pickers should
+     * prefer this over swatch_color when both exist. When a conversion is
+     * requested but not generated yet (queued), falls back to the original.
+     */
+    public function swatchImageUrl(string $conversion = ''): ?string
+    {
+        $media = $this->getFirstMedia(self::SWATCH_COLLECTION);
+
+        if (! $media) {
+            return null;
+        }
+
+        return $conversion
+            ? $media->getAvailableUrl([$conversion])
+            : $media->getUrl();
     }
 
     public function option(): BelongsTo

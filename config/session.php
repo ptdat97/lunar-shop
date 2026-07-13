@@ -1,7 +1,5 @@
 <?php
 
-use Illuminate\Support\Str;
-
 return [
 
     /*
@@ -127,9 +125,13 @@ return [
     |
     */
 
+    // Unique per Laragon project: VaniCommerce/vanishop also run on localhost
+    // and the APP_NAME-derived default ('laravel-session') collides across
+    // apps — each login overwrites the others' session cookie, causing random
+    // 419s and logouts in the admin.
     'cookie' => env(
         'SESSION_COOKIE',
-        Str::slug((string) env('APP_NAME', 'laravel')).'-session'
+        'lunar-shop-session'
     ),
 
     /*

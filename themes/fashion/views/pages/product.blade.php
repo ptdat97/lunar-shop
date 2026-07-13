@@ -13,8 +13,10 @@
   $inStock = $product->variants->sum('stock') > 0;
 @endphp
 
-@section('title', $name . ' — ' . config('app.name'))
-@section('meta_description', \Illuminate\Support\Str::limit(strip_tags((string) $description), 155))
+{{-- SEO attributes (meta_title/meta_description, editable in the product
+     editor's SEO section) win over the derived name/description. --}}
+@section('title', ($product->translateAttribute('meta_title') ?: $name) . ' — ' . config('app.name'))
+@section('meta_description', \Illuminate\Support\Str::limit(strip_tags((string) ($product->translateAttribute('meta_description') ?: $description)), 155))
 @section('og_type', 'product')
 @if ($ogImage)
   @section('og_image', $ogImage)
@@ -148,15 +150,32 @@
         </div>
 
         <div class="my-4">
-          {{-- $optionGroups / $selectedValues computed in ProductService (§7). --}}
-          @foreach ($optionGroups as $optName => $values)
+          {{-- $optionGroups / $selectedValues computed in ProductService (§7).
+               The colour group renders as round swatches (image beats hex,
+               text as last resort); other groups stay text buttons. Both keep
+               data-option/data-value + btn-dark toggling, so
+               enhance/product-variant.js works unchanged. --}}
+          @foreach ($optionGroups as $optName => $group)
             <div class="mb-3" data-option-group="{{ $optName }}">
               <label class="form-label small text-uppercase d-block">{{ $optName }}</label>
-              <div class="d-flex flex-wrap gap-2">
-                @foreach ($values as $val)
-                  @php $isActive = ($selectedValues[$optName] ?? null) === $val; @endphp
-                  <button type="button" class="btn btn-sm {{ $isActive ? 'btn-dark' : 'btn-outline-dark' }}"
-                    data-option="{{ $optName }}" data-value="{{ $val }}">{{ $val }}</button>
+              <div class="d-flex flex-wrap gap-2 align-items-center">
+                @foreach ($group['values'] as $val)
+                  @php $isActive = ($selectedValues[$optName] ?? null) === $val['label']; @endphp
+                  @if ($group['is_color'] && ($val['image'] || $val['color']))
+                    <button type="button"
+                      class="btn swatch-btn {{ $isActive ? 'btn-dark' : 'btn-outline-dark' }}"
+                      data-option="{{ $optName }}" data-value="{{ $val['label'] }}"
+                      title="{{ $val['label'] }}" aria-label="{{ $val['label'] }}">
+                      @if ($val['image'])
+                        <img src="{{ $val['image'] }}" alt="{{ $val['label'] }}" loading="lazy">
+                      @else
+                        <span style="background-color: {{ $val['color'] }}"></span>
+                      @endif
+                    </button>
+                  @else
+                    <button type="button" class="btn btn-sm {{ $isActive ? 'btn-dark' : 'btn-outline-dark' }}"
+                      data-option="{{ $optName }}" data-value="{{ $val['label'] }}">{{ $val['label'] }}</button>
+                  @endif
                 @endforeach
               </div>
             </div>

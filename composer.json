@@ -1,35 +1,44 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
     "name": "laravel/laravel",
-    "repositories": [
-        {
-            "type": "path",
-            "url": "modules/Lunar",
-            "options": {
-                "symlink": true
-            }
-        }
-    ],
     "type": "project",
     "description": "The skeleton application for the Laravel framework.",
     "keywords": ["laravel", "framework"],
     "license": "MIT",
     "require": {
         "php": "^8.2",
+        "ext-bcmath": "*",
         "ext-curl": "*",
+        "ext-exif": "*",
         "ext-fileinfo": "*",
         "ext-iconv": "*",
+        "ext-intl": "*",
         "ext-json": "*",
         "ext-openssl": "*",
         "ext-pdo": "*",
         "ext-simplexml": "*",
         "ext-zip": "*",
+        "awcodes/filament-badgeable-column": "^2.3.2",
+        "awcodes/shout": "^2.0.4",
         "barryvdh/laravel-dompdf": "^3.1",
+        "cartalyst/converter": "^10.0",
+        "doctrine/dbal": "^3.6",
+        "filament/filament": "^3.3.36",
+        "filament/spatie-laravel-media-library-plugin": "^3.3.4",
+        "kalnoy/nestedset": "^6.0.5",
         "laravel/framework": "^12.0",
         "laravel/horizon": "^5.47",
         "laravel/sanctum": "^4.0",
+        "laravel/scout": "^10.13.1",
         "laravel/tinker": "^2.10.1",
-        "lunarphp/lunar": "^1.0"
+        "leandrocfe/filament-apex-charts": "^3.2.0",
+        "lukascivil/treewalker": "0.9.1",
+        "spatie/laravel-activitylog": "^4.10.1",
+        "spatie/laravel-blink": "^1.7.1",
+        "spatie/laravel-medialibrary": "^11.12.7",
+        "spatie/laravel-permission": "^6.12",
+        "spatie/php-structure-discoverer": "^2.3.1",
+        "technikermathe/blade-lucide-icons": "^3.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
@@ -45,9 +54,20 @@
         "psr-4": {
             "App\\": "app/",
             "Modules\\": "modules/",
+            "Lunar\\Admin\\Database\\Factories\\": "modules/LunarAdmin/database/factories/",
+            "Lunar\\Admin\\Database\\State\\": "modules/LunarAdmin/database/state/",
+            "Lunar\\Admin\\": "modules/LunarAdmin/src/",
+            "Lunar\\Database\\Factories\\": "modules/Lunar/database/factories/",
+            "Lunar\\Database\\Seeders\\": "modules/Lunar/database/seeders/",
+            "Lunar\\Database\\State\\": "modules/Lunar/database/state/",
+            "Lunar\\": "modules/Lunar/src/",
             "Database\\Factories\\": "database/factories/",
             "Database\\Seeders\\": "database/seeders/"
-        }
+        },
+        "files": [
+            "modules/Lunar/src/helpers.php",
+            "modules/LunarAdmin/src/helpers.php"
+        ]
     },
     "autoload-dev": {
         "psr-4": {

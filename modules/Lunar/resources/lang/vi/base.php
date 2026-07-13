@@ -4,6 +4,7 @@ return [
     'standard-media-definitions' => [
         'collection-titles' => [
             'images' => 'Hình ảnh',
+            'swatch' => 'Ảnh màu (swatch)',
         ],
     ],
     'product-association-types' => [

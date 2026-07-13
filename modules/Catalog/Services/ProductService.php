@@ -47,31 +47,51 @@ class ProductService
             })
             ->where('lunar_urls.slug', $slug)
             ->with([
-                'variants' => fn ($q) => $q->with(['values.option', 'prices.currency', 'images']),
+                // values.media: swatch images for the colour picker (§optionGroups).
+                'variants' => fn ($q) => $q->with(['values.option', 'values.media', 'prices.currency', 'images']),
                 'thumbnail', 'brand', 'collections.defaultUrl', 'defaultUrl', 'media',
             ])
             ->first();
     }
 
     /**
-     * Option groups (e.g. Size → [S, M, L]) derived from the loaded variants,
-     * in a stable first-seen order, for the SSR option buttons. Keys are the
-     * translated option names.
+     * Option groups derived from the loaded variants, in a stable first-seen
+     * order, for the SSR option buttons. Keys are the translated option names;
+     * each group carries its handle + swatch data so the colour group renders
+     * as colour/image swatches instead of text buttons:
      *
-     * @return array<string, list<string>>
+     *   ['Color' => ['handle' => 'color', 'is_color' => true, 'values' => [
+     *       ['label' => 'Black', 'color' => '#1a1a1a', 'image' => null], ...
+     *   ]]]
+     *
+     * @return array<string, array{handle: ?string, is_color: bool, values: list<array{label: string, color: ?string, image: ?string}>}>
      */
     public function optionGroups(Product $product): array
     {
+        $colorHandle = config('lunar.products.options.color_handle', 'color');
         $groups = [];
 
         foreach ($product->variants as $variant) {
             foreach ($variant->values as $value) {
-                $optName = $value->option?->translate('name') ?? ($value->option?->name ?? 'Option');
+                $option = $value->option;
+                $optName = $option?->translate('name') ?? ($option?->name ?? 'Option');
                 $valName = $value->translate('name') ?? $value->name;
-                $groups[$optName] ??= [];
 
-                if (! in_array($valName, $groups[$optName], true)) {
-                    $groups[$optName][] = $valName;
+                $groups[$optName] ??= [
+                    'handle' => $option?->handle,
+                    'is_color' => $option?->handle === $colorHandle,
+                    'values' => [],
+                ];
+
+                $exists = collect($groups[$optName]['values'])
+                    ->contains(fn ($existing) => $existing['label'] === $valName);
+
+                if (! $exists) {
+                    $groups[$optName]['values'][] = [
+                        'label' => $valName,
+                        'color' => $value->swatch_color,
+                        'image' => $value->swatchImageUrl('thumb'),
+                    ];
                 }
             }
         }
