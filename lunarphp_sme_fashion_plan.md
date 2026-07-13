@@ -18,10 +18,18 @@
 >
 > **Nó đã trả đủ tiền vé, không phải công cốc:** chính client đó làm lộ bug bearer-token ở
 > 3 probe công khai (increment #14) — đúng như dự đoán của audit: *có những thứ chỉ lộ ra
-> khi có client thật*. `/api/v1` (67 route), `/home-feed`, `TokenAwareCartSession`, token
-> abilities **giữ nguyên**: chúng đang xanh, không nợ, và là nền sẵn sàng cho khi quay lại
-> headless/mobile. Quy tắc: **giữ, KHÔNG mở rộng** — không thêm endpoint/shape mới cho một
-> client chưa tồn tại (xem § Quyết định có chủ đích).
+> khi có client thật*.
+>
+> ⚠️ **`/api/v1` KHÔNG phải "API cho headless" — nó là xương sống của chính Blade SSR:**
+> **14 file JS** trong `themes/fashion` gọi nó (cart, coupon, search + suggest, notify-me,
+> recommend-size, locations, membership, auth). Nên nó **giữ nguyên và phải khoẻ**; gỡ/khoá
+> là gãy storefront ngay.
+>
+> 🧊 **Đóng băng (2026-07-13) là đóng băng BỀ MẶT, không phải code** — không đụng một dòng,
+> 394 test nguyên trạng. Luật: **GIỮ, KHÔNG MỞ RỘNG** — thêm endpoint vì Blade SSR cần thì
+> cứ làm; thêm "để sẵn cho app sau này" thì **không** (build cho consumer không tồn tại).
+> Luật ghi ở `routes/api.php`; danh sách route chưa có consumer Blade + ngưỡng bỏ đóng băng
+> ở [todo.md § 11](lunarphp_sme_fashion_todo.md) và § Quyết định có chủ đích.
 
 ## Bản đồ tài liệu
 

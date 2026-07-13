@@ -143,21 +143,37 @@ hoặc cần typo-tolerance + facet nhanh.
 Dashboard KPI/trend/best-seller đã có. Mở rộng: top size/màu bán chạy, tỉ lệ đổi-trả theo
 size (gắn với RMA), export báo cáo.
 
-### 11. Storefront Next.js (headless) ⏸ — **cố ý hoãn 2026-07-13**
+### 11. Storefront Next.js (headless) ⏸ — **ĐÃ ĐÓNG BĂNG 2026-07-13**
 Đã từng chạy (Next.js 16 ở `../storefront`, tiêu thụ `/api/v1` qua bearer + `X-Cart-Token`),
 nay **dừng để tập trung Blade SSR** — storefront chính thức và duy nhất.
 
 **Không phải công cốc:** chính client đó làm lộ bug bearer-token ở 3 probe công khai
 (plan.md increment #14) — thứ chỉ lộ ra khi có client thật.
 
-**Nền giữ nguyên, KHÔNG gỡ:** `/api/v1` (67 route), `/home-feed`, `TokenAwareCartSession`,
-token expiry/abilities — đang xanh, không nợ, sẵn sàng cho khi quay lại.
+#### ⚠️ `/api/v1` **KHÔNG** phải "API cho headless"
+Nó là **xương sống của chính Blade SSR**: **14 file JS** trong `themes/fashion` đang gọi nó
+(cart, coupon, search + suggest, notify-me, recommend-size, locations, membership, auth).
+**Gỡ/khoá API = gãy storefront ngay.** Vì thế "đóng băng" ở đây là đóng băng **bề mặt**,
+không phải đóng băng code — **không đụng một dòng code nào**, 394 test giữ nguyên.
 
-> **Quy tắc trong lúc hoãn: giữ, KHÔNG mở rộng.** Không thêm endpoint/shape `/api/v1` mới
-> chỉ để "phòng xa" cho client chưa tồn tại — đúng nguyên tắc *chỉ làm khi có client thật
-> tiêu thụ* (audit § Phần 4). Thay đổi API chỉ đi kèm nhu cầu **thật** của Blade SSR.
+#### Luật: **GIỮ, KHÔNG MỞ RỘNG** (đã ghi vào [routes/api.php](routes/api.php))
+- Thêm endpoint/shape vì **Blade SSR cần** → bình thường, cứ làm.
+- Thêm vì *"sau này app dùng"* / *"để sẵn cho lúc quay lại headless"* → **KHÔNG**. Đó là
+  build cho một consumer không tồn tại — đúng cái bẫy audit § Phần 4 đã tránh khi hoãn
+  `/home-feed`.
 
-**Ngưỡng quay lại:** quyết định làm headless/mobile app **thật** (có người dùng thật).
+**Nhóm route hiện KHÔNG có consumer Blade** (đo bằng grep trên `themes/fashion`, 2026-07-13)
+— giữ cho chạy, **đừng nuôi lớn**:
+`/home-feed` · `/devices` · `/notifications` (+read, read-all) · `/orders/{id}/timeline` ·
+`/auth/token/*` · `/banners` · `/pages` · `/collections/{slug}` · `/wishlist` · `/orders` ·
+`/products/{product}/reviews` · `/checkout/*` · `/health` (probe hạ tầng).
+
+> **Không gỡ `/auth/token/*` để "dọn cho sạch".** Nó mang theo token expiry + abilities —
+> guard đã có mutation-check (increment #4). Giữ thì tốn 0 đồng; gỡ thì **xoá mất một lớp
+> bảo mật đã được chứng minh**, đổi lấy không gì cả.
+
+**Ngưỡng quay lại (bỏ đóng băng):** quyết định làm headless/mobile app **thật** — có người
+dùng thật, không phải "phòng xa".
 
 ### 12. Omnichannel / POS ⏸ và AI ⏸
 Đã khảo sát rồi **cố ý dừng** — lý do + số liệu đo được ở

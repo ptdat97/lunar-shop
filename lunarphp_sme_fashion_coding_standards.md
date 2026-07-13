@@ -170,6 +170,18 @@ thật sự: Laravel, Filament, Spatie…).
 
 ## 6. API
 
+> 🧊 **ĐÓNG BĂNG BỀ MẶT (2026-07-13) — GIỮ, KHÔNG MỞ RỘNG.** Storefront Next.js đang
+> hoãn, Blade SSR là storefront duy nhất. Nhưng `/api/v1` **không** phải "API cho
+> headless" — **14 file JS của theme đang gọi nó** (cart, search, notify-me,
+> recommend-size, locations…), nên nó vẫn sống và phải khoẻ.
+>
+> * Thêm endpoint/shape vì **Blade SSR cần** → bình thường, cứ làm.
+> * Thêm vì *"sau này app dùng"* → **KHÔNG**. Build cho consumer không tồn tại là
+>   abstraction thừa (cùng loại với "event phòng xa" ở §10).
+>
+> Danh sách route hiện không có consumer Blade + ngưỡng bỏ đóng băng: `routes/api.php`
+> và [todo.md § 11](lunarphp_sme_fashion_todo.md).
+
 * Mọi endpoint **trả model** đều dùng `JsonResource`; route tự prefix `api/v1`
   (mở `v2` không phá v1).
 * **Success** `{ data, meta? }` — **Error** `{ message, errors? }` (envelope chuẩn
