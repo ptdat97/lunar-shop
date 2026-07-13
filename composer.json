@@ -1,6 +1,15 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
     "name": "laravel/laravel",
+    "repositories": [
+        {
+            "type": "path",
+            "url": "modules/Lunar",
+            "options": {
+                "symlink": true
+            }
+        }
+    ],
     "type": "project",
     "description": "The skeleton application for the Laravel framework.",
     "keywords": ["laravel", "framework"],

@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "aa26ab5a83dd72261129cade4a4e1fd8",
+    "content-hash": "0020d0214a25c6caab3699e423d4c3ae",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -4397,16 +4397,10 @@
         {
             "name": "lunarphp/core",
             "version": "1.3.0",
-            "source": {
-                "type": "git",
-                "url": "https://github.com/lunarphp/core.git",
-                "reference": "a95151f3145fc4ac8aee110ef27dd546de7534da"
-            },
             "dist": {
-                "type": "zip",
-                "url": "https://api.github.com/repos/lunarphp/core/zipball/a95151f3145fc4ac8aee110ef27dd546de7534da",
-                "reference": "a95151f3145fc4ac8aee110ef27dd546de7534da",
-                "shasum": ""
+                "type": "path",
+                "url": "modules/Lunar",
+                "reference": "8c8f5284a87c2572977017c263756dda85f0821b"
             },
             "require": {
                 "cartalyst/converter": "^9.0|^10",
@@ -4433,17 +4427,16 @@
                 }
             },
             "autoload": {
-                "files": [
-                    "src/helpers.php"
-                ],
                 "psr-4": {
                     "Lunar\\": "src",
-                    "Lunar\\Database\\State\\": "database/state",
+                    "Lunar\\Database\\Factories\\": "database/factories",
                     "Lunar\\Database\\Seeders\\": "database/seeders",
-                    "Lunar\\Database\\Factories\\": "database/factories"
-                }
+                    "Lunar\\Database\\State\\": "database/state"
+                },
+                "files": [
+                    "src/helpers.php"
+                ]
             },
-            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -4453,7 +4446,7 @@
                     "homepage": "https://lunarphp.io/"
                 }
             ],
-            "description": "Lunar Laravel e-commerce core functionality.",
+            "description": "Lunar Laravel e-commerce core functionality (forked local).",
             "keywords": [
                 "cart",
                 "e-commerce",
@@ -4464,16 +4457,10 @@
                 "shop",
                 "store"
             ],
-            "support": {
-                "source": "https://github.com/lunarphp/core/tree/1.3.0"
-            },
-            "funding": [
-                {
-                    "url": "https://github.com/lunar",
-                    "type": "github"
-                }
-            ],
-            "time": "2025-12-11T09:55:15+00:00"
+            "transport-options": {
+                "symlink": true,
+                "relative": true
+            }
         },
         {
             "name": "lunarphp/filament3-2fa",
