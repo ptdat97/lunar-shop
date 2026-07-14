@@ -90,7 +90,7 @@ class ProductService
                     $groups[$optName]['values'][] = [
                         'label' => $valName,
                         'color' => $value->swatch_color,
-                        'image' => $value->swatchImageUrl('thumb'),
+                        'image' => $this->swatchImageUrl($value),
                     ];
                 }
             }
@@ -208,6 +208,17 @@ class ProductService
         return $products
             ->sortBy(fn (Product $p) => $order[$p->id] ?? PHP_INT_MAX)
             ->values();
+    }
+
+    /**
+     * Resolve a swatch image URL using the MediaUrl service (self-healing
+     * conversions, never returns the original full-size image).
+     */
+    protected function swatchImageUrl(\Lunar\Models\ProductOptionValue $value): ?string
+    {
+        $media = $value->getFirstMedia(\Lunar\Models\ProductOptionValue::SWATCH_COLLECTION);
+
+        return $media ? app(\Modules\Assets\Services\MediaUrl::class)->conversion($media, 'small') : null;
     }
 
     /**
