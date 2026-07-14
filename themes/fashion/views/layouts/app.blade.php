@@ -52,6 +52,8 @@
     {{-- Theme CSS/JS (Vite) — includes Bootstrap SCSS from npm --}}
     @vite(['themes/fashion/css/app.scss', 'themes/fashion/js/app.js'])
 
+    @include('theme::partials.pixels')
+
     @stack('head')
 </head>
 <body class="d-flex flex-column min-vh-100 @yield('body_class')">

@@ -20,7 +20,8 @@ use Modules\Theme\Services\ThemeSettings;
 
 /**
  * Admin page to edit theme content shown in the header/footer (logo, topbar,
- * social, contact, payment, copyright). Storefront reads these via $theme.
+ * social, contact, payment, copyright, marketing pixels). Storefront reads
+ * these via $theme.
  */
 class ThemeSettingsPage extends Page implements HasForms
 {
@@ -128,6 +129,19 @@ class ThemeSettingsPage extends Page implements HasForms
                             ->helperText(__('admin.theme.language_switcher_help'))
                             ->default(true),
                     ]),
+
+                Section::make(__('admin.theme.pixels_title'))
+                    ->description(__('admin.theme.pixels_desc'))
+                    ->schema([
+                        TextInput::make('pixels.google')
+                            ->label(__('admin.theme.google_pixel_id'))
+                            ->helperText(__('admin.theme.google_pixel_help'))
+                            ->placeholder('G-XXXXXXXXXX or AW-XXXXXXXXX'),
+                        TextInput::make('pixels.facebook')
+                            ->label(__('admin.theme.facebook_pixel_id'))
+                            ->helperText(__('admin.theme.facebook_pixel_help'))
+                            ->placeholder('XXXXXXXXXXXXXXXX'),
+                    ]),
             ]);
     }
 
@@ -136,7 +150,7 @@ class ThemeSettingsPage extends Page implements HasForms
         $data = $this->form->getState();
         $settings = app(ThemeSettings::class);
 
-        foreach (['general', 'brand', 'topbar', 'social', 'contact', 'newsletter', 'payment', 'language'] as $group) {
+        foreach (['general', 'brand', 'topbar', 'social', 'contact', 'newsletter', 'payment', 'language', 'pixels'] as $group) {
             if (array_key_exists($group, $data)) {
                 $settings->set($group, (array) $data[$group]);
             }

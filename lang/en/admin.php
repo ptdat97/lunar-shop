@@ -349,6 +349,12 @@ return [
         'language_default' => 'Default language',
         'language_switcher' => 'Show language switcher',
         'language_switcher_help' => 'Hidden automatically when only one language is enabled.',
+        'pixels_title' => 'Marketing pixels',
+        'pixels_desc' => 'Google Analytics / Google Ads and Facebook Pixel IDs. Leave blank to disable.',
+        'google_pixel_id' => 'Google pixel ID',
+        'google_pixel_help' => 'e.g. G-XXXXXXXXXX (GA4) or AW-XXXXXXXXX (Google Ads).',
+        'facebook_pixel_id' => 'Facebook pixel ID',
+        'facebook_pixel_help' => 'e.g. XXXXXXXXXXXXXXXX from your Facebook Events Manager.',
     ],
 
     'media' => [

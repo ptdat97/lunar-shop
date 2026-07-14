@@ -204,6 +204,11 @@ class ThemeSettings
                 'show_switcher' => true,
             ],
             'copyright' => '© '.date('Y').' Fashion Store. All Rights Reserved.',
+            // Marketing pixels (Google / Facebook). Leave blank to skip injection.
+            'pixels' => [
+                'google' => '',
+                'facebook' => '',
+            ],
         ];
     }
 }

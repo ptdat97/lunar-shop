@@ -351,6 +351,12 @@ return [
         'language_default' => 'Ngôn ngữ mặc định',
         'language_switcher' => 'Hiển thị nút đổi ngôn ngữ',
         'language_switcher_help' => 'Tự ẩn khi chỉ bật một ngôn ngữ.',
+        'pixels_title' => 'Pixel theo dõi (marketing)',
+        'pixels_desc' => 'ID Google Analytics / Google Ads và Facebook Pixel. Để trống để tắt.',
+        'google_pixel_id' => 'ID Google pixel',
+        'google_pixel_help' => 'VD: G-XXXXXXXXXX (GA4) hoặc AW-XXXXXXXXX (Google Ads).',
+        'facebook_pixel_id' => 'ID Facebook pixel',
+        'facebook_pixel_help' => 'VD: XXXXXXXXXXXXXXXX từ Facebook Events Manager.',
     ],
 
     'media' => [
