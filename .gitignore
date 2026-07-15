@@ -28,3 +28,4 @@ Thumbs.db
 /modave
 /storage/media-library/temp/
 /.env
+!.claude/settings.local.json

@@ -4,33 +4,40 @@ namespace Modules\Catalog\Filament\Resources;
 
 use Filament\Pages\SubNavigationPosition;
 use Lunar\Admin\Filament\Resources\ProductResource as BaseProductResource;
-use Lunar\Admin\Filament\Resources\ProductResource\Pages as LunarPages;
-use Modules\Catalog\Filament\Pages\ManageProductImages;
+use Modules\Catalog\Filament\Pages\ManageProductAvailability;
+use Modules\Catalog\Filament\Pages\ManageProductLogistics;
+use Modules\Catalog\Filament\Pages\ManageProductPricing;
 use Modules\Catalog\Filament\Pages\ManageProductSizing;
 use Modules\Catalog\Filament\Pages\ProductEditor;
+use Modules\Catalog\Filament\Resources\ProductResource\Pages\ListProducts;
 
 /**
  * Swapped in for Lunar's ProductResource (ModulesServiceProvider $swaps).
  *
- * Products are managed on a single-page editor (ProductEditor) instead of
- * Lunar's eleven sub-pages: gallery, pricing, stock, variants matrix, URLs,
- * collections, associations and SEO all live inline. Only "Size & Fit"
- * (size charts + material) remains a separate tab. Advanced per-variant
- * detail (identifiers, price breaks, variant media) stays on the separate
- * ProductVariantResource, which the variants matrix links into.
+ * Products are managed on a compact set of top tabs instead of Lunar's eleven
+ * sub-pages. "Chi tiết" (ProductEditor) inlines the drag-drop gallery, simple
+ * pricing/stock, status, brand/type/tags, collections, associations, URLs and
+ * SEO plus the variants matrix. The remaining Lunar features surface as tabs:
+ * "Kho & Vận chuyển" (identifiers + inventory + shipping), "Giá & Thuế"
+ * (customer-group pricing + price breaks), "Phạm vi bán" (channels + customer
+ * groups) and "Size & Dáng". The logistics/pricing tabs operate on the single
+ * variant and hide once a product has real variants — those are then edited
+ * per-variant on the ProductVariantResource, which the matrix links into.
  */
 class ProductResource extends BaseProductResource
 {
-    // "Chi tiết" / "Size & Dáng" as top tabs instead of a right-hand rail —
-    // frees the full width for the editor's two-column layout.
+    // Top tabs instead of a right-hand rail — frees the full width for the
+    // editor's two-column layout.
     protected static SubNavigationPosition $subNavigationPosition = SubNavigationPosition::Top;
 
     public static function getDefaultPages(): array
     {
         return [
-            'index' => LunarPages\ListProducts::route('/'),
+            'index' => ListProducts::route('/'),
             'edit' => ProductEditor::route('/{record}/edit'),
-            'images' => ManageProductImages::route('/{record}/images'),
+            'logistics' => ManageProductLogistics::route('/{record}/logistics'),
+            'pricing' => ManageProductPricing::route('/{record}/pricing'),
+            'availability' => ManageProductAvailability::route('/{record}/availability'),
             'sizing' => ManageProductSizing::route('/{record}/sizing'),
         ];
     }
@@ -39,7 +46,9 @@ class ProductResource extends BaseProductResource
     {
         return [
             ProductEditor::class,
-            ManageProductImages::class,
+            ManageProductLogistics::class,
+            ManageProductPricing::class,
+            ManageProductAvailability::class,
             ManageProductSizing::class,
         ];
     }

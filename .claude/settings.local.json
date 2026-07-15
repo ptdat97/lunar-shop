@@ -1,6 +1,5 @@
 {
   "permissions": {
-    "defaultMode": "bypassPermissions",
     "allow": [
       "Bash",
       "Read",
@@ -22,8 +21,9 @@
       "Docker",
       "Git",
       "Python",
-      "Node"
-    ],
-    "deny": []
+      "Node",
+      "Skill(run)",
+      "Skill(run:*)"
+    ]
   }
 }

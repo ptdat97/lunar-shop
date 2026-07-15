@@ -5,31 +5,30 @@ namespace Modules\Catalog\Filament\Widgets;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Livewire\WithFileUploads;
 use Lunar\Admin\Events\ProductVariantOptionsUpdated;
 use Lunar\Admin\Filament\Resources\ProductResource\Widgets\ProductOptionsWidget;
-use Lunar\Facades\DB;
 use Lunar\Models\Asset;
 use Lunar\Models\Contracts\ProductOption as ProductOptionContract;
 use Lunar\Models\Contracts\ProductOptionValue as ProductOptionValueContract;
-use Lunar\Models\Contracts\ProductVariant as ProductVariantContract;
-use Lunar\Models\Currency;
 use Lunar\Models\Language;
 use Lunar\Models\ProductOption;
 use Lunar\Models\ProductOptionValue;
-use Lunar\Models\ProductVariant;
-use Lunar\Models\TaxClass;
 use Modules\Assets\Filament\Forms\MediaPicker;
+use Modules\Catalog\Services\Admin\ProductVariantWriter;
 
 /**
- * Simplified variant builder: exactly two global options — Size and Color —
- * instead of Lunar's free-form option designer. Sizes are toggle chips; each
- * color carries a hex swatch (stored in ProductOptionValue meta.swatch) and an
- * optional swatch image (media collection 'swatch') for the storefront.
+ * Fashion variant builder over Lunar's option designer. Two options are seeded
+ * globally (Size and Color) and the user can add further shared options; the
+ * option whose handle is `colorHandle()` carries a hex swatch (stored in
+ * ProductOptionValue meta.swatch) plus an optional swatch image (media
+ * collection 'swatch') for the storefront, while every other option is a plain
+ * name + value list.
  *
- * The parent widget's save pipeline (permutation mapping, variant create /
- * copy / delete, price + option syncing) is reused untouched; only the option
- * configuration UI and value persistence are replaced.
+ * This widget owns the option-configuration UI and value/option persistence;
+ * the permutation matrix is written by ProductVariantWriter (kept out of the
+ * Filament layer). The parent's permutation mapping is reused untouched.
  */
 class SimpleVariantsWidget extends ProductOptionsWidget
 {
@@ -43,9 +42,16 @@ class SimpleVariantsWidget extends ProductOptionsWidget
     /** Set by the save action so after() doesn't run on validation failure. */
     protected bool $saveSucceeded = false;
 
-    public string $newSize = '';
+    /** Pending "add value" text per option, keyed by option index. */
+    public array $newValues = [];
 
-    public string $newColor = '';
+    /** Pending "add option" name for the shared-option creator. */
+    public string $newOption = '';
+
+    /** "Apply to all" bulk-fill inputs for the variants table. */
+    public string $bulkPrice = '';
+
+    public string $bulkStock = '';
 
     /** Handle of the global Size option (lunar.products config, forked core). */
     public static function sizeHandle(): string
@@ -53,7 +59,10 @@ class SimpleVariantsWidget extends ProductOptionsWidget
         return config('lunar.products.options.size_handle', 'size');
     }
 
-    /** Handle of the global Color option (lunar.products config, forked core). */
+    /**
+     * Handle of the Color option — the only option that carries swatches (hex +
+     * image). Other options (Size and any the user creates) are plain.
+     */
     public static function colorHandle(): string
     {
         return config('lunar.products.options.color_handle', 'color');
@@ -69,9 +78,11 @@ class SimpleVariantsWidget extends ProductOptionsWidget
     }
 
     /**
-     * The Size/Color options are global: find-or-create them and force
-     * shared=true so the parent's "no variants left" branch detaches them
-     * from the product instead of deleting them for everyone.
+     * Size and Color are seeded as global shared options so every product
+     * starts with the two most common axes. shared=true also means the
+     * parent's "no variants left" branch detaches them from the product
+     * instead of deleting them for everyone. Users can add further shared
+     * options (Material, Style, …) via the "add option" control.
      */
     protected function ensureGlobalOptions(): void
     {
@@ -94,15 +105,33 @@ class SimpleVariantsWidget extends ProductOptionsWidget
     }
 
     /**
-     * configureBaseOptions() only sees options attached to the product, and —
-     * when none of a pool's values are used by this product's variants — it
-     * returns the option with an empty value list. Merge the full global
-     * Size/Color pools in (missing values disabled) and pin Size before Color.
+     * configureBaseOptions() only sees options whose values this product's
+     * variants actually use, and drops the rest. For every shared option
+     * (Size, Color and any the user added) we want the full value pool
+     * available as toggles, so: always surface the two seed options, plus any
+     * shared option already attached to the product, then merge each option's
+     * missing pool values in (disabled). Size/Color are pinned first; the rest
+     * keep their pivot position.
      */
     protected function injectPoolOptions(): void
     {
-        foreach ([static::sizeHandle(), static::colorHandle()] as $handle) {
+        // Handles to guarantee a row for: the two seeds + every shared option
+        // already configured on this product.
+        $handles = collect([static::sizeHandle(), static::colorHandle()])
+            ->concat(
+                collect($this->configuredOptions)
+                    ->pluck('handle')
+                    ->filter()
+            )
+            ->unique()
+            ->values();
+
+        foreach ($handles as $handle) {
             $option = ProductOption::with('values')->where('handle', $handle)->first();
+
+            if (! $option) {
+                continue;
+            }
 
             $index = collect($this->configuredOptions)->search(
                 fn ($configured) => ($configured['handle'] ?? null) === $handle
@@ -128,12 +157,19 @@ class SimpleVariantsWidget extends ProductOptionsWidget
                 ->toArray();
         }
 
+        // Size, then Color, then everything else by attach order.
         $order = [static::sizeHandle() => 0, static::colorHandle() => 1];
 
         $this->configuredOptions = collect($this->configuredOptions)
-            ->sortBy(fn ($option) => $order[$option['handle']] ?? 99)
+            ->sortBy(fn ($option) => $order[$option['handle'] ?? ''] ?? 99)
             ->values()
             ->toArray();
+    }
+
+    /** True when this option carries swatches (hex + image) — only Color. */
+    protected function isColorOption(array $option): bool
+    {
+        return ($option['handle'] ?? null) === static::colorHandle();
     }
 
     protected function mapOption(ProductOptionContract $option, array $values = []): array
@@ -236,16 +272,84 @@ class SimpleVariantsWidget extends ProductOptionsWidget
         $this->mapVariantPermutations();
     }
 
-    public function addSize(): void
+    /** Add a value to the option at $optionIndex from its pending input. */
+    public function addValueToOption(int $optionIndex): void
     {
-        $this->addPoolValue(static::sizeHandle(), $this->newSize);
-        $this->newSize = '';
+        $handle = $this->configuredOptions[$optionIndex]['handle'] ?? null;
+        $name = trim($this->newValues[$optionIndex] ?? '');
+
+        if (! $handle || $name === '') {
+            return;
+        }
+
+        $this->addPoolValue($handle, $name);
+        $this->newValues[$optionIndex] = '';
     }
 
-    public function addColor(): void
+    /**
+     * Create a new shared option (Material, Style, …) from a free-text name and
+     * attach it to the builder. Shared so it can be reused across products,
+     * matching how Size/Color work. A brand-new option starts with no values —
+     * the user adds them inline. Handle is a slug of the name; an existing
+     * option with that handle is reused instead of duplicated.
+     */
+    public function addOption(): void
     {
-        $this->addPoolValue(static::colorHandle(), $this->newColor);
-        $this->newColor = '';
+        $name = trim($this->newOption);
+
+        if ($name === '') {
+            return;
+        }
+
+        $handle = Str::slug($name);
+
+        if ($handle === '') {
+            return;
+        }
+
+        // Already on the builder? Ignore.
+        $exists = collect($this->configuredOptions)->contains(
+            fn ($option) => ($option['handle'] ?? null) === $handle
+        );
+
+        if ($exists) {
+            $this->newOption = '';
+
+            return;
+        }
+
+        $language = Language::getDefault();
+
+        $option = ProductOption::with('values')->firstOrCreate(['handle' => $handle], [
+            'name' => [$language->code => $name],
+            'label' => [$language->code => $name],
+            'shared' => true,
+        ]);
+
+        if (! $option->shared) {
+            $option->update(['shared' => true]);
+        }
+
+        $this->configuredOptions[] = $this->mapOption(
+            $option,
+            $option->values->map(fn ($value) => $this->mapOptionValue($value, false))->toArray()
+        );
+
+        $this->newOption = '';
+        $this->mapVariantPermutations();
+    }
+
+    /**
+     * Drop an option from this product's builder. Shared options (including the
+     * two seeds and any created here) stay in the database for other products;
+     * this only detaches by removing the row — the sync on save reflects it.
+     */
+    public function removeOptionFromProduct(int $optionIndex): void
+    {
+        unset($this->configuredOptions[$optionIndex]);
+        $this->configuredOptions = array_values($this->configuredOptions);
+
+        $this->mapVariantPermutations();
     }
 
     /**
@@ -288,17 +392,20 @@ class SimpleVariantsWidget extends ProductOptionsWidget
      */
     public function updated($name): void
     {
-        if (preg_match('/^configuredOptions\.\d+\.option_values\.\d+\.(value|enabled)$/', $name)) {
+        // Rebuild the permutation table when a value name/toggle OR an option
+        // name changes — the table rows are keyed by option/value names.
+        if (preg_match('/^configuredOptions\.\d+\.(value|option_values\.\d+\.(value|enabled))$/', $name)) {
             $this->mapVariantPermutations();
         }
     }
 
     /**
-     * Replaces the parent implementation: the two options already exist
-     * globally and must never be renamed/recreated per product. Values are
-     * created when new, renamed in the default language when edited, and
-     * empty/no-value options are dropped the way updateConfiguredOptions()
-     * would have done.
+     * Persist options and their values. Options are normally shared and already
+     * exist (Size/Color seeds, plus ones created via addOption()); if one has no
+     * id yet it is created as a shared option (name/label/handle from its
+     * free-text name) before its values are written. Values are created when new
+     * and renamed in the default language when edited; empty/no-value options
+     * are dropped the way the parent's updateConfiguredOptions() would.
      */
     protected function storeConfiguredOptions(): void
     {
@@ -318,6 +425,22 @@ class SimpleVariantsWidget extends ProductOptionsWidget
             ->toArray();
 
         foreach ($this->configuredOptions as $optionIndex => $option) {
+            // Materialise an option that doesn't exist yet (shared).
+            if (empty($option['id'])) {
+                $name = trim((string) ($option['value'] ?? ''));
+                $handle = Str::slug($name) ?: 'option-'.($optionIndex + 1);
+
+                $optionModel = ProductOption::firstOrCreate(['handle' => $handle], [
+                    'name' => [$language->code => $name],
+                    'label' => [$language->code => $name],
+                    'shared' => true,
+                ]);
+
+                $option['id'] = $optionModel->id;
+                $this->configuredOptions[$optionIndex]['id'] = $optionModel->id;
+                $this->configuredOptions[$optionIndex]['handle'] = $optionModel->handle;
+            }
+
             foreach ($option['option_values'] as $valueIndex => $value) {
                 $model = empty($value['id'])
                     ? new ProductOptionValue(['product_option_id' => $option['id']])
@@ -336,6 +459,70 @@ class SimpleVariantsWidget extends ProductOptionsWidget
     }
 
     /**
+     * Validate the permutation table before save. Returns the first error
+     * message, or null when every row is fine: SKU must be present, SKUs must
+     * be unique across rows (the DB column isn't unique, so a clash would
+     * silently ship two variants sharing a SKU), and price must be a
+     * non-negative number.
+     */
+    protected function validateVariants(): ?string
+    {
+        $seen = [];
+
+        foreach ($this->variants as $variant) {
+            $sku = trim((string) ($variant['sku'] ?? ''));
+
+            if ($sku === '') {
+                return __('admin.variants.sku_required');
+            }
+
+            $key = mb_strtolower($sku);
+
+            if (isset($seen[$key])) {
+                return __('admin.variants.sku_duplicate', ['sku' => $sku]);
+            }
+
+            $seen[$key] = true;
+
+            $price = str_replace(',', '', (string) ($variant['price'] ?? ''));
+
+            if ($price !== '' && (! is_numeric($price) || (float) $price < 0)) {
+                return __('admin.variants.price_invalid');
+            }
+        }
+
+        return null;
+    }
+
+    /** Copy the bulk price into every variant row (blank clears the input). */
+    public function applyBulkPrice(): void
+    {
+        if (trim($this->bulkPrice) === '') {
+            return;
+        }
+
+        foreach (array_keys($this->variants) as $index) {
+            $this->variants[$index]['price'] = $this->bulkPrice;
+        }
+
+        $this->bulkPrice = '';
+    }
+
+    /** Copy the bulk stock into every variant row. */
+    public function applyBulkStock(): void
+    {
+        if (trim($this->bulkStock) === '') {
+            return;
+        }
+
+        foreach (array_keys($this->variants) as $index) {
+            $this->variants[$index]['stock'] = (int) $this->bulkStock;
+        }
+
+        $this->bulkStock = '';
+    }
+
+    /**
      * Same pipeline as the parent action, with two fixes the stock widget
      * trips over on this catalog: brand-new variants (product had none to
      * copy from) need a tax class, and a missing base price is created
@@ -348,127 +535,26 @@ class SimpleVariantsWidget extends ProductOptionsWidget
             ->action(function () {
                 $this->saveSucceeded = false;
 
-                $missingSku = collect($this->variants)->contains(
-                    fn ($variant) => trim((string) ($variant['sku'] ?? '')) === ''
-                );
-
-                if ($missingSku) {
-                    Notification::make()
-                        ->title(__('admin.variants.sku_required'))
-                        ->danger()
-                        ->send();
+                if ($error = $this->validateVariants()) {
+                    Notification::make()->title($error)->danger()->send();
 
                     return;
                 }
 
-                DB::beginTransaction();
-
+                // Persist options first (back-fills ids into $configuredOptions),
+                // then hand the pure DB write to the service, resolving each
+                // permutation's option-value ids up front.
                 $this->storeConfiguredOptions();
 
-                if (! count($this->variants)) {
-                    $variant = $this->record->variants()->first();
-                    $variant?->values()->detach();
+                $variants = collect($this->variants)
+                    ->map(fn ($row) => [
+                        ...$row,
+                        'value_ids' => $this->mapOptionValuesToIds($row['values']),
+                    ])
+                    ->all();
 
-                    $this->record->productOptions()->exclusive()->each(
-                        fn (ProductOptionContract $productOption) => $productOption->delete()
-                    );
-
-                    $this->record->productOptions()->shared()->detach();
-
-                    if ($variant) {
-                        $this->record->variants()
-                            ->where('id', '!=', $variant->id)
-                            ->get()
-                            ->each(
-                                fn (ProductVariantContract $other) => $other->delete()
-                            );
-                    }
-
-                    DB::commit();
-
-                    $this->saveSucceeded = true;
-
-                    Notification::make()->title(
-                        __('lunarpanel::productoption.widgets.product-options.notifications.save-variants.success.title')
-                    )->success()->send();
-
-                    return;
-                }
-
-                $currency = Currency::getDefault();
-
-                foreach ($this->variants as $variantIndex => $variantData) {
-                    $variant = new ProductVariant([
-                        'product_id' => $this->record->id,
-                        'tax_class_id' => TaxClass::getDefault()->id,
-                    ]);
-                    $basePrice = null;
-
-                    if (! empty($variantData['variant_id'])) {
-                        $variant = ProductVariant::find($variantData['variant_id']);
-                        $basePrice = $variant->basePrices->first();
-                    }
-
-                    if (! empty($variantData['copied_id'])) {
-                        $copiedVariant = ProductVariant::find(
-                            $variantData['copied_id']
-                        );
-
-                        $variant = $copiedVariant->replicate();
-                        $variant->save();
-
-                        $copiedPrice = $copiedVariant->basePrices->first();
-
-                        if ($copiedPrice) {
-                            $basePrice = $copiedPrice->replicate();
-                            $basePrice->priceable_id = $variant->id;
-                        }
-                    }
-
-                    $variant->sku = $variantData['sku'];
-                    $variant->stock = (int) $variantData['stock'];
-                    $variant->save();
-
-                    if (! $basePrice) {
-                        $basePrice = $variant->prices()->make([
-                            'min_quantity' => 1,
-                            'currency_id' => $currency->id,
-                        ]);
-                    }
-
-                    $basePrice->price = (int) bcmul(
-                        (string) ((float) $variantData['price']),
-                        (string) $basePrice->currency->factor
-                    );
-                    $basePrice->save();
-
-                    $optionsValues = $this->mapOptionValuesToIds($variantData['values']);
-
-                    $variant->values()->sync($optionsValues);
-
-                    $this->variants[$variantIndex]['variant_id'] = $variant->id;
-                }
-
-                $productOptions = collect($this->configuredOptions)
-                    ->mapWithKeys(function ($option) {
-                        return [
-                            $option['id'] => [
-                                'position' => $option['position'],
-                            ],
-                        ];
-                    });
-
-                $this->record->productOptions()->sync($productOptions);
-
-                $variantIds = collect($this->variants)->pluck('variant_id');
-
-                $this->record->variants()->whereNotIn('id', $variantIds)
-                    ->get()
-                    ->each(
-                        fn ($variant) => $variant->delete()
-                    );
-
-                DB::commit();
+                $this->variants = app(ProductVariantWriter::class)
+                    ->save($this->record, $variants, $this->configuredOptions);
 
                 $this->saveSucceeded = true;
 

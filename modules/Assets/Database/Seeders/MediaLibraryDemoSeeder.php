@@ -4,7 +4,7 @@ namespace Modules\Assets\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Lunar\Models\Asset;
-use Modules\Assets\Services\FileManager;
+use Modules\Assets\Services\MediaLibraryService;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -18,7 +18,7 @@ class MediaLibraryDemoSeeder extends Seeder
 {
     public function run(): void
     {
-        $manager = app(FileManager::class);
+        $manager = app(MediaLibraryService::class);
 
         foreach ($this->files() as $entry) {
             [$relative, $folder, $name, $alt] = $entry;

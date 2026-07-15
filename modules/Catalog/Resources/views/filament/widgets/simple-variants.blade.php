@@ -12,60 +12,20 @@
         </p>
       </div>
 
+      @php
+        $sizeHandle = \Modules\Catalog\Filament\Widgets\SimpleVariantsWidget::sizeHandle();
+        $colorHandle = \Modules\Catalog\Filament\Widgets\SimpleVariantsWidget::colorHandle();
+        $seedHandles = [$sizeHandle, $colorHandle];
+      @endphp
+
       <div class="divide-y divide-gray-200 dark:divide-white/10">
         @foreach($this->configuredOptions as $optionIndex => $option)
+          @php($handle = $option['handle'] ?? null)
+          @php($isSeed = in_array($handle, $seedHandles, true))
 
-          @if(($option['handle'] ?? null) === \Modules\Catalog\Filament\Widgets\SimpleVariantsWidget::sizeHandle())
-            {{-- ============ SIZE: toggle chips ============ --}}
-            <div class="p-4 sm:px-6 space-y-3" wire:key="option_size">
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-200">
-                {{ __('admin.variants.size_label') }}
-              </span>
-
-              <div class="flex flex-wrap items-center gap-2">
-                @foreach($option['option_values'] as $valueIndex => $value)
-                  <span class="inline-flex items-stretch" wire:key="size_{{ $valueIndex }}">
-                    <button type="button"
-                        wire:click="toggleOptionValue({{ $optionIndex }}, {{ $valueIndex }})"
-                        @class([
-                          'px-3 py-1.5 text-sm font-medium transition rounded-lg',
-                          'rounded-e-none' => empty($value['id']),
-                          'bg-primary-600 text-white shadow-sm' => $value['enabled'],
-                          'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/20' => ! $value['enabled'],
-                        ])>
-                      {{ $value['value'] }}
-                    </button>
-                    @if(empty($value['id']))
-                      {{-- unsaved value: can still be discarded --}}
-                      <button type="button"
-                          wire:click="removeUnsavedValue({{ $optionIndex }}, {{ $valueIndex }})"
-                          class="rounded-e-lg bg-gray-200 px-1.5 text-gray-500 hover:bg-danger-100 hover:text-danger-600 dark:bg-white/20 dark:text-gray-300"
-                          title="{{ __('admin.variants.delete') }}">
-                        &times;
-                      </button>
-                    @endif
-                  </span>
-                @endforeach
-
-                <div class="flex items-center gap-1">
-                  <x-filament::input.wrapper class="!w-32">
-                    <x-filament::input
-                        type="text"
-                        wire:model="newSize"
-                        wire:keydown.enter.prevent="addSize"
-                        placeholder="{{ __('admin.variants.add_size_placeholder') }}"
-                    />
-                  </x-filament::input.wrapper>
-                  <x-filament::button color="gray" size="sm" type="button" wire:click="addSize">
-                    {{ __('admin.variants.add') }}
-                  </x-filament::button>
-                </div>
-              </div>
-            </div>
-
-          @elseif(($option['handle'] ?? null) === \Modules\Catalog\Filament\Widgets\SimpleVariantsWidget::colorHandle())
+          @if($handle === $colorHandle)
             {{-- ============ COLOR: name + hex picker + swatch image ============ --}}
-            <div class="p-4 sm:px-6 space-y-3" wire:key="option_color">
+            <div class="p-4 sm:px-6 space-y-3" wire:key="option_{{ $optionIndex }}_color">
               <div class="grid gap-y-1">
                 <span class="text-sm font-medium text-gray-700 dark:text-gray-200">
                   {{ __('admin.variants.color_label') }}
@@ -149,12 +109,12 @@
                   <x-filament::input.wrapper class="!w-40">
                     <x-filament::input
                         type="text"
-                        wire:model="newColor"
-                        wire:keydown.enter.prevent="addColor"
+                        wire:model="newValues.{{ $optionIndex }}"
+                        wire:keydown.enter.prevent="addValueToOption({{ $optionIndex }})"
                         placeholder="{{ __('admin.variants.add_color_placeholder') }}"
                     />
                   </x-filament::input.wrapper>
-                  <x-filament::button color="gray" size="sm" type="button" wire:click="addColor">
+                  <x-filament::button color="gray" size="sm" type="button" wire:click="addValueToOption({{ $optionIndex }})">
                     {{ __('admin.variants.add') }}
                   </x-filament::button>
                 </div>
@@ -162,23 +122,127 @@
             </div>
 
           @else
-            {{-- legacy/unknown option: preserved untouched on save --}}
-            <div class="p-4 sm:px-6 text-sm text-gray-500 dark:text-gray-400" wire:key="option_other_{{ $optionIndex }}">
-              {{ __('admin.variants.other_option_kept', ['name' => $option['value']]) }}:
-              {{ collect($option['option_values'])->where('enabled', true)->pluck('value')->join(', ') }}
+            {{-- ============ PLAIN option (Size + any custom): toggle chips ============ --}}
+            <div class="p-4 sm:px-6 space-y-3" wire:key="option_{{ $optionIndex }}_plain">
+              <div class="flex items-center justify-between gap-2">
+                @if($isSeed)
+                  <span class="text-sm font-medium text-gray-700 dark:text-gray-200">
+                    {{ $handle === $sizeHandle ? __('admin.variants.size_label') : $option['value'] }}
+                  </span>
+                @else
+                  {{-- custom option: name is editable, and the whole option can be removed --}}
+                  <x-filament::input.wrapper class="!w-48">
+                    <x-filament::input
+                        type="text"
+                        wire:model.blur="configuredOptions.{{ $optionIndex }}.value"
+                        placeholder="{{ __('admin.variants.option_name_placeholder') }}"
+                    />
+                  </x-filament::input.wrapper>
+                  <button type="button"
+                      wire:click="removeOptionFromProduct({{ $optionIndex }})"
+                      class="text-sm font-semibold text-danger-600 hover:underline">
+                    {{ __('admin.variants.remove_option') }}
+                  </button>
+                @endif
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2">
+                @foreach($option['option_values'] as $valueIndex => $value)
+                  <span class="inline-flex items-stretch" wire:key="val_{{ $optionIndex }}_{{ $valueIndex }}">
+                    <button type="button"
+                        wire:click="toggleOptionValue({{ $optionIndex }}, {{ $valueIndex }})"
+                        @class([
+                          'px-3 py-1.5 text-sm font-medium transition rounded-lg',
+                          'rounded-e-none' => empty($value['id']),
+                          'bg-primary-600 text-white shadow-sm' => $value['enabled'],
+                          'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-white/10 dark:text-gray-300 dark:hover:bg-white/20' => ! $value['enabled'],
+                        ])>
+                      {{ $value['value'] }}
+                    </button>
+                    @if(empty($value['id']))
+                      {{-- unsaved value: can still be discarded --}}
+                      <button type="button"
+                          wire:click="removeUnsavedValue({{ $optionIndex }}, {{ $valueIndex }})"
+                          class="rounded-e-lg bg-gray-200 px-1.5 text-gray-500 hover:bg-danger-100 hover:text-danger-600 dark:bg-white/20 dark:text-gray-300"
+                          title="{{ __('admin.variants.delete') }}">
+                        &times;
+                      </button>
+                    @endif
+                  </span>
+                @endforeach
+
+                <div class="flex items-center gap-1">
+                  <x-filament::input.wrapper class="!w-32">
+                    <x-filament::input
+                        type="text"
+                        wire:model="newValues.{{ $optionIndex }}"
+                        wire:keydown.enter.prevent="addValueToOption({{ $optionIndex }})"
+                        placeholder="{{ $handle === $sizeHandle ? __('admin.variants.add_size_placeholder') : __('admin.variants.add_value_placeholder') }}"
+                    />
+                  </x-filament::input.wrapper>
+                  <x-filament::button color="gray" size="sm" type="button" wire:click="addValueToOption({{ $optionIndex }})">
+                    {{ __('admin.variants.add') }}
+                  </x-filament::button>
+                </div>
+              </div>
             </div>
           @endif
 
         @endforeach
+
+        {{-- ============ Add a new (shared) option ============ --}}
+        <div class="p-4 sm:px-6" wire:key="add_option">
+          <div class="flex items-center gap-1">
+            <x-filament::input.wrapper class="!w-48">
+              <x-filament::input
+                  type="text"
+                  wire:model="newOption"
+                  wire:keydown.enter.prevent="addOption"
+                  placeholder="{{ __('admin.variants.add_option_placeholder') }}"
+              />
+            </x-filament::input.wrapper>
+            <x-filament::button color="gray" size="sm" type="button" icon="heroicon-m-plus" wire:click="addOption">
+              {{ __('admin.variants.add_option') }}
+            </x-filament::button>
+          </div>
+        </div>
       </div>
     </div>
 
     {{-- ============ Permutation table (same as stock widget) ============ --}}
     <div class="overflow-hidden rounded-xl bg-white shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">
-      <div class="fi-ta-header flex flex-col gap-3 p-4 sm:px-6">
+      <div class="fi-ta-header flex flex-col gap-3 p-4 sm:px-6 sm:flex-row sm:items-center sm:justify-between">
         <h3 class="text-base font-semibold leading-6 text-gray-950 dark:text-white">
           {{ __('admin.variants.variants_title') }}
         </h3>
+
+        {{-- Bulk-fill: apply one price / stock to every variant row at once. --}}
+        @if(count($this->variants) > 1)
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="flex items-center gap-1">
+              <x-filament::input.wrapper class="!w-32">
+                <x-filament::input type="number" step="any" min="0"
+                    wire:model="bulkPrice"
+                    wire:keydown.enter.prevent="applyBulkPrice"
+                    placeholder="{{ __('admin.variants.bulk_price_placeholder') }}" />
+              </x-filament::input.wrapper>
+              <x-filament::button color="gray" size="sm" type="button" wire:click="applyBulkPrice">
+                {{ __('admin.variants.bulk_apply') }}
+              </x-filament::button>
+            </div>
+            <div class="flex items-center gap-1">
+              <x-filament::input.wrapper class="!w-32">
+                <x-filament::input type="number" step="1" min="0"
+                    wire:model="bulkStock"
+                    wire:keydown.enter.prevent="applyBulkStock"
+                    placeholder="{{ __('admin.variants.bulk_stock_placeholder') }}" />
+              </x-filament::input.wrapper>
+              <x-filament::button color="gray" size="sm" type="button" wire:click="applyBulkStock">
+                {{ __('admin.variants.bulk_apply') }}
+              </x-filament::button>
+            </div>
+          </div>
+        @endif
       </div>
       <div class="fi-ta-content divide-y divide-gray-200 overflow-x-auto dark:divide-white/10 dark:border-t-white/10">
         @if(count($this->variants))
@@ -234,14 +298,14 @@
                   <x-filament-tables::cell class="w-32">
                     <div class="grid w-full gap-y-1 px-3 py-4">
                       <x-filament::input.wrapper>
-                        <x-filament::input type="text" wire:model="variants.{{ $permutationIndex }}.price" />
+                        <x-filament::input type="number" step="any" min="0" wire:model="variants.{{ $permutationIndex }}.price" />
                       </x-filament::input.wrapper>
                     </div>
                   </x-filament-tables::cell>
                   <x-filament-tables::cell class="w-32">
                     <div class="grid w-full gap-y-1 px-3 py-4">
                       <x-filament::input.wrapper>
-                        <x-filament::input type="text" wire:model="variants.{{ $permutationIndex }}.stock" />
+                        <x-filament::input type="number" step="1" min="0" wire:model="variants.{{ $permutationIndex }}.stock" />
                       </x-filament::input.wrapper>
                     </div>
                   </x-filament-tables::cell>

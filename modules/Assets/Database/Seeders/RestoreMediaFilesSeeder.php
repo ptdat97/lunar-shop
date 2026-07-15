@@ -82,7 +82,7 @@ class RestoreMediaFilesSeeder extends Seeder
      * Demo images keyed by every filename form the media table may hold.
      *
      * Product seeders attach the raw basename ("VNQ00498 copy.jpg"), while
-     * FileManager slugs it ("vnq00498-copy.jpg"), and some rows carry the
+     * MediaLibraryService slugs it ("vnq00498-copy.jpg"), and some rows carry the
      * space-to-hyphen form ("VNQ00498-copy.jpg"). Key all three at the source.
      *
      * @return array<string, string> filename => absolute path

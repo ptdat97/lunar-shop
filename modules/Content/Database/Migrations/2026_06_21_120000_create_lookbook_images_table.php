@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('lookbook_id')->constrained()->cascadeOnDelete();
             // Holds a Lunar Asset id (same convention as lookbooks.cover_image),
-            // resolved to a URL via FileManager::url().
+            // resolved to a URL via MediaLibraryService::url().
             $table->string('image');
             $table->string('caption')->nullable();
             $table->integer('sort')->default(0);

@@ -13,14 +13,14 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Livewire\WithFileUploads;
 use Lunar\Models\Asset;
-use Modules\Assets\Services\FileManager;
+use Modules\Assets\Services\MediaLibraryService;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * Gallery-style media library built on Lunar Assets + Spatie MediaLibrary.
  * Upload images/videos/documents, browse them as a thumbnail grid, edit
  * metadata (name/alt/title/folder), replace files, filter and bulk-delete.
- * Storage logic is delegated to the FileManager service.
+ * Storage logic is delegated to the MediaLibraryService.
  */
 class MediaLibrary extends Page implements HasForms
 {
@@ -139,7 +139,7 @@ class MediaLibrary extends Page implements HasForms
             return;
         }
 
-        $manager = $this->manager();
+        $manager = $this->library();
         $folder = $state['folder'] ?? null;
         $count = 0;
 
@@ -190,7 +190,7 @@ class MediaLibrary extends Page implements HasForms
         ]);
 
         $asset = Asset::findOrFail($this->editingId);
-        $manager = $this->manager();
+        $manager = $this->library();
 
         // Replace the binary first (keeps the same Asset id / references).
         if ($this->replaceUpload instanceof UploadedFile) {
@@ -218,7 +218,7 @@ class MediaLibrary extends Page implements HasForms
         $asset = Asset::find($id);
 
         if ($asset) {
-            $this->manager()->delete($asset);
+            $this->library()->delete($asset);
             $this->selected = array_values(array_diff($this->selected, [$id]));
             Notification::make()->title(__('admin.media.file_deleted'))->success()->send();
         }
@@ -235,7 +235,7 @@ class MediaLibrary extends Page implements HasForms
             return;
         }
 
-        $manager = $this->manager();
+        $manager = $this->library();
         $assets = Asset::whereIn('id', $this->selected)->get();
 
         foreach ($assets as $asset) {
@@ -299,8 +299,8 @@ class MediaLibrary extends Page implements HasForms
             ->all();
     }
 
-    protected function manager(): FileManager
+    protected function library(): MediaLibraryService
     {
-        return app(FileManager::class);
+        return app(MediaLibraryService::class);
     }
 }

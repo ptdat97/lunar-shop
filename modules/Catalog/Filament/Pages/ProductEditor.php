@@ -8,6 +8,7 @@ use Filament\Forms\Form;
 use Filament\Support\Facades\FilamentIcon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Str;
 use Lunar\Admin\Support\Forms\Components\Attributes;
 use Lunar\Admin\Support\Forms\Components\Tags as TagsComponent;
 use Lunar\Admin\Support\Pages\BaseEditRecord;
@@ -59,6 +60,17 @@ class ProductEditor extends BaseEditRecord
         return FilamentIcon::resolve('lunar::basic-information');
     }
 
+    /** Variant count on the tab, so a many-variant product reads at a glance. */
+    public static function getNavigationBadge(): ?string
+    {
+        $record = request()->route('record');
+        $product = $record instanceof Product ? $record : Product::find($record);
+
+        $count = $product?->variants()->count() ?? 0;
+
+        return $count > 1 ? (string) $count : null;
+    }
+
     public function form(Form $form): Form
     {
         $currency = Currency::getDefault();
@@ -82,6 +94,15 @@ class ProductEditor extends BaseEditRecord
                                         table: (new ProductVariant)->getTable(),
                                         column: 'sku',
                                         ignorable: fn (Model $record) => $record->variants->first(),
+                                    )
+                                    // One-click SKU suggested from the product name.
+                                    ->suffixAction(
+                                        Forms\Components\Actions\Action::make('suggestSku')
+                                            ->icon('heroicon-m-sparkles')
+                                            ->tooltip(__('admin.editor.suggest_sku'))
+                                            ->action(function (Forms\Set $set, Model $record) {
+                                                $set('sku', static::suggestSku($record));
+                                            })
                                     ),
                                 Forms\Components\TextInput::make('price')
                                     ->label(__('admin.variants.price'))
@@ -95,6 +116,25 @@ class ProductEditor extends BaseEditRecord
                                     ->default(0),
                             ])
                             ->visible(fn (?Model $record) => $record && $record->variants()->count() === 1),
+
+                        // Drag-drop gallery inline on the details tab. First
+                        // image becomes the product's primary thumbnail
+                        // (normalised after save via ProductEditorService).
+                        Forms\Components\Section::make(__('admin.editor.gallery'))
+                            ->description(__('admin.editor.gallery_hint'))
+                            ->icon(FilamentIcon::resolve('lunar::media') ?? 'heroicon-o-photo')
+                            ->schema([
+                                Forms\Components\SpatieMediaLibraryFileUpload::make('gallery')
+                                    ->hiddenLabel()
+                                    ->collection(config('lunar.media.collection', 'images'))
+                                    ->image()
+                                    ->multiple()
+                                    ->reorderable()
+                                    ->appendFiles()
+                                    ->maxFiles(24)
+                                    ->panelLayout('grid')
+                                    ->columnSpanFull(),
+                            ]),
 
                         // Variant-level attributes for option-less products
                         // (mirrors Lunar's stock edit page behaviour).
@@ -152,8 +192,12 @@ class ProductEditor extends BaseEditRecord
                                     ->bulkToggleable(),
                             ]),
 
+                        // Rarely-touched sections stay collapsed so the right
+                        // rail leads with Status / Organisation / Collections.
                         Forms\Components\Section::make(__('admin.editor.related'))
                             ->description(__('admin.editor.related_hint'))
+                            ->collapsible()
+                            ->collapsed()
                             ->schema([
                                 Forms\Components\Select::make('related_ids')
                                     ->hiddenLabel()
@@ -169,6 +213,8 @@ class ProductEditor extends BaseEditRecord
 
                         Forms\Components\Section::make(__('admin.editor.url'))
                             ->description(__('admin.editor.url_hint'))
+                            ->collapsible()
+                            ->collapsed()
                             ->schema(static::slugInputs()),
                     ])->columnSpan(1),
                 ]),
@@ -193,6 +239,27 @@ class ProductEditor extends BaseEditRecord
                 ->required($language->default)
                 ->maxLength(255))
             ->all();
+    }
+
+    /**
+     * A suggested SKU from the product name: ASCII-folded, uppercased, dashed
+     * and capped, with a short random suffix so repeat clicks stay unique.
+     */
+    protected static function suggestSku(Model $record): string
+    {
+        $name = (string) $record->translateAttribute('name');
+
+        $base = Str::of($name)
+            ->ascii()
+            ->upper()
+            ->replaceMatches('/[^A-Z0-9]+/', '-')
+            ->trim('-')
+            ->limit(20, '')
+            ->value();
+
+        $base = $base !== '' ? $base : 'SKU';
+
+        return $base.'-'.Str::upper(Str::random(4));
     }
 
     /** @return array<int, string> */
@@ -247,6 +314,15 @@ class ProductEditor extends BaseEditRecord
         app(ProductEditorService::class)->save($record, $this->editorState);
 
         return $record;
+    }
+
+    public function afterSave(): void
+    {
+        // Gallery relationship saves post-update, so ordering/primary is final
+        // here — mark the first image as the product's thumbnail.
+        app(ProductEditorService::class)->normalizeGallery($this->getRecord());
+
+        parent::afterSave();
     }
 
     protected function getDefaultHeaderActions(): array

@@ -5,11 +5,13 @@ namespace Modules\Assets\Providers;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Horizon\Horizon;
 use Modules\Assets\Filament\Pages\MediaImageSizes;
 use Modules\Assets\Filament\Pages\MediaLibrary;
 use Modules\Assets\Filament\Pages\QueueWorkers;
-use Modules\Assets\Services\FileManager;
+use Modules\Assets\Services\ConversionGenerator;
 use Modules\Assets\Services\HorizonSettings;
+use Modules\Assets\Services\MediaLibraryService;
 use Modules\Assets\Services\MediaSettings;
 use Modules\Assets\Services\MediaUrl;
 use Modules\Core\Support\AdminPages;
@@ -35,7 +37,7 @@ class AssetsServiceProvider extends ServiceProvider
         // resolution re-read settings + existence through the cache store,
         // which on a database cache store meant hundreds of DB round trips.
         $this->app->scoped(MediaSettings::class);
-        $this->app->scoped(\Modules\Assets\Services\ConversionGenerator::class);
+        $this->app->scoped(ConversionGenerator::class);
         $this->app->scoped(MediaUrl::class);
     }
 
@@ -46,13 +48,13 @@ class AssetsServiceProvider extends ServiceProvider
     {
         // Re-apply our media definition overrides on top of Lunar's published
         // config/lunar/media.php — safe against `vendor:publish --force`.
-        LunarConfigOverride::applyFrom('lunar.media', __DIR__ . '/../Config/overrides.php');
+        LunarConfigOverride::applyFrom('lunar.media', __DIR__.'/../Config/overrides.php');
 
-        $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
-        $this->loadViewsFrom(__DIR__ . '/../Resources/views', 'assets');
+        $this->loadMigrationsFrom(__DIR__.'/../Database/Migrations');
+        $this->loadViewsFrom(__DIR__.'/../Resources/views', 'assets');
 
-        $this->loadRoutesFrom(__DIR__ . '/../Routes/web.php');
-        $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
+        $this->loadRoutesFrom(__DIR__.'/../Routes/web.php');
+        $this->loadRoutesFrom(__DIR__.'/../Routes/api.php');
 
         $this->applyHorizonSettings();
         $this->composeThemeImages();
@@ -77,7 +79,7 @@ class AssetsServiceProvider extends ServiceProvider
      */
     protected function applyHorizonSettings(): void
     {
-        if (! class_exists(\Laravel\Horizon\Horizon::class)) {
+        if (! class_exists(Horizon::class)) {
             return;
         }
 
@@ -123,7 +125,7 @@ class AssetsServiceProvider extends ServiceProvider
         View::composer(
             ['theme::pages.lookbook', 'theme::pages.lookbooks', 'theme::pages.page'],
             function ($view): void {
-                $files = $this->app->make(FileManager::class);
+                $files = $this->app->make(MediaLibraryService::class);
                 $view->with('fileUrl', fn ($file, string $size = 'large') => $files->url($file, $size));
             },
         );
@@ -178,8 +180,7 @@ class AssetsServiceProvider extends ServiceProvider
         // show product images (Shopify-style) without resolving a service inline.
         View::composer('theme::pages.checkout', function ($view): void {
             $urls = app(MediaUrl::class);
-            $view->with('lineImage', fn ($line, string $size = 'small') =>
-                $urls->conversion($line?->purchasable?->product?->thumbnail, $size));
+            $view->with('lineImage', fn ($line, string $size = 'small') => $urls->conversion($line?->purchasable?->product?->thumbnail, $size));
         });
 
         // Product page: zoom dimensions, OG image, and the gallery image set.

@@ -3,6 +3,7 @@
 namespace Modules\Assets\Services;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Str;
 use Lunar\Models\Asset;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
@@ -16,7 +17,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * grouping (folder) and accessibility metadata (alt/title) live in the media's
  * custom_properties.
  */
-class FileManager
+class MediaLibraryService
 {
     /** Accepted MIME prefixes/extensions grouped by logical type. */
     protected const IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/avif', 'image/svg+xml'];
@@ -70,7 +71,7 @@ class FileManager
 
         $asset->addMedia($path)
             ->preservingOriginal()
-            ->usingFileName(\Illuminate\Support\Str::slug(pathinfo($path, PATHINFO_FILENAME)) . '.' . pathinfo($path, PATHINFO_EXTENSION))
+            ->usingFileName(Str::slug(pathinfo($path, PATHINFO_FILENAME)).'.'.pathinfo($path, PATHINFO_EXTENSION))
             ->usingName($name)
             ->withCustomProperties($props)
             ->toMediaCollection($this->collection());
@@ -203,7 +204,7 @@ class FileManager
     protected function properties(?string $folder, ?string $mime): array
     {
         return [
-            'folder' => $folder ? \Illuminate\Support\Str::slug($folder) : null,
+            'folder' => $folder ? Str::slug($folder) : null,
             'type' => $this->classify($mime),
         ];
     }
@@ -214,8 +215,8 @@ class FileManager
     protected function safeFileName(UploadedFile $file): string
     {
         $ext = $file->getClientOriginalExtension();
-        $base = \Illuminate\Support\Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) ?: 'file';
+        $base = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) ?: 'file';
 
-        return $base . ($ext ? '.' . $ext : '');
+        return $base.($ext ? '.'.$ext : '');
     }
 }

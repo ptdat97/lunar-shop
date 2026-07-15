@@ -98,24 +98,35 @@ class ProductEditorService
 
     /**
      * Upsert one default URL per language (Lunar's multilingual URL model).
-     * Empty inputs are skipped; a slug already used by another element in the
-     * same language gets a -{id} suffix instead of failing the whole save.
+     * A blank input auto-fills from the product name for languages that don't
+     * have a URL yet (so the user rarely types a slug); an existing URL with a
+     * blank input is left untouched. A slug already used by another element in
+     * the same language gets a -{id} suffix instead of failing the whole save.
      *
      * @param  array<string, ?string>  $slugs  keyed by language code
      */
     protected function saveSlugs(Product $product, array $slugs): void
     {
         foreach (Language::all() as $language) {
-            $slug = Str::slug((string) ($slugs[$language->code] ?? ''));
-
-            if ($slug === '') {
-                continue;
-            }
-
             $url = $product->urls()
                 ->where('language_id', $language->id)
                 ->where('default', true)
                 ->first();
+
+            $slug = Str::slug((string) ($slugs[$language->code] ?? ''));
+
+            // Blank input: keep the existing URL, or derive one from the name.
+            if ($slug === '') {
+                if ($url) {
+                    continue;
+                }
+
+                $slug = Str::slug((string) $product->translateAttribute('name', $language->code));
+
+                if ($slug === '') {
+                    continue;
+                }
+            }
 
             if ($url && $url->slug === $slug) {
                 continue;
