@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Lunar\Base\BaseModel;
 use Lunar\Base\Casts\AsAttributeData;
@@ -25,12 +26,14 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property int $id
  * @property int $product_id
  * @property int $tax_class_id
- * @property ?\Illuminate\Support\Collection $attribute_data
+ * @property ?Collection $attribute_data
  * @property ?string $tax_ref
  * @property int $unit_quantity
  * @property int $min_quantity
  * @property int $quantity_increment
  * @property ?string $sku
+ * @property ?string $model
+ * @property ?int $cost_price
  * @property ?string $gtin
  * @property ?string $mpn
  * @property ?string $ean
@@ -48,9 +51,10 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property int $stock
  * @property int $backorder
  * @property string $purchasable
- * @property ?\Illuminate\Support\Carbon $created_at
- * @property ?\Illuminate\Support\Carbon $updated_at
- * @property ?\Illuminate\Support\Carbon $deleted_at
+ * @property string $status
+ * @property ?Carbon $created_at
+ * @property ?Carbon $updated_at
+ * @property ?Carbon $deleted_at
  */
 class ProductVariant extends BaseModel implements Contracts\ProductVariant, HasThumbnailImage, Purchasable
 {

@@ -102,6 +102,10 @@ class CartService
         $variant = ProductVariant::findOrFail($variantId);
         $cart = $this->mutableCart();
 
+        // A disabled variant must never enter the cart, no matter how the
+        // request reached us (storefront hides it, but this is the real guard).
+        $this->guardStatus($variant);
+
         // Guard the RESULTING quantity, not the increment. Checking `$quantity`
         // alone let a shopper past the last unit by adding 1 five times over.
         $this->guardStock($variant, $this->quantityInCart($cart, $variantId) + $quantity);
@@ -123,6 +127,7 @@ class CartService
         // at 3 was accepted, and only blew up (or oversold, for a backorder
         // variant) at checkout.
         if ($line && $line->purchasable instanceof ProductVariant) {
+            $this->guardStatus($line->purchasable);
             $this->guardStock($line->purchasable, $quantity);
         }
 
@@ -153,6 +158,26 @@ class CartService
         if ($quantity >= 1 && ! $variant->canBeFulfilledAtQuantity($quantity)) {
             throw ValidationException::withMessages([
                 'quantity' => 'Sorry, there isn\'t enough stock to add that quantity.',
+            ]);
+        }
+    }
+
+    /**
+     * Refuse a variant the admin has disabled. This is the enforcement point —
+     * the storefront hides disabled variants, but hiding a button is not a
+     * guard (§17.4): a direct API call must still be rejected here.
+     *
+     * @throws ValidationException
+     */
+    protected function guardStatus(ProductVariant $variant): void
+    {
+        // Read the status fresh: on updateLine the variant comes off the cached
+        // cart line, which can be stale if the admin disabled it meanwhile.
+        $status = ProductVariant::whereKey($variant->getKey())->value('status');
+
+        if ($status === 'disabled') {
+            throw ValidationException::withMessages([
+                'variant' => 'Sorry, this variant is no longer available.',
             ]);
         }
     }

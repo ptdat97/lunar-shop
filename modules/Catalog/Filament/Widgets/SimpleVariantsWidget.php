@@ -3,6 +3,8 @@
 namespace Modules\Catalog\Filament\Widgets;
 
 use Filament\Actions\Action;
+use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
@@ -48,10 +50,23 @@ class SimpleVariantsWidget extends ProductOptionsWidget
     /** Pending "add option" name for the shared-option creator. */
     public string $newOption = '';
 
-    /** "Apply to all" bulk-fill inputs for the variants table. */
-    public string $bulkPrice = '';
+    /**
+     * Whether the product uses multiple variants. Derived at mount from the
+     * record; the toggle flips it in-session, and it's committed on save
+     * (off → collapse back to one default variant).
+     */
+    public bool $multipleEnabled = false;
 
-    public string $bulkStock = '';
+    /** Bulk-fill bar: which column to apply, and the value to apply. */
+    public string $bulkField = 'price';
+
+    public string $bulkValue = '';
+
+    /** Fields the bulk-fill bar can write across every variant row. */
+    public const BULK_FIELDS = ['price', 'compare_price', 'cost_price', 'stock', 'weight', 'model', 'status'];
+
+    /** Allowed per-variant statuses (status = a real guard, see CartService). */
+    public const STATUSES = ['published', 'disabled'];
 
     /** Handle of the global Size option (lunar.products config, forked core). */
     public static function sizeHandle(): string
@@ -75,6 +90,11 @@ class SimpleVariantsWidget extends ProductOptionsWidget
         parent::mount();
 
         $this->injectPoolOptions();
+
+        // Derive the toggle from existing data: a product already carrying real
+        // variants / options starts in multi-variant mode.
+        $this->multipleEnabled = $this->record->hasVariants
+            || $this->record->variants()->count() > 1;
     }
 
     /**
@@ -105,13 +125,19 @@ class SimpleVariantsWidget extends ProductOptionsWidget
     }
 
     /**
+     * How many unused pool values to surface per option by default, so a large
+     * shared pool (e.g. six colours) doesn't flood the builder. Values the
+     * product already uses are always shown on top of this; the admin adds more
+     * with the "add value" input.
+     */
+    public const DEFAULT_POOL_VALUES = 2;
+
+    /**
      * configureBaseOptions() only sees options whose values this product's
      * variants actually use, and drops the rest. For every shared option
-     * (Size, Color and any the user added) we want the full value pool
-     * available as toggles, so: always surface the two seed options, plus any
-     * shared option already attached to the product, then merge each option's
-     * missing pool values in (disabled). Size/Color are pinned first; the rest
-     * keep their pivot position.
+     * (Size, Color and any the user added) we surface those in-use values plus
+     * up to DEFAULT_POOL_VALUES unused pool values (disabled) as quick toggles.
+     * Size/Color are pinned first; the rest keep their pivot position.
      */
     protected function injectPoolOptions(): void
     {
@@ -150,8 +176,21 @@ class SimpleVariantsWidget extends ProductOptionsWidget
                 ->reject(fn ($value) => $existingIds->contains($value->id))
                 ->map(fn ($value) => $this->mapOptionValue($value, false));
 
-            $this->configuredOptions[$index]['option_values'] = collect($this->configuredOptions[$index]['option_values'])
+            $merged = collect($this->configuredOptions[$index]['option_values'])
                 ->concat($missing)
+                ->sortBy('position')
+                ->values();
+
+            // Collapse a large pool: keep every value the product actually uses
+            // (enabled), plus at most DEFAULT_POOL_VALUES unused ones as quick
+            // toggles. configureBaseOptions() surfaces the whole shared pool
+            // (all six colours) — this trims the disabled tail.
+            $used = $merged->filter(fn ($value) => $value['enabled']);
+            $unused = $merged->reject(fn ($value) => $value['enabled'])
+                ->take(self::DEFAULT_POOL_VALUES);
+
+            $this->configuredOptions[$index]['option_values'] = $used
+                ->concat($unused)
                 ->sortBy('position')
                 ->values()
                 ->toArray();
@@ -245,6 +284,82 @@ class SimpleVariantsWidget extends ProductOptionsWidget
     }
 
     /**
+     * Per-variant image picker: choose one or more images from THIS product's
+     * gallery (not the whole library) to attach to a variant row, and mark one
+     * primary. Assignments are held on the row and written to the
+     * media_product_variant pivot on save (ProductVariantWriter::syncImages).
+     */
+    public function pickVariantImageAction(): Action
+    {
+        return Action::make('pickVariantImage')
+            ->label(__('admin.variants.pick_image'))
+            ->link()
+            ->modalHeading(__('admin.variants.pick_image'))
+            ->modalWidth('lg')
+            ->fillForm(fn (array $arguments) => [
+                'image_ids' => $this->variants[$arguments['rowIndex']]['image_ids'] ?? [],
+                'primary_image_id' => $this->variants[$arguments['rowIndex']]['primary_image_id'] ?? null,
+            ])
+            ->form([
+                CheckboxList::make('image_ids')
+                    ->label(__('admin.variants.pick_image'))
+                    ->options(fn () => $this->productImageOptions())
+                    ->columns(2)
+                    ->bulkToggleable(),
+                Select::make('primary_image_id')
+                    ->label(__('admin.variants.primary_image'))
+                    ->options(fn () => $this->productImageOptions())
+                    ->native(false),
+            ])
+            ->action(function (array $data, array $arguments) {
+                $index = $arguments['rowIndex'];
+                $ids = array_map('intval', $data['image_ids'] ?? []);
+
+                $this->variants[$index]['image_ids'] = $ids;
+
+                // Keep primary consistent with the selection.
+                $primary = (int) ($data['primary_image_id'] ?? 0);
+                $this->variants[$index]['primary_image_id'] = in_array($primary, $ids, true)
+                    ? $primary
+                    : ($ids[0] ?? null);
+            });
+    }
+
+    /**
+     * The product's gallery images as [media id => label] for the picker.
+     *
+     * @return array<int, string>
+     */
+    protected function productImageOptions(): array
+    {
+        return $this->record->getMedia(config('lunar.media.collection', 'images'))
+            ->mapWithKeys(fn ($media) => [$media->id => $media->name ?: "#{$media->id}"])
+            ->all();
+    }
+
+    /**
+     * The primary image url for a variant row (for the small table thumbnail).
+     */
+    public function rowImageUrl(int $rowIndex): ?string
+    {
+        $id = $this->variants[$rowIndex]['primary_image_id']
+            ?? ($this->variants[$rowIndex]['image_ids'][0] ?? null);
+
+        if (! $id) {
+            return null;
+        }
+
+        $media = $this->record->getMedia(config('lunar.media.collection', 'images'))
+            ->firstWhere('id', (int) $id);
+
+        if (! $media) {
+            return null;
+        }
+
+        return $media->hasGeneratedConversion('thumb') ? $media->getUrl('thumb') : $media->getUrl();
+    }
+
+    /**
      * The parent maps every option that has a name — including ones where no
      * value is enabled, which permutates to an empty set and wipes the table.
      * Only feed it options that contribute at least one enabled value.
@@ -261,6 +376,56 @@ class SimpleVariantsWidget extends ProductOptionsWidget
         parent::mapVariantPermutations($fillMissing);
 
         $this->configuredOptions = $original;
+
+        $this->enrichVariantRows();
+    }
+
+    /**
+     * The parent builds each permutation row with only sku/price/stock/values;
+     * add the builder's extra columns. Rows tied to a saved variant are filled
+     * from the DB (model, cost/compare price, weight, status, images); brand-new
+     * rows get sensible defaults. Only saved rows are overwritten, so unsaved
+     * edits survive a rebuild — the same contract the parent uses for sku/price.
+     */
+    protected function enrichVariantRows(): void
+    {
+        $variants = $this->record->variants()
+            ->with(['basePrices', 'images'])
+            ->get()
+            ->keyBy('id');
+
+        foreach ($this->variants as $index => $row) {
+            $variant = ! empty($row['variant_id']) ? $variants->get($row['variant_id']) : null;
+
+            if ($variant) {
+                $basePrice = $variant->basePrices->first();
+                $this->variants[$index] += [
+                    'model' => $variant->model,
+                    'compare_price' => $basePrice?->compare_price?->decimal,
+                    'cost_price' => $variant->cost_price !== null
+                        ? bcdiv((string) $variant->cost_price, (string) ($basePrice?->currency->factor ?: 100), 4)
+                        : null,
+                    'weight' => $variant->weight_value,
+                    'status' => $variant->status ?: 'published',
+                    'image_ids' => $variant->images->pluck('id')->all(),
+                    'primary_image_id' => $variant->images->firstWhere('pivot.primary', true)?->id
+                        ?? $variant->images->first()?->id,
+                ];
+
+                continue;
+            }
+
+            // New permutation row — fill only keys the parent didn't set.
+            $this->variants[$index] += [
+                'model' => '',
+                'compare_price' => '',
+                'cost_price' => '',
+                'weight' => '',
+                'status' => 'published',
+                'image_ids' => [],
+                'primary_image_id' => null,
+            ];
+        }
     }
 
     public function toggleOptionValue(int $optionIndex, int $valueIndex): void
@@ -484,42 +649,57 @@ class SimpleVariantsWidget extends ProductOptionsWidget
 
             $seen[$key] = true;
 
-            $price = str_replace(',', '', (string) ($variant['price'] ?? ''));
+            // price / compare_price / cost_price must be non-negative numbers.
+            foreach (['price', 'compare_price', 'cost_price'] as $field) {
+                $value = str_replace(',', '', (string) ($variant[$field] ?? ''));
 
-            if ($price !== '' && (! is_numeric($price) || (float) $price < 0)) {
-                return __('admin.variants.price_invalid');
+                if ($value !== '' && (! is_numeric($value) || (float) $value < 0)) {
+                    return __('admin.variants.price_invalid');
+                }
+            }
+
+            if (! in_array($variant['status'] ?? 'published', self::STATUSES, true)) {
+                return __('admin.variants.status_invalid');
             }
         }
 
         return null;
     }
 
-    /** Copy the bulk price into every variant row (blank clears the input). */
-    public function applyBulkPrice(): void
+    /**
+     * Apply the bulk-fill value to $bulkField across every variant row. stock
+     * casts to int, status snaps to a valid value, everything else is stored
+     * verbatim (the writer converts prices to minor units). Blank is a no-op.
+     */
+    public function applyBulkFill(): void
     {
-        if (trim($this->bulkPrice) === '') {
+        $field = in_array($this->bulkField, self::BULK_FIELDS, true) ? $this->bulkField : 'price';
+        $value = trim($this->bulkValue);
+
+        if ($value === '') {
             return;
         }
 
+        $value = match ($field) {
+            'stock' => (int) $value,
+            'status' => in_array($value, self::STATUSES, true) ? $value : 'published',
+            default => $value,
+        };
+
         foreach (array_keys($this->variants) as $index) {
-            $this->variants[$index]['price'] = $this->bulkPrice;
+            $this->variants[$index][$field] = $value;
         }
 
-        $this->bulkPrice = '';
+        $this->bulkValue = '';
     }
 
-    /** Copy the bulk stock into every variant row. */
-    public function applyBulkStock(): void
+    /**
+     * Collapse the product back to a single default variant when the "multiple
+     * variants" toggle is turned off. Runs the writer's empty-matrix branch.
+     */
+    protected function disableVariants(): void
     {
-        if (trim($this->bulkStock) === '') {
-            return;
-        }
-
-        foreach (array_keys($this->variants) as $index) {
-            $this->variants[$index]['stock'] = (int) $this->bulkStock;
-        }
-
-        $this->bulkStock = '';
+        app(ProductVariantWriter::class)->save($this->record, [], []);
     }
 
     /**
@@ -534,6 +714,18 @@ class SimpleVariantsWidget extends ProductOptionsWidget
             ->label(__('admin.variants.save'))
             ->action(function () {
                 $this->saveSucceeded = false;
+
+                // Toggle off: collapse to a single default variant and stop.
+                if (! $this->multipleEnabled) {
+                    $this->disableVariants();
+                    $this->saveSucceeded = true;
+
+                    Notification::make()->title(
+                        __('lunarpanel::productoption.widgets.product-options.notifications.save-variants.success.title')
+                    )->success()->send();
+
+                    return;
+                }
 
                 if ($error = $this->validateVariants()) {
                     Notification::make()->title($error)->danger()->send();

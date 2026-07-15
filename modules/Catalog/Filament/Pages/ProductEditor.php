@@ -115,7 +115,10 @@ class ProductEditor extends BaseEditRecord
                                     ->numeric()
                                     ->default(0),
                             ])
-                            ->visible(fn (?Model $record) => $record && $record->variants()->count() === 1),
+                            // Only for a truly option-less product: hide as soon
+                            // as any option exists (the variants matrix owns
+                            // SKU/price/stock then — avoids two edit surfaces).
+                            ->visible(fn (?Model $record) => $record && $record->variants()->count() === 1 && ! $record->hasVariants),
 
                         // Drag-drop gallery inline on the details tab. First
                         // image becomes the product's primary thumbnail

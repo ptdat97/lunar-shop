@@ -4,7 +4,9 @@ namespace Modules\Catalog\Services;
 
 use Illuminate\Support\Collection;
 use Lunar\Models\Product;
+use Lunar\Models\ProductOptionValue;
 use Lunar\Models\ProductVariant;
+use Modules\Assets\Services\MediaUrl;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Data\SearchResult;
@@ -48,7 +50,9 @@ class ProductService
             ->where('lunar_urls.slug', $slug)
             ->with([
                 // values.media: swatch images for the colour picker (§optionGroups).
-                'variants' => fn ($q) => $q->with(['values.option', 'values.media', 'prices.currency', 'images']),
+                // Disabled variants are excluded from the storefront everywhere.
+                'variants' => fn ($q) => $q->where('status', 'published')
+                    ->with(['values.option', 'values.media', 'prices.currency', 'images']),
                 'thumbnail', 'brand', 'collections.defaultUrl', 'defaultUrl', 'media',
             ])
             ->first();
@@ -168,7 +172,7 @@ class ProductService
         $products = Product::query()
             ->where('status', 'published')
             ->whereHas('urls', fn ($u) => $u->whereIn('slug', $slugs))
-            ->with(['variants.prices', 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media'])
+            ->with(['variants' => fn ($q) => $q->where('status', 'published')->with('prices'), 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media'])
             ->get();
 
         // Re-order to match the requested slug order (DB returns arbitrary order).
@@ -200,7 +204,7 @@ class ProductService
         $products = Product::query()
             ->where('status', 'published')
             ->whereIn('id', $ids)
-            ->with(['variants.prices', 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media'])
+            ->with(['variants' => fn ($q) => $q->where('status', 'published')->with('prices'), 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media'])
             ->get();
 
         $order = array_flip($ids);
@@ -214,11 +218,11 @@ class ProductService
      * Resolve a swatch image URL using the MediaUrl service (self-healing
      * conversions, never returns the original full-size image).
      */
-    protected function swatchImageUrl(\Lunar\Models\ProductOptionValue $value): ?string
+    protected function swatchImageUrl(ProductOptionValue $value): ?string
     {
-        $media = $value->getFirstMedia(\Lunar\Models\ProductOptionValue::SWATCH_COLLECTION);
+        $media = $value->getFirstMedia(ProductOptionValue::SWATCH_COLLECTION);
 
-        return $media ? app(\Modules\Assets\Services\MediaUrl::class)->conversion($media, 'small') : null;
+        return $media ? app(MediaUrl::class)->conversion($media, 'small') : null;
     }
 
     /**
@@ -231,7 +235,7 @@ class ProductService
         $query = Product::query()
             ->where('status', 'published')
             ->where('id', '!=', $product->id)
-            ->with(['variants.prices', 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media']);
+            ->with(['variants' => fn ($q) => $q->where('status', 'published')->with('prices'), 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media']);
 
         if ($collectionIds->isNotEmpty()) {
             $query->whereHas('collections', fn ($c) => $c->whereKey($collectionIds));

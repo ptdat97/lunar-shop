@@ -98,24 +98,79 @@ class ProductVariantWriter
 
             $variant->sku = $row['sku'];
             $variant->stock = (int) $row['stock'];
+            $variant->model = trim((string) ($row['model'] ?? '')) ?: null;
+            $variant->status = ($row['status'] ?? 'published') === 'disabled' ? 'disabled' : 'published';
+            $variant->cost_price = $this->toMinor($row['cost_price'] ?? '', $currency);
+
+            $weight = trim((string) ($row['weight'] ?? ''));
+            if ($weight !== '') {
+                // The builder's weight column is in kilograms; force the unit
+                // (Lunar's dimensions() migration defaults every *_unit to 'mm',
+                // which is meaningless for weight).
+                $variant->weight_value = (float) $weight;
+                $variant->weight_unit = 'kg';
+            }
+
             $variant->save();
 
             $basePrice ??= $variant->prices()->make([
                 'min_quantity' => 1,
                 'currency_id' => $currency->id,
             ]);
-            $basePrice->price = (int) bcmul(
-                (string) ((float) $row['price']),
-                (string) $basePrice->currency->factor
-            );
+            $basePrice->price = $this->toMinor($row['price'], $basePrice->currency);
+            $basePrice->compare_price = $this->toMinor($row['compare_price'] ?? '', $basePrice->currency);
             $basePrice->save();
 
             $variant->values()->sync($row['value_ids']);
+            $this->syncImages($variant, $row);
 
             $variants[$index]['variant_id'] = $variant->id;
         }
 
         return $variants;
+    }
+
+    /**
+     * Convert a decimal amount string to minor units for the given currency,
+     * or null for a blank input. Gathers the ×factor conversion used for price,
+     * compare_price and cost_price.
+     */
+    protected function toMinor(mixed $decimal, Currency $currency): ?int
+    {
+        $decimal = trim((string) $decimal);
+
+        if ($decimal === '') {
+            return null;
+        }
+
+        return (int) bcmul((string) ((float) $decimal), (string) $currency->factor);
+    }
+
+    /**
+     * Sync a variant's gallery images (pivot media_product_variant) from the
+     * media ids the builder assigned, marking the chosen primary. Only runs when
+     * the row carries image_ids so untouched rows keep their pivot. sync() prunes
+     * ids no longer selected — scoped to this variant's pivot, never product media.
+     *
+     * @param  array<string, mixed>  $row
+     */
+    protected function syncImages(ProductVariant $variant, array $row): void
+    {
+        if (! array_key_exists('image_ids', $row)) {
+            return;
+        }
+
+        $primary = $row['primary_image_id'] ?? null;
+
+        $sync = [];
+        foreach (array_values((array) $row['image_ids']) as $position => $mediaId) {
+            $sync[(int) $mediaId] = [
+                'primary' => (int) $mediaId === (int) $primary,
+                'position' => $position + 1,
+            ];
+        }
+
+        $variant->images()->sync($sync);
     }
 
     /**
