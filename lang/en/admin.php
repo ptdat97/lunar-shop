@@ -458,6 +458,53 @@ return [
         'low_stock' => 'Low stock',
         'out_of_stock' => 'Out of stock',
         'product' => 'Product',
+
+        // Stats (header)
+        'stat_value' => 'Stock value',
+        'stat_value_desc' => 'At cost price (variants with a cost set)',
+        'stat_low' => 'Low SKUs',
+        'stat_low_desc' => 'Below the alert threshold',
+        'stat_out' => 'Out-of-stock SKUs',
+        'stat_out_desc' => 'Need restocking',
+        'stat_tracked' => 'Tracked SKUs',
+        'stat_tracked_desc' => 'Excludes unlimited stock',
+
+        // Adjust / bulk
+        'adjust' => 'Adjust stock',
+        'bulk_adjust' => 'Bulk edit stock',
+        'adjust_mode' => 'Adjustment type',
+        'mode_increment' => 'Add (+)',
+        'mode_decrement' => 'Remove (−)',
+        'mode_set' => 'Set to',
+        'quantity' => 'Quantity',
+        'reason' => 'Reason',
+        'note' => 'Note',
+        'reason_restock' => 'Restock',
+        'reason_stocktake' => 'Stocktake',
+        'reason_damage' => 'Damage',
+        'reason_other' => 'Other',
+        'adjust_done' => 'Stock updated.',
+        'adjust_negative' => 'Cannot adjust stock below zero.',
+        'bulk_done' => 'Updated :ok variants (:failed failed).',
+
+        // History modal
+        'history' => 'History',
+        'history_empty' => 'No movements yet.',
+        'history_time' => 'Time',
+        'history_type' => 'Type',
+        'history_change' => 'Change',
+        'history_after' => 'After',
+        'history_by' => 'By',
+        'by_system' => 'System',
+    ],
+
+    'stock_movements' => [
+        'type_sale' => 'Sale',
+        'type_release' => 'Release',
+        'type_adjustment' => 'Adjustment',
+        'type_restock' => 'Restock',
+        'type_manual' => 'Manual set',
+        'type_edit' => 'Edit',
     ],
 
     'stock_notifications' => [

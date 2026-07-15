@@ -5,6 +5,7 @@ namespace Modules\Inventory\Services;
 use Illuminate\Support\Facades\DB;
 use Lunar\Models\Order;
 use Lunar\Models\ProductVariant;
+use Modules\Inventory\Enums\StockMovementType;
 use Modules\Inventory\Pipelines\DecrementStock;
 
 /**
@@ -21,6 +22,10 @@ use Modules\Inventory\Pipelines\DecrementStock;
  */
 class StockReleaser
 {
+    public function __construct(
+        protected StockLedger $ledger,
+    ) {}
+
     /**
      * Return an order's units to stock. No-op when already released.
      *
@@ -42,9 +47,27 @@ class StockReleaser
                     continue;
                 }
 
-                ProductVariant::whereKey($line->purchasable_id)->update([
-                    'stock' => DB::raw('stock + '.(int) $line->quantity),
+                $variantId = (int) $line->purchasable_id;
+                $quantity = (int) $line->quantity;
+
+                $before = (int) ProductVariant::whereKey($variantId)->value('stock');
+
+                ProductVariant::whereKey($variantId)->update([
+                    'stock' => DB::raw('stock + '.$quantity),
                 ]);
+
+                // Ledger `release` entry, inside this release transaction so a
+                // rollback drops it too. System-caused (cancel/refund/CLI).
+                $this->ledger->record(
+                    variantId: $variantId,
+                    type: StockMovementType::Release,
+                    delta: $quantity,
+                    before: $before,
+                    after: $before + $quantity,
+                    causer: null,
+                    orderId: (int) $fresh->id,
+                    meta: ['status' => (string) $fresh->status],
+                );
             }
 
             $fresh->forceFill(['stock_released_at' => now()])->saveQuietly();

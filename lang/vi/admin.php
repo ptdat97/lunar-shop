@@ -460,6 +460,53 @@ return [
         'low_stock' => 'Sắp hết',
         'out_of_stock' => 'Hết hàng',
         'product' => 'Sản phẩm',
+
+        // Stats (header)
+        'stat_value' => 'Giá trị tồn kho',
+        'stat_value_desc' => 'Theo giá vốn (variant đã nhập giá vốn)',
+        'stat_low' => 'SKU sắp hết',
+        'stat_low_desc' => 'Dưới ngưỡng cảnh báo',
+        'stat_out' => 'SKU hết hàng',
+        'stat_out_desc' => 'Cần nhập thêm',
+        'stat_tracked' => 'SKU theo dõi',
+        'stat_tracked_desc' => 'Không tính hàng vô hạn',
+
+        // Adjust / bulk
+        'adjust' => 'Điều chỉnh kho',
+        'bulk_adjust' => 'Sửa kho hàng loạt',
+        'adjust_mode' => 'Kiểu điều chỉnh',
+        'mode_increment' => 'Cộng thêm (+)',
+        'mode_decrement' => 'Trừ bớt (−)',
+        'mode_set' => 'Đặt bằng',
+        'quantity' => 'Số lượng',
+        'reason' => 'Lý do',
+        'note' => 'Ghi chú',
+        'reason_restock' => 'Nhập hàng',
+        'reason_stocktake' => 'Kiểm kê',
+        'reason_damage' => 'Hư hỏng',
+        'reason_other' => 'Khác',
+        'adjust_done' => 'Đã cập nhật tồn kho.',
+        'adjust_negative' => 'Không thể điều chỉnh xuống dưới 0.',
+        'bulk_done' => 'Đã cập nhật :ok biến thể (:failed lỗi).',
+
+        // History modal
+        'history' => 'Lịch sử',
+        'history_empty' => 'Chưa có biến động nào.',
+        'history_time' => 'Thời gian',
+        'history_type' => 'Loại',
+        'history_change' => 'Thay đổi',
+        'history_after' => 'Còn lại',
+        'history_by' => 'Người thực hiện',
+        'by_system' => 'Hệ thống',
+    ],
+
+    'stock_movements' => [
+        'type_sale' => 'Bán hàng',
+        'type_release' => 'Hoàn kho',
+        'type_adjustment' => 'Điều chỉnh',
+        'type_restock' => 'Nhập hàng',
+        'type_manual' => 'Đặt tay',
+        'type_edit' => 'Sửa',
     ],
 
     'stock_notifications' => [

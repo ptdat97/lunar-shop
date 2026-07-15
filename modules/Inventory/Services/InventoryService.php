@@ -2,6 +2,7 @@
 
 namespace Modules\Inventory\Services;
 
+use Illuminate\Database\Eloquent\Builder;
 use Lunar\Models\Product;
 use Lunar\Models\ProductVariant;
 use Modules\Core\Support\Settings;
@@ -141,5 +142,45 @@ class InventoryService
         return ProductVariant::where('stock', '<=', 0)
             ->with('product')
             ->get();
+    }
+
+    // --- Overview stats (Stock Overview header) --------------------------------
+
+    /** Variants whose stock is tracked (not `always` / unlimited). */
+    protected function tracked(): Builder
+    {
+        return ProductVariant::query()->where('purchasable', '!=', 'always');
+    }
+
+    /** Count of tracked variants. */
+    public function trackedCount(): int
+    {
+        return $this->tracked()->count();
+    }
+
+    /** Count of tracked variants at/below the low-stock threshold (but > 0). */
+    public function lowCount(): int
+    {
+        return $this->tracked()->whereBetween('stock', [1, $this->lowStockThreshold()])->count();
+    }
+
+    /** Count of tracked variants that are out of stock. */
+    public function outCount(): int
+    {
+        return $this->tracked()->where('stock', '<=', 0)->count();
+    }
+
+    /**
+     * Total value of stock on hand, in minor units: SUM(stock × cost_price) over
+     * tracked variants with stock. Variants without a cost_price are skipped
+     * (COALESCE → 0 contribution), so this is the value of stock whose cost is
+     * known. Divide by the default currency factor to display.
+     */
+    public function inventoryValueMinor(): int
+    {
+        return (int) $this->tracked()
+            ->where('stock', '>', 0)
+            ->selectRaw('COALESCE(SUM(stock * cost_price), 0) as value')
+            ->value('value');
     }
 }

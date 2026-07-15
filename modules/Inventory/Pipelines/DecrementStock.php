@@ -7,7 +7,9 @@ use Illuminate\Support\Facades\DB;
 use Lunar\Models\Contracts\Order as OrderContract;
 use Lunar\Models\Order;
 use Lunar\Models\ProductVariant;
+use Modules\Inventory\Enums\StockMovementType;
 use Modules\Inventory\Exceptions\InsufficientStockException;
+use Modules\Inventory\Services\StockLedger;
 
 /**
  * Reserves stock when an order is created: for each order line backed by a
@@ -37,7 +39,12 @@ class DecrementStock
                 continue;
             }
 
-            $this->reserve((int) $line->purchasable_id, (int) $line->quantity, (string) $line->description);
+            $this->reserve(
+                (int) $line->purchasable_id,
+                (int) $line->quantity,
+                (string) $line->description,
+                (int) $order->id,
+            );
         }
 
         return $next($order);
@@ -47,9 +54,10 @@ class DecrementStock
      * Atomically decrement a variant's stock, guarding against overselling
      * `in_stock` variants under concurrency. The conditional UPDATE is the lock:
      * if another request already took the last units the affected-rows count is
-     * 0 and we raise — no read-then-write race.
+     * 0 and we raise — no read-then-write race. A ledger `sale` entry is written
+     * on success, inside the order-creation transaction that runs this pipeline.
      */
-    protected function reserve(int $variantId, int $quantity, string $description): void
+    protected function reserve(int $variantId, int $quantity, string $description, int $orderId): void
     {
         $variant = ProductVariant::findOrFail($variantId);
 
@@ -59,6 +67,8 @@ class DecrementStock
             ProductVariant::whereKey($variantId)->update([
                 'stock' => DB::raw("stock - {$quantity}"),
             ]);
+
+            $this->recordSale($variantId, $quantity, $orderId, $description);
 
             return;
         }
@@ -75,5 +85,29 @@ class DecrementStock
                 description: $description,
             );
         }
+
+        $this->recordSale($variantId, $quantity, $orderId, $description);
+    }
+
+    /**
+     * Append a `sale` ledger entry. Reads the post-decrement stock back (the row
+     * was already written above in this same transaction) and derives before
+     * from the known delta, so before/after stay consistent without a second
+     * lock.
+     */
+    protected function recordSale(int $variantId, int $quantity, int $orderId, string $description): void
+    {
+        $after = (int) ProductVariant::whereKey($variantId)->value('stock');
+
+        app(StockLedger::class)->record(
+            variantId: $variantId,
+            type: StockMovementType::Sale,
+            delta: -$quantity,
+            before: $after + $quantity,
+            after: $after,
+            causer: null,
+            orderId: $orderId,
+            meta: ['line' => $description],
+        );
     }
 }
