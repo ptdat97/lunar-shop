@@ -22,7 +22,10 @@ return [
         'telescope*',
         'horizon*',
         '_boost/browser-logs',
-        'livewire-*/livewire.js',
+        // Exclude ALL Livewire routes, not just the asset: Debugbar injecting
+        // into the /livewire/update JSON response corrupts it and breaks
+        // dropdowns/actions in the Filament admin (Page Expired / action error).
+        'livewire*',
     ],
 
     /*

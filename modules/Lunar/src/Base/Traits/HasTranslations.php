@@ -28,15 +28,23 @@ trait HasTranslations
 
         $locale = $locale ?: app()->getLocale();
 
-        $value = Arr::accessible($values) ?
-            Arr::get($values, $locale) :
-            get_object_vars($values)[$locale] ?? null;
+        $values = Arr::accessible($values) ? $values : get_object_vars($values);
 
-        return $value ?: Arr::get(
-            $values,
-            app()->getLocale(),
-            Arr::first($values)
-        );
+        $value = Arr::get($values, $locale);
+
+        if (! empty($value)) {
+            return $value;
+        }
+
+        // The requested locale is missing or empty (e.g. an option named only in
+        // English while the app runs in Vietnamese). Fall back to the app's
+        // default locale, then to the first non-empty translation — never return
+        // an empty string just because that locale's key exists but is blank.
+        $default = Arr::get($values, config('app.locale'));
+
+        return ! empty($default)
+            ? $default
+            : (Arr::first($values, fn ($v) => ! empty($v)) ?: null);
     }
 
     /**
