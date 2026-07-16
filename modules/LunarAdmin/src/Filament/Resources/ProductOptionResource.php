@@ -51,7 +51,34 @@ class ProductOptionResource extends BaseResource
             static::getNameFormComponent(),
             static::getLabelFormComponent(),
             static::getHandleFormComponent(),
+            static::getDisplayTypeFormComponent(),
         ];
+    }
+
+    /**
+     * Options for the display_type select, labelled from the project lang
+     * files: text chips, colour picker (hex + optional swatch image), or
+     * image swatch. Drives both the storefront picker and the product
+     * editor's variant builder.
+     *
+     * @return array<string, string>
+     */
+    public static function displayTypeOptions(): array
+    {
+        return collect(\Lunar\Models\ProductOption::DISPLAY_TYPES)
+            ->mapWithKeys(fn (string $type) => [$type => __("admin.options.display_types.{$type}")])
+            ->all();
+    }
+
+    protected static function getDisplayTypeFormComponent(): Component
+    {
+        return Forms\Components\Select::make('display_type')
+            ->label(__('admin.options.display_type'))
+            ->options(static::displayTypeOptions())
+            ->default('text')
+            ->required()
+            ->native(false)
+            ->helperText(__('admin.options.display_type_hint'));
     }
 
     protected static function getNameFormComponent(): Component
@@ -99,6 +126,10 @@ class ProductOptionResource extends BaseResource
                     ->label(__('lunarpanel::productoption.table.label.label')),
                 Tables\Columns\TextColumn::make('handle')
                     ->label(__('lunarpanel::productoption.table.handle.label')),
+                Tables\Columns\TextColumn::make('display_type')
+                    ->label(__('admin.options.display_type'))
+                    ->badge()
+                    ->formatStateUsing(fn (string $state) => static::displayTypeOptions()[$state] ?? $state),
                 Tables\Columns\BooleanColumn::make('shared')
                     ->label(__('lunarpanel::productoption.table.shared.label')),
             ])

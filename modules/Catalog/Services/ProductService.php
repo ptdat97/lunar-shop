@@ -61,18 +61,19 @@ class ProductService
     /**
      * Option groups derived from the loaded variants, in a stable first-seen
      * order, for the SSR option buttons. Keys are the translated option names;
-     * each group carries its handle + swatch data so the colour group renders
-     * as colour/image swatches instead of text buttons:
+     * each group carries its handle + the option's configured display_type
+     * (text | color | image — Product Options admin page) plus per-value
+     * swatch data, so swatch groups render as colour/image swatches instead
+     * of text buttons:
      *
-     *   ['Color' => ['handle' => 'color', 'is_color' => true, 'values' => [
+     *   ['Color' => ['handle' => 'color', 'display_type' => 'color', 'values' => [
      *       ['label' => 'Black', 'color' => '#1a1a1a', 'image' => null], ...
      *   ]]]
      *
-     * @return array<string, array{handle: ?string, is_color: bool, values: list<array{label: string, color: ?string, image: ?string}>}>
+     * @return array<string, array{handle: ?string, display_type: string, values: list<array{label: string, color: ?string, image: ?string}>}>
      */
     public function optionGroups(Product $product): array
     {
-        $colorHandle = config('lunar.products.options.color_handle', 'color');
         $groups = [];
 
         foreach ($product->variants as $variant) {
@@ -83,7 +84,7 @@ class ProductService
 
                 $groups[$optName] ??= [
                     'handle' => $option?->handle,
-                    'is_color' => $option?->handle === $colorHandle,
+                    'display_type' => $option?->display_type ?? 'text',
                     'values' => [],
                 ];
 

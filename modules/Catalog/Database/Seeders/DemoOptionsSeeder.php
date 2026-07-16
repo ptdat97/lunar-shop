@@ -16,7 +16,7 @@ class DemoOptionsSeeder extends Seeder
     public function run(): void
     {
         $size = $this->option('Size', ['S', 'M', 'L', 'XL']);
-        $color = $this->option('Color', ['Black', 'White', 'Beige', 'Gray']);
+        $color = $this->option('Color', ['Black', 'White', 'Beige', 'Gray'], displayType: 'color');
 
         $sizeValues = $size->values()->get()->values();
         $colorValues = $color->values()->get()->values();
@@ -31,9 +31,13 @@ class DemoOptionsSeeder extends Seeder
     }
 
     /**
+     * Shared (so the variant builder surfaces them as global axes) with the
+     * given display type — 'color' renders hex/image swatches on the
+     * storefront, everything else is plain text.
+     *
      * @param  array<int, string>  $values
      */
-    protected function option(string $name, array $values): ProductOption
+    protected function option(string $name, array $values, string $displayType = 'text'): ProductOption
     {
         $option = ProductOption::query()
             ->whereJsonContains('name->en', $name)
@@ -42,7 +46,15 @@ class DemoOptionsSeeder extends Seeder
                 'name' => ['en' => $name],
                 'label' => ['en' => $name],
                 'handle' => strtolower($name),
+                'shared' => true,
+                'display_type' => $displayType,
             ]);
+
+        if (! $option->shared || $option->display_type !== $displayType) {
+            $option->shared = true;
+            $option->display_type = $displayType;
+            $option->save();
+        }
 
         foreach ($values as $value) {
             $exists = $option->values()->whereJsonContains('name->en', $value)->exists();

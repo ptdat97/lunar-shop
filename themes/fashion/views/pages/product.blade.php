@@ -151,9 +151,10 @@
 
         <div class="my-4">
           {{-- $optionGroups / $selectedValues computed in ProductService (§7).
-               The colour group renders as round swatches (image beats hex,
-               text as last resort); other groups stay text buttons. Both keep
-               data-option/data-value + btn-dark toggling, so
+               Groups whose option display_type is color/image (configured on
+               the Product Options admin page) render as round swatches (image
+               beats hex, text as last resort); text groups stay text buttons.
+               Both keep data-option/data-value + btn-dark toggling, so
                enhance/product-variant.js works unchanged. --}}
           @foreach ($optionGroups as $optName => $group)
             <div class="mb-3" data-option-group="{{ $optName }}">
@@ -161,7 +162,7 @@
               <div class="d-flex flex-wrap gap-2 align-items-center">
                 @foreach ($group['values'] as $val)
                   @php $isActive = ($selectedValues[$optName] ?? null) === $val['label']; @endphp
-                  @if ($group['is_color'] && ($val['image'] || $val['color']))
+                  @if (in_array($group['display_type'] ?? 'text', ['color', 'image'], true) && ($val['image'] || $val['color']))
                     <button type="button"
                       class="btn swatch-btn {{ $isActive ? 'btn-dark' : 'btn-outline-dark' }}"
                       data-option="{{ $optName }}" data-value="{{ $val['label'] }}"

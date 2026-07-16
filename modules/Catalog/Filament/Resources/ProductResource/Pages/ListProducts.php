@@ -17,12 +17,12 @@ use Lunar\Models\TaxClass;
 use Modules\Catalog\Filament\Resources\ProductResource;
 
 /**
- * Swapped in for Lunar's ListProducts (ModulesServiceProvider $swaps) so the
- * "add product" flow matches the simplified single-page editor.
+ * Swapped in for Lunar's ListProducts (ModulesServiceProvider $swaps) to
+ * simplify the "add product" flow.
  *
  * Kept as a modal action on the list (no separate Create page): the SME just
  * enters name + type + SKU, optionally a price and whether to publish, and
- * lands straight on ProductEditor. Improvements over Lunar's modal:
+ * lands straight on the edit page. Improvements over Lunar's modal:
  *   - Vietnamese labels + a short description matching the editor.
  *   - Price is optional (set-later is common); status is chosen up front
  *     instead of always forcing a draft.

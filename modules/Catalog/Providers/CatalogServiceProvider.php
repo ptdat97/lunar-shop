@@ -4,13 +4,11 @@ namespace Modules\Catalog\Providers;
 
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
-use Livewire\Livewire;
 use Lunar\Models\Product;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Drivers\DatabaseSearchEngine;
 use Modules\Catalog\Filament\Pages\CatalogSettingsPage;
 use Modules\Catalog\Filament\Resources\SizeChartResource;
-use Modules\Catalog\Filament\Widgets\SimpleVariantsWidget;
 use Modules\Catalog\Models\ProductMaterial;
 use Modules\Catalog\Models\SizeChart;
 use Modules\Catalog\Services\PricingService;
@@ -67,17 +65,6 @@ class CatalogServiceProvider extends ServiceProvider
     {
         $this->loadMigrationsFrom(__DIR__.'/../Database/Migrations');
         $this->loadViewsFrom(__DIR__.'/../Resources/views', 'catalog-admin');
-
-        // Header widgets returned from a page's getDefaultHeaderWidgets() are
-        // NOT auto-registered by Filament (unlike Resource::getWidgets()).
-        // Rendering works without this (class -> name), but every subsequent
-        // Livewire update resolves name -> class and, when unregistered,
-        // surfaces as a 419 "release token mismatch". Name must match
-        // Livewire's auto-generated one for the class.
-        Livewire::component(
-            'modules.catalog.filament.widgets.simple-variants-widget',
-            SimpleVariantsWidget::class,
-        );
 
         $this->loadRoutesFrom(__DIR__.'/../Routes/web.php');
         $this->loadRoutesFrom(__DIR__.'/../Routes/api.php');

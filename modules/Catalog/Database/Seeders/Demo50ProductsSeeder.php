@@ -129,7 +129,7 @@ class Demo50ProductsSeeder extends Seeder
     protected function options(): array
     {
         $size = $this->option('Size', ['S', 'M', 'L', 'XL']);
-        $color = $this->option('Color', ['Black', 'White', 'Beige', 'Gray', 'Navy', 'Red']);
+        $color = $this->option('Color', ['Black', 'White', 'Beige', 'Gray', 'Navy', 'Red'], displayType: 'color');
 
         return [
             $size->values()->pluck('id')->all(),
@@ -140,12 +140,27 @@ class Demo50ProductsSeeder extends Seeder
     }
 
     /**
+     * Shared + display-typed, matching DemoOptionsSeeder (the variant builder
+     * only surfaces shared options; 'color' renders swatches).
+     *
      * @param  array<int,string>  $values
      */
-    protected function option(string $name, array $values): ProductOption
+    protected function option(string $name, array $values, string $displayType = 'text'): ProductOption
     {
         $option = ProductOption::whereJsonContains('name->en', $name)->first()
-            ?? ProductOption::create(['name' => ['en' => $name], 'label' => ['en' => $name], 'handle' => strtolower($name)]);
+            ?? ProductOption::create([
+                'name' => ['en' => $name],
+                'label' => ['en' => $name],
+                'handle' => strtolower($name),
+                'shared' => true,
+                'display_type' => $displayType,
+            ]);
+
+        if (! $option->shared || $option->display_type !== $displayType) {
+            $option->shared = true;
+            $option->display_type = $displayType;
+            $option->save();
+        }
 
         foreach ($values as $value) {
             if (! $option->values()->whereJsonContains('name->en', $value)->exists()) {

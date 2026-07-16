@@ -25,7 +25,12 @@
       "Skill(run)",
       "Skill(run:*)",
       "PowerShell($jobs = 1..20 | ForEach-Object { Start-Job { \\(Invoke-WebRequest -Uri \"http://localhost/api/v1/cart\" -UseBasicParsing -TimeoutSec 30\\).StatusCode } }; $codes = $jobs | Wait-Job | Receive-Job; $jobs | Remove-Job; $codes | Group-Object | ForEach-Object { \"$\\($_.Name\\): $\\($_.Count\\)\" })",
-      "PowerShell(node -e \"console.log\\(require\\('./node_modules/bootstrap/package.json'\\).version\\)\")"
+      "PowerShell(node -e \"console.log\\(require\\('./node_modules/bootstrap/package.json'\\).version\\)\")",
+      "PowerShell(php artisan tinker --execute=\"$o = Lunar\\\\Models\\\\ProductOption::all\\(['id','handle','meta']\\)->map\\(fn\\($x\\) => $x->handle.' => '.$x->display_type.' \\(shared: '.\\($x->shared?1:0\\).'\\)'\\); echo $o->implode\\(PHP_EOL\\);\")",
+      "PowerShell(Select-String -Path storage\\\\logs\\\\laravel.log -Pattern \"^\\\\[2026-07-16 0[5-9]|^\\\\[2026-07-16 1[0-9]\" | ForEach-Object { $_.Line.Substring\\(0, [Math]::Min\\(300, $_.Line.Length\\)\\) } | Select-Object -Last 6)",
+      "PowerShell(\\(Select-String -Path storage\\\\logs\\\\laravel.log -Pattern \"Unknown column 'position'\" | Select-Object -Last 1\\).Line.Substring\\(0, 700\\))",
+      "PowerShell($en = Get-Content lang\\\\en\\\\admin.php -Raw; $start = $en.IndexOf\\(\"    'editor' => [\"\\); $end = $en.IndexOf\\(\"    'options' => [\"\\); $en = $en.Remove\\($start, $end - $start\\); $vstart = $en.IndexOf\\(\"    'variants' => [\"\\); $vend = $en.IndexOf\\(\"    'create' => [\"\\); $en = $en.Remove\\($vstart, $vend - $vstart\\); Set-Content lang\\\\en\\\\admin.php -Value $en -Encoding utf8 -NoNewline; php -l lang\\\\en\\\\admin.php)",
+      "PowerShell($vi = Get-Content lang\\\\vi\\\\admin.php -Raw; $start = $vi.IndexOf\\(\"    'editor' => [\"\\); $end = $vi.IndexOf\\(\"    'options' => [\"\\); $vi = $vi.Remove\\($start, $end - $start\\); $vstart = $vi.IndexOf\\(\"    'variants' => [\"\\); $vend = $vi.IndexOf\\(\"    'create' => [\"\\); $vi = $vi.Remove\\($vstart, $vend - $vstart\\); Set-Content lang\\\\vi\\\\admin.php -Value $vi -Encoding utf8 -NoNewline; php -l lang\\\\vi\\\\admin.php)"
     ]
   }
 }

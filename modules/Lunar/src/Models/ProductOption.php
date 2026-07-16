@@ -24,6 +24,7 @@ use Spatie\MediaLibrary\HasMedia as SpatieHasMedia;
  * @property ?string $handle
  * @property bool $shared
  * @property ?AsArrayObject $meta
+ * @property string $display_type
  * @property ?\Illuminate\Support\Carbon $created_at
  * @property ?\Illuminate\Support\Carbon $updated_at
  */
@@ -35,6 +36,18 @@ class ProductOption extends BaseModel implements Contracts\ProductOption, Spatie
     use HasTranslations;
     use LogsActivity;
     use Searchable;
+
+    /**
+     * How an option renders in the storefront picker and the admin variant
+     * builder: plain text chips, a hex colour swatch (per-value colour picker
+     * + optional swatch image), or an image swatch (per-value image only).
+     * Configured per option on the Product Options admin page — nothing is
+     * keyed to a hardcoded handle.
+     */
+    public const DISPLAY_TYPES = ['text', 'color', 'image'];
+
+    /** Expose display_type on toArray() so Filament forms can fill it. */
+    protected $appends = ['display_type'];
 
     /**
      * Define which attributes should be cast.
@@ -63,6 +76,25 @@ class ProductOption extends BaseModel implements Contracts\ProductOption, Spatie
      * @var array
      */
     protected $guarded = [];
+
+    /**
+     * Display type, stored in meta so no schema change is needed (mirrors
+     * ProductOptionValue::swatch_color). Unknown/absent → 'text'.
+     */
+    public function getDisplayTypeAttribute(): string
+    {
+        $type = data_get($this->meta, 'display_type');
+
+        return in_array($type, self::DISPLAY_TYPES, true) ? $type : 'text';
+    }
+
+    public function setDisplayTypeAttribute(?string $type): void
+    {
+        $meta = collect($this->meta ?? [])->toArray();
+        $meta['display_type'] = in_array($type, self::DISPLAY_TYPES, true) ? $type : 'text';
+
+        $this->meta = $meta;
+    }
 
     public function scopeShared(Builder $builder): Builder
     {
