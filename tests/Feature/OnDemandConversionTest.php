@@ -66,14 +66,14 @@ class OnDemandConversionTest extends TestCase
         $this->assertTrue($generator->fileExists($media->fresh(), 'medium'));
     }
 
-    public function test_media_url_returns_conversion_then_original_fallback(): void
+    public function test_media_url_returns_conversion_and_null_for_unknown(): void
     {
         $media = $this->mediaWithImage();
         $urls = app(MediaUrl::class);
 
         $this->assertStringContainsString('conversions/', $urls->conversion($media->fresh(), 'medium'));
-        // Unknown conversion → original URL (no exception).
-        $this->assertStringNotContainsString('conversions/', $urls->conversion($media->fresh(), 'nope'));
+        // Unknown conversion → null (never the original full-size image).
+        $this->assertNull($urls->conversion($media->fresh(), 'nope'));
         $this->assertNull($urls->conversion(null, 'medium'));
     }
 

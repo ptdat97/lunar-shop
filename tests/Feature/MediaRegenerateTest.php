@@ -34,12 +34,13 @@ class MediaRegenerateTest extends TestCase
 
         $generator->ensure($media->fresh(), 'medium');
 
-        // The positive result is cached, so a hot read doesn't stat the disk.
-        $this->assertTrue(Cache::get("media.exists.{$media->id}.medium"));
+        // The positive result is cached (one set per media), so a hot read
+        // doesn't stat the disk.
+        $this->assertContains('medium', (array) Cache::get("media.exists.{$media->id}"));
 
         // forgetExists clears it (used after regenerate/delete).
         $generator->forgetExists($media, 'medium');
-        $this->assertNull(Cache::get("media.exists.{$media->id}.medium"));
+        $this->assertNotContains('medium', (array) Cache::get("media.exists.{$media->id}"));
     }
 
     public function test_dispatch_queues_a_batch_of_regenerate_jobs(): void
@@ -71,12 +72,12 @@ class MediaRegenerateTest extends TestCase
         // Prime: generate + cache, then delete the file out-of-band.
         $generator->ensure($media->fresh(), 'medium');
         Storage::disk($media->conversions_disk)->delete($media->getPathRelativeToRoot('medium'));
-        $this->assertTrue(Cache::get("media.exists.{$media->id}.medium")); // stale
+        $this->assertContains('medium', (array) Cache::get("media.exists.{$media->id}")); // stale
 
         // The job rebuilds the conversion and clears the stale cache entry.
         (new RegenerateConversionsJob([$media->id], onlyMissing: false))->handle($generator);
 
-        $this->assertNull(Cache::get("media.exists.{$media->id}.medium"));
+        $this->assertNotContains('medium', (array) Cache::get("media.exists.{$media->id}"));
         $this->assertTrue($generator->fileExists($media->fresh(), 'medium'));
     }
 }

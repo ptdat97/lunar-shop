@@ -30,7 +30,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  */
 class ConversionGenerator
 {
-    /** Cache TTL (seconds) for a positive "file exists" result. */
+    /** Cache TTL (seconds) for a media's set of positive "file exists" results. */
     protected const EXISTS_TTL = 86400;
 
     /** Max seconds a concurrent request waits for the lock holder to generate. */
@@ -55,14 +55,23 @@ class ConversionGenerator
     private array $namesMemo = [];
 
     /**
-     * Per-request memo of POSITIVE existence results ("mediaId:conversion"),
-     * layered over the cross-request cache so a page resolving the same
-     * media+conversion many times makes at most one cache/disk round trip —
-     * with a database cache store each Cache::get is a DB query.
+     * Per-request memo of POSITIVE existence results, keyed by media id: a set
+     * of conversion names known to exist. Layered over the cross-request cache
+     * (one key per MEDIA holding the whole set, not one key per conversion) so
+     * a page resolving N conversions of a media item makes at most one cache
+     * round trip for all of them — with a database cache store each Cache::get
+     * is a DB query, so a 12-card × 4-conversion grid costs 12 reads, not 48.
      *
-     * @var array<string, true>
+     * @var array<int, array<string, true>>
      */
     private array $existsMemo = [];
+
+    /**
+     * Media ids whose cached exists-set was already fetched this request.
+     *
+     * @var array<int, true>
+     */
+    private array $existsLoaded = [];
 
     /**
      * The conversion names registered for a media item.
@@ -267,15 +276,9 @@ class ConversionGenerator
      */
     protected function existsCached(Media $media, string $conversion): bool
     {
-        $memoKey = $media->id . ':' . $conversion;
+        $this->loadExistsSet($media);
 
-        if (isset($this->existsMemo[$memoKey])) {
-            return true;
-        }
-
-        if (Cache::get($this->existsKey($media, $conversion))) {
-            $this->existsMemo[$memoKey] = true;
-
+        if (isset($this->existsMemo[$media->id][$conversion])) {
             return true;
         }
 
@@ -288,10 +291,38 @@ class ConversionGenerator
         return false;
     }
 
+    /**
+     * Fetch the media's cached exists-set into the memo, at most once per
+     * request per media item (this is the single cache read that replaces the
+     * former one-read-per-conversion pattern).
+     */
+    protected function loadExistsSet(Media $media): void
+    {
+        if (isset($this->existsLoaded[$media->id])) {
+            return;
+        }
+
+        $this->existsLoaded[$media->id] = true;
+
+        foreach ((array) Cache::get($this->existsKey($media), []) as $name) {
+            $this->existsMemo[$media->id][$name] = true;
+        }
+    }
+
     protected function rememberExists(Media $media, string $conversion): void
     {
-        $this->existsMemo[$media->id . ':' . $conversion] = true;
-        Cache::put($this->existsKey($media, $conversion), true, self::EXISTS_TTL);
+        $this->loadExistsSet($media);
+        $this->existsMemo[$media->id][$conversion] = true;
+
+        // Merge into the LATEST cached set rather than the request-local memo,
+        // to narrow the read-modify-write window between concurrent writers.
+        // A lost entry is benign either way: the next reader re-stats the file
+        // and re-adds it. Only runs when a conversion was just found/generated
+        // — the hot path (everything cached) never writes.
+        $set = array_fill_keys((array) Cache::get($this->existsKey($media), []), true);
+        $set[$conversion] = true;
+
+        Cache::put($this->existsKey($media), array_keys($set), self::EXISTS_TTL);
     }
 
     /**
@@ -302,9 +333,31 @@ class ConversionGenerator
      */
     public function forgetExists(Media $media, string $conversion): void
     {
-        unset($this->existsMemo[$media->id . ':' . $conversion]);
-        Cache::forget($this->existsKey($media, $conversion));
+        unset($this->existsMemo[$media->id][$conversion]);
+
+        $set = array_fill_keys((array) Cache::get($this->existsKey($media), []), true);
+        unset($set[$conversion]);
+
+        $set === []
+            ? Cache::forget($this->existsKey($media))
+            : Cache::put($this->existsKey($media), array_keys($set), self::EXISTS_TTL);
+
         Cache::forget($this->warmDedupeKey($media, $conversion));
+    }
+
+    /**
+     * Forget the cached "exists" flags for EVERY conversion of a media item in
+     * one shot (the set lives under a single key, so this is one forget instead
+     * of a read-modify-write per conversion). Used after a full regenerate.
+     */
+    public function forgetAllExists(Media $media): void
+    {
+        unset($this->existsMemo[$media->id], $this->existsLoaded[$media->id]);
+        Cache::forget($this->existsKey($media));
+
+        foreach ($this->conversionNames($media) as $conversion) {
+            Cache::forget($this->warmDedupeKey($media, $conversion));
+        }
     }
 
     /**
@@ -317,9 +370,14 @@ class ConversionGenerator
         return "media.warm.{$media->id}.{$conversion}";
     }
 
-    protected function existsKey(Media $media, string $conversion): string
+    /**
+     * One key per MEDIA (value: list of conversion names that exist), not one
+     * key per conversion — see $existsMemo for why. TTL applies to the whole
+     * set and refreshes on every write; fine for a stat-cache.
+     */
+    protected function existsKey(Media $media): string
     {
-        return "media.exists.{$media->id}.{$conversion}";
+        return "media.exists.{$media->id}";
     }
 
     protected function lockKey(Media $media, string $conversion): string

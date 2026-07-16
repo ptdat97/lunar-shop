@@ -75,15 +75,12 @@ class RegenerateConversionsJob implements ShouldQueue
             Config::set('media-library.queue_conversions_by_default', $previous);
         }
 
-        // Bust the on-demand exists-cache so rebuilt files are picked up. Iterate
-        // EVERY conversion registered for each media (via conversionNames), not
-        // just the admin presets — regenerate rebuilt all of them (incl. thumb /
-        // webp / any StandardMediaDefinitions size), so a preset-only bust would
-        // leave those serving the stale file until the exists-cache TTL expired.
+        // Bust the on-demand exists-cache so rebuilt files are picked up.
+        // forgetAllExists drops the media's whole exists-set (regenerate rebuilt
+        // every conversion incl. thumb / webp / any StandardMediaDefinitions
+        // size) plus each conversion's pre-warm dedupe window.
         Media::whereIn('id', $this->mediaIds)->get()->each(
-            fn (Media $media) => collect($generator->conversionNames($media))->each(
-                fn (string $conversion) => $generator->forgetExists($media, $conversion)
-            )
+            fn (Media $media) => $generator->forgetAllExists($media)
         );
     }
 }
