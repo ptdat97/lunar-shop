@@ -26,8 +26,10 @@ async function add(variantId, quantity, trigger) {
     if (btn) { btn.disabled = true; btn.textContent = 'Adding…'; }
 
     try {
-        await api.post('/cart', { variant_id: Number(variantId), quantity: Number(quantity) || 1 });
-        emit(CART_UPDATED, { variantId });
+        const { data } = await api.post('/cart', { variant_id: Number(variantId), quantity: Number(quantity) || 1 });
+        // The POST response IS the updated cart — pass it along so the
+        // mini-cart renders it directly instead of re-fetching /cart.
+        emit(CART_UPDATED, { variantId, cart: data.data ?? data });
         openDrawer();
     } catch (e) {
         if (btn) btn.textContent = 'Try again';

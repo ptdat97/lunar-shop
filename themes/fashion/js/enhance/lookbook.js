@@ -29,17 +29,21 @@ export default function (root = document) {
         btn.disabled = true;
 
         // Add sequentially so the server-side cart merges quantities cleanly.
+        // Each POST returns the updated cart; the last one is the final state,
+        // passed along so the mini-cart renders without re-fetching /cart.
         let added = 0;
+        let cart = null;
         for (const variant_id of ids) {
             try {
-                await api.post('/cart', { variant_id, quantity: 1 });
+                const { data } = await api.post('/cart', { variant_id, quantity: 1 });
+                cart = data.data ?? data;
                 added += 1;
             } catch {
                 /* skip a failed line (e.g. out of stock) and continue */
             }
         }
 
-        emit(CART_UPDATED);
+        emit(CART_UPDATED, cart ? { cart } : {});
         btn.disabled = false;
         btn.innerHTML = label;
 

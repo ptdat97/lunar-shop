@@ -2,15 +2,26 @@
 // (Lunar cart), JS only renders /api/v1/cart and keeps consumers in sync.
 //
 // Event flow (see events.js):
-//   cart:updated   → this refreshes from the API, then emits…
+//   cart:updated   → this refreshes from the API (or renders detail.cart when
+//                    the mutation response already carries it), then emits…
 //   cart:refreshed → …so the cart page / other consumers re-render.
 // A refresh never re-emits cart:updated (no loop).
+//
+// Every cart mutation endpoint returns the full updated cart, so a mutation
+// that passes it along costs ZERO extra GETs: without this, one add-to-cart
+// fired three /cart requests (POST + cart:updated GET + drawer-open GET).
 
 import api from '../api.js';
 import { CART_UPDATED, CART_REFRESHED, emit, on } from '../events.js';
 import { renderGrid } from './_card.js';
 
 let lastCart = null;
+
+// When the last render happened; the drawer-open refresh is skipped while the
+// state is this fresh (an add-to-cart renders the POST response, then opens
+// the drawer milliseconds later — re-fetching would be a duplicate).
+const FRESH_MS = 1000;
+let lastRenderAt = 0;
 
 function esc(v) {
     return String(v ?? '').replace(/[&<>"']/g, (c) => ({
@@ -124,8 +135,16 @@ function renderDrawer(cart) {
 
 function render(cart) {
     lastCart = cart;
+    lastRenderAt = Date.now();
     renderCount(cart);
     renderDrawer(cart);
+}
+
+// Render a cart we already have (a mutation response) and notify consumers —
+// same contract as refresh(), minus the GET.
+function renderAndNotify(cart) {
+    render(cart);
+    emit(CART_REFRESHED, { cart: lastCart });
 }
 
 // "You may also like" — fetched separately from the cart so a slow/empty
@@ -150,23 +169,26 @@ async function refreshRecommendations() {
     }
 }
 
-async function refresh() {
-    const { data } = await api.get('/cart');
-    render(data.data ?? data);
-    emit(CART_REFRESHED, { cart: lastCart });
+// In-flight dedupe: concurrent triggers (cart:updated + drawer open landing in
+// the same tick) share one GET instead of stacking duplicates.
+let inflight = null;
+
+function refresh() {
+    inflight ??= api.get('/cart')
+        .then(({ data }) => { renderAndNotify(data.data ?? data); })
+        .finally(() => { inflight = null; });
+    return inflight;
 }
 
 // Optimistic-free line mutation: call API, re-render with the response.
 async function mutateLine(lineId, quantity) {
     const { data } = await api.patch(`/cart/lines/${lineId}`, { quantity });
-    render(data.data ?? data);
-    emit(CART_REFRESHED, { cart: lastCart });
+    renderAndNotify(data.data ?? data);
 }
 
 async function removeLine(lineId) {
     const { data } = await api.delete(`/cart/lines/${lineId}`);
-    render(data.data ?? data);
-    emit(CART_REFRESHED, { cart: lastCart });
+    renderAndNotify(data.data ?? data);
 }
 
 export default function (root = document) {
@@ -174,8 +196,33 @@ export default function (root = document) {
     if (drawerEl && !drawerEl.dataset.cartInit) {
         drawerEl.dataset.cartInit = '1';
 
-        // Fetch fresh contents each time the drawer opens.
-        drawerEl.addEventListener('show.bs.offcanvas', () => { refresh(); refreshRecommendations(); });
+        // Closing the drawer must not move the page. Bootstrap's data-api
+        // returns focus to the toggle that opened it — without preventScroll —
+        // and focus() honours scroll-padding-top, so focusing the toggle inside
+        // the sticky header makes the browser scroll the whole page up by
+        // ~header height (smoothly, thanks to scroll-behavior: smooth).
+        // Pre-focusing the toggle with preventScroll turns Bootstrap's later
+        // focus() into a no-op, and the next-frame restore pins the scroll
+        // position in case the browser scrolled anyway. Runs before Bootstrap's
+        // handler: this listener binds at init, Bootstrap's on toggle click.
+        drawerEl.addEventListener('hidden.bs.offcanvas', () => {
+            const x = window.scrollX;
+            const y = window.scrollY;
+            document.querySelector('[data-cart-toggle]')?.focus({ preventScroll: true });
+            requestAnimationFrame(() => {
+                if (window.scrollX !== x || window.scrollY !== y) {
+                    window.scrollTo({ left: x, top: y, behavior: 'instant' });
+                }
+            });
+        });
+
+        // Fetch fresh contents each time the drawer opens — unless a mutation
+        // just rendered the cart (add-to-cart opens the drawer right after
+        // rendering its POST response; re-fetching would be a duplicate).
+        drawerEl.addEventListener('show.bs.offcanvas', () => {
+            if (Date.now() - lastRenderAt > FRESH_MS) refresh();
+            refreshRecommendations();
+        });
 
         // Qty +/- , manual qty edit, remove — delegated (survives re-render).
         drawerEl.addEventListener('click', (e) => {
@@ -198,10 +245,15 @@ export default function (root = document) {
         });
     }
 
-    // Someone changed the cart elsewhere → refresh the drawer + count.
+    // Someone changed the cart elsewhere → sync the drawer + count. Mutations
+    // whose response already carries the cart pass it in detail.cart, which
+    // renders directly (no GET); emitters without it fall back to a fetch.
     if (!window.__cartBusBound) {
         window.__cartBusBound = true;
-        on(CART_UPDATED, () => { refresh(); });
+        on(CART_UPDATED, (e) => {
+            const cart = e.detail?.cart;
+            cart ? renderAndNotify(cart) : refresh();
+        });
     }
 
     // Lightweight count on initial load (no drawer render needed).

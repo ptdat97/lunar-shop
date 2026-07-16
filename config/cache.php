@@ -19,6 +19,23 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Rate Limiter Store
+    |--------------------------------------------------------------------------
+    |
+    | The store backing Illuminate's RateLimiter (ThrottleApiV1, throttle:*).
+    | Kept OFF the database store on purpose: the limiter writes to the cache
+    | table on EVERY api/v1 request (insert ignore + update), which gap-locks
+    | against concurrent cache upserts and deadlocks under parallel traffic
+    | (SQLSTATE 40001 → random 500s on /api/v1/*). The file store's add() is
+    | flock-atomic, so per-IP counting stays correct on a single server; point
+    | this at redis when running multiple app servers.
+    |
+    */
+
+    'limiter' => env('CACHE_LIMITER_STORE', 'file'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Cache Stores
     |--------------------------------------------------------------------------
     |

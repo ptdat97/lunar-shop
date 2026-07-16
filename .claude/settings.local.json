@@ -23,7 +23,9 @@
       "Python",
       "Node",
       "Skill(run)",
-      "Skill(run:*)"
+      "Skill(run:*)",
+      "PowerShell($jobs = 1..20 | ForEach-Object { Start-Job { \\(Invoke-WebRequest -Uri \"http://localhost/api/v1/cart\" -UseBasicParsing -TimeoutSec 30\\).StatusCode } }; $codes = $jobs | Wait-Job | Receive-Job; $jobs | Remove-Job; $codes | Group-Object | ForEach-Object { \"$\\($_.Name\\): $\\($_.Count\\)\" })",
+      "PowerShell(node -e \"console.log\\(require\\('./node_modules/bootstrap/package.json'\\).version\\)\")"
     ]
   }
 }
