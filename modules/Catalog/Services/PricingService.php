@@ -2,6 +2,7 @@
 
 namespace Modules\Catalog\Services;
 
+use Illuminate\Support\Collection;
 use Lunar\DataTypes\Price as PriceData;
 use Lunar\Facades\Pricing;
 use Lunar\Models\Currency;
@@ -86,14 +87,32 @@ class PricingService
     }
 
     /**
-     * Formatted display price for a product's first variant (e.g. "$60.00"),
-     * or null when it can't be resolved. Used by the <x-price> component.
+     * Formatted display price for a product's first PUBLISHED variant (e.g.
+     * "$60.00"), or null when it can't be resolved. Used by the <x-price>
+     * component. Skips disabled SKUs so a hidden variant never sets the headline
+     * price, even if the caller eager-loaded skus without a status filter.
      */
     public function displayPrice(Product $product): ?string
     {
-        $sku = $product->skus->first() ?? $product->skus()->first();
+        $sku = $this->publishedSkus($product)->first();
 
         return $sku ? (string) $this->matchedPrice($sku)?->formatted() : null;
+    }
+
+    /**
+     * A product's published SKUs, ordered by position. Uses the eager-loaded
+     * relation when present (filtering out any disabled rows a broad eager-load
+     * may have pulled in), else queries.
+     *
+     * @return Collection<int, ProductSku>
+     */
+    protected function publishedSkus(Product $product): Collection
+    {
+        if ($product->relationLoaded('skus')) {
+            return $product->skus->where('status', 'published')->sortBy('position')->values();
+        }
+
+        return $product->skus()->where('status', 'published')->orderBy('position')->get();
     }
 
     /**
@@ -120,7 +139,7 @@ class PricingService
      */
     public function lowestPriceAmount(Product $product): ?float
     {
-        return $product->skus
+        return $this->publishedSkus($product)
             ->map(fn (ProductSku $sku) => $this->matchedPrice($sku)?->decimal())
             ->filter()
             ->min();

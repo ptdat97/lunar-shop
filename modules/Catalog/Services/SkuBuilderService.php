@@ -71,24 +71,45 @@ class SkuBuilderService
      * @param  array<int, mixed>  $variables  the variant definitions
      * @param  array<int, array<string, mixed>>  $skus  one row per combination
      *
-     * @throws ValidationException when a SKU code collides with another product
+     * @throws ValidationException when a SKU code collides, or when the SKU
+     *                             combinations do not match the variables
      */
     public function save(Product $product, array $variables, array $skus): void
     {
+        $variables = array_values($variables);
+        $skus = array_values($skus);
+
+        // Re-derive the canonical combinations from the variables and bind them
+        // to the SKU rows BY POSITION. The admin's SKU repeater is non-reorderable
+        // and non-addable, so its rows stay in Cartesian order; taking `variants`
+        // from the fresh combinations (not the posted, possibly-stale values)
+        // makes it impossible to persist an index that no longer matches the
+        // variables — even a pure axis reorder, which leaves the combo-key SET
+        // unchanged but changes each position's meaning. The count still has to
+        // line up, else the payload is genuinely out of sync (missing/extra rows).
+        $combinations = $this->combinations($variables);
+        $this->assertSkuCountMatches($combinations, $skus);
         $this->assertUniqueSkuCodes($product, $skus);
 
-        DB::transaction(function () use ($product, $variables, $skus) {
-            $product->variables = array_values($variables);
+        DB::transaction(function () use ($product, $variables, $skus, $combinations) {
+            $product->variables = $variables;
             $product->save();
+
+            // Snapshot the old SKUs' ids keyed by their durable `sku` code BEFORE
+            // dropping them, so anything that referenced a SKU by its (disposable)
+            // id can be re-pointed at the recreated row that carries the same code.
+            $oldIdsBySku = $product->skus()->pluck('id', 'sku');
 
             // Authoritative rewrite: drop the old set, recreate from the payload.
             $product->skus()->forceDelete();
 
             $currency = Currency::getDefault();
+            $newIdsBySku = [];
 
             foreach (array_values($skus) as $position => $row) {
                 $sku = $product->skus()->create([
-                    'variants' => $row['variants'] ?? [],
+                    // Canonical combo for this position (empty for a simple product).
+                    'variants' => $combinations[$position] ?? [],
                     'position' => $position,
                     'images' => $row['images'] ?? [],
                     'model' => $row['model'] ?? '',
@@ -103,13 +124,32 @@ class SkuBuilderService
                     'status' => $row['status'] ?? 'published',
                 ]);
 
+                $newIdsBySku[$row['sku']] = $sku->id;
                 $this->syncBasePrice($sku, $currency);
             }
 
-            // Lunar requires at least one purchasable; guarantee exactly one
-            // default even if the payload forgot to flag one.
-            if ($product->skus()->where('is_default', true)->doesntExist()) {
-                $product->skus()->orderBy('position')->limit(1)->update(['is_default' => true]);
+            // Re-point every id-based reference (discount targets, cart lines,
+            // order lines) from the deleted SKU to the recreated one that shares
+            // the same `sku` code. Without this, delete-and-recreate silently
+            // breaks variant-scoped discounts on every save and orphans cart/order
+            // lines against a since-deleted id.
+            $this->repointBySkuCode($oldIdsBySku->all(), $newIdsBySku);
+
+            // Guarantee exactly one default, and prefer a PUBLISHED one — the
+            // default SKU sets the product's headline price (PricingService::
+            // displayPrice), so a disabled default would surface a hidden price.
+            // Fall back to the first SKU only when nothing is published (all
+            // disabled), so the invariant "≥1 default" always holds.
+            $hasPublishedDefault = $product->skus()
+                ->where('is_default', true)->where('status', 'published')->exists();
+
+            if (! $hasPublishedDefault) {
+                $product->skus()->update(['is_default' => false]);
+
+                $promote = $product->skus()->where('status', 'published')->orderBy('position')->first()
+                    ?? $product->skus()->orderBy('position')->first();
+
+                $promote?->update(['is_default' => true]);
             }
         });
     }
@@ -118,6 +158,12 @@ class SkuBuilderService
      * Mirror a SKU's `price` cache down to its authoritative base Price row
      * (min_quantity 1, default currency, no customer group). `compare_price`
      * carries the strike-through `origin_price` when it is higher.
+     *
+     * A non-positive price means "not priced yet" — we DELETE the base row
+     * rather than write a 0 one. Lunar's pricing engine treats a 0 row as a
+     * valid match, so a blank/zero price would otherwise let the storefront sell
+     * the variant for free; with no row, the engine reports the SKU as unpriced
+     * and the storefront hides it / refuses add-to-cart.
      */
     protected function syncBasePrice(ProductSku $sku, ?Currency $currency): void
     {
@@ -125,17 +171,90 @@ class SkuBuilderService
             return;
         }
 
+        $baseKey = [
+            'currency_id' => $currency->id,
+            'customer_group_id' => null,
+            'min_quantity' => 1,
+        ];
+
+        if ((int) $sku->price <= 0) {
+            $sku->prices()->where($baseKey)->delete();
+
+            return;
+        }
+
         $sku->prices()->updateOrCreate(
+            $baseKey,
             [
-                'currency_id' => $currency->id,
-                'customer_group_id' => null,
-                'min_quantity' => 1,
-            ],
-            [
-                'price' => max(0, (int) $sku->price),
+                'price' => (int) $sku->price,
                 'compare_price' => $sku->origin_price > $sku->price ? (int) $sku->origin_price : null,
             ],
         );
+    }
+
+    /**
+     * Re-point id-based references from a product's deleted SKUs to the freshly
+     * recreated ones, matched by the durable `sku` code.
+     *
+     * `save()` delete-and-recreates SKUs (ids change), but discount targets and
+     * cart/order lines store the SKU id. For every code that survived the save,
+     * move those rows from the old id to the new id so variant-scoped discounts
+     * keep applying and existing cart/order lines still resolve. The morph type
+     * (`product_sku`) is unchanged, so only the id needs updating.
+     *
+     * @param  array<string, int>  $oldIdsBySku  sku code => id before the save
+     * @param  array<string, int>  $newIdsBySku  sku code => id after the save
+     */
+    protected function repointBySkuCode(array $oldIdsBySku, array $newIdsBySku): void
+    {
+        $morph = (new ProductSku)->getMorphClass();
+
+        foreach ($oldIdsBySku as $code => $oldId) {
+            $newId = $newIdsBySku[$code] ?? null;
+
+            // Code gone (variant genuinely removed) or unchanged id → nothing to move.
+            if ($newId === null || (int) $newId === (int) $oldId) {
+                continue;
+            }
+
+            DB::table('lunar_discountables')
+                ->where('discountable_type', $morph)->where('discountable_id', $oldId)
+                ->update(['discountable_id' => $newId]);
+
+            foreach (['lunar_cart_lines', 'lunar_order_lines'] as $table) {
+                DB::table($table)
+                    ->where('purchasable_type', $morph)->where('purchasable_id', $oldId)
+                    ->update(['purchasable_id' => $newId]);
+            }
+        }
+    }
+
+    /**
+     * The number of SKU rows must equal the number of Cartesian combinations of
+     * the variables. Since `save()` rebinds each SKU's `variants` from the
+     * canonical combinations by position, a count mismatch is the tell-tale that
+     * the admin edited the variable definitions without regenerating the SKU
+     * list — reject it rather than persist rows whose commercial data lines up
+     * with the wrong combination.
+     *
+     * A simple product (no variables) legitimately has one SKU with an empty
+     * combination; combinations() returns [] for no axes, so allow a single row.
+     *
+     * @param  array<int, array<int, int>>  $combinations
+     * @param  array<int, array<string, mixed>>  $skus
+     *
+     * @throws ValidationException
+     */
+    protected function assertSkuCountMatches(array $combinations, array $skus): void
+    {
+        $expected = count($combinations) ?: 1;
+
+        if (count($skus) !== $expected) {
+            throw ValidationException::withMessages([
+                'skus' => 'The variants were changed but the SKU list is out of date. '
+                    .'Click "Generate combinations" to rebuild the SKUs before saving.',
+            ]);
+        }
     }
 
     /**

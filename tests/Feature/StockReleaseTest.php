@@ -62,6 +62,35 @@ class StockReleaseTest extends TestCase
         $this->assertNotNull($order->fresh()->stock_released_at);
     }
 
+    public function test_release_credits_the_current_sku_when_the_ordered_id_was_recreated(): void
+    {
+        $this->seedBaseData();
+        $order = $this->placeOrder(stock: 5, quantity: 2); // stock 5 → 3
+
+        $line = $order->lines->first();
+        $code = $line->identifier;                 // durable sku string
+        $this->assertNotEmpty($code);
+        $productId = $line->purchasable->product_id;
+
+        // Simulate a product edit that delete-and-recreates the SKU: the order
+        // line's purchasable_id now points at a hard-deleted row, but a new SKU
+        // carries the same code. (This is the state a removal path can leave.)
+        ProductSku::where('sku', $code)->forceDelete();
+        $recreated = ProductSku::create([
+            'product_id' => $productId,
+            'sku' => $code, 'variants' => [], 'quantity' => 3, 'price' => 1999,
+            'status' => 'published', 'is_default' => true,
+        ]);
+        $this->assertNull(ProductSku::find((int) $line->purchasable_id), 'ordered id should be gone');
+
+        $order->update(['status' => 'cancelled']);
+
+        // The 2 reserved units are credited back to the recreated SKU via the
+        // identifier fallback (3 + 2 = 5) rather than lost.
+        $this->assertSame(5, (int) $recreated->fresh()->quantity);
+        $this->assertNotNull($order->fresh()->stock_released_at);
+    }
+
     public function test_refunding_an_order_returns_its_stock(): void
     {
         $this->seedBaseData();

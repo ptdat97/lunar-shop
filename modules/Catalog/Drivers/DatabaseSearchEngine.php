@@ -28,7 +28,10 @@ class DatabaseSearchEngine implements SearchEngine
             // not N+1. `media` is included here so callers never need a follow-up
             // loadMissing(['media']) — one place, one query.
             ->with([
-                'skus.prices',
+                // Only published SKUs feed the card price / availability / API —
+                // a disabled variant must never leak its price, stock or sku code
+                // into the listing (every other read path filters the same way).
+                'skus' => fn ($q) => $q->where('status', 'published')->with('prices'),
                 'brand',
                 'defaultUrl',
                 'collections',
@@ -161,6 +164,7 @@ class DatabaseSearchEngine implements SearchEngine
                 $join->on('pr.priceable_id', '=', 'ps.id')
                     ->where('pr.priceable_type', '=', 'product_sku');
             })
+            ->where('ps.status', 'published')
             ->selectRaw('ps.product_id, MIN(pr.price) as min_price')
             ->groupBy('ps.product_id');
 
@@ -341,6 +345,7 @@ class DatabaseSearchEngine implements SearchEngine
     {
         $inStock = DB::table('lunar_product_skus as ps')
             ->whereIn('ps.product_id', $productIds)
+            ->where('ps.status', 'published')
             ->where('ps.quantity', '>', 0)
             ->distinct()
             ->count('ps.product_id');
@@ -375,6 +380,7 @@ class DatabaseSearchEngine implements SearchEngine
                 $join->on('pr.priceable_id', '=', 'ps.id')
                     ->where('pr.priceable_type', '=', 'product_sku');
             })
+            ->where('ps.status', 'published')
             ->whereIn('ps.product_id', $productIds)
             ->selectRaw('MIN(pr.price) as min_price, MAX(pr.price) as max_price')
             ->first();

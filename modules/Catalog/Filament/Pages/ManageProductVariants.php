@@ -128,7 +128,7 @@ class ManageProductVariants extends BaseEditRecord
                             Forms\Components\TextInput::make('sku')
                                 ->label(__('admin.variants.sku_code'))->required(),
                             Forms\Components\TextInput::make('price')
-                                ->label(__('admin.variants.price'))->numeric()->minValue(0)
+                                ->label(__('admin.variants.price'))->numeric()->minValue(1)->required()
                                 ->helperText(__('admin.variants.price_help')),
                             Forms\Components\TextInput::make('quantity')
                                 ->label(__('admin.variants.quantity'))->numeric()->default(0),

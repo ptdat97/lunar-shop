@@ -3,6 +3,7 @@
 namespace Modules\Inventory\Services;
 
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Lunar\Models\Order;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Enums\StockMovementType;
@@ -47,19 +48,45 @@ class StockReleaser
                     continue;
                 }
 
-                $skuId = (int) $line->purchasable_id;
                 $quantity = (int) $line->quantity;
 
-                $before = (int) ProductSku::whereKey($skuId)->value('quantity');
+                // Resolve the SKU to credit. Prefer the recorded id, but a product
+                // edit delete-and-recreates SKUs (ids change), so the id can point
+                // at a since-deleted row. Fall back to the CURRENT SKU carrying the
+                // same durable code (order_lines.identifier = getIdentifier() = the
+                // sku string). Without this fallback the units are lost forever.
+                $sku = ProductSku::find((int) $line->purchasable_id);
 
-                ProductSku::whereKey($skuId)->update([
+                if (! $sku && filled($line->identifier)) {
+                    $sku = ProductSku::where('sku', $line->identifier)->first();
+                }
+
+                if (! $sku) {
+                    // The variant no longer exists under any code — nothing to
+                    // credit (a ledger row can't be written either: its FK targets
+                    // an existing SKU). Log it so the un-restocked units are
+                    // auditable rather than vanishing silently.
+                    Log::warning('StockReleaser: could not resolve SKU for order line; stock not returned.', [
+                        'order_id' => $fresh->id,
+                        'order_line_id' => $line->id,
+                        'purchasable_id' => $line->purchasable_id,
+                        'identifier' => $line->identifier,
+                        'quantity' => $quantity,
+                    ]);
+
+                    continue;
+                }
+
+                $before = (int) ProductSku::whereKey($sku->id)->value('quantity');
+
+                ProductSku::whereKey($sku->id)->update([
                     'quantity' => DB::raw('quantity + '.$quantity),
                 ]);
 
                 // Ledger `release` entry, inside this release transaction so a
                 // rollback drops it too. System-caused (cancel/refund/CLI).
                 $this->ledger->record(
-                    skuId: $skuId,
+                    skuId: $sku->id,
                     type: StockMovementType::Release,
                     delta: $quantity,
                     before: $before,

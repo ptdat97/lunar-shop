@@ -110,4 +110,26 @@ class CartStockGuardTest extends TestCase
 
         $this->patchJson("/api/v1/cart/lines/{$line}", ['quantity' => 1])->assertSuccessful();
     }
+
+    public function test_raising_a_line_past_freshly_dropped_stock_is_refused(): void
+    {
+        // M2: the updateLine guard must read stock FRESH, not off the cached
+        // cart line. A concurrent sale drops stock after the line was loaded;
+        // bumping the quantity past the real level must be rejected.
+        $this->seedBaseData();
+        $product = $this->createProduct(['stock' => 10]);
+        $sku = $product->skus->first();
+
+        $line = $this->addLine($sku->id, 2)->assertSuccessful()->json('data.lines.0.id');
+
+        // Someone else buys almost all of it: only 3 remain now.
+        $sku->update(['quantity' => 3]);
+
+        $this->patchJson("/api/v1/cart/lines/{$line}", ['quantity' => 8])
+            ->assertStatus(422)
+            ->assertJsonValidationErrorFor('quantity');
+
+        // But raising up to the real available level is allowed.
+        $this->patchJson("/api/v1/cart/lines/{$line}", ['quantity' => 3])->assertSuccessful();
+    }
 }

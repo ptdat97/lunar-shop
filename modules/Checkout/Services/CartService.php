@@ -150,11 +150,27 @@ class CartService
     /**
      * Refuse a quantity the SKU cannot fulfil (its own on-hand stock).
      *
+     * Reads `quantity` (and `status`) FRESH from the DB rather than trusting the
+     * SKU hydrated onto the cached cart line: on the updateLine path that line
+     * can be stale (another order or an admin edit moved stock meanwhile), which
+     * would let a PATCH sail past the guard against a number that no longer holds.
+     *
      * @throws ValidationException
      */
     protected function guardStock(ProductSku $sku, int $quantity): void
     {
-        if ($quantity >= 1 && ! $sku->canBeFulfilledAtQuantity($quantity)) {
+        if ($quantity < 1) {
+            return;
+        }
+
+        $fresh = ProductSku::query()
+            ->select(['quantity', 'status'])
+            ->whereKey($sku->getKey())
+            ->first();
+
+        $available = $fresh && $fresh->status !== 'disabled' ? max(0, (int) $fresh->quantity) : 0;
+
+        if ($quantity > $available) {
             throw ValidationException::withMessages([
                 'quantity' => 'Sorry, there isn\'t enough stock to add that quantity.',
             ]);
@@ -221,13 +237,25 @@ class CartService
         }
 
         $cart = $this->mutableCart();
+
+        // Remember what was applied before, so a code that doesn't stick restores
+        // the previous coupon rather than wiping it. Without this, submitting a
+        // non-applying code silently drops an already-working discount.
+        $previousCode = $cart->coupon_code;
+
         $cart->update(['coupon_code' => $code]);
         $cart = $cart->fresh()->calculate();
 
         // The code is valid, but it may not apply to this cart's contents
-        // (e.g. minimum spend / product restrictions). Surface that clearly.
+        // (e.g. minimum spend / product restrictions). Surface that clearly and
+        // roll back to whatever coupon (if any) was applied before this attempt.
         if (blank($cart->discountTotal) || $cart->discountTotal->value <= 0) {
-            $cart->update(['coupon_code' => null]);
+            $cart->update(['coupon_code' => $previousCode]);
+
+            // Replace the session's memoized cart with the restored one, else a
+            // subsequent CartSession::current() serves the in-memory copy still
+            // carrying the rejected code (the DB is right, the session isn't).
+            CartSession::use($cart->fresh())->calculate();
 
             throw ValidationException::withMessages([
                 'code' => 'This coupon does not apply to the items in your cart.',
