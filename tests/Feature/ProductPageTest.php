@@ -18,8 +18,8 @@ class ProductPageTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['name' => 'Linen Shirt']);
-        $product->addMedia(UploadedFile::fake()->image('a.jpg', 800, 1200))->toMediaCollection();
-        $product->addMedia(UploadedFile::fake()->image('b.jpg', 800, 1200))->toMediaCollection();
+        $product->addMedia(UploadedFile::fake()->image('a.jpg', 800, 1200))->toMediaCollection('images');
+        $product->addMedia(UploadedFile::fake()->image('b.jpg', 800, 1200))->toMediaCollection('images');
         $slug = $product->defaultUrl->slug;
 
         $html = $this->get("/products/{$slug}")

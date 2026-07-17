@@ -6,10 +6,13 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Lunar\Models\Product;
+use Modules\Assets\Definitions\FashionMediaDefinitions;
+use Modules\Assets\Services\MediaUrl;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Data\SearchResult;
 use Modules\Catalog\Models\ProductSku;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * Single source of product read-logic. Both the Storefront controller and the
@@ -76,6 +79,10 @@ class ProductService
         $locale = app()->getLocale();
         $groups = [];
 
+        // Swatch media keyed by id, resolved once from the already-eager-loaded
+        // media relation (0 extra queries — see findBySlug's `with('media')`).
+        $swatchById = $product->getMedia(FashionMediaDefinitions::SWATCH_COLLECTION)->keyBy('id');
+
         foreach ($product->variables ?? [] as $variable) {
             $optName = $this->localised($variable['name'] ?? [], $locale) ?: 'Option';
             $displayType = $this->displayType($variable);
@@ -87,7 +94,7 @@ class ProductService
                     ->map(fn ($value) => [
                         'label' => $this->localised($value['name'] ?? [], $locale),
                         'color' => $displayType === 'color' ? ($value['color'] ?? null) : null,
-                        'image' => $displayType === 'image' ? $this->swatchImageUrl($value['image'] ?? null) : null,
+                        'image' => $displayType === 'image' ? $this->swatchImageUrl($value['image'] ?? null, $swatchById) : null,
                     ])
                     ->filter(fn ($v) => $v['label'] !== '')
                     ->values()
@@ -200,21 +207,31 @@ class ProductService
     }
 
     /**
-     * Resolve a stored swatch image (a path on the public `media` disk, e.g.
-     * "variant-swatches/x.jpg") to a browser URL. Absolute URLs are returned
-     * untouched; blanks yield null.
+     * Resolve a stored swatch image to a browser URL. The stored value is now a
+     * Spatie media id (int) — resolved to the small `swatch` conversion so the
+     * storefront never loads the heavy original. Legacy values are still
+     * honoured: an absolute URL is returned as-is, a bare disk path maps to its
+     * public URL. Blanks / missing media yield null (the blade skips them).
+     *
+     * @param  Collection<int, Media>|null  $swatchById
      */
-    protected function swatchImageUrl(?string $path): ?string
+    protected function swatchImageUrl($image, ?Collection $swatchById = null): ?string
     {
-        if (empty($path)) {
+        if (empty($image)) {
             return null;
         }
 
-        if (Str::startsWith($path, ['http://', 'https://', '/'])) {
-            return $path;
+        if (is_numeric($image)) {
+            $media = $swatchById?->get((int) $image);
+
+            return $media ? app(MediaUrl::class)->conversion($media, FashionMediaDefinitions::SWATCH_CONVERSION) : null;
         }
 
-        return Storage::disk('media')->url($path);
+        if (Str::startsWith($image, ['http://', 'https://', '/'])) {
+            return $image;
+        }
+
+        return Storage::disk('media')->url($image);
     }
 
     /**

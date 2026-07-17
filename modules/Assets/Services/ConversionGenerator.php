@@ -74,13 +74,18 @@ class ConversionGenerator
     private array $existsLoaded = [];
 
     /**
-     * The conversion names registered for a media item.
+     * The conversion names registered for a media item, scoped to the media's
+     * OWN collection — a conversion limited via performOnCollections() to
+     * another collection is excluded. This keeps warming and existence checks
+     * from touching sizes that will never be generated for this media (e.g. the
+     * gallery's `zoom`/`large` on a small `swatch` chip).
      *
      * @return list<string>
      */
     public function conversionNames(Media $media): array
     {
         return $this->namesMemo[$media->id] ??= ConversionCollection::createForMedia($media)
+            ->getConversions((string) $media->collection_name)
             ->map(fn (Conversion $c) => $c->getName())
             ->values()
             ->all();

@@ -195,7 +195,10 @@ class ManageProductVariants extends BaseEditRecord
     {
         $product = $this->getRecord();
 
-        $data['variables'] = $product->variables ?? [];
+        // Swatch images are stored as media ids; turn them back into disk paths
+        // so the FileUpload component can preview the saved image.
+        $data['variables'] = app(SkuBuilderService::class)
+            ->hydrateSwatchPaths($product, $product->variables ?? []);
         $data['skus'] = $product->skus()->orderBy('position')->get()
             ->map(fn ($sku) => [
                 'variants' => $sku->variants ?? [],

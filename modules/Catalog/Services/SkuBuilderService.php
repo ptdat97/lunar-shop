@@ -4,9 +4,11 @@ namespace Modules\Catalog\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Lunar\Models\Currency;
 use Lunar\Models\Product;
+use Modules\Assets\Definitions\FashionMediaDefinitions;
 use Modules\Catalog\Models\ProductSku;
 
 /**
@@ -92,6 +94,11 @@ class SkuBuilderService
         $this->assertUniqueSkuCodes($product, $skus);
 
         DB::transaction(function () use ($product, $variables, $skus, $combinations) {
+            // Move any freshly-uploaded swatch files into the Spatie `swatch`
+            // media collection and rewrite the blob to store media ids, so the
+            // storefront can serve a small conversion instead of the original.
+            $variables = $this->ingestSwatchMedia($product, $variables);
+
             $product->variables = $variables;
             $product->save();
 
@@ -333,5 +340,113 @@ class SkuBuilderService
     protected function comboKey(array $combo): string
     {
         return implode('-', $combo);
+    }
+
+    /**
+     * Normalise every image-swatch value to a Spatie media id: keep existing
+     * ids, ingest freshly-uploaded temp files into the `swatch` collection, and
+     * delete media no longer referenced. Returns the rewritten variables.
+     *
+     * @param  array<int, mixed>  $variables
+     * @return array<int, mixed>
+     */
+    protected function ingestSwatchMedia(Product $product, array $variables): array
+    {
+        $collection = FashionMediaDefinitions::SWATCH_COLLECTION;
+
+        // Existing swatch media, indexed by their on-disk path (to recognise a
+        // hydrated id that came back unchanged from the form).
+        $existing = $product->getMedia($collection);
+        $pathToId = $existing->mapWithKeys(fn ($m) => [$m->getPathRelativeToRoot() => $m->id])->all();
+
+        $keptIds = [];
+
+        foreach ($variables as $ai => $axis) {
+            if (($axis['display_type'] ?? null) !== 'image') {
+                continue;
+            }
+
+            foreach ($axis['values'] ?? [] as $vi => $value) {
+                $img = $value['image'] ?? null;
+                $variables[$ai]['values'][$vi]['image'] = $this->ingestSwatchValue(
+                    $product, $collection, $img, $pathToId, $keptIds
+                );
+            }
+        }
+
+        // Orphans: swatch media no longer referenced by any value.
+        $existing->reject(fn ($m) => in_array($m->id, $keptIds, true))
+            ->each(fn ($m) => $m->delete());
+
+        return $variables;
+    }
+
+    /**
+     * Resolve one swatch value to a media id (or null). Mutates $keptIds.
+     *
+     * @param  array<string, int>  $pathToId
+     * @param  array<int, int>  $keptIds
+     */
+    protected function ingestSwatchValue(Product $product, string $collection, $img, array $pathToId, array &$keptIds): ?int
+    {
+        if (empty($img)) {
+            return null;
+        }
+
+        // Already a media id → keep as-is.
+        if (is_numeric($img)) {
+            $keptIds[] = (int) $img;
+
+            return (int) $img;
+        }
+
+        // A hydrated path pointing at an existing swatch media → map back to id.
+        if (isset($pathToId[$img])) {
+            $keptIds[] = $pathToId[$img];
+
+            return $pathToId[$img];
+        }
+
+        // A freshly uploaded temp file on the media disk → move it into the
+        // collection (no preservingOriginal, so the temp file is cleaned up).
+        if (Storage::disk('media')->exists($img)) {
+            $media = $product->addMedia(Storage::disk('media')->path($img))
+                ->toMediaCollection($collection);
+            $keptIds[] = $media->id;
+
+            return $media->id;
+        }
+
+        // Path resolves to nothing (broken/missing) → drop it.
+        return null;
+    }
+
+    /**
+     * Turn stored swatch media ids back into disk paths so the admin FileUpload
+     * can preview the saved image. Called from the page's fill. Ids with no
+     * surviving media become null. Non-id values (legacy paths/URLs) pass through.
+     *
+     * @param  array<int, mixed>  $variables
+     * @return array<int, mixed>
+     */
+    public function hydrateSwatchPaths(Product $product, array $variables): array
+    {
+        $byId = $product->getMedia(FashionMediaDefinitions::SWATCH_COLLECTION)->keyBy('id');
+
+        foreach ($variables as $ai => $axis) {
+            if (($axis['display_type'] ?? null) !== 'image') {
+                continue;
+            }
+
+            foreach ($axis['values'] ?? [] as $vi => $value) {
+                $img = $value['image'] ?? null;
+
+                if (is_numeric($img)) {
+                    $variables[$ai]['values'][$vi]['image'] = $byId->get((int) $img)?->getPathRelativeToRoot();
+                }
+            }
+        }
+
+        return $variables;
     }
 }

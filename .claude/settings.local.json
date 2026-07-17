@@ -30,7 +30,12 @@
       "PowerShell(Select-String -Path storage\\\\logs\\\\laravel.log -Pattern \"^\\\\[2026-07-16 0[5-9]|^\\\\[2026-07-16 1[0-9]\" | ForEach-Object { $_.Line.Substring\\(0, [Math]::Min\\(300, $_.Line.Length\\)\\) } | Select-Object -Last 6)",
       "PowerShell(\\(Select-String -Path storage\\\\logs\\\\laravel.log -Pattern \"Unknown column 'position'\" | Select-Object -Last 1\\).Line.Substring\\(0, 700\\))",
       "PowerShell($en = Get-Content lang\\\\en\\\\admin.php -Raw; $start = $en.IndexOf\\(\"    'editor' => [\"\\); $end = $en.IndexOf\\(\"    'options' => [\"\\); $en = $en.Remove\\($start, $end - $start\\); $vstart = $en.IndexOf\\(\"    'variants' => [\"\\); $vend = $en.IndexOf\\(\"    'create' => [\"\\); $en = $en.Remove\\($vstart, $vend - $vstart\\); Set-Content lang\\\\en\\\\admin.php -Value $en -Encoding utf8 -NoNewline; php -l lang\\\\en\\\\admin.php)",
-      "PowerShell($vi = Get-Content lang\\\\vi\\\\admin.php -Raw; $start = $vi.IndexOf\\(\"    'editor' => [\"\\); $end = $vi.IndexOf\\(\"    'options' => [\"\\); $vi = $vi.Remove\\($start, $end - $start\\); $vstart = $vi.IndexOf\\(\"    'variants' => [\"\\); $vend = $vi.IndexOf\\(\"    'create' => [\"\\); $vi = $vi.Remove\\($vstart, $vend - $vstart\\); Set-Content lang\\\\vi\\\\admin.php -Value $vi -Encoding utf8 -NoNewline; php -l lang\\\\vi\\\\admin.php)"
+      "PowerShell($vi = Get-Content lang\\\\vi\\\\admin.php -Raw; $start = $vi.IndexOf\\(\"    'editor' => [\"\\); $end = $vi.IndexOf\\(\"    'options' => [\"\\); $vi = $vi.Remove\\($start, $end - $start\\); $vstart = $vi.IndexOf\\(\"    'variants' => [\"\\); $vend = $vi.IndexOf\\(\"    'create' => [\"\\); $vi = $vi.Remove\\($vstart, $vend - $vstart\\); Set-Content lang\\\\vi\\\\admin.php -Value $vi -Encoding utf8 -NoNewline; php -l lang\\\\vi\\\\admin.php)",
+      "Bash(grep -n 'picture\\\\|source\\\\|srcset\\\\|$image\\\\|conversion\\\\|getUrl\\\\|responsive\\\\|webp' themes/fashion/views/pages/product.blade.php)",
+      "Bash(mysql -h127.0.0.1 -P3306 -uroot lunar -N -e \"SELECT COUNT\\(*\\) AS products_with_variables FROM lunar_products WHERE variables IS NOT NULL AND variables != '[]' AND variables != 'null';\")",
+      "Bash(mysql -h127.0.0.1 -P3306 -uroot lunar -N -e \"SELECT id, variables FROM lunar_products WHERE variables LIKE '%variant-swatches%' OR variables LIKE '%\\\\\"image\\\\\"%' LIMIT 10;\")",
+      "Bash(mysql -h127.0.0.1 -P3306 -uroot lunar -N -e \"SELECT COUNT\\(*\\) AS with_real_swatch FROM lunar_products WHERE variables LIKE '%variant-swatches%';\")",
+      "Bash(mysql -h127.0.0.1 -P3306 -uroot lunar -N -e \"SELECT id, variables FROM lunar_products WHERE variables LIKE '%variant-swatches%';\")"
     ]
   }
 }

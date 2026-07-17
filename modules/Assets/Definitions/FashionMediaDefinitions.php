@@ -28,6 +28,14 @@ class FashionMediaDefinitions extends StandardMediaDefinitions
      * the target is scaled up to fill the frame instead of being padded with a
      * white canvas — so we never produce a tiny image floating on white.
      */
+    /** A small square swatch conversion (chip images). */
+    public const SWATCH_COLLECTION = 'swatch';
+
+    /** Conversion name used for storefront swatch chips. */
+    public const SWATCH_CONVERSION = 'swatch';
+
+    public const SWATCH_SIZE = 160;
+
     public function registerMediaConversions(HasMedia $model, ?Media $media = null): void
     {
         $small = app(MediaSettings::class)->sizes()['small'];
@@ -36,6 +44,38 @@ class FashionMediaDefinitions extends StandardMediaDefinitions
             ->fit(Fit::Crop, $small['width'], $small['height'])
             ->sharpen(10)
             ->keepOriginalImageFormat();
+    }
+
+    /**
+     * Add a `swatch` media collection alongside Lunar's `images`. Variant option
+     * swatches (colour/pattern chips) live here so they get their own small,
+     * square conversions instead of the product gallery's 2:3 sizes — a chip is
+     * tiny and round on the storefront, not a product photo.
+     *
+     * Parent resets $model->mediaCollections, so call it FIRST then append.
+     *
+     * The swatch conversions use a distinct name (`swatch`, not `thumb`) and
+     * performOnCollections('swatch') so they never clash with the gallery's own
+     * thumb/large sizes and never run on gallery images.
+     */
+    public function registerMediaCollections(HasMedia $model): void
+    {
+        parent::registerMediaCollections($model);
+
+        $size = self::SWATCH_SIZE;
+
+        $model->addMediaCollection(self::SWATCH_COLLECTION)
+            ->registerMediaConversions(function (?Media $media) use ($model, $size) {
+                $model->addMediaConversion(self::SWATCH_CONVERSION)
+                    ->fit(Fit::Crop, $size, $size)
+                    ->keepOriginalImageFormat()
+                    ->performOnCollections(self::SWATCH_COLLECTION);
+
+                $model->addMediaConversion(self::SWATCH_CONVERSION.'-webp')
+                    ->fit(Fit::Crop, $size, $size)
+                    ->format('webp')
+                    ->performOnCollections(self::SWATCH_COLLECTION);
+            });
     }
 
     protected function registerCollectionConversions(MediaCollection $collection, HasMedia $model): void
@@ -55,16 +95,23 @@ class FashionMediaDefinitions extends StandardMediaDefinitions
         // exact aspect ratio. A source smaller than the target is scaled up to
         // fill the frame rather than padded with a white canvas, so we never
         // get a small image floating in a large white background.
-        $collection->registerMediaConversions(function (?Media $media) use ($model, $sizes, $standard, $extra) {
+        // Constrain the gallery sizes to the images collection (production always
+        // uses config('lunar.media.collection') = 'images') so they don't also
+        // run on swatch chips, which only need their small square sizes.
+        $imagesCollection = config('lunar.media.collection', 'images');
+
+        $collection->registerMediaConversions(function (?Media $media) use ($model, $sizes, $standard, $extra, $imagesCollection) {
             foreach ($standard as $key) {
                 $model->addMediaConversion($key)
                     ->fit(Fit::Crop, $sizes[$key]['width'], $sizes[$key]['height'])
-                    ->keepOriginalImageFormat();
+                    ->keepOriginalImageFormat()
+                    ->performOnCollections($imagesCollection);
             }
 
             foreach ($extra as $key => $conv) {
                 $conversion = $model->addMediaConversion($key)
-                    ->fit(Fit::Crop, $conv['width'], $conv['height']);
+                    ->fit(Fit::Crop, $conv['width'], $conv['height'])
+                    ->performOnCollections($imagesCollection);
 
                 ($conv['format'] ?? null) === 'webp'
                     ? $conversion->format('webp')
