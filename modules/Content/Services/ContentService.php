@@ -76,7 +76,7 @@ class ContentService
                 // Eager-load everything the shoppable hotspots + "shop the set"
                 // button and product cards render (variants for add-to-cart, the
                 // card relations, and which image each pin sits on).
-                'items.product.variants.prices',
+                'items.product.skus.prices',
                 'items.product.thumbnail',
                 'items.product.brand',
                 'items.product.defaultUrl',

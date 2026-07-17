@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\Event;
 use Lunar\Facades\CartSession;
 use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Order;
-use Lunar\Models\ProductVariant;
 use Lunar\Models\Transaction;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Checkout\Services\CheckoutService;
 use Modules\Checkout\Services\GatewayReconciler;
 use Modules\Checkout\Services\VNPayGateway;
@@ -45,8 +45,8 @@ class PaymentHardeningTest extends TestCase
     private function placeVNPayOrder(int $price = 5000, int $stock = 10): Order
     {
         $product = $this->createProduct(['price' => $price]);
-        $product->variants->first()->update(['stock' => $stock, 'purchasable' => 'in_stock']);
-        CartSession::add($product->variants->first(), 1);
+        $product->skus->first()->update(['quantity' => $stock]);
+        CartSession::add($product->skus->first(), 1);
         $cart = CartSession::current();
         $address = $this->shippingPayload(['postcode' => '00000']);
         $cart->setShippingAddress($address);
@@ -127,19 +127,19 @@ class PaymentHardeningTest extends TestCase
     {
         Event::fake([OrderPaid::class]);
         $order = $this->placeVNPayOrder(stock: 10);
-        $variant = ProductVariant::find($order->lines->first()->purchasable_id);
-        $this->assertSame(9, $variant->fresh()->stock, 'reserved at order creation');
+        $variant = ProductSku::find($order->lines->first()->purchasable_id);
+        $this->assertSame(9, $variant->fresh()->quantity, 'reserved at order creation');
 
         // Abandoned: cancelled, stock returned by ReleaseStockOnOrderClosed.
         $order->update(['status' => OrderStatus::CANCELLED]);
-        $this->assertSame(10, $variant->fresh()->stock);
+        $this->assertSame(10, $variant->fresh()->quantity);
         $this->assertNotNull($order->fresh()->stock_released_at);
 
         $result = VNPayPaymentProcessor::make()->reconcile($this->signedCallback($order));
 
         $this->assertFalse($result->paid);
         $this->assertSame(OrderStatus::CANCELLED, $order->fresh()->status);
-        $this->assertSame(10, $variant->fresh()->stock, 'must not silently oversell');
+        $this->assertSame(10, $variant->fresh()->quantity, 'must not silently oversell');
         Event::assertNotDispatched(OrderPaid::class);
 
         // Recorded so an operator can refund it.

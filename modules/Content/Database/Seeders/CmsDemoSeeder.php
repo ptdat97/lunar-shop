@@ -146,7 +146,7 @@ class CmsDemoSeeder extends Seeder
             foreach ($chunk as $sort => $productId) {
                 $lookbook->items()->create([
                     'product_id' => $productId,
-                    'caption' => 'Featured look ' . ($sort + 1),
+                    'caption' => 'Featured look '.($sort + 1),
                     'sort' => $sort,
                 ]);
             }

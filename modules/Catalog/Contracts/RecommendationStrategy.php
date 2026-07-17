@@ -14,7 +14,7 @@ interface RecommendationStrategy
     /**
      * Recommended products for the given source product.
      *
-     * @return Collection<int, Product>  published products, source excluded
+     * @return Collection<int, Product> published products, source excluded
      */
     public function for(Product $product, int $limit = 8): Collection;
 }

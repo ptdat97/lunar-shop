@@ -11,10 +11,10 @@ use Lunar\Models\Language;
 use Lunar\Models\Price;
 use Lunar\Models\Product;
 use Lunar\Models\ProductType;
-use Lunar\Models\ProductVariant;
 use Lunar\Models\TaxClass;
 use Lunar\Models\Url;
 use Modules\Catalog\Database\Seeders\BaseDataSeeder;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Catalog\Models\SizeChart;
 use Modules\Customer\Models\Province;
 
@@ -42,7 +42,8 @@ trait CreatesStorefrontData
     }
 
     /**
-     * A published product with one in-stock, priced variant + a URL slug.
+     * A published product with one in-stock, priced SKU (the purchasable) + a
+     * URL slug.
      *
      * @param  array<string, mixed>  $attributes
      */
@@ -65,19 +66,27 @@ trait CreatesStorefrontData
             'attribute_data' => ['name' => $nameAttr],
         ]);
 
-        $variant = ProductVariant::create([
+        // Lunar's Product is fully $guarded, so `variables` can't be mass-assigned
+        // — set it directly (the Product::saving cast serialises it) and re-save.
+        $product->variables = $attributes['variables'] ?? [];
+        $product->save();
+
+        $sku = ProductSku::create([
             'product_id' => $product->id,
             'sku' => $attributes['sku'] ?? 'SKU-'.strtoupper(substr(uniqid(), -6)),
-            'stock' => $stock,
-            'unit_quantity' => 1,
+            'variants' => $attributes['variant_indexes'] ?? [],
+            'quantity' => $stock,
+            'price' => $price,
+            'is_default' => true,
+            'status' => 'published',
             'tax_class_id' => TaxClass::getDefault()?->id,
         ]);
 
         Price::create([
             'price' => $price,
             'currency_id' => Currency::getDefault()->id,
-            'priceable_type' => $variant->getMorphClass(),
-            'priceable_id' => $variant->id,
+            'priceable_type' => $sku->getMorphClass(),
+            'priceable_id' => $sku->id,
         ]);
 
         Url::create([
@@ -88,7 +97,7 @@ trait CreatesStorefrontData
             'language_id' => Language::getDefault()->id,
         ]);
 
-        return $product->fresh(['variants', 'urls']);
+        return $product->fresh(['skus', 'urls']);
     }
 
     /**

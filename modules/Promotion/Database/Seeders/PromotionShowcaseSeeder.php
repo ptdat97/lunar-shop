@@ -154,9 +154,9 @@ class PromotionShowcaseSeeder extends Seeder
             $group = $membership->groupForTier($tier);
 
             $discount = Discount::updateOrCreate(
-                ['handle' => 'showcase-membership-' . $tier['handle']],
+                ['handle' => 'showcase-membership-'.$tier['handle']],
                 [
-                    'name' => $tier['name'] . ' — ' . $tier['discount_percentage'] . '% Off',
+                    'name' => $tier['name'].' — '.$tier['discount_percentage'].'% Off',
                     'type' => AmountOff::class,
                     'coupon' => null,
                     'starts_at' => now()->subDay(),

@@ -8,7 +8,7 @@ use Lunar\Admin\Models\Staff;
 use Lunar\Facades\CartSession;
 use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Order;
-use Lunar\Models\ProductVariant;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Checkout\Services\CheckoutService;
 use Modules\Core\Support\Settings;
 use Modules\Inventory\Filament\Pages\InventorySettingsPage;
@@ -26,13 +26,13 @@ class InventorySettingsTest extends TestCase
 {
     use CreatesStorefrontData;
 
-    /** @return array{0: Order, 1: ProductVariant} */
+    /** @return array{0: Order, 1: ProductSku} */
     private function unpaidGatewayOrder(int $ageMinutes): array
     {
         $product = $this->createProduct(['price' => 5000]);
-        $product->variants->first()->update(['stock' => 5, 'purchasable' => 'in_stock']);
+        $product->skus->first()->update(['quantity' => 5]);
 
-        CartSession::add($product->variants->first(), 2);
+        CartSession::add($product->skus->first(), 2);
         $cart = CartSession::current();
         $address = $this->shippingPayload(['postcode' => '00000']);
         $cart->setShippingAddress($address);
@@ -43,14 +43,14 @@ class InventorySettingsTest extends TestCase
         $order = app(CheckoutService::class)->placeOrder('vnpay');
         Order::whereKey($order->id)->update(['created_at' => now()->subMinutes($ageMinutes)]);
 
-        return [$order, $product->variants->first()];
+        return [$order, $product->skus->first()];
     }
 
     public function test_the_saved_setting_decides_when_stock_comes_back(): void
     {
         $this->seedBaseData();
         [$order, $variant] = $this->unpaidGatewayOrder(ageMinutes: 30);
-        $this->assertSame(3, $variant->fresh()->stock, 'reserved');
+        $this->assertSame(3, $variant->fresh()->quantity, 'reserved');
 
         // Default is 60 minutes: a 30-minute-old order is still the shopper's.
         Artisan::call('orders:expire-abandoned');
@@ -61,7 +61,7 @@ class InventorySettingsTest extends TestCase
 
         Artisan::call('orders:expire-abandoned');
         $this->assertSame(OrderStatus::CANCELLED, $order->fresh()->status);
-        $this->assertSame(5, $variant->fresh()->stock, 'units back on sale');
+        $this->assertSame(5, $variant->fresh()->quantity, 'units back on sale');
     }
 
     public function test_an_explicit_flag_still_outranks_the_setting(): void

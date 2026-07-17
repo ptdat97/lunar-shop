@@ -6,6 +6,7 @@ use Illuminate\Support\Collection;
 use Lunar\Models\Cart;
 use Lunar\Models\Discount;
 use Lunar\Models\Product;
+use Modules\Catalog\Support\MediaThumbnails;
 
 /**
  * Single entry point the rest of the app uses for promotions. Owns the
@@ -120,7 +121,7 @@ class PromotionService
             // `media` powers the card hover (second) image; the `thumbnail`
             // (primary media) is back-filled from it below instead of being a
             // second, primary-filtered media query.
-            ->with(['variants.prices', 'brand', 'collections', 'defaultUrl', 'media']);
+            ->with(['skus.prices', 'brand', 'collections', 'defaultUrl', 'media']);
 
         $productIds = $this->targets->targetedProductIds($discount);
         $collectionIds = $this->targets->targetedCollectionIds($discount);
@@ -141,7 +142,7 @@ class PromotionService
         $products = $query->latest('id')->limit($limit)->get();
 
         // thumbnail = primary item of the already-loaded media (no extra query).
-        \Modules\Catalog\Support\MediaThumbnails::backfill($products);
+        MediaThumbnails::backfill($products);
 
         return $products
             // Keep only products the badge logic actually applies to.
@@ -187,7 +188,7 @@ class PromotionService
         // (previously one query set PER promotion — an N+1 over promotions).
         $query = Product::query()
             ->where('status', 'published')
-            ->with(['variants.prices', 'brand', 'collections', 'defaultUrl', 'media']);
+            ->with(['skus.prices', 'brand', 'collections', 'defaultUrl', 'media']);
 
         // When no promotion is cart-wide, scope to just the targeted products
         // (by id or by membership of a targeted collection). Otherwise leave the
@@ -213,7 +214,7 @@ class PromotionService
         $candidates = $query->latest('id')->limit($limit * 2)->get();
 
         // thumbnail = primary item of the loaded media (no extra query).
-        \Modules\Catalog\Support\MediaThumbnails::backfill($candidates);
+        MediaThumbnails::backfill($candidates);
 
         // Keep products any displayable promotion actually applies to. The
         // discounts' relations are already loaded (displayablePromotions eager-
@@ -260,7 +261,7 @@ class PromotionService
         }
 
         // Pre-load relations for ALL products at once, not per product.
-        $products->loadMissing(['variants', 'collections']);
+        $products->loadMissing(['skus', 'collections']);
 
         $results = [];
         foreach ($products as $product) {
@@ -292,7 +293,7 @@ class PromotionService
         }
 
         // Pre-load for this single product (same as before, but memoized).
-        $product->loadMissing(['variants', 'collections']);
+        $product->loadMissing(['skus', 'collections']);
 
         return $this->saleMemo[$product->id] = $this->badges->saleFor($product, $promotions);
     }

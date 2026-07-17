@@ -28,7 +28,7 @@ class DatabaseSearchEngine implements SearchEngine
             // not N+1. `media` is included here so callers never need a follow-up
             // loadMissing(['media']) — one place, one query.
             ->with([
-                'variants.prices',
+                'skus.prices',
                 'brand',
                 'defaultUrl',
                 'collections',
@@ -109,7 +109,7 @@ class DatabaseSearchEngine implements SearchEngine
             $q->whereRaw(
                 'LOWER(JSON_UNQUOTE(JSON_EXTRACT(attribute_data, "$.name.value"))) LIKE ?',
                 [$needle]
-            )->orWhereHas('variants', fn ($v) => $v->where('sku', 'like', "%{$term}%"));
+            )->orWhereHas('skus', fn ($v) => $v->where('sku', 'like', "%{$term}%"));
         });
     }
 
@@ -156,13 +156,13 @@ class DatabaseSearchEngine implements SearchEngine
      */
     protected function applyPriceSort(Builder $builder, string $direction): void
     {
-        $minPrice = DB::table('lunar_product_variants as pv')
+        $minPrice = DB::table('lunar_product_skus as ps')
             ->join('lunar_prices as pr', function ($join) {
-                $join->on('pr.priceable_id', '=', 'pv.id')
-                    ->where('pr.priceable_type', '=', 'product_variant');
+                $join->on('pr.priceable_id', '=', 'ps.id')
+                    ->where('pr.priceable_type', '=', 'product_sku');
             })
-            ->selectRaw('pv.product_id, MIN(pr.price) as min_price')
-            ->groupBy('pv.product_id');
+            ->selectRaw('ps.product_id, MIN(pr.price) as min_price')
+            ->groupBy('ps.product_id');
 
         $builder
             ->leftJoinSub($minPrice, 'product_prices', 'product_prices.product_id', '=', 'lunar_products.id')
@@ -185,14 +185,18 @@ class DatabaseSearchEngine implements SearchEngine
                 continue;
             }
 
-            $builder->whereHas('variants.values', function ($q) use ($values, $optionName) {
-                // Scope to the right option (Size/Color) so values can't cross-match.
-                $q->whereHas('option', fn ($o) => $o->whereJsonContains('name->en', $optionName))
-                    ->where(function ($inner) use ($values) {
-                        foreach ($values as $v) {
-                            $inner->orWhereJsonContains('lunar_product_option_values.name->en', $v);
-                        }
-                    });
+            // Options now live in the product's flexible `variables` JSON (an
+            // array of {name:{en}, values:[{name:{en}}]}). A product matches when
+            // its variables mention BOTH the option name and one of the chosen
+            // values. JSON_SEARCH against the whole blob is a good pre-filter;
+            // exact axis pairing is refined in the facet/label layer.
+            $builder->where(function ($outer) use ($values, $optionName) {
+                $outer->whereRaw("JSON_SEARCH(variables, 'one', ?, NULL, '$[*].name.en') IS NOT NULL", [$optionName]);
+                $outer->where(function ($inner) use ($values) {
+                    foreach ($values as $v) {
+                        $inner->orWhereRaw("JSON_SEARCH(variables, 'one', ?, NULL, '$[*].values[*].name.en') IS NOT NULL", [$v]);
+                    }
+                });
             });
         }
 
@@ -209,10 +213,10 @@ class DatabaseSearchEngine implements SearchEngine
         }
 
         // Availability facet — a single "In stock" checkbox. When ticked, keep
-        // only products with at least one in-stock variant (stock > 0).
+        // only products with at least one in-stock, published SKU (quantity > 0).
         $availability = array_filter((array) ($filters['availability'] ?? []));
         if (in_array('in_stock', $availability, true)) {
-            $builder->whereHas('variants', fn ($v) => $v->where('stock', '>', 0));
+            $builder->whereHas('skus', fn ($v) => $v->where('status', 'published')->where('quantity', '>', 0));
         }
 
         // Price range — filters['price'] = ['min' => x, 'max' => y] in major units.
@@ -234,7 +238,7 @@ class DatabaseSearchEngine implements SearchEngine
             return;
         }
 
-        $builder->whereHas('variants.prices', function ($q) use ($min, $max) {
+        $builder->whereHas('skus.prices', function ($q) use ($min, $max) {
             if ($min !== null) {
                 $q->where('price', '>=', $min);
             }
@@ -261,24 +265,38 @@ class DatabaseSearchEngine implements SearchEngine
             return ['size' => [], 'color' => [], 'brand' => [], 'material' => [], 'availability' => [], 'price' => null];
         }
 
-        // Fetch option facets (size/color)
-        $rows = DB::table('lunar_product_option_values as ov')
-            ->join('lunar_product_option_value_product_variant as pivot', 'pivot.value_id', '=', 'ov.id')
-            ->join('lunar_product_variants as pv', 'pv.id', '=', 'pivot.variant_id')
-            ->join('lunar_product_options as o', 'o.id', '=', 'ov.product_option_id')
-            ->whereIn('pv.product_id', $productIds)
-            ->selectRaw('JSON_UNQUOTE(JSON_EXTRACT(o.name, "$.en")) as option_name')
-            ->selectRaw('JSON_UNQUOTE(JSON_EXTRACT(ov.name, "$.en")) as value')
-            ->selectRaw('COUNT(DISTINCT pv.product_id) as count')
-            ->groupBy('option_name', 'value')
-            ->get();
+        // Option facets (size/color) are derived from each product's flexible
+        // `variables` JSON — one distinct product counted per (option, value).
+        $variablesByProduct = DB::table('lunar_products')
+            ->whereIn('id', $productIds)
+            ->whereNotNull('variables')
+            ->pluck('variables');
+
+        // option (lowercased) => value => set of product ids (for distinct count)
+        $counts = [];
+
+        foreach ($variablesByProduct as $i => $json) {
+            $variables = json_decode((string) $json, true) ?: [];
+            foreach ($variables as $variable) {
+                $optName = strtolower((string) ($variable['name']['en'] ?? ''));
+                if ($optName === '') {
+                    continue;
+                }
+                foreach ($variable['values'] ?? [] as $value) {
+                    $label = (string) ($value['name']['en'] ?? '');
+                    if ($label === '') {
+                        continue;
+                    }
+                    $counts[$optName][$label][$i] = true;
+                }
+            }
+        }
 
         $facets = ['size' => [], 'color' => []];
 
-        foreach ($rows as $row) {
-            $key = strtolower($row->option_name);
-            if (isset($facets[$key])) {
-                $facets[$key][] = ['value' => $row->value, 'count' => (int) $row->count];
+        foreach (['size', 'color'] as $key) {
+            foreach ($counts[$key] ?? [] as $label => $productSet) {
+                $facets[$key][] = ['value' => $label, 'count' => count($productSet)];
             }
         }
 
@@ -321,11 +339,11 @@ class DatabaseSearchEngine implements SearchEngine
      */
     protected function availabilityFacet($productIds): array
     {
-        $inStock = DB::table('lunar_product_variants as pv')
-            ->whereIn('pv.product_id', $productIds)
-            ->where('pv.stock', '>', 0)
+        $inStock = DB::table('lunar_product_skus as ps')
+            ->whereIn('ps.product_id', $productIds)
+            ->where('ps.quantity', '>', 0)
             ->distinct()
-            ->count('pv.product_id');
+            ->count('ps.product_id');
 
         return $inStock > 0
             ? [['value' => 'in_stock', 'count' => (int) $inStock]]
@@ -352,12 +370,12 @@ class DatabaseSearchEngine implements SearchEngine
             ->all();
 
         // Get min/max price
-        $row = DB::table('lunar_product_variants as pv')
+        $row = DB::table('lunar_product_skus as ps')
             ->join('lunar_prices as pr', function ($join) {
-                $join->on('pr.priceable_id', '=', 'pv.id')
-                    ->where('pr.priceable_type', '=', 'product_variant');
+                $join->on('pr.priceable_id', '=', 'ps.id')
+                    ->where('pr.priceable_type', '=', 'product_sku');
             })
-            ->whereIn('pv.product_id', $productIds)
+            ->whereIn('ps.product_id', $productIds)
             ->selectRaw('MIN(pr.price) as min_price, MAX(pr.price) as max_price')
             ->first();
 

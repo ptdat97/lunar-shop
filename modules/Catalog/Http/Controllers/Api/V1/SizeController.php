@@ -3,8 +3,8 @@
 namespace Modules\Catalog\Http\Controllers\Api\V1;
 
 use Illuminate\Http\JsonResponse;
-use Illuminate\Routing\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Controller;
 use Lunar\Models\Product;
 use Modules\Catalog\Http\Requests\SizeRecommendRequest;
 use Modules\Catalog\Services\FitHistoryService;

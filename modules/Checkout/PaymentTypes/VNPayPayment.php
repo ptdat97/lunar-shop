@@ -8,6 +8,7 @@ use Lunar\Base\DataTransferObjects\PaymentRefund;
 use Lunar\Events\PaymentAttemptEvent;
 use Lunar\Models\Contracts\Transaction as TransactionContract;
 use Lunar\PaymentTypes\AbstractPayment;
+use Modules\Checkout\Services\RefundService;
 
 /**
  * VNPay payment driver. Online gateways are redirect-based, so "authorize"
@@ -50,7 +51,7 @@ class VNPayPayment extends AbstractPayment
     {
         // Delegate to the shared RefundService: it calls the VNPay merchant API,
         // records a `refund` Transaction, and updates the order.
-        $result = app(\Modules\Checkout\Services\RefundService::class)
+        $result = app(RefundService::class)
             ->refund($transaction->order, $amount > 0 ? $amount : null, (string) ($notes ?? 'admin'));
 
         return new PaymentRefund($result->success, $result->message);

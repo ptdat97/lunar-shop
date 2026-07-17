@@ -7,7 +7,7 @@ use Lunar\Facades\CartSession;
 use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Cart;
 use Lunar\Models\Order;
-use Lunar\Models\ProductVariant;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Checkout\Services\CheckoutService;
 use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
@@ -26,13 +26,13 @@ class OrphanOrderSweepTest extends TestCase
 {
     use CreatesStorefrontData;
 
-    /** @return array{0: Cart, 1: ProductVariant} */
+    /** @return array{0: Cart, 1: ProductSku} */
     private function readyCart(int $stock = 5, int $qty = 2): array
     {
         $product = $this->createProduct(['price' => 5000]);
-        $product->variants->first()->update(['stock' => $stock, 'purchasable' => 'in_stock']);
+        $product->skus->first()->update(['quantity' => $stock]);
 
-        CartSession::add($product->variants->first(), $qty);
+        CartSession::add($product->skus->first(), $qty);
         $cart = CartSession::current();
         $address = $this->shippingPayload(['postcode' => '00000']);
         $cart->setShippingAddress($address);
@@ -40,7 +40,7 @@ class OrphanOrderSweepTest extends TestCase
         $cart->calculate();
         $cart->setShippingOption(ShippingManifest::getOptions($cart)->first())->calculate();
 
-        return [$cart->refresh(), $product->variants->first()];
+        return [$cart->refresh(), $product->skus->first()];
     }
 
     /** Simulates a crash after CreateOrder commits, before the driver's update runs. */
@@ -57,14 +57,14 @@ class OrphanOrderSweepTest extends TestCase
         $this->seedBaseData();
         [$order, $variant] = $this->orphanOrder();
 
-        $this->assertSame(3, $variant->fresh()->stock, 'stock reserved and committed');
+        $this->assertSame(3, $variant->fresh()->quantity, 'stock reserved and committed');
         $this->assertNull($order->placed_at, 'checkout never completed');
 
         Order::whereKey($order->id)->update(['created_at' => now()->subDay()]);
         Artisan::call('orders:expire-abandoned', ['--minutes' => 60]);
 
         $this->assertSame(OrderStatus::CANCELLED, $order->fresh()->status);
-        $this->assertSame(5, $variant->fresh()->stock, 'the held units came back');
+        $this->assertSame(5, $variant->fresh()->quantity, 'the held units came back');
         $this->assertNotNull($order->fresh()->stock_released_at);
     }
 
@@ -77,7 +77,7 @@ class OrphanOrderSweepTest extends TestCase
         Artisan::call('orders:expire-abandoned', ['--minutes' => 60]);
 
         $this->assertNotSame(OrderStatus::CANCELLED, $order->fresh()->status);
-        $this->assertSame(3, $variant->fresh()->stock, 'still reserved');
+        $this->assertSame(3, $variant->fresh()->quantity, 'still reserved');
     }
 
     /** Bank transfer sits in awaiting-payment for days and is settled by hand. */
@@ -94,7 +94,7 @@ class OrphanOrderSweepTest extends TestCase
         Artisan::call('orders:expire-abandoned', ['--minutes' => 60]);
 
         $this->assertSame(OrderStatus::AWAITING_PAYMENT, $order->fresh()->status);
-        $this->assertSame(3, $variant->fresh()->stock, 'still reserved for the buyer');
+        $this->assertSame(3, $variant->fresh()->quantity, 'still reserved for the buyer');
     }
 
     /** The pre-existing behaviour: an abandoned gateway order still expires. */
@@ -109,7 +109,7 @@ class OrphanOrderSweepTest extends TestCase
         Artisan::call('orders:expire-abandoned', ['--minutes' => 60]);
 
         $this->assertSame(OrderStatus::CANCELLED, $order->fresh()->status);
-        $this->assertSame(5, $variant->fresh()->stock);
+        $this->assertSame(5, $variant->fresh()->quantity);
     }
 
     public function test_dry_run_changes_nothing(): void
@@ -121,6 +121,6 @@ class OrphanOrderSweepTest extends TestCase
         Artisan::call('orders:expire-abandoned', ['--minutes' => 60, '--dry-run' => true]);
 
         $this->assertNotSame(OrderStatus::CANCELLED, $order->fresh()->status);
-        $this->assertSame(3, $variant->fresh()->stock);
+        $this->assertSame(3, $variant->fresh()->quantity);
     }
 }

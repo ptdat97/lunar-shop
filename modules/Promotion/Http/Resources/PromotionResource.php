@@ -4,13 +4,14 @@ namespace Modules\Promotion\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Lunar\Models\Discount;
 use Modules\Promotion\Services\PromotionService;
 
 /**
  * Stable JSON contract for an automatic (non-coupon) promotion shown on the
  * storefront — flash sale, quantity deal, combo, membership perk.
  *
- * @mixin \Lunar\Models\Discount
+ * @mixin Discount
  */
 class PromotionResource extends JsonResource
 {

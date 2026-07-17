@@ -2,14 +2,17 @@
 
 namespace Modules\Catalog\Providers;
 
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Models\Product;
+use Modules\Catalog\Console\Commands\MigrateVariantsToSkus;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Drivers\DatabaseSearchEngine;
 use Modules\Catalog\Filament\Pages\CatalogSettingsPage;
 use Modules\Catalog\Filament\Resources\SizeChartResource;
 use Modules\Catalog\Models\ProductMaterial;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Catalog\Models\SizeChart;
 use Modules\Catalog\Services\PricingService;
 use Modules\Catalog\Services\ProductService;
@@ -70,7 +73,47 @@ class CatalogServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../Routes/api.php');
 
         $this->registerSizeRelationships();
+        $this->registerSkuRelationships();
         $this->composeThemePrices();
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                MigrateVariantsToSkus::class,
+            ]);
+        }
+    }
+
+    /**
+     * Wire the flexible SKU model (VaniCommerce-style variants) into Lunar:
+     *
+     *  - morph map: cart/order lines store `purchasable_type = product_sku`
+     *    (Lunar snake-cases model basenames for its own morph aliases, so this
+     *    matches that convention). Relation::morphMap MERGES, so Lunar's own
+     *    aliases are preserved.
+     *  - Product::skus  hasMany the SKU rows for a product.
+     *
+     * Registered without touching the vendor Product class (plan principle #1).
+     */
+    protected function registerSkuRelationships(): void
+    {
+        Relation::morphMap([
+            'product_sku' => ProductSku::class,
+        ]);
+
+        // Cast the free-form `variables` JSON on every Product without
+        // subclassing the vendor model (Lunar exposes no cast extension point).
+        // mergeCasts is per-instance and idempotent. Apply it both on read
+        // (retrieved) AND before write (saving) — without the write-side cast an
+        // array assigned to `variables` is not JSON-encoded and silently drops.
+        $castVariables = fn (Product $product) => $product->mergeCasts(['variables' => 'array']);
+        Product::retrieved($castVariables);
+        Product::saving($castVariables);
+
+        Product::resolveRelationUsing(
+            'skus',
+            fn (Product $product) => $product->hasMany(ProductSku::class, 'product_id')
+                ->orderBy('position'),
+        );
     }
 
     /**

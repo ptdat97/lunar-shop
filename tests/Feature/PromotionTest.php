@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Lunar\DiscountTypes\AmountOff;
 use Lunar\Models\Channel;
+use Lunar\Models\Currency;
 use Lunar\Models\CustomerGroup;
 use Lunar\Models\Discount;
 use Modules\Promotion\Database\Seeders\DemoCouponSeeder;
@@ -34,7 +35,7 @@ class PromotionTest extends TestCase
             'stop' => false,
             'data' => [
                 'fixed_value' => true,
-                'fixed_values' => [\Lunar\Models\Currency::getDefault()->code => $minor],
+                'fixed_values' => [Currency::getDefault()->code => $minor],
             ],
         ]);
 

@@ -25,13 +25,13 @@ class RecommendationTest extends TestCase
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
             'status' => 'payment-received',
-            'reference' => 'CO-' . uniqid(),
+            'reference' => 'CO-'.uniqid(),
             'sub_total' => 1000, 'discount_total' => 0, 'shipping_total' => 0,
             'tax_total' => 0, 'total' => 1000,
         ]);
 
         foreach ($products as $product) {
-            $variant = $product->variants->first();
+            $variant = $product->skus->first();
             OrderLine::factory()->create([
                 'order_id' => $order->id,
                 'purchasable_type' => $variant->getMorphClass(),
@@ -115,7 +115,7 @@ class RecommendationTest extends TestCase
 
         // Put the source product in the cart.
         $this->postJson('/api/v1/cart', [
-            'variant_id' => $inCart->variants->first()->id,
+            'sku_id' => $inCart->skus->first()->id,
             'quantity' => 1,
         ])->assertSuccessful();
 

@@ -28,8 +28,13 @@ class CartResource extends JsonResource
             'lines' => $this->lines->map(fn ($line) => [
                 'id' => $line->id,
                 'quantity' => $line->quantity,
+                // `sku_id` is the current name; `variant_id` kept as an alias so
+                // existing headless clients don't break. Both are the SKU id.
+                'sku_id' => $line->purchasable_id,
                 'variant_id' => $line->purchasable_id,
                 'name' => $line->purchasable?->product?->translateAttribute('name'),
+                // The chosen combination, e.g. "Black, M" (null for a simple SKU).
+                'option' => $line->purchasable?->getOption(),
                 'slug' => $line->purchasable?->product?->defaultUrl?->slug,
                 'sku' => $line->purchasable?->sku,
                 'thumbnail' => $this->lineThumbnail($line),

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\User;
+use Lunar\Models\Channel;
 use Lunar\Models\Currency;
 use Lunar\Models\Order;
 use Lunar\Models\OrderLine;
@@ -24,7 +25,7 @@ class InvoiceTest extends TestCase
         $customer = app(CustomerResolver::class)->forUser($user);
 
         $order = Order::factory()->create([
-            'channel_id' => \Lunar\Models\Channel::getDefault()->id,
+            'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
             'customer_id' => $customer->id,
             'status' => 'payment-received',

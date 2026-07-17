@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use Lunar\DiscountTypes\AmountOff;
 use Lunar\Models\Channel;
 use Lunar\Models\CustomerGroup;
 use Lunar\Models\Discount;
+use Modules\Content\Models\PageSection;
+use Modules\Content\Services\SectionRenderer;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -25,7 +28,7 @@ class PromotionPageTest extends TestCase
         $discount = Discount::create([
             'name' => 'Flash Sale — 25% Off',
             'handle' => 'flash-sale',
-            'type' => \Lunar\DiscountTypes\AmountOff::class,
+            'type' => AmountOff::class,
             'starts_at' => now()->subHour(),
             'ends_at' => now()->addDays(2),
             'uses' => 0,
@@ -78,7 +81,7 @@ class PromotionPageTest extends TestCase
     {
         $this->seedFlashSale();
 
-        \Modules\Content\Models\PageSection::create([
+        PageSection::create([
             'page_handle' => 'home',
             'type' => 'promotion-slider',
             'sort' => 0,
@@ -86,7 +89,7 @@ class PromotionPageTest extends TestCase
             'settings' => ['heading' => 'On Sale Now', 'limit' => 12],
         ]);
 
-        $html = app(\Modules\Content\Services\SectionRenderer::class)->render('home');
+        $html = app(SectionRenderer::class)->render('home');
 
         $this->assertStringContainsString('data-promotion-swiper', $html);
         $this->assertStringContainsString('On Sale Now', $html);
@@ -97,7 +100,7 @@ class PromotionPageTest extends TestCase
     {
         $this->seedFlashSale();
 
-        \Modules\Content\Models\PageSection::create([
+        PageSection::create([
             'page_handle' => 'home',
             'type' => 'flash-sale',
             'sort' => 0,
@@ -105,7 +108,7 @@ class PromotionPageTest extends TestCase
             'settings' => ['heading' => '', 'limit' => 8],
         ]);
 
-        $html = app(\Modules\Content\Services\SectionRenderer::class)->render('home');
+        $html = app(SectionRenderer::class)->render('home');
 
         $this->assertStringContainsString('data-flash-sale', $html);       // countdown hook
         $this->assertStringContainsString('data-flash-countdown', $html);  // ticking badge
@@ -118,7 +121,7 @@ class PromotionPageTest extends TestCase
     {
         $this->seedBaseData();
 
-        \Modules\Content\Models\PageSection::create([
+        PageSection::create([
             'page_handle' => 'home',
             'type' => 'flash-sale',
             'sort' => 0,
@@ -126,7 +129,7 @@ class PromotionPageTest extends TestCase
             'settings' => ['heading' => '', 'limit' => 8],
         ]);
 
-        $html = app(\Modules\Content\Services\SectionRenderer::class)->render('home');
+        $html = app(SectionRenderer::class)->render('home');
 
         $this->assertStringNotContainsString('data-flash-sale', $html);
     }

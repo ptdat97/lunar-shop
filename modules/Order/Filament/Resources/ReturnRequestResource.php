@@ -7,6 +7,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Modules\Order\Filament\Resources\ReturnRequestResource\Pages\ListReturnRequests;
 use Modules\Order\Models\ReturnRequest;
 use Modules\Order\Services\ReturnService;
 
@@ -128,7 +129,7 @@ class ReturnRequestResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => \Modules\Order\Filament\Resources\ReturnRequestResource\Pages\ListReturnRequests::route('/'),
+            'index' => ListReturnRequests::route('/'),
         ];
     }
 }

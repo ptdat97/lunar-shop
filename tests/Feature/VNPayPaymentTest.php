@@ -6,10 +6,11 @@ use Illuminate\Support\Facades\Mail;
 use Lunar\Facades\CartSession;
 use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Order;
-use Modules\Order\Mail\OrderConfirmationMail;
-use Modules\Order\Mail\OrderPaidMail;
+use Modules\Checkout\Services\CheckoutService;
 use Modules\Checkout\Services\VNPayGateway;
 use Modules\Checkout\Services\VNPayPaymentProcessor;
+use Modules\Order\Mail\OrderConfirmationMail;
+use Modules\Order\Mail\OrderPaidMail;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -34,7 +35,7 @@ class VNPayPaymentTest extends TestCase
     private function placeVNPayOrder(): Order
     {
         $product = $this->createProduct(['price' => 5000]);
-        CartSession::add($product->variants->first(), 1);
+        CartSession::add($product->skus->first(), 1);
         $cart = CartSession::current();
         // Direct cart manipulation (bypassing CheckoutService) → Lunar requires a
         // postcode for order creation; the real flow defaults it in setAddresses.
@@ -44,7 +45,7 @@ class VNPayPaymentTest extends TestCase
         $cart->calculate();
         $cart->setShippingOption(ShippingManifest::getOptions($cart)->first())->calculate();
 
-        return app(\Modules\Checkout\Services\CheckoutService::class)->placeOrder('vnpay');
+        return app(CheckoutService::class)->placeOrder('vnpay');
     }
 
     /** Build a signed callback array as VNPay would return it. */

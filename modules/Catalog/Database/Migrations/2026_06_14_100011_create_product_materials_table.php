@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Lunar\Models\Product;
 
 return new class extends Migration
 {
@@ -11,7 +12,7 @@ return new class extends Migration
         Schema::create('product_materials', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained(
-                (new \Lunar\Models\Product())->getTable()
+                (new Product)->getTable()
             )->cascadeOnDelete();
             $table->string('material')->nullable();
             $table->string('composition')->nullable();

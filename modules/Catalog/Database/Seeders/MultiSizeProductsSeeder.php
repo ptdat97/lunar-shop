@@ -79,7 +79,7 @@ class MultiSizeProductsSeeder extends Seeder
             // One variant per size, each with its own price and size value.
             foreach (self::SIZES as $size) {
                 $variant = $product->variants()->create([
-                    'sku' => 'MS-' . strtoupper(Str::substr($slug, 0, 6)) . '-' . $size,
+                    'sku' => 'MS-'.strtoupper(Str::substr($slug, 0, 6)).'-'.$size,
                     'stock' => random_int(5, 60),
                     'unit_quantity' => 1,
                     'tax_class_id' => $taxClass?->id,
@@ -131,7 +131,7 @@ class MultiSizeProductsSeeder extends Seeder
     }
 
     /**
-     * @return array<string, int>  size label => option value id
+     * @return array<string, int> size label => option value id
      */
     protected function sizeValueIds(): array
     {
@@ -147,7 +147,7 @@ class MultiSizeProductsSeeder extends Seeder
     }
 
     /**
-     * @return array<string, int>  slug => collection id
+     * @return array<string, int> slug => collection id
      */
     protected function collectionIds(): array
     {

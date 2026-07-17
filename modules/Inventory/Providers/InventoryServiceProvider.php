@@ -4,7 +4,7 @@ namespace Modules\Inventory\Providers;
 
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
-use Lunar\Models\ProductVariant;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Core\Support\AdminPages;
 use Modules\Core\Support\LunarConfigOverride;
 use Modules\Inventory\Console\ExpireAbandonedOrders;
@@ -12,7 +12,7 @@ use Modules\Inventory\Filament\Pages\InventorySettingsPage;
 use Modules\Inventory\Filament\Pages\StockNotificationsPage;
 use Modules\Inventory\Filament\Pages\StockOverview;
 use Modules\Inventory\Listeners\ReleaseStockOnOrderClosed;
-use Modules\Inventory\Observers\ProductVariantObserver;
+use Modules\Inventory\Observers\ProductSkuObserver;
 use Modules\Order\Events\OrderStatusUpdated;
 
 class InventoryServiceProvider extends ServiceProvider
@@ -46,7 +46,7 @@ class InventoryServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../Routes/api.php');
 
         // Back-in-stock: notify subscribers when a variant is restocked.
-        ProductVariant::observe(ProductVariantObserver::class);
+        ProductSku::observe(ProductSkuObserver::class);
 
         // Stock is reserved when the order row is created — before payment, for
         // a gateway order. Give it back when the order is cancelled or refunded,

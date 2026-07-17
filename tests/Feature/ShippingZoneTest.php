@@ -2,7 +2,9 @@
 
 namespace Tests\Feature;
 
+use Lunar\Models\Cart;
 use Lunar\Models\Country;
+use Modules\Checkout\Services\CartService;
 use Modules\Shipping\Models\ShippingZone;
 use Modules\Shipping\Services\ShippingZoneResolver;
 use Tests\Concerns\CreatesStorefrontData;
@@ -17,7 +19,7 @@ class ShippingZoneTest extends TestCase
     use CreatesStorefrontData;
 
     /** Build a cart with a shipping address in the given country + state. */
-    private function cartForAddress(string $iso2, ?string $state, int $price = 5000): \Lunar\Models\Cart
+    private function cartForAddress(string $iso2, ?string $state, int $price = 5000): Cart
     {
         $country = Country::where('iso2', $iso2)->firstOr(function () use ($iso2) {
             return Country::create([
@@ -28,12 +30,12 @@ class ShippingZoneTest extends TestCase
         });
 
         $product = $this->createProduct(['price' => $price, 'stock' => 50]);
-        $this->postJson('/api/v1/cart', ['variant_id' => $product->variants->first()->id, 'quantity' => 1]);
+        $this->postJson('/api/v1/cart', ['sku_id' => $product->skus->first()->id, 'quantity' => 1]);
         $this->postJson('/api/v1/checkout/addresses', [
             'shipping' => $this->shippingPayload(['country_id' => $country->id, 'state' => $state]),
         ])->assertSuccessful();
 
-        return app(\Modules\Checkout\Services\CartService::class)->current();
+        return app(CartService::class)->current();
     }
 
     public function test_falls_back_to_config_rate_when_no_zone_matches(): void

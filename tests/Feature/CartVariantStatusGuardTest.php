@@ -20,15 +20,15 @@ class CartVariantStatusGuardTest extends TestCase
 
     private function addLine(int $variantId, int $quantity = 1)
     {
-        return $this->postJson('/api/v1/cart', ['variant_id' => $variantId, 'quantity' => $quantity]);
+        return $this->postJson('/api/v1/cart', ['sku_id' => $variantId, 'quantity' => $quantity]);
     }
 
     public function test_adding_a_disabled_variant_is_refused(): void
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 100]);
-        $variant = $product->variants->first();
-        $variant->update(['purchasable' => 'always', 'status' => 'disabled']);
+        $variant = $product->skus->first();
+        $variant->update(['status' => 'disabled']);
 
         // Plenty of stock — the only reason to reject is the disabled status.
         $this->addLine($variant->id)
@@ -42,8 +42,8 @@ class CartVariantStatusGuardTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 100]);
-        $variant = $product->variants->first();
-        $variant->update(['purchasable' => 'always', 'status' => 'published']);
+        $variant = $product->skus->first();
+        $variant->update(['status' => 'published']);
 
         $this->addLine($variant->id)
             ->assertSuccessful()
@@ -54,11 +54,11 @@ class CartVariantStatusGuardTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 100]);
-        $variant = $product->variants->first();
+        $variant = $product->skus->first();
         // Published so the line can be created, then disabled in the DB before a
         // fresh request updates it — the update request reloads the line, so its
         // purchasable reflects the disabled status.
-        $variant->update(['purchasable' => 'always', 'status' => 'published']);
+        $variant->update(['status' => 'published']);
 
         $line = $this->addLine($variant->id)
             ->assertSuccessful()

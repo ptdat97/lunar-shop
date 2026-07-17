@@ -88,7 +88,7 @@ class FacetAndRecentlyViewedTest extends TestCase
         $ids = $filtered->items->pluck('id')->all();
         $this->assertContains($inStock->id, $ids);
         $this->assertSame($filtered->total, $filtered->items->count());
-        $this->assertTrue($filtered->items->every(fn ($p) => $p->variants->sum('stock') > 0));
+        $this->assertTrue($filtered->items->every(fn ($p) => $p->skus->sum('quantity') > 0));
     }
 
     public function test_products_endpoint_returns_slugs_in_order(): void

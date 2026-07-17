@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Modules\Catalog\Services\ReviewService;
 use Modules\Core\Support\Settings;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
@@ -56,7 +57,7 @@ class AppSettingsTest extends TestCase
     {
         $this->seedBaseData();
 
-        $reviews = app(\Modules\Catalog\Services\ReviewService::class);
+        $reviews = app(ReviewService::class);
         $product = $this->createProduct();
 
         // Auto-approve on → published immediately.

@@ -3,6 +3,7 @@
 namespace Modules\Catalog\Http\Resources;
 
 use Modules\Assets\Services\MediaSettings;
+use Modules\Assets\Services\MediaUrl;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -11,8 +12,8 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * the PhotoSwipe lightbox. Conversions fall back to the original when not yet
  * generated (getUrl() throws otherwise — mirrors product.blade.php's @php block).
  *
- * Shared by ProductResource (product media) and ProductVariantResource (variant
- * images) so both feed the Vue gallery island an identical image shape.
+ * Used by ProductResource for the product-level media gallery, feeding the Vue
+ * gallery island a consistent image shape.
  */
 class MediaImageResource
 {
@@ -44,7 +45,7 @@ class MediaImageResource
         }
 
         $zoomSize ??= app(MediaSettings::class)->sizes()['zoom'];
-        $urls = app(\Modules\Assets\Services\MediaUrl::class);
+        $urls = app(MediaUrl::class);
 
         // Generated on demand when their files are missing.
         $large = $urls->conversion($media, 'large');

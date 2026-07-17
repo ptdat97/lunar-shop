@@ -3,15 +3,15 @@
 namespace Modules\Promotion\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Lunar\DiscountTypes\AmountOff;
 use Lunar\FieldTypes\Text;
 use Lunar\Models\Channel;
 use Lunar\Models\Collection as LunarCollection;
 use Lunar\Models\CollectionGroup;
 use Lunar\Models\CustomerGroup;
-use Lunar\Models\Currency;
 use Lunar\Models\Discount;
-use Lunar\Models\Discountable;
 use Lunar\Models\Language;
+use Lunar\Models\Product;
 use Lunar\Models\Url;
 use Modules\Promotion\DiscountTypes\ComboPercentageOff;
 use Modules\Promotion\DiscountTypes\QuantityPercentageOff;
@@ -43,7 +43,7 @@ class DemoPromotionSeeder extends Seeder
             ['handle' => 'flash-sale'],
             [
                 'name' => 'Flash Sale — 20% Off',
-                'type' => \Lunar\DiscountTypes\AmountOff::class,
+                'type' => AmountOff::class,
                 'coupon' => null,
                 'starts_at' => now()->subHour(),
                 'ends_at' => now()->addDays(3),
@@ -126,10 +126,10 @@ class DemoPromotionSeeder extends Seeder
             $group = $membership->groupForTier($tier);
 
             $discount = Discount::updateOrCreate(
-                ['handle' => 'membership-' . $tier['handle']],
+                ['handle' => 'membership-'.$tier['handle']],
                 [
-                    'name' => $tier['name'] . ' — ' . $tier['discount_percentage'] . '% Off',
-                    'type' => \Lunar\DiscountTypes\AmountOff::class,
+                    'name' => $tier['name'].' — '.$tier['discount_percentage'].'% Off',
+                    'type' => AmountOff::class,
                     'coupon' => null,
                     'starts_at' => now()->subDay(),
                     'ends_at' => null,
@@ -207,7 +207,7 @@ class DemoPromotionSeeder extends Seeder
      */
     protected function assignDemoProducts(LunarCollection $tops, LunarCollection $bottoms): void
     {
-        $products = \Lunar\Models\Product::query()->limit(4)->get();
+        $products = Product::query()->limit(4)->get();
 
         if ($products->count() < 2) {
             return;

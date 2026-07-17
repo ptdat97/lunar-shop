@@ -3,14 +3,16 @@
 namespace Modules\Catalog\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Lunar\FieldTypes\Text;
 use Lunar\Models\Collection as LunarCollection;
 use Lunar\Models\CollectionGroup;
-use Lunar\FieldTypes\Text;
 use Lunar\Models\Currency;
+use Lunar\Models\Language;
 use Lunar\Models\Price;
 use Lunar\Models\Product;
 use Lunar\Models\ProductType;
 use Lunar\Models\ProductVariant;
+use Lunar\Models\TaxClass;
 use Lunar\Models\Url;
 
 /**
@@ -50,7 +52,7 @@ class DemoCatalogSeeder extends Seeder
                     'sku' => $s['sku'],
                     'stock' => 50,
                     'unit_quantity' => 1,
-                    'tax_class_id' => \Lunar\Models\TaxClass::getDefault()?->id,
+                    'tax_class_id' => TaxClass::getDefault()?->id,
                 ]);
 
                 Price::create([
@@ -65,7 +67,7 @@ class DemoCatalogSeeder extends Seeder
                     'element_type' => $product->getMorphClass(),
                     'element_id' => $product->id,
                     'default' => true,
-                    'language_id' => \Lunar\Models\Language::getDefault()->id,
+                    'language_id' => Language::getDefault()->id,
                 ]);
             }
 
@@ -88,7 +90,7 @@ class DemoCatalogSeeder extends Seeder
                 'element_type' => $collection->getMorphClass(),
                 'element_id' => $collection->id,
                 'default' => true,
-                'language_id' => \Lunar\Models\Language::getDefault()->id,
+                'language_id' => Language::getDefault()->id,
             ]);
         }
 

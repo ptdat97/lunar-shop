@@ -2,8 +2,11 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Support\Carbon;
+use Lunar\Models\Channel;
 use Lunar\Models\Currency;
 use Lunar\Models\Order;
+use Lunar\Models\OrderLine;
 use Modules\Analytics\Services\AnalyticsService;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
@@ -16,10 +19,10 @@ class AnalyticsTest extends TestCase
 {
     use CreatesStorefrontData;
 
-    private function order(int $total, string $status, ?\Illuminate\Support\Carbon $createdAt = null): Order
+    private function order(int $total, string $status, ?Carbon $createdAt = null): Order
     {
         return Order::factory()->create([
-            'channel_id' => \Lunar\Models\Channel::getDefault()->id,
+            'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
             'status' => $status,
             'sub_total' => $total,
@@ -84,10 +87,10 @@ class AnalyticsTest extends TestCase
     public function test_top_products_ranks_by_units_sold(): void
     {
         $product = $this->createProduct(['name' => 'Hot Tee', 'stock' => 100]);
-        $variant = $product->variants->first();
+        $variant = $product->skus->first();
 
         $order = $this->order(6000, 'payment-received');
-        \Lunar\Models\OrderLine::factory()->create([
+        OrderLine::factory()->create([
             'order_id' => $order->id,
             'purchasable_type' => $variant->getMorphClass(),
             'purchasable_id' => $variant->id,

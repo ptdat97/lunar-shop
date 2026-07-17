@@ -4,7 +4,7 @@ namespace Modules\Inventory\Services;
 
 use Illuminate\Support\Facades\DB;
 use Lunar\Models\Order;
-use Lunar\Models\ProductVariant;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Enums\StockMovementType;
 use Modules\Inventory\Pipelines\DecrementStock;
 
@@ -43,23 +43,23 @@ class StockReleaser
             }
 
             foreach ($fresh->lines as $line) {
-                if ($line->purchasable_type !== (new ProductVariant)->getMorphClass()) {
+                if ($line->purchasable_type !== (new ProductSku)->getMorphClass()) {
                     continue;
                 }
 
-                $variantId = (int) $line->purchasable_id;
+                $skuId = (int) $line->purchasable_id;
                 $quantity = (int) $line->quantity;
 
-                $before = (int) ProductVariant::whereKey($variantId)->value('stock');
+                $before = (int) ProductSku::whereKey($skuId)->value('quantity');
 
-                ProductVariant::whereKey($variantId)->update([
-                    'stock' => DB::raw('stock + '.$quantity),
+                ProductSku::whereKey($skuId)->update([
+                    'quantity' => DB::raw('quantity + '.$quantity),
                 ]);
 
                 // Ledger `release` entry, inside this release transaction so a
                 // rollback drops it too. System-caused (cancel/refund/CLI).
                 $this->ledger->record(
-                    variantId: $variantId,
+                    skuId: $skuId,
                     type: StockMovementType::Release,
                     delta: $quantity,
                     before: $before,

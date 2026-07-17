@@ -5,9 +5,9 @@ namespace Tests\Feature;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
 use Lunar\Admin\Filament\Resources\ProductResource\Pages\EditProduct;
-use Lunar\Admin\Filament\Resources\ProductResource\Pages\ManageProductVariants;
 use Lunar\Admin\Models\Staff;
 use Modules\Catalog\Filament\Pages\ManageProductSizing;
+use Modules\Catalog\Filament\Pages\ManageProductVariants;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -37,7 +37,7 @@ class ProductAdminPagesTest extends TestCase
             ->assertOk();
     }
 
-    public function test_lunar_variants_page_renders(): void
+    public function test_sku_builder_page_renders(): void
     {
         $this->seedBaseData();
         $this->actingAsAdmin();

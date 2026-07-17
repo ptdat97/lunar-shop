@@ -14,9 +14,9 @@ use Modules\Inventory\Models\StockNotification;
 
 /**
  * Back-in-stock mailing list: every "notify me when it's back" subscription a
- * shopper left against an out-of-stock variant. Read-only apart from removing
- * stale rows — the emails are sent automatically when a variant is restocked
- * (ProductVariantObserver → BackInStockNotifier), then the row is marked
+ * shopper left against an out-of-stock SKU. Read-only apart from removing
+ * stale rows — the emails are sent automatically when a SKU is restocked
+ * (ProductSkuObserver → BackInStockNotifier), then the row is marked
  * notified. This page lets the merchandiser see demand (who's waiting for what)
  * and prune subscriptions.
  */
@@ -75,14 +75,14 @@ class StockNotificationsPage extends Page implements HasTable
 
                 TextColumn::make('product')
                     ->label(__('admin.stock_notifications.product'))
-                    ->getStateUsing(fn (StockNotification $r) => $r->variant?->product?->translateAttribute('name'))
+                    ->getStateUsing(fn (StockNotification $r) => $r->sku?->product?->translateAttribute('name'))
                     ->searchable(query: fn (Builder $q, string $search) => $q->whereHas(
-                        'variant.product',
+                        'sku.product',
                         fn (Builder $p) => $p->where('attribute_data->name->en->value', 'like', "%{$search}%")
                     ))
                     ->wrap(),
 
-                TextColumn::make('variant.sku')
+                TextColumn::make('sku.sku')
                     ->label(__('admin.stock_notifications.sku'))
                     ->searchable()
                     ->toggleable(),
@@ -136,8 +136,8 @@ class StockNotificationsPage extends Page implements HasTable
 
     protected function baseQuery(): Builder
     {
-        // Eager-load the variant + its product so the product-name column and SKU
+        // Eager-load the SKU + its product so the product-name column and SKU
         // render without an N+1 per row.
-        return StockNotification::query()->with('variant.product');
+        return StockNotification::query()->with('sku.product');
     }
 }

@@ -2,11 +2,11 @@
 
 namespace Modules\Inventory\Services;
 
-use Lunar\Models\ProductVariant;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Models\StockNotification;
 
 /**
- * Manages back-in-stock ("notify me") subscriptions for out-of-stock variants.
+ * Manages back-in-stock ("notify me") subscriptions for out-of-stock SKUs.
  */
 class StockNotificationService
 {
@@ -15,26 +15,22 @@ class StockNotificationService
     ) {}
 
     /**
-     * Subscribe an email to a variant that is currently out of stock.
+     * Subscribe an email to a SKU that is currently out of stock.
      *
      * Owns the whole rule, including "is it actually out of stock?" — that used
      * to sit in the controller, where nothing stopped a second caller (an admin
-     * action, a job) from subscribing someone to an in-stock variant.
+     * action, a job) from subscribing someone to an in-stock SKU.
      *
-     * Deliberately *not* `inStock()` / `canBeFulfilledAtQuantity()`: a `stock=0`
-     * backorder/always variant still reads as out of stock on the storefront, so
-     * the shopper must be able to subscribe to it.
-     *
-     * Idempotent: re-subscribing the same email to the same variant returns the
+     * Idempotent: re-subscribing the same email to the same SKU returns the
      * existing pending row (and resets it to pending if it was already notified
      * but has since sold out again).
      */
-    public function subscribe(int $variantId, string $email): StockNotification
+    public function subscribe(int $skuId, string $email): StockNotification
     {
-        $variant = ProductVariant::findOrFail($variantId);
+        $sku = ProductSku::findOrFail($skuId);
 
         abort_if(
-            $this->inventory->hasPhysicalStock($variant->id),
+            $this->inventory->hasPhysicalStock($sku->id),
             422,
             'This item is already in stock.',
         );
@@ -42,18 +38,18 @@ class StockNotificationService
         $email = mb_strtolower(trim($email));
 
         return StockNotification::updateOrCreate(
-            ['product_variant_id' => $variant->id, 'email' => $email],
+            ['product_sku_id' => $sku->id, 'email' => $email],
             ['notified_at' => null],
         );
     }
 
     /**
-     * Number of shoppers waiting on a variant.
+     * Number of shoppers waiting on a SKU.
      */
-    public function pendingCount(ProductVariant $variant): int
+    public function pendingCount(ProductSku $sku): int
     {
         return StockNotification::query()
-            ->where('product_variant_id', $variant->id)
+            ->where('product_sku_id', $sku->id)
             ->pending()
             ->count();
     }

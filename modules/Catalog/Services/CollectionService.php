@@ -2,6 +2,7 @@
 
 namespace Modules\Catalog\Services;
 
+use Illuminate\Support\Facades\DB;
 use Lunar\Models\Collection;
 
 /**
@@ -37,7 +38,7 @@ class CollectionService
     {
         $query = $collection->products()
             ->where('status', 'published')
-            ->with(['variants', 'thumbnail', 'brand', 'media']); // media → card hover image
+            ->with(['skus', 'thumbnail', 'brand', 'media']); // media → card hover image
 
         // Lunar stores translatable name as JSONB; sort on the extracted value.
         $nameExpr = 'JSON_UNQUOTE(JSON_EXTRACT(lunar_products.attribute_data, "$.name.value"))';
@@ -59,7 +60,7 @@ class CollectionService
      */
     protected function applyPriceSort($query, string $direction)
     {
-        $minPrice = \Illuminate\Support\Facades\DB::table('lunar_product_variants as pv')
+        $minPrice = DB::table('lunar_product_variants as pv')
             ->join('lunar_prices as pr', function ($join) {
                 $join->on('pr.priceable_id', '=', 'pv.id')
                     ->where('pr.priceable_type', '=', 'product_variant');

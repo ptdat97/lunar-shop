@@ -12,9 +12,9 @@ use Lunar\Facades\DB;
 use Lunar\FieldTypes\TranslatedText;
 use Lunar\Models\Attribute;
 use Lunar\Models\Currency;
-use Lunar\Models\ProductVariant;
 use Lunar\Models\TaxClass;
 use Modules\Catalog\Filament\Resources\ProductResource;
+use Modules\Catalog\Models\ProductSku;
 
 /**
  * Swapped in for Lunar's ListProducts (ModulesServiceProvider $swaps) to
@@ -68,7 +68,7 @@ class ListProducts extends LunarListProducts
                 Forms\Components\TextInput::make('sku')
                     ->label(__('admin.create.sku'))
                     ->required()
-                    ->unique(table: (new ProductVariant)->getTable(), column: 'sku'),
+                    ->unique(table: (new ProductSku)->getTable(), column: 'sku'),
 
                 // Price optional here — the editor / variants matrix is the
                 // canonical place to set it; blank stores a 0 base price.
@@ -99,8 +99,10 @@ class ListProducts extends LunarListProducts
             ->first()
             ?->type ?? TranslatedText::class;
 
-        // Product + default variant + base price write three related tables —
+        // Product + default SKU + base price write three related tables —
         // wrap so a mid-way failure rolls back instead of leaving an orphan.
+        // Every product starts as a single-SKU (simple) product; the variant
+        // builder later expands it into a matrix if the merchant defines options.
         return DB::transaction(function () use ($data, $model, $currency, $nameAttribute) {
             $product = $model::create([
                 'status' => ! empty($data['publish']) ? 'published' : 'draft',
@@ -110,15 +112,27 @@ class ListProducts extends LunarListProducts
                 ],
             ]);
 
-            $variant = $product->variants()->create([
+            // Lunar's Product is fully $guarded — set the flexible-variant blob
+            // directly (empty for a simple product) rather than mass-assigning.
+            $product->variables = [];
+            $product->save();
+
+            $price = (int) bcmul((string) ($data['base_price'] ?? 0), (string) $currency->factor);
+
+            $sku = ProductSku::create([
+                'product_id' => $product->id,
                 'tax_class_id' => TaxClass::getDefault()->id,
                 'sku' => $data['sku'],
+                'variants' => [],
+                'price' => $price,
+                'is_default' => true,
+                'status' => 'published',
             ]);
 
-            $variant->prices()->create([
+            $sku->prices()->create([
                 'min_quantity' => 1,
                 'currency_id' => $currency->id,
-                'price' => (int) bcmul((string) ($data['base_price'] ?? 0), (string) $currency->factor),
+                'price' => $price,
             ]);
 
             return $product;

@@ -3,14 +3,17 @@
 namespace Modules\Promotion\DiscountTypes;
 
 use Illuminate\Support\Collection;
-use Lunar\DiscountTypes\AbstractDiscountType;
-use Lunar\Models\Collection as LunarCollection;
-use Lunar\Models\Contracts\Cart as CartContract;
-use Lunar\Models\Product;
-use Lunar\Models\ProductVariant;
 use Lunar\Base\ValueObjects\Cart\DiscountBreakdown;
 use Lunar\Base\ValueObjects\Cart\DiscountBreakdownLine;
 use Lunar\DataTypes\Price;
+use Lunar\DiscountTypes\AbstractDiscountType;
+use Lunar\DiscountTypes\AmountOff;
+use Lunar\DiscountTypes\BuyXGetY;
+use Lunar\Models\CartLine;
+use Lunar\Models\Collection as LunarCollection;
+use Lunar\Models\Contracts\Cart as CartContract;
+use Lunar\Models\Product;
+use Modules\Catalog\Models\ProductSku;
 
 /**
  * "Buy N or more, get X% off" — an AUTOMATIC quantity-threshold percentage
@@ -25,8 +28,8 @@ use Lunar\DataTypes\Price;
  * Eligibility is scoped via the discount's `discountableConditions` (products,
  * variants or collections). With no conditions, every line is eligible.
  *
- * @see \Lunar\DiscountTypes\AmountOff  for the percentage-application pattern
- * @see \Lunar\DiscountTypes\BuyXGetY   for the conditions matching pattern
+ * @see AmountOff  for the percentage-application pattern
+ * @see BuyXGetY   for the conditions matching pattern
  */
 class QuantityPercentageOff extends AbstractDiscountType
 {
@@ -104,7 +107,7 @@ class QuantityPercentageOff extends AbstractDiscountType
      * Cart lines that match the discount's conditions. With no conditions set,
      * all lines qualify (mirrors Lunar's "no limitation = everything").
      *
-     * @return Collection<int, \Lunar\Models\CartLine>
+     * @return Collection<int, CartLine>
      */
     protected function eligibleLines(CartContract $cart): Collection
     {
@@ -127,7 +130,7 @@ class QuantityPercentageOff extends AbstractDiscountType
                 return true;
             }
 
-            if ($item->discountable_type == ProductVariant::morphName()
+            if ($item->discountable_type == (new ProductSku)->getMorphClass()
                 && $item->discountable_id == $line->purchasable->id) {
                 return true;
             }

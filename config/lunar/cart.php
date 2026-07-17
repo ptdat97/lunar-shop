@@ -122,7 +122,9 @@ return [
     'eager_load' => [
         'currency',
         'lines.purchasable.taxClass',
-        'lines.purchasable.values',
+        // NB: no `lines.purchasable.values` — the purchasable is now a ProductSku
+        // (flexible variant model), whose option labels come from the product's
+        // `variables` blob, not an option-value relation.
         'lines.purchasable.product.thumbnail',
         'lines.purchasable.prices.currency',
         'lines.purchasable.prices.priceable',

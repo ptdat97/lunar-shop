@@ -210,6 +210,28 @@ class FitHistoryService
     }
 
     /**
+     * The index of the product's "Size" variable within its flexible
+     * `variables` definition, or null when the product has no size axis. A
+     * variable is the size axis when its localised name equals "size"
+     * (case-insensitive, any locale) — the same handle the old option carried.
+     */
+    protected function sizeAxisIndex(Product $product): ?int
+    {
+        foreach ($product->variables ?? [] as $i => $variable) {
+            $names = $variable['name'] ?? [];
+            $names = is_array($names) ? $names : [$names];
+
+            foreach ($names as $name) {
+                if (strtolower(trim((string) $name)) === 'size') {
+                    return (int) $i;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Every size this customer bought of this product, mapped to the direction it
      * failed (`too-small` / `too-large` / `wrong-size`), or null when they kept it.
      *
@@ -220,18 +242,17 @@ class FitHistoryService
      */
     protected function history(Customer $customer, Product $product): array
     {
+        // The purchased size now lives positionally in the SKU's `variants`
+        // index into the product's flexible `variables` (no option-value pivot
+        // to join). Pull the raw order lines + return reason per SKU, then
+        // resolve each SKU's Size label in PHP against the product definition.
         $rows = DB::table('lunar_order_lines as ol')
-            ->join('lunar_product_variants as pv', function ($join) {
-                $join->on('pv.id', '=', 'ol.purchasable_id')
-                    ->where('ol.purchasable_type', '=', 'product_variant');
+            ->join('lunar_product_skus as ps', function ($join) {
+                $join->on('ps.id', '=', 'ol.purchasable_id')
+                    ->where('ol.purchasable_type', '=', 'product_sku');
             })
             ->join('lunar_orders as o', 'o.id', '=', 'ol.order_id')
-            // The variant's Size option value — the size actually purchased.
-            ->join('lunar_product_option_value_product_variant as pivot', 'pivot.variant_id', '=', 'pv.id')
-            ->join('lunar_product_option_values as ov', 'ov.id', '=', 'pivot.value_id')
-            ->join('lunar_product_options as opt', 'opt.id', '=', 'ov.product_option_id')
-            ->where('opt.handle', 'size')
-            ->where('pv.product_id', $product->id)
+            ->where('ps.product_id', $product->id)
             ->where('o.customer_id', $customer->id)
             ->whereIn('o.status', OrderStatus::paid())
             // A size return against this exact order line, if any.
@@ -241,22 +262,50 @@ class FitHistoryService
                     ->whereIn('rr.reason', [self::REASON_TOO_SMALL, self::REASON_TOO_LARGE, self::REASON_WRONG_SIZE])
                     ->where('rr.status', '!=', ReturnStatus::REJECTED);
             })
-            ->selectRaw('JSON_UNQUOTE(JSON_EXTRACT(ov.name, "$.en")) as size')
-            // Distinct reasons seen for this size: exactly one means an
-            // unambiguous direction; two (too-small AND too-large on the same
-            // size) is contradictory noise we must not act on.
-            ->selectRaw('COUNT(DISTINCT rr.reason) as reason_count')
-            ->selectRaw('MIN(rr.reason) as reason')
-            // Kept once ⇒ kept: a NULL reason on any line wins over a returned one.
-            ->selectRaw('MIN(rr.reason IS NOT NULL) as always_returned')
-            ->groupBy('size')
+            ->select('ps.variants as variant_indexes', 'rr.reason')
             ->get();
+
+        // Which variable in this product is the Size axis (handle 'size', or a
+        // name equal to "size" in any locale)? Its index selects the size label.
+        $sizeAxis = $this->sizeAxisIndex($product);
+
+        if ($sizeAxis === null) {
+            return [];
+        }
+
+        $variables = $product->variables ?? [];
+
+        // Aggregate per size label: kept once ⇒ kept; else the (possibly
+        // conflicting) return direction.
+        $bySize = [];
+
+        foreach ($rows as $row) {
+            $indexes = json_decode((string) $row->variant_indexes, true) ?: [];
+            $valueIndex = $indexes[$sizeAxis] ?? null;
+            if ($valueIndex === null) {
+                continue;
+            }
+
+            $size = $variables[$sizeAxis]['values'][$valueIndex]['name']['en']
+                ?? $variables[$sizeAxis]['values'][$valueIndex]['name'][app()->getLocale()]
+                ?? null;
+            if ($size === null) {
+                continue;
+            }
+
+            $bySize[$size] ??= ['reasons' => [], 'kept' => false];
+            if ($row->reason === null) {
+                $bySize[$size]['kept'] = true;
+            } else {
+                $bySize[$size]['reasons'][$row->reason] = true;
+            }
+        }
 
         $out = [];
 
-        foreach ($rows as $row) {
-            if ((int) $row->always_returned !== 1) {
-                $out[(string) $row->size] = null; // kept at least once ⇒ it fits
+        foreach ($bySize as $size => $info) {
+            if ($info['kept']) {
+                $out[(string) $size] = null; // kept at least once ⇒ it fits
 
                 continue;
             }
@@ -264,9 +313,9 @@ class FitHistoryService
             // Returned every time. Conflicting directions (too-small AND
             // too-large on the same size) carry no usable direction, so they
             // degrade to the direction-less reason rather than to "kept".
-            $out[(string) $row->size] = (int) $row->reason_count > 1
+            $out[(string) $size] = count($info['reasons']) > 1
                 ? self::REASON_WRONG_SIZE
-                : (string) $row->reason;
+                : (string) array_key_first($info['reasons']);
         }
 
         return $out;

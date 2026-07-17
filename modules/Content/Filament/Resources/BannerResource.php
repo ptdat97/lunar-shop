@@ -7,11 +7,11 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Modules\Assets\Filament\Forms\MediaPicker;
 use Modules\Content\Filament\Resources\BannerResource\Pages\CreateBanner;
 use Modules\Content\Filament\Resources\BannerResource\Pages\EditBanner;
 use Modules\Content\Filament\Resources\BannerResource\Pages\ListBanners;
 use Modules\Content\Models\Banner;
-use Modules\Assets\Filament\Forms\MediaPicker;
 
 class BannerResource extends Resource
 {

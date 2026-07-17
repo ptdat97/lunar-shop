@@ -13,9 +13,7 @@ use Modules\Promotion\Services\PromotionService;
  */
 class PromotionPageController extends Controller
 {
-    public function __construct(protected PromotionService $promotions)
-    {
-    }
+    public function __construct(protected PromotionService $promotions) {}
 
     /**
      * GET /promotions — all active displayable promotions, each with a few

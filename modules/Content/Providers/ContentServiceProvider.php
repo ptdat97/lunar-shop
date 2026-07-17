@@ -2,17 +2,26 @@
 
 namespace Modules\Content\Providers;
 
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Models\Collection as LunarCollection;
 use Lunar\Models\Product;
-use Modules\Content\Services\MenuRenderer;
-use Modules\Content\Services\SectionRenderer;
+use Modules\Assets\Services\MediaUrl;
+use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Http\Resources\ProductResource;
 use Modules\Catalog\Services\ProductService;
-use Modules\Catalog\Data\SearchQuery;
+use Modules\Content\Filament\Resources\BannerResource;
+use Modules\Content\Filament\Resources\LookbookResource;
+use Modules\Content\Filament\Resources\MenuResource;
+use Modules\Content\Filament\Resources\PageResource;
+use Modules\Content\Filament\Resources\PageSectionResource;
+use Modules\Content\Filament\Resources\RedirectResource;
+use Modules\Content\Services\MenuRenderer;
+use Modules\Content\Services\SectionRenderer;
 use Modules\Core\Support\AdminPages;
 use Modules\Promotion\Http\Resources\PromotionResource;
+use Modules\Promotion\Services\PromotionService;
 
 class ContentServiceProvider extends ServiceProvider
 {
@@ -36,12 +45,12 @@ class ContentServiceProvider extends ServiceProvider
         // Must be in register() because ModulesServiceProvider collects
         // resources in register() after all module providers have registered.
         AdminPages::addResource(
-            \Modules\Content\Filament\Resources\PageResource::class,
-            \Modules\Content\Filament\Resources\BannerResource::class,
-            \Modules\Content\Filament\Resources\LookbookResource::class,
-            \Modules\Content\Filament\Resources\RedirectResource::class,
-            \Modules\Content\Filament\Resources\PageSectionResource::class,
-            \Modules\Content\Filament\Resources\MenuResource::class,
+            PageResource::class,
+            BannerResource::class,
+            LookbookResource::class,
+            RedirectResource::class,
+            PageSectionResource::class,
+            MenuResource::class,
         );
     }
 
@@ -50,10 +59,10 @@ class ContentServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->loadMigrationsFrom(__DIR__ . '/../Database/Migrations');
+        $this->loadMigrationsFrom(__DIR__.'/../Database/Migrations');
 
-        $this->loadRoutesFrom(__DIR__ . '/../Routes/web.php');
-        $this->loadRoutesFrom(__DIR__ . '/../Routes/api.php');
+        $this->loadRoutesFrom(__DIR__.'/../Routes/web.php');
+        $this->loadRoutesFrom(__DIR__.'/../Routes/api.php');
 
         $this->registerSectionData();
         $this->registerSectionPayloads();
@@ -134,7 +143,7 @@ class ContentServiceProvider extends ServiceProvider
                     ->get()
                     ->keyBy('id');
 
-            $urls = $this->app->make(\Modules\Assets\Services\MediaUrl::class);
+            $urls = $this->app->make(MediaUrl::class);
 
             $resolved = collect($items)
                 ->map(function ($item) use ($byId, $urls) {
@@ -188,7 +197,7 @@ class ContentServiceProvider extends ServiceProvider
                     // PricingService primes price->currency from its per-request
                     // currency map, so `prices` alone is enough here; media
                     // powers the hover image.
-                    ->with(['variants.prices', 'thumbnail', 'brand', 'media'])
+                    ->with(['skus.prices', 'thumbnail', 'brand', 'media'])
                     ->get()
                     ->keyBy('id');
 
@@ -233,7 +242,7 @@ class ContentServiceProvider extends ServiceProvider
         // nothing when no flash sale is running, so the section can stay enabled
         // year-round and light up only during a sale.
         $renderer->provide('flash-sale', function (array $settings) {
-            $promotions = $this->app->make(\Modules\Promotion\Services\PromotionService::class);
+            $promotions = $this->app->make(PromotionService::class);
             $flashSale = $promotions->currentFlashSale();
 
             return [
@@ -248,7 +257,7 @@ class ContentServiceProvider extends ServiceProvider
         // promotion-slider → on-sale products (via the shared PromotionService).
         // `promotion` setting pins to one promotion handle; empty = all on-sale.
         $renderer->provide('promotion-slider', function (array $settings) {
-            $promotions = $this->app->make(\Modules\Promotion\Services\PromotionService::class);
+            $promotions = $this->app->make(PromotionService::class);
             $limit = (int) ($settings['limit'] ?? 12);
             $handle = trim((string) ($settings['promotion'] ?? ''));
 
@@ -275,7 +284,7 @@ class ContentServiceProvider extends ServiceProvider
             return $path;
         }
 
-        return \Illuminate\Support\Facades\Storage::disk('media')->url($path);
+        return Storage::disk('media')->url($path);
     }
 
     /**

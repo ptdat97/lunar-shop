@@ -10,7 +10,7 @@ class AnalyticsServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__ . '/../Config/analytics.php', 'analytics');
+        $this->mergeConfigFrom(__DIR__.'/../Config/analytics.php', 'analytics');
 
         // Contribute the sales dashboard to the admin panel.
         AdminPages::add(AnalyticsDashboard::class);
@@ -18,6 +18,6 @@ class AnalyticsServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        $this->loadViewsFrom(__DIR__ . '/../Resources/views', 'analytics');
+        $this->loadViewsFrom(__DIR__.'/../Resources/views', 'analytics');
     }
 }

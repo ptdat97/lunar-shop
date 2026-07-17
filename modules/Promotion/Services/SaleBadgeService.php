@@ -34,7 +34,7 @@ class SaleBadgeService
      * Quantity/combo deals depend on cart contents, so they surface as a
      * label only (no price rewrite). Returns null when nothing applies.
      *
-     * Assumes $product has ['variants', 'collections'] loaded and $promotions
+     * Assumes $product has ['skus', 'collections'] loaded and $promotions
      * is the pre-filtered displayable set (see PromotionService).
      *
      * @param  Collection<int, Discount>  $promotions
@@ -215,18 +215,18 @@ class SaleBadgeService
     }
 
     /**
-     * The first variant's matched price for a product, or null. Delegates to
-     * the Pricing service so the pricing engine is invoked in one place.
+     * The first SKU's matched price for a product, or null. Delegates to the
+     * Pricing service so the pricing engine is invoked in one place.
      */
     protected function productPrice(Product $product): ?Price
     {
-        $variant = $product->variants->first() ?? $product->variants()->first();
+        $sku = $product->skus->first() ?? $product->skus()->first();
 
-        if (! $variant) {
+        if (! $sku) {
             return null;
         }
 
-        return app(PricingService::class)->matchedPrice($variant);
+        return app(PricingService::class)->matchedPrice($sku);
     }
 
     /**

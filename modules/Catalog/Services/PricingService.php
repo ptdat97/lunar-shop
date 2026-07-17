@@ -4,15 +4,16 @@ namespace Modules\Catalog\Services;
 
 use Lunar\DataTypes\Price as PriceData;
 use Lunar\Facades\Pricing;
+use Lunar\Models\Currency;
 use Lunar\Models\Price;
 use Lunar\Models\Product;
-use Lunar\Models\ProductVariant;
+use Modules\Catalog\Models\ProductSku;
 
 class PricingService
 {
     /**
-     * Per-request memo of matched prices, keyed by variant ID.
-     * Prevents re-running Lunar's pricing engine for the same variant
+     * Per-request memo of matched prices, keyed by SKU ID.
+     * Prevents re-running Lunar's pricing engine for the same SKU
      * across multiple view composers (product-card, price, product page).
      *
      * @var array<int, PriceData|null>
@@ -26,14 +27,14 @@ class PricingService
      * `lunar_currencies` query per section/page. One query here covers every
      * price in the request, in any currency.
      *
-     * @var array<int, \Lunar\Models\Currency>|null
+     * @var array<int, Currency>|null
      */
     private ?array $currenciesById = null;
 
-    /** @return array<int, \Lunar\Models\Currency> */
+    /** @return array<int, Currency> */
     protected function currenciesById(): array
     {
-        return $this->currenciesById ??= \Lunar\Models\Currency::all()->keyBy('id')->all();
+        return $this->currenciesById ??= Currency::all()->keyBy('id')->all();
     }
 
     /**
@@ -47,18 +48,18 @@ class PricingService
      * product-card, price component, and product page composers resolves
      * in O(1) after the first call.
      */
-    public function matchedPrice(ProductVariant $variant): ?PriceData
+    public function matchedPrice(ProductSku $sku): ?PriceData
     {
-        $variantId = (int) $variant->id;
+        $skuId = (int) $sku->id;
 
-        if (array_key_exists($variantId, $this->priceMemo)) {
-            return $this->priceMemo[$variantId];
+        if (array_key_exists($skuId, $this->priceMemo)) {
+            return $this->priceMemo[$skuId];
         }
 
         try {
             // Prime the inverse relation: Lunar's Price cast reads
-            // $price->priceable->unit_quantity, which lazy-loads the variant
-            // again (one query per price) unless we point it back at the variant
+            // $price->priceable->unit_quantity, which lazy-loads the SKU
+            // again (one query per price) unless we point it back at the SKU
             // we already have. Saves a query per product card on listing pages.
             //
             // Also prime the price->currency relation from the per-request
@@ -67,10 +68,10 @@ class PricingService
             // `lunar_currencies` query per section) and downstream formatting
             // (e.g. PromotionService reading $matched->currency for a sale
             // badge) never lazy-loads a currency per product.
-            if ($variant->relationLoaded('prices')) {
+            if ($sku->relationLoaded('prices')) {
                 $currencies = $this->currenciesById();
-                $variant->prices->each(function (Price $price) use ($variant, $currencies): void {
-                    $price->setRelation('priceable', $variant);
+                $sku->prices->each(function (Price $price) use ($sku, $currencies): void {
+                    $price->setRelation('priceable', $sku);
                     if (! $price->relationLoaded('currency')
                         && isset($currencies[(int) $price->currency_id])) {
                         $price->setRelation('currency', $currencies[(int) $price->currency_id]);
@@ -78,9 +79,9 @@ class PricingService
                 });
             }
 
-            return $this->priceMemo[$variantId] = Pricing::for($variant)->get()->matched->price;
+            return $this->priceMemo[$skuId] = Pricing::for($sku)->get()->matched->price;
         } catch (\Throwable $e) {
-            return $this->priceMemo[$variantId] = null;
+            return $this->priceMemo[$skuId] = null;
         }
     }
 
@@ -90,18 +91,18 @@ class PricingService
      */
     public function displayPrice(Product $product): ?string
     {
-        $variant = $product->variants->first() ?? $product->variants()->first();
+        $sku = $product->skus->first() ?? $product->skus()->first();
 
-        return $variant ? (string) $this->matchedPrice($variant)?->formatted() : null;
+        return $sku ? (string) $this->matchedPrice($sku)?->formatted() : null;
     }
 
     /**
-     * Formatted display price for a specific variant (e.g. a deep-linked variant
-     * on the product page). Null when the variant can't be priced.
+     * Formatted display price for a specific SKU (e.g. a deep-linked variant
+     * on the product page). Null when the SKU can't be priced.
      */
-    public function displayPriceForVariant(?ProductVariant $variant): ?string
+    public function displayPriceForVariant(?ProductSku $sku): ?string
     {
-        return $variant ? (string) $this->matchedPrice($variant)?->formatted() : null;
+        return $sku ? (string) $this->matchedPrice($sku)?->formatted() : null;
     }
 
     /**
@@ -110,7 +111,7 @@ class PricingService
      */
     public function defaultCurrencyCode(): string
     {
-        return \Lunar\Models\Currency::getDefault()?->code ?? 'USD';
+        return Currency::getDefault()?->code ?? 'USD';
     }
 
     /**
@@ -119,19 +120,19 @@ class PricingService
      */
     public function lowestPriceAmount(Product $product): ?float
     {
-        return $product->variants
-            ->map(fn (ProductVariant $variant) => $this->matchedPrice($variant)?->decimal())
+        return $product->skus
+            ->map(fn (ProductSku $sku) => $this->matchedPrice($sku)?->decimal())
             ->filter()
             ->min();
     }
 
     /**
-     * Get the price for a variant in a given currency.
+     * Get the price for a SKU in a given currency.
      */
-    public function variantPrice(int $variantId, ?int $currencyId = null): ?Price
+    public function variantPrice(int $skuId, ?int $currencyId = null): ?Price
     {
-        $query = Price::where('priceable_type', ProductVariant::class)
-            ->where('priceable_id', $variantId);
+        $query = Price::where('priceable_type', (new ProductSku)->getMorphClass())
+            ->where('priceable_id', $skuId);
 
         if ($currencyId) {
             $query->where('currency_id', $currencyId);
@@ -141,23 +142,23 @@ class PricingService
     }
 
     /**
-     * Check if a variant has a tiered price.
+     * Check if a SKU has a tiered (quantity-break) price.
      */
-    public function hasTieredPricing(int $variantId): bool
+    public function hasTieredPricing(int $skuId): bool
     {
-        return Price::where('priceable_type', ProductVariant::class)
-            ->where('priceable_id', $variantId)
-            ->where('tier', '>', 1)
+        return Price::where('priceable_type', (new ProductSku)->getMorphClass())
+            ->where('priceable_id', $skuId)
+            ->where('min_quantity', '>', 1)
             ->exists();
     }
 
     /**
      * Get prices for a customer group.
      */
-    public function customerGroupPrices(int $variantId, int $customerGroupId)
+    public function customerGroupPrices(int $skuId, int $customerGroupId)
     {
-        return Price::where('priceable_type', ProductVariant::class)
-            ->where('priceable_id', $variantId)
+        return Price::where('priceable_type', (new ProductSku)->getMorphClass())
+            ->where('priceable_id', $skuId)
             ->where('customer_group_id', $customerGroupId)
             ->get();
     }

@@ -4,89 +4,76 @@ namespace Modules\Inventory\Services;
 
 use Illuminate\Database\Eloquent\Builder;
 use Lunar\Models\Product;
-use Lunar\Models\ProductVariant;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Core\Support\Settings;
 
 class InventoryService
 {
     /**
      * Availability summary for a product (used in the product API payload):
-     * whether any variant is purchasable, and the total tracked stock. An
-     * "always" variant makes the product unconditionally in stock.
+     * whether any SKU is purchasable, and the total tracked stock. SKUs track a
+     * plain on-hand quantity (no backorder/always modes).
      *
      * @return array{in_stock: bool, total_quantity: int}
      */
     public function availabilityFor(Product $product): array
     {
-        $variants = $product->relationLoaded('variants')
-            ? $product->variants
-            : $product->variants()->get();
+        $skus = $product->relationLoaded('skus')
+            ? $product->skus
+            : $product->skus()->get();
 
         return [
-            'in_stock' => $variants->contains(fn (ProductVariant $v) => $v->canBeFulfilledAtQuantity(1)),
-            'total_quantity' => (int) $variants->sum(fn (ProductVariant $v) => $v->purchasable === 'always'
-                ? 0
-                : max(0, (int) $v->getTotalInventory())),
+            'in_stock' => $skus->contains(fn (ProductSku $s) => $s->canBeFulfilledAtQuantity(1)),
+            'total_quantity' => (int) $skus->sum(fn (ProductSku $s) => max(0, (int) $s->getTotalInventory())),
         ];
     }
 
     /**
-     * Get stock level for a variant.
+     * Get stock level for a SKU.
      */
-    public function stock(int $variantId): int
+    public function stock(int $skuId): int
     {
-        $variant = ProductVariant::find($variantId);
+        $sku = ProductSku::find($skuId);
 
-        return $variant?->stock ?? 0;
+        return $sku?->quantity ?? 0;
     }
 
     /**
-     * Total inventory available to purchase, honouring the variant's
-     * `purchasable` mode (in_stock = stock only; backorder = stock + backorder;
-     * always = effectively unlimited). Delegates to Lunar's own accessor.
+     * Total inventory available to purchase for a SKU (its on-hand quantity).
      */
-    public function available(int $variantId): int
+    public function available(int $skuId): int
     {
-        $variant = ProductVariant::find($variantId);
+        $sku = ProductSku::find($skuId);
 
-        if ($variant === null) {
-            return 0;
-        }
-
-        return $variant->purchasable === 'always'
-            ? PHP_INT_MAX
-            : $variant->getTotalInventory();
+        return $sku?->getTotalInventory() ?? 0;
     }
 
     /**
-     * Check if a variant can be purchased at the requested quantity, honouring
-     * backorder/always modes (not just raw stock). This is the oversell gate the
-     * storefront should consult before adding to cart.
+     * Check if a SKU can be purchased at the requested quantity. This is the
+     * oversell gate the storefront should consult before adding to cart.
      */
-    public function inStock(int $variantId, int $quantity = 1): bool
+    public function inStock(int $skuId, int $quantity = 1): bool
     {
-        $variant = ProductVariant::find($variantId);
+        $sku = ProductSku::find($skuId);
 
-        return $variant?->canBeFulfilledAtQuantity($quantity) ?? false;
+        return $sku?->canBeFulfilledAtQuantity($quantity) ?? false;
     }
 
     /**
-     * Whether a variant has physical stock on hand (stock > 0). This matches the
-     * storefront's "in stock / Hết hàng" display (which is based on raw stock),
-     * unlike inStock() which also returns true for backorder/always variants.
-     * Use this for back-in-stock eligibility: a stock=0 "always" variant still
-     * shows "Hết hàng", so the shopper should be allowed to subscribe.
+     * Whether a SKU has physical stock on hand (quantity > 0). Matches the
+     * storefront's "in stock / Hết hàng" display and drives back-in-stock
+     * eligibility (a stock=0 SKU should let a shopper subscribe).
      */
-    public function hasPhysicalStock(int $variantId): bool
+    public function hasPhysicalStock(int $skuId): bool
     {
-        return $this->stock($variantId) > 0;
+        return $this->stock($skuId) > 0;
     }
 
     /** Default "low stock" threshold when the admin hasn't set one. */
     public const DEFAULT_LOW_THRESHOLD = 5;
 
     /**
-     * Admin-configurable stock level at/below which a variant is "low".
+     * Admin-configurable stock level at/below which a SKU is "low".
      */
     public function lowStockThreshold(): int
     {
@@ -122,65 +109,65 @@ class InventoryService
     }
 
     /**
-     * Get low stock variants (below the given threshold, or the configured one).
+     * Get low stock SKUs (below the given threshold, or the configured one).
      */
     public function lowStock(?int $threshold = null)
     {
         $threshold ??= $this->lowStockThreshold();
 
-        return ProductVariant::where('stock', '<', $threshold)
-            ->where('stock', '>', 0)
+        return ProductSku::where('quantity', '<', $threshold)
+            ->where('quantity', '>', 0)
             ->with('product')
             ->get();
     }
 
     /**
-     * Get out of stock variants.
+     * Get out of stock SKUs.
      */
     public function outOfStock()
     {
-        return ProductVariant::where('stock', '<=', 0)
+        return ProductSku::where('quantity', '<=', 0)
             ->with('product')
             ->get();
     }
 
     // --- Overview stats (Stock Overview header) --------------------------------
 
-    /** Variants whose stock is tracked (not `always` / unlimited). */
+    /** All SKUs track stock. */
     protected function tracked(): Builder
     {
-        return ProductVariant::query()->where('purchasable', '!=', 'always');
+        return ProductSku::query();
     }
 
-    /** Count of tracked variants. */
+    /** Count of tracked SKUs. */
     public function trackedCount(): int
     {
         return $this->tracked()->count();
     }
 
-    /** Count of tracked variants at/below the low-stock threshold (but > 0). */
+    /** Count of tracked SKUs at/below the low-stock threshold (but > 0). */
     public function lowCount(): int
     {
-        return $this->tracked()->whereBetween('stock', [1, $this->lowStockThreshold()])->count();
+        return $this->tracked()->whereBetween('quantity', [1, $this->lowStockThreshold()])->count();
     }
 
-    /** Count of tracked variants that are out of stock. */
+    /** Count of tracked SKUs that are out of stock. */
     public function outCount(): int
     {
-        return $this->tracked()->where('stock', '<=', 0)->count();
+        return $this->tracked()->where('quantity', '<=', 0)->count();
     }
 
     /**
-     * Total value of stock on hand, in minor units: SUM(stock × cost_price) over
-     * tracked variants with stock. Variants without a cost_price are skipped
-     * (COALESCE → 0 contribution), so this is the value of stock whose cost is
-     * known. Divide by the default currency factor to display.
+     * Total value of stock on hand, in minor units: SUM(quantity × cost_price)
+     * over SKUs with stock. SKUs without a cost_price are skipped (COALESCE → 0
+     * contribution), so this is the value of stock whose cost is known. Divide by
+     * the default currency factor to display.
      */
     public function inventoryValueMinor(): int
     {
         return (int) $this->tracked()
-            ->where('stock', '>', 0)
-            ->selectRaw('COALESCE(SUM(stock * cost_price), 0) as value')
+            ->where('quantity', '>', 0)
+            ->selectRaw('COALESCE(SUM(quantity * cost_price), 0) as value')
             ->value('value');
     }
 }

@@ -5,6 +5,7 @@ namespace Modules\Content\Filament\Resources\MenuResource\Pages;
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
 use Filament\Tables\Actions\EditAction;
+use Filament\Tables\Table;
 use Modules\Content\Filament\Resources\MenuResource;
 use Modules\Content\Models\Menu;
 use Modules\Content\Services\MenuTree;
@@ -33,7 +34,7 @@ class ManageMenus extends ManageRecords
         ];
     }
 
-    public function table(\Filament\Tables\Table $table): \Filament\Tables\Table
+    public function table(Table $table): Table
     {
         return parent::table($table)->actions([
             EditAction::make()

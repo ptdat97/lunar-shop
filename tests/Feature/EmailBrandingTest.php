@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Lunar\Models\Channel;
 use Lunar\Models\Currency;
 use Lunar\Models\Order;
 use Lunar\Models\OrderAddress;
@@ -34,7 +35,7 @@ class EmailBrandingTest extends TestCase
     private function makeOrder(): Order
     {
         $order = Order::factory()->create([
-            'channel_id' => \Lunar\Models\Channel::getDefault()->id,
+            'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
             'status' => 'payment-received',
             'reference' => 'BRAND-0001',

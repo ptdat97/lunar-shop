@@ -5,7 +5,9 @@ namespace Modules\Inventory\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * POST /api/v1/inventory/notify-me — tell me when this variant is back.
+ * POST /api/v1/inventory/notify-me — tell me when this SKU is back.
+ *
+ * Accepts `sku_id` (preferred) or `variant_id` (backward-compat alias).
  */
 class NotifyMeRequest extends FormRequest
 {
@@ -13,7 +15,8 @@ class NotifyMeRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'variant_id' => ['required', 'integer'],
+            'sku_id' => ['required_without:variant_id', 'integer'],
+            'variant_id' => ['required_without:sku_id', 'integer'],
             'email' => ['required', 'email', 'max:255'],
         ];
     }

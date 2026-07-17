@@ -37,7 +37,7 @@ class ReturnOverRefundTest extends TestCase
         $product = $this->createProduct(['stock' => 10, 'price' => 10000]);
 
         $this->postJson('/api/v1/cart', [
-            'variant_id' => $product->variants->first()->id,
+            'sku_id' => $product->skus->first()->id,
             'quantity' => $quantity,
         ])->assertSuccessful();
 

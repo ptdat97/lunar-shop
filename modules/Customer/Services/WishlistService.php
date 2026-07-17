@@ -33,7 +33,7 @@ class WishlistService
     {
         return Product::query()
             ->whereIn('id', $this->productIdsFor($user))
-            ->with(['variants', 'thumbnail', 'brand', 'media']) // media → card hover image
+            ->with(['skus', 'thumbnail', 'brand', 'media']) // media → card hover image
             ->get();
     }
 

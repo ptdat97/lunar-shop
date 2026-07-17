@@ -4,11 +4,12 @@ namespace Modules\Catalog\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Lunar\Models\Collection;
 
 /**
  * Stable JSON contract for a collection.
  *
- * @mixin \Lunar\Models\Collection
+ * @mixin Collection
  */
 class CollectionResource extends JsonResource
 {

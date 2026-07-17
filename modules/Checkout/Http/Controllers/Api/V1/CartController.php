@@ -23,16 +23,22 @@ class CartController extends Controller
     }
 
     /**
-     * POST /api/v1/cart  { variant_id, quantity }
+     * POST /api/v1/cart  { sku_id, quantity }
+     *
+     * Accepts `variant_id` as a backward-compatible alias for `sku_id` so
+     * existing headless clients keep working; both now carry a ProductSku id.
      */
     public function store(Request $request): CartResource
     {
         $data = $request->validate([
-            'variant_id' => ['required', 'integer'],
+            'sku_id' => ['required_without:variant_id', 'integer'],
+            'variant_id' => ['required_without:sku_id', 'integer'],
             'quantity' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $cart = $this->cart->add($data['variant_id'], $data['quantity'] ?? 1);
+        $skuId = $data['sku_id'] ?? $data['variant_id'];
+
+        $cart = $this->cart->add($skuId, $data['quantity'] ?? 1);
 
         return $this->resource($cart);
     }

@@ -7,14 +7,14 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Lunar\Models\Order;
-use Lunar\Models\ProductVariant;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Enums\StockMovementType;
 
 /**
  * One append-only entry in the stock ledger.
  *
  * @property int $id
- * @property int $product_variant_id
+ * @property int $product_sku_id
  * @property string $type
  * @property int $quantity signed delta
  * @property int $stock_before
@@ -30,7 +30,7 @@ class StockMovement extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'product_variant_id',
+        'product_sku_id',
         'type',
         'quantity',
         'stock_before',
@@ -50,9 +50,9 @@ class StockMovement extends Model
         ];
     }
 
-    public function variant(): BelongsTo
+    public function sku(): BelongsTo
     {
-        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+        return $this->belongsTo(ProductSku::class, 'product_sku_id');
     }
 
     public function causer(): MorphTo

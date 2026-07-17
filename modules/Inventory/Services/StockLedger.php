@@ -4,7 +4,7 @@ namespace Modules\Inventory\Services;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
-use Lunar\Models\ProductVariant;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Enums\StockMovementType;
 use Modules\Inventory\Exceptions\InvalidStockAdjustmentException;
 use Modules\Inventory\Models\StockMovement;
@@ -21,10 +21,10 @@ use Modules\Inventory\Models\StockMovement;
  *
  * INVARIANT: every stock write that feeds the ledger — here and in
  * DecrementStock / StockReleaser — uses the query builder (`whereKey()->update`),
- * never `$variant->save()`. That keeps the Eloquent `updated` event (and the
- * ProductVariantObserver's 'edit' entry) from firing, so a single change is
+ * never `$sku->save()`. That keeps the Eloquent `updated` event (and the
+ * ProductSkuObserver's 'edit' entry) from firing, so a single change is
  * never counted twice. The observer only records changes made through the
- * product/variant editor, which do use save().
+ * product/SKU editor, which do use save().
  */
 class StockLedger
 {
@@ -37,7 +37,7 @@ class StockLedger
      * stock write of its own — call it inside the caller's transaction.
      */
     public function record(
-        int $variantId,
+        int $skuId,
         StockMovementType $type,
         int $delta,
         int $before,
@@ -48,7 +48,7 @@ class StockLedger
         array $meta = [],
     ): StockMovement {
         $movement = new StockMovement([
-            'product_variant_id' => $variantId,
+            'product_sku_id' => $skuId,
             'type' => $type,
             'quantity' => $delta,
             'stock_before' => $before,
@@ -68,32 +68,32 @@ class StockLedger
         return $movement;
     }
 
-    /** Apply a signed delta to a variant's stock, atomically, and record it. */
+    /** Apply a signed delta to a SKU's stock, atomically, and record it. */
     public function adjust(
-        int $variantId,
+        int $skuId,
         int $delta,
         StockMovementType $type,
         ?string $reason = null,
         ?Model $causer = null,
         array $meta = [],
     ): StockMovement {
-        return $this->mutate($variantId, fn (int $before) => $before + $delta, $type, $reason, $causer, $meta);
+        return $this->mutate($skuId, fn (int $before) => $before + $delta, $type, $reason, $causer, $meta);
     }
 
-    /** Set a variant's stock to an absolute value, atomically, and record it. */
+    /** Set a SKU's stock to an absolute value, atomically, and record it. */
     public function set(
-        int $variantId,
+        int $skuId,
         int $newQuantity,
         StockMovementType $type,
         ?string $reason = null,
         ?Model $causer = null,
         array $meta = [],
     ): StockMovement {
-        return $this->mutate($variantId, fn () => $newQuantity, $type, $reason, $causer, $meta);
+        return $this->mutate($skuId, fn () => $newQuantity, $type, $reason, $causer, $meta);
     }
 
     /**
-     * Lock the variant, compute the new level, refuse a negative result, write
+     * Lock the SKU, compute the new level, refuse a negative result, write
      * the stock (via query builder, not save()) and the ledger row in one
      * transaction. A restock (0 → positive) fires back-in-stock mail after the
      * commit so it never sends on a rollback.
@@ -101,29 +101,29 @@ class StockLedger
      * @param  callable(int): int  $resolve  before → after
      */
     protected function mutate(
-        int $variantId,
+        int $skuId,
         callable $resolve,
         StockMovementType $type,
         ?string $reason,
         ?Model $causer,
         array $meta,
     ): StockMovement {
-        return DB::transaction(function () use ($variantId, $resolve, $type, $reason, $causer, $meta) {
-            $variant = ProductVariant::whereKey($variantId)->lockForUpdate()->firstOrFail();
+        return DB::transaction(function () use ($skuId, $resolve, $type, $reason, $causer, $meta) {
+            $sku = ProductSku::whereKey($skuId)->lockForUpdate()->firstOrFail();
 
-            $before = (int) $variant->stock;
+            $before = (int) $sku->quantity;
             $after = (int) $resolve($before);
 
             if ($after < 0) {
-                throw new InvalidStockAdjustmentException($variantId, $before, $after - $before);
+                throw new InvalidStockAdjustmentException($skuId, $before, $after - $before);
             }
 
-            ProductVariant::whereKey($variantId)->update(['stock' => $after]);
+            ProductSku::whereKey($skuId)->update(['quantity' => $after]);
 
-            $movement = $this->record($variantId, $type, $after - $before, $before, $after, $reason, $causer, null, $meta);
+            $movement = $this->record($skuId, $type, $after - $before, $before, $after, $reason, $causer, null, $meta);
 
             if ($before <= 0 && $after > 0) {
-                DB::afterCommit(fn () => $this->notifier->notify($variant->refresh()));
+                DB::afterCommit(fn () => $this->notifier->notify($sku->refresh()));
             }
 
             return $movement;

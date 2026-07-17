@@ -25,7 +25,7 @@ class OrderContractTest extends TestCase
         $product = $this->createProduct();
 
         $this->postJson('/api/v1/cart', [
-            'variant_id' => $product->variants->first()->id,
+            'sku_id' => $product->skus->first()->id,
             'quantity' => 1,
         ])->assertSuccessful();
 

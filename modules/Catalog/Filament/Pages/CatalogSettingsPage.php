@@ -2,7 +2,6 @@
 
 namespace Modules\Catalog\Filament\Pages;
 
-use Modules\Core\Support\Settings;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -11,6 +10,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Modules\Core\Support\Settings;
 
 /**
  * Catalog-level admin settings: product-recommendation tuning (how many items to

@@ -2,11 +2,19 @@
 
 namespace Tests\Feature;
 
+use Lunar\DiscountTypes\AmountOff;
+use Lunar\DiscountTypes\BuyXGetY;
+use Lunar\FieldTypes\Text;
 use Lunar\Models\Cart;
 use Lunar\Models\Channel;
+use Lunar\Models\Collection;
+use Lunar\Models\CollectionGroup;
 use Lunar\Models\Currency;
+use Lunar\Models\Customer;
 use Lunar\Models\CustomerGroup;
 use Lunar\Models\Discount;
+use Lunar\Models\Order;
+use Modules\Checkout\Http\Resources\CartResource;
 use Modules\Promotion\Database\Seeders\DemoPromotionSeeder;
 use Modules\Promotion\DiscountTypes\ComboPercentageOff;
 use Modules\Promotion\DiscountTypes\QuantityPercentageOff;
@@ -46,7 +54,7 @@ class PromotionAdvancedTest extends TestCase
     public function test_quantity_discount_applies_only_once_threshold_is_met(): void
     {
         $product = $this->createProduct(['price' => 10000]);
-        $variant = $product->variants->first();
+        $variant = $product->skus->first();
 
         $discount = Discount::create([
             'name' => 'Buy 2, Get 10% Off',
@@ -78,13 +86,13 @@ class PromotionAdvancedTest extends TestCase
         $top = $this->createProduct(['price' => 10000, 'name' => 'Shirt']);
         $bottom = $this->createProduct(['price' => 20000, 'name' => 'Pants']);
 
-        $tops = \Lunar\Models\Collection::create([
-            'collection_group_id' => \Lunar\Models\CollectionGroup::firstOrCreate(['handle' => 'main'], ['name' => 'Main'])->id,
-            'attribute_data' => ['name' => new \Lunar\FieldTypes\Text('Tops')],
+        $tops = Collection::create([
+            'collection_group_id' => CollectionGroup::firstOrCreate(['handle' => 'main'], ['name' => 'Main'])->id,
+            'attribute_data' => ['name' => new Text('Tops')],
         ]);
-        $bottoms = \Lunar\Models\Collection::create([
+        $bottoms = Collection::create([
             'collection_group_id' => $tops->collection_group_id,
-            'attribute_data' => ['name' => new \Lunar\FieldTypes\Text('Bottoms')],
+            'attribute_data' => ['name' => new Text('Bottoms')],
         ]);
         $tops->products()->attach($top->id);
         $bottoms->products()->attach($bottom->id);
@@ -103,14 +111,14 @@ class PromotionAdvancedTest extends TestCase
 
         // Only a top in the cart → combo not satisfied → no discount.
         $cart = $this->makeCart();
-        $cart->add($top->variants->first(), 1);
+        $cart->add($top->skus->first(), 1);
         $cart->calculate();
         $this->assertSame(0, $cart->discountTotal?->value ?? 0);
 
         // Top + bottom → 15% off one of each: 1500 + 3000 = 4500.
         $cart = $this->makeCart();
-        $cart->add($top->variants->first(), 1);
-        $cart->add($bottom->variants->first(), 1);
+        $cart->add($top->skus->first(), 1);
+        $cart->add($bottom->skus->first(), 1);
         $cart->calculate();
         $this->assertSame(4500, $cart->discountTotal->value);
     }
@@ -185,7 +193,7 @@ class PromotionAdvancedTest extends TestCase
         $discount = Discount::create([
             'name' => 'Flash 25',
             'handle' => 'flash-25',
-            'type' => \Lunar\DiscountTypes\AmountOff::class,
+            'type' => AmountOff::class,
             'starts_at' => now()->subHour(),
             'ends_at' => now()->addDay(),
             'uses' => 0,
@@ -235,7 +243,7 @@ class PromotionAdvancedTest extends TestCase
         $discount = Discount::create([
             'name' => 'Flash Sale — 20% Off',
             'handle' => 'flash-applied',
-            'type' => \Lunar\DiscountTypes\AmountOff::class,
+            'type' => AmountOff::class,
             'starts_at' => now()->subHour(),
             'ends_at' => now()->addDay(),
             'uses' => 0,
@@ -246,7 +254,7 @@ class PromotionAdvancedTest extends TestCase
         $this->enableForAll($discount);
 
         $cart = $this->makeCart();
-        $cart->add($product->variants->first(), 1);
+        $cart->add($product->skus->first(), 1);
         $cart->calculate();
 
         $applied = app(PromotionService::class)->appliedTo($cart);
@@ -258,7 +266,7 @@ class PromotionAdvancedTest extends TestCase
         $this->assertNotEmpty($applied[0]['amount']);
 
         // And it surfaces on the cart JSON contract under `applied_discounts`.
-        $payload = (new \Modules\Checkout\Http\Resources\CartResource($cart))->toArray(request());
+        $payload = (new CartResource($cart))->toArray(request());
         $this->assertSame('Flash Sale — 20% Off', $payload['applied_discounts'][0]['name']);
     }
 
@@ -270,7 +278,7 @@ class PromotionAdvancedTest extends TestCase
         // applicable, but neither yields a per-product percentage badge.
         $bxgy = Discount::create([
             'name' => 'aa', 'handle' => 'aa-bxgy',
-            'type' => \Lunar\DiscountTypes\BuyXGetY::class,
+            'type' => BuyXGetY::class,
             'starts_at' => now()->subDay(), 'uses' => 0, 'priority' => 9, 'stop' => false,
             'data' => null,
         ]);
@@ -303,14 +311,14 @@ class PromotionAdvancedTest extends TestCase
     public function test_membership_tier_is_resolved_from_lifetime_spend(): void
     {
         $membership = app(MembershipService::class);
-        $customer = \Lunar\Models\Customer::create(['first_name' => 'Loyal', 'last_name' => 'Shopper']);
+        $customer = Customer::create(['first_name' => 'Loyal', 'last_name' => 'Shopper']);
 
         // No spend → no tier.
         $this->assertNull($membership->syncCustomer($customer));
 
         // 3,000,000 VND spend (minor units, factor 100 → 300,000,000) → Silver
         // (>= 2,000,000), still below Gold (5,000,000).
-        \Lunar\Models\Order::factory()->create([
+        Order::factory()->create([
             'customer_id' => $customer->id,
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,

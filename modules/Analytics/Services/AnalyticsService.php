@@ -8,7 +8,7 @@ use Illuminate\Support\Collection;
 use Lunar\Models\Order;
 use Lunar\Models\OrderLine;
 use Lunar\Models\Product;
-use Lunar\Models\ProductVariant;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Order\Support\OrderStatus;
 
 /**
@@ -155,23 +155,23 @@ class AnalyticsService
      */
     public function topProducts(int $limit = 5): Collection
     {
-        $variantMorph = (new ProductVariant)->getMorphClass();
+        $skuMorph = (new ProductSku)->getMorphClass();
 
         return OrderLine::query()
             ->select('purchasable_id')
             ->selectRaw('SUM(quantity) as units, SUM(total) as revenue')
-            ->where('purchasable_type', $variantMorph)
+            ->where('purchasable_type', $skuMorph)
             ->whereHas('order', fn (Builder $q) => $q->whereIn('status', $this->paidStatuses()))
             ->groupBy('purchasable_id')
             ->orderByDesc('units')
             ->limit($limit)
             ->get()
             ->map(function ($line) {
-                $variant = ProductVariant::with('product')->find($line->purchasable_id);
+                $sku = ProductSku::with('product')->find($line->purchasable_id);
 
                 return [
-                    'product_id' => $variant?->product?->id,
-                    'name' => $variant?->getDescription() ?? 'Unknown',
+                    'product_id' => $sku?->product?->id,
+                    'name' => $sku?->getDescription() ?? 'Unknown',
                     'quantity' => (int) $line->units,
                     'revenue' => (int) $line->revenue,
                 ];

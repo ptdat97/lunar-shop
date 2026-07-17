@@ -47,7 +47,7 @@ class ApiLocaleCoverageTest extends TestCase
         ]);
 
         $this->postJson('/api/v1/cart', [
-            'variant_id' => $product->variants->first()->id,
+            'sku_id' => $product->skus->first()->id,
             'quantity' => 1,
         ])->assertSuccessful();
 
@@ -69,7 +69,7 @@ class ApiLocaleCoverageTest extends TestCase
         $product = $this->createProduct(['name' => 'Wool Coat', 'name_vi' => 'Áo khoác len']);
 
         $token = $this->withHeaders(['X-Client' => 'app'])
-            ->postJson('/api/v1/cart', ['variant_id' => $product->variants->first()->id, 'quantity' => 1])
+            ->postJson('/api/v1/cart', ['sku_id' => $product->skus->first()->id, 'quantity' => 1])
             ->assertSuccessful()
             ->json('data.cart_token');
 
@@ -85,7 +85,7 @@ class ApiLocaleCoverageTest extends TestCase
         $product = $this->createProduct(['name' => 'Wool Coat', 'name_vi' => 'Áo khoác len']);
 
         $this->postJson('/api/v1/cart', [
-            'variant_id' => $product->variants->first()->id,
+            'sku_id' => $product->skus->first()->id,
             'quantity' => 1,
         ])->assertSuccessful();
 
@@ -101,7 +101,7 @@ class ApiLocaleCoverageTest extends TestCase
         $product = $this->createProduct(['name' => 'Wool Coat', 'name_vi' => 'Áo khoác len']);
 
         $this->postJson('/api/v1/cart', [
-            'variant_id' => $product->variants->first()->id,
+            'sku_id' => $product->skus->first()->id,
             'quantity' => 1,
         ])->assertSuccessful();
 

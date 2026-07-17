@@ -5,7 +5,7 @@ namespace Modules\Promotion\Services;
 use Illuminate\Support\Collection;
 use Lunar\Models\Discount;
 use Lunar\Models\Product;
-use Lunar\Models\ProductVariant;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Promotion\DiscountTypes\ComboPercentageOff;
 use Modules\Promotion\DiscountTypes\QuantityPercentageOff;
 
@@ -30,7 +30,7 @@ class PromotionTargetResolver
      */
     public function appliesToProduct(Discount $discount, Product $product): bool
     {
-        $product->loadMissing(['collections', 'variants']);
+        $product->loadMissing(['collections', 'skus']);
 
         if ($discount->type === ComboPercentageOff::class) {
             $groups = collect(($discount->data ?? [])['combo_collections'] ?? [])
@@ -186,20 +186,21 @@ class PromotionTargetResolver
     }
 
     /**
-     * Whether a product (or one of its variants) is referenced by a set of
-     * Discountable rows (products / variants only).
+     * Whether a product (or one of its SKUs) is referenced by a set of
+     * Discountable rows (products / SKUs only).
      */
     protected function productInDiscountables(Collection $discountables, Product $product): bool
     {
-        $variantIds = $product->variants->pluck('id');
+        $skuIds = $product->skus->pluck('id');
+        $skuMorph = (new ProductSku)->getMorphClass();
 
-        return $discountables->contains(function ($item) use ($product, $variantIds) {
+        return $discountables->contains(function ($item) use ($product, $skuIds, $skuMorph) {
             if ($item->discountable_type === Product::morphName()) {
                 return (int) $item->discountable_id === (int) $product->id;
             }
 
-            if ($item->discountable_type === ProductVariant::morphName()) {
-                return $variantIds->contains((int) $item->discountable_id);
+            if ($item->discountable_type === $skuMorph) {
+                return $skuIds->contains((int) $item->discountable_id);
             }
 
             return false;

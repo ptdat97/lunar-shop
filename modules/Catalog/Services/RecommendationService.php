@@ -5,6 +5,8 @@ namespace Modules\Catalog\Services;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Lunar\Models\Product;
+use Modules\Catalog\Contracts\RecommendationStrategy;
+use Modules\Core\Support\Settings;
 
 /**
  * Combines recommendation strategies (in priority order) into a single, de-duped
@@ -15,7 +17,7 @@ use Lunar\Models\Product;
 class RecommendationService
 {
     /**
-     * @param  list<\Modules\Catalog\Contracts\RecommendationStrategy>  $strategies
+     * @param  list<RecommendationStrategy>  $strategies
      */
     public function __construct(
         protected array $strategies,
@@ -32,7 +34,7 @@ class RecommendationService
     {
         // Null → use the admin-configured product-page limit (Catalog settings).
         $limit = $limit ?? $this->settingLimit('recommend.product_limit', 8);
-        $key = "recommend:product:{$product->id}:{$limit}:" . md5(implode(',', $exclude));
+        $key = "recommend:product:{$product->id}:{$limit}:".md5(implode(',', $exclude));
 
         // Cache only the resolved product ids (cheap + avoids stale model state);
         // re-hydrate fresh models with the relations the storefront/API need.
@@ -88,7 +90,7 @@ class RecommendationService
      */
     protected function settingLimit(string $path, int $default): int
     {
-        $value = (int) app(\Modules\Core\Support\Settings::class)->get($path, $default);
+        $value = (int) app(Settings::class)->get($path, $default);
 
         return max(1, $value);
     }
@@ -133,7 +135,7 @@ class RecommendationService
             ->whereIn('id', $ids)
             // Full product-card relation set (price + url + promotion eligibility)
             // so recommendation grids render flat, not N+1.
-            ->with(['variants.prices', 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media'])
+            ->with(['skus.prices', 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media'])
             ->get()
             ->keyBy('id');
 

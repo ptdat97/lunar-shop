@@ -3,7 +3,9 @@
 namespace Modules\Checkout\Services;
 
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Lunar\Models\Order;
+use Modules\Core\Support\Settings;
 
 /**
  * MoMo gateway helper: creates a payment (signed JSON POST → payUrl) and
@@ -29,7 +31,7 @@ class MoMoGateway
 
     public static function fromConfig(): self
     {
-        $settings = app(\Modules\Core\Support\Settings::class);
+        $settings = app(Settings::class);
 
         return new self(
             (string) $settings->get('payment.momo.partner_code'),
@@ -64,17 +66,17 @@ class MoMoGateway
     public function createPayment(Order $order, ?string $locale = 'vi'): string
     {
         $amount = (string) $this->amountFor($order);
-        $orderId = $order->id . '-' . now()->timestamp; // unique per attempt
-        $requestId = (string) \Illuminate\Support\Str::uuid();
-        $orderInfo = 'Order ' . $order->reference;
+        $orderId = $order->id.'-'.now()->timestamp; // unique per attempt
+        $requestId = (string) Str::uuid();
+        $orderInfo = 'Order '.$order->reference;
         $extraData = '';
         $requestType = 'captureWallet';
 
         // MoMo's create signature — fields in the exact documented order.
         $raw = "accessKey={$this->accessKey}&amount={$amount}&extraData={$extraData}"
-            . "&ipnUrl={$this->ipnUrl}&orderId={$orderId}&orderInfo={$orderInfo}"
-            . "&partnerCode={$this->partnerCode}&redirectUrl={$this->returnUrl}"
-            . "&requestId={$requestId}&requestType={$requestType}";
+            ."&ipnUrl={$this->ipnUrl}&orderId={$orderId}&orderInfo={$orderInfo}"
+            ."&partnerCode={$this->partnerCode}&redirectUrl={$this->returnUrl}"
+            ."&requestId={$requestId}&requestType={$requestType}";
 
         $signature = hash_hmac('sha256', $raw, $this->secretKey);
 
@@ -116,18 +118,18 @@ class MoMoGateway
         }
 
         $raw = "accessKey={$this->accessKey}"
-            . '&amount=' . ($data['amount'] ?? '')
-            . '&extraData=' . ($data['extraData'] ?? '')
-            . '&message=' . ($data['message'] ?? '')
-            . '&orderId=' . ($data['orderId'] ?? '')
-            . '&orderInfo=' . ($data['orderInfo'] ?? '')
-            . '&orderType=' . ($data['orderType'] ?? '')
-            . '&partnerCode=' . ($data['partnerCode'] ?? '')
-            . '&payType=' . ($data['payType'] ?? '')
-            . '&requestId=' . ($data['requestId'] ?? '')
-            . '&responseTime=' . ($data['responseTime'] ?? '')
-            . '&resultCode=' . ($data['resultCode'] ?? '')
-            . '&transId=' . ($data['transId'] ?? '');
+            .'&amount='.($data['amount'] ?? '')
+            .'&extraData='.($data['extraData'] ?? '')
+            .'&message='.($data['message'] ?? '')
+            .'&orderId='.($data['orderId'] ?? '')
+            .'&orderInfo='.($data['orderInfo'] ?? '')
+            .'&orderType='.($data['orderType'] ?? '')
+            .'&partnerCode='.($data['partnerCode'] ?? '')
+            .'&payType='.($data['payType'] ?? '')
+            .'&requestId='.($data['requestId'] ?? '')
+            .'&responseTime='.($data['responseTime'] ?? '')
+            .'&resultCode='.($data['resultCode'] ?? '')
+            .'&transId='.($data['transId'] ?? '');
 
         $expected = hash_hmac('sha256', $raw, $this->secretKey);
 
@@ -143,18 +145,18 @@ class MoMoGateway
     public function sign(array $data): string
     {
         $raw = "accessKey={$this->accessKey}"
-            . '&amount=' . ($data['amount'] ?? '')
-            . '&extraData=' . ($data['extraData'] ?? '')
-            . '&message=' . ($data['message'] ?? '')
-            . '&orderId=' . ($data['orderId'] ?? '')
-            . '&orderInfo=' . ($data['orderInfo'] ?? '')
-            . '&orderType=' . ($data['orderType'] ?? '')
-            . '&partnerCode=' . ($data['partnerCode'] ?? '')
-            . '&payType=' . ($data['payType'] ?? '')
-            . '&requestId=' . ($data['requestId'] ?? '')
-            . '&responseTime=' . ($data['responseTime'] ?? '')
-            . '&resultCode=' . ($data['resultCode'] ?? '')
-            . '&transId=' . ($data['transId'] ?? '');
+            .'&amount='.($data['amount'] ?? '')
+            .'&extraData='.($data['extraData'] ?? '')
+            .'&message='.($data['message'] ?? '')
+            .'&orderId='.($data['orderId'] ?? '')
+            .'&orderInfo='.($data['orderInfo'] ?? '')
+            .'&orderType='.($data['orderType'] ?? '')
+            .'&partnerCode='.($data['partnerCode'] ?? '')
+            .'&payType='.($data['payType'] ?? '')
+            .'&requestId='.($data['requestId'] ?? '')
+            .'&responseTime='.($data['responseTime'] ?? '')
+            .'&resultCode='.($data['resultCode'] ?? '')
+            .'&transId='.($data['transId'] ?? '');
 
         return hash_hmac('sha256', $raw, $this->secretKey);
     }
@@ -205,14 +207,14 @@ class MoMoGateway
         $decimals = $order->currency->decimal_places ?? 0;
         $momoAmount = (string) (int) round($amount / (10 ** $decimals));
         $transId = (string) ($captureMeta['transId'] ?? '');
-        $orderId = $order->id . '-refund-' . now()->timestamp;
-        $requestId = (string) \Illuminate\Support\Str::uuid();
-        $description = 'Refund order ' . $order->reference;
+        $orderId = $order->id.'-refund-'.now()->timestamp;
+        $requestId = (string) Str::uuid();
+        $description = 'Refund order '.$order->reference;
 
         // MoMo refund signature — fixed field order.
         $raw = "accessKey={$this->accessKey}&amount={$momoAmount}&description={$description}"
-            . "&orderId={$orderId}&partnerCode={$this->partnerCode}&requestId={$requestId}"
-            . "&transId={$transId}";
+            ."&orderId={$orderId}&partnerCode={$this->partnerCode}&requestId={$requestId}"
+            ."&transId={$transId}";
         $signature = hash_hmac('sha256', $raw, $this->secretKey);
 
         $response = Http::asJson()->post($this->refundUrl, [

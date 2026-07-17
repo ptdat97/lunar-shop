@@ -21,8 +21,9 @@ class StockNotificationController extends Controller
     public function store(NotifyMeRequest $request): JsonResponse
     {
         // The "is it out of stock?" rule lives in the service, which aborts 422.
+        // Accept `sku_id`, falling back to `variant_id` (backward-compat alias).
         $this->subscriptions->subscribe(
-            $request->integer('variant_id'),
+            (int) ($request->integer('sku_id') ?: $request->integer('variant_id')),
             $request->string('email')->toString(),
         );
 

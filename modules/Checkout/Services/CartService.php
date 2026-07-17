@@ -9,7 +9,7 @@ use Lunar\Models\Cart;
 use Lunar\Models\CartLine;
 use Lunar\Models\Discount;
 use Lunar\Models\Product;
-use Lunar\Models\ProductVariant;
+use Modules\Catalog\Models\ProductSku;
 
 /**
  * Thin wrapper over Lunar's CartSession (inherited — not reimplemented).
@@ -32,7 +32,7 @@ class CartService
      *
      * Fetched (auto-creating, per lunar.cart_session.auto_create) without
      * calculating: Lunar's calculate() pipeline throws a TypeError on a line
-     * whose purchasable (variant) was deleted/unpublished while it sat in the
+     * whose purchasable (SKU) was deleted/unpublished while it sat in the
      * cart, which would 500 the storefront. Prune those lines first, then
      * calculate on a cart with a fresh `lines` relation.
      */
@@ -48,14 +48,16 @@ class CartService
     }
 
     /**
-     * Remove cart lines whose variant no longer exists. Returns true if any
-     * line was removed.
+     * Remove cart lines whose SKU no longer exists. Returns true if any line
+     * was removed. Because saving a product's variants is delete-and-recreate,
+     * a SKU a shopper added can genuinely vanish (or be soft-deleted) between
+     * requests — those stale lines must go before Lunar recalculates.
      */
     protected function pruneMissingLines(Cart $cart): bool
     {
         $missing = $cart->lines()
-            ->where('purchasable_type', (new ProductVariant)->getMorphClass())
-            ->whereNotIn('purchasable_id', ProductVariant::query()->select('id'))
+            ->where('purchasable_type', (new ProductSku)->getMorphClass())
+            ->whereNotIn('purchasable_id', ProductSku::query()->select('id'))
             ->pluck('id');
 
         if ($missing->isEmpty()) {
@@ -77,7 +79,7 @@ class CartService
     public function products(): Collection
     {
         $cart = $this->current()->loadMissing(
-            'lines.purchasable.product.variants',
+            'lines.purchasable.product.skus',
             'lines.purchasable.product.thumbnail',
         );
 
@@ -89,28 +91,29 @@ class CartService
     }
 
     /**
-     * Add a variant to the cart.
+     * Add a SKU to the cart.
      *
-     * Purchasability is decided through the `product.purchasable` hook so other
-     * modules (Inventory) can veto an oversell before the line is created. The
-     * default is Lunar's own stock/backorder check.
+     * The `$skuId` is the surrogate id of the currently-selected SKU as the
+     * storefront rendered it. It is only used to look the SKU up right now;
+     * once in the cart, Lunar records the purchasable by morph id and the SKU's
+     * stable `sku` string travels onto the order line as the identifier.
      *
      * @throws ValidationException
      */
-    public function add(int $variantId, int $quantity = 1): Cart
+    public function add(int $skuId, int $quantity = 1): Cart
     {
-        $variant = ProductVariant::findOrFail($variantId);
+        $sku = ProductSku::findOrFail($skuId);
         $cart = $this->mutableCart();
 
-        // A disabled variant must never enter the cart, no matter how the
-        // request reached us (storefront hides it, but this is the real guard).
-        $this->guardStatus($variant);
+        // A disabled SKU must never enter the cart, no matter how the request
+        // reached us (storefront hides it, but this is the real guard).
+        $this->guardStatus($sku);
 
         // Guard the RESULTING quantity, not the increment. Checking `$quantity`
         // alone let a shopper past the last unit by adding 1 five times over.
-        $this->guardStock($variant, $this->quantityInCart($cart, $variantId) + $quantity);
+        $this->guardStock($sku, $this->quantityInCart($cart, $skuId) + $quantity);
 
-        return $cart->add($variant, $quantity)->calculate();
+        return $cart->add($sku, $quantity)->calculate();
     }
 
     /**
@@ -123,10 +126,9 @@ class CartService
         $cart = $this->mutableCart();
         $line = $cart->lines->firstWhere('id', $lineId);
 
-        // This path had no guard at all: PATCH quantity=999 on a variant stocked
-        // at 3 was accepted, and only blew up (or oversold, for a backorder
-        // variant) at checkout.
-        if ($line && $line->purchasable instanceof ProductVariant) {
+        // This path had no guard at all: PATCH quantity=999 on a SKU stocked
+        // at 3 was accepted, and only blew up at checkout.
+        if ($line && $line->purchasable instanceof ProductSku) {
             $this->guardStatus($line->purchasable);
             $this->guardStock($line->purchasable, $quantity);
         }
@@ -135,27 +137,24 @@ class CartService
     }
 
     /**
-     * How many units of a variant the cart already holds.
+     * How many units of a SKU the cart already holds.
      */
-    protected function quantityInCart(Cart $cart, int $variantId): int
+    protected function quantityInCart(Cart $cart, int $skuId): int
     {
         return (int) $cart->lines
-            ->where('purchasable_type', (new ProductVariant)->getMorphClass())
-            ->where('purchasable_id', $variantId)
+            ->where('purchasable_type', (new ProductSku)->getMorphClass())
+            ->where('purchasable_id', $skuId)
             ->sum('quantity');
     }
 
     /**
-     * Refuse a quantity the variant cannot fulfil.
-     *
-     * Delegates to Lunar's own check, so `backorder` / `always` variants are
-     * still allowed past the stock level — that is what those modes mean.
+     * Refuse a quantity the SKU cannot fulfil (its own on-hand stock).
      *
      * @throws ValidationException
      */
-    protected function guardStock(ProductVariant $variant, int $quantity): void
+    protected function guardStock(ProductSku $sku, int $quantity): void
     {
-        if ($quantity >= 1 && ! $variant->canBeFulfilledAtQuantity($quantity)) {
+        if ($quantity >= 1 && ! $sku->canBeFulfilledAtQuantity($quantity)) {
             throw ValidationException::withMessages([
                 'quantity' => 'Sorry, there isn\'t enough stock to add that quantity.',
             ]);
@@ -163,17 +162,17 @@ class CartService
     }
 
     /**
-     * Refuse a variant the admin has disabled. This is the enforcement point —
-     * the storefront hides disabled variants, but hiding a button is not a
-     * guard (§17.4): a direct API call must still be rejected here.
+     * Refuse a SKU the admin has disabled. This is the enforcement point — the
+     * storefront hides disabled SKUs, but hiding a button is not a guard
+     * (§17.4): a direct API call must still be rejected here.
      *
      * @throws ValidationException
      */
-    protected function guardStatus(ProductVariant $variant): void
+    protected function guardStatus(ProductSku $sku): void
     {
-        // Read the status fresh: on updateLine the variant comes off the cached
+        // Read the status fresh: on updateLine the SKU comes off the cached
         // cart line, which can be stale if the admin disabled it meanwhile.
-        $status = ProductVariant::whereKey($variant->getKey())->value('status');
+        $status = ProductSku::whereKey($sku->getKey())->value('status');
 
         if ($status === 'disabled') {
             throw ValidationException::withMessages([

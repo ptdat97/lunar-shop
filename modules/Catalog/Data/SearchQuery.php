@@ -2,6 +2,8 @@
 
 namespace Modules\Catalog\Data;
 
+use Illuminate\Http\Request;
+
 /**
  * Normalised search input — independent of any engine.
  */
@@ -24,7 +26,7 @@ class SearchQuery
         public bool $withFacets = true,
     ) {}
 
-    public static function fromRequest(\Illuminate\Http\Request $request): self
+    public static function fromRequest(Request $request): self
     {
         return new self(
             term: (string) $request->string('q', ''),

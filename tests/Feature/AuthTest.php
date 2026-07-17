@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -90,6 +90,6 @@ class AuthTest extends TestCase
             'password_confirmation' => 'newpass12',
         ])->assertOk();
 
-        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('newpass12', $user->fresh()->password));
+        $this->assertTrue(Hash::check('newpass12', $user->fresh()->password));
     }
 }

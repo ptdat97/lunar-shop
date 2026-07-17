@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Lunar\Models\Country;
 use Lunar\Models\Order;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
@@ -23,7 +24,7 @@ class CheckoutSsrTest extends TestCase
             'line_one' => '1 Le Loi',
             'state' => 'Thành phố Hồ Chí Minh',
             'city' => 'Phường Bến Nghé',
-            'country_id' => \Lunar\Models\Country::query()->value('id'),
+            'country_id' => Country::query()->value('id'),
             'contact_email' => 'buyer@example.com',
             'contact_phone' => '0900000000',
             'shipping_option' => 'standard',
@@ -36,7 +37,7 @@ class CheckoutSsrTest extends TestCase
         $this->seedBaseData();
         $this->seedLocations();
         $product = $this->createProduct();
-        $this->postJson('/api/v1/cart', ['variant_id' => $product->variants->first()->id, 'quantity' => 1]);
+        $this->postJson('/api/v1/cart', ['sku_id' => $product->skus->first()->id, 'quantity' => 1]);
 
         // Shopify-style two-column SSR checkout: Contact + Delivery + Shipping +
         // Payment on the left, grey order summary on the right.
@@ -55,7 +56,7 @@ class CheckoutSsrTest extends TestCase
         $this->seedBaseData();
         $this->seedLocations();
         $product = $this->createProduct(['price' => 5000]);
-        $this->postJson('/api/v1/cart', ['variant_id' => $product->variants->first()->id, 'quantity' => 1]);
+        $this->postJson('/api/v1/cart', ['sku_id' => $product->skus->first()->id, 'quantity' => 1]);
 
         $response = $this->post('/checkout', $this->checkoutForm());
 
@@ -74,7 +75,7 @@ class CheckoutSsrTest extends TestCase
         $this->seedBaseData();
         $this->seedLocations();
         $product = $this->createProduct();
-        $this->postJson('/api/v1/cart', ['variant_id' => $product->variants->first()->id, 'quantity' => 1]);
+        $this->postJson('/api/v1/cart', ['sku_id' => $product->skus->first()->id, 'quantity' => 1]);
 
         $this->post('/checkout', $this->checkoutForm(['line_one' => '']))
             ->assertSessionHasErrors('line_one');

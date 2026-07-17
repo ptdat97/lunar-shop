@@ -14,7 +14,7 @@ class CheckoutOrderTest extends TestCase
     private function primeCheckout(int $price = 5000): void
     {
         $product = $this->createProduct(['price' => $price]);
-        $this->postJson('/api/v1/cart', ['variant_id' => $product->variants->first()->id, 'quantity' => 1]);
+        $this->postJson('/api/v1/cart', ['sku_id' => $product->skus->first()->id, 'quantity' => 1]);
         $this->postJson('/api/v1/checkout/addresses', ['shipping' => $this->shippingPayload()])->assertSuccessful();
         $this->getJson('/api/v1/checkout/shipping-options')
             ->assertOk()
@@ -41,7 +41,7 @@ class CheckoutOrderTest extends TestCase
         // Regression: re-saving the address used to drop the chosen shipping
         // option → "Missing Shipping Option" (generic 500) at order time.
         $product = $this->createProduct(['price' => 5000]);
-        $this->postJson('/api/v1/cart', ['variant_id' => $product->variants->first()->id, 'quantity' => 1]);
+        $this->postJson('/api/v1/cart', ['sku_id' => $product->skus->first()->id, 'quantity' => 1]);
 
         $this->postJson('/api/v1/checkout/addresses', ['shipping' => $this->shippingPayload()])->assertSuccessful();
         $this->postJson('/api/v1/checkout/shipping', ['identifier' => 'standard'])->assertSuccessful();
@@ -57,7 +57,7 @@ class CheckoutOrderTest extends TestCase
     public function test_place_without_shipping_returns_clear_error(): void
     {
         $product = $this->createProduct(['price' => 5000]);
-        $this->postJson('/api/v1/cart', ['variant_id' => $product->variants->first()->id, 'quantity' => 1]);
+        $this->postJson('/api/v1/cart', ['sku_id' => $product->skus->first()->id, 'quantity' => 1]);
         $this->postJson('/api/v1/checkout/addresses', ['shipping' => $this->shippingPayload()])->assertSuccessful();
 
         // No shipping chosen → actionable 422, not a generic 500.

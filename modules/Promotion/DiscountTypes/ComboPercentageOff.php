@@ -3,11 +3,11 @@
 namespace Modules\Promotion\DiscountTypes;
 
 use Illuminate\Support\Collection;
-use Lunar\DiscountTypes\AbstractDiscountType;
-use Lunar\Models\Contracts\Cart as CartContract;
 use Lunar\Base\ValueObjects\Cart\DiscountBreakdown;
 use Lunar\Base\ValueObjects\Cart\DiscountBreakdownLine;
 use Lunar\DataTypes\Price;
+use Lunar\DiscountTypes\AbstractDiscountType;
+use Lunar\Models\Contracts\Cart as CartContract;
 
 /**
  * "Buy across these groups together, get X% off" — an AUTOMATIC bundle/combo

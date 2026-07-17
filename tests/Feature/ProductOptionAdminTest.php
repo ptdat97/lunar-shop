@@ -75,5 +75,4 @@ class ProductOptionAdminTest extends TestCase
 
         $this->assertSame('color', $option->fresh()->display_type);
     }
-
 }

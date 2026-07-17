@@ -23,7 +23,7 @@ class MenuRenderer
      * be queried twice. MenuRenderer is a request-scoped singleton, so this memo
      * lives exactly as long as it should.
      *
-     * @var array<string, \Illuminate\Support\Collection<int, MenuItem>>
+     * @var array<string, Collection<int, MenuItem>>
      */
     protected array $rootsCache = [];
 
@@ -144,7 +144,7 @@ class MenuRenderer
         $html = $this->loadRoots($handle)->map(function (MenuItem $item, int $i) use ($handle) {
             return View::make('theme::menus.mobile-item', [
                 'item' => $item,
-                'uid' => $handle . '-' . $i,
+                'uid' => $handle.'-'.$i,
             ])->render();
         })->implode("\n");
 

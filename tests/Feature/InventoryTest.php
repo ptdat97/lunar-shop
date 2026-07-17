@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Testing\TestResponse;
-use Lunar\Models\ProductVariant;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Mail\BackInStockMail;
 use Modules\Inventory\Models\StockNotification;
 use Modules\Inventory\Services\InventoryService;
@@ -20,9 +20,9 @@ class InventoryTest extends TestCase
     use CreatesStorefrontData;
 
     /** Drive the cart to an order for the given variant + quantity. */
-    private function placeOrder(ProductVariant $variant, int $quantity): TestResponse
+    private function placeOrder(ProductSku $sku, int $quantity): TestResponse
     {
-        $this->postJson('/api/v1/cart', ['variant_id' => $variant->id, 'quantity' => $quantity]);
+        $this->postJson('/api/v1/cart', ['sku_id' => $sku->id, 'quantity' => $quantity]);
         $this->postJson('/api/v1/checkout/addresses', ['shipping' => $this->shippingPayload()])->assertSuccessful();
         $this->postJson('/api/v1/checkout/shipping', ['identifier' => 'standard'])->assertSuccessful();
 
@@ -32,24 +32,24 @@ class InventoryTest extends TestCase
     public function test_placing_an_order_decrements_stock(): void
     {
         $product = $this->createProduct(['stock' => 10]);
-        $variant = $product->variants->first();
+        $variant = $product->skus->first();
 
         $this->placeOrder($variant, 3)->assertSuccessful();
 
-        $this->assertSame(7, (int) $variant->fresh()->stock);
+        $this->assertSame(7, (int) $variant->fresh()->quantity);
     }
 
     public function test_in_stock_variant_cannot_be_oversold(): void
     {
         $product = $this->createProduct(['stock' => 2]);
-        $variant = $product->variants->first();
-        $variant->update(['purchasable' => 'in_stock']);
+        $variant = $product->skus->first();
+        $variant->update(['status' => 'published']); // SKUs are always stock-tracked
 
         // Cart enforces a max line quantity from stock, so seed the line at the
         // limit then drop stock underneath it to simulate a concurrent sale
         // taking the last units before this order is created.
-        $this->postJson('/api/v1/cart', ['variant_id' => $variant->id, 'quantity' => 2]);
-        $variant->update(['stock' => 1]);
+        $this->postJson('/api/v1/cart', ['sku_id' => $variant->id, 'quantity' => 2]);
+        $variant->update(['quantity' => 1]);
 
         $this->postJson('/api/v1/checkout/addresses', ['shipping' => $this->shippingPayload()])->assertSuccessful();
         $this->postJson('/api/v1/checkout/shipping', ['identifier' => 'standard'])->assertSuccessful();
@@ -61,51 +61,51 @@ class InventoryTest extends TestCase
             ->assertJsonStructure(['message']);
 
         // Order creation rolled back → stock untouched, no order persisted.
-        $this->assertSame(1, (int) $variant->fresh()->stock);
+        $this->assertSame(1, (int) $variant->fresh()->quantity);
         $this->assertDatabaseCount('lunar_orders', 0);
     }
 
-    public function test_backorder_variant_may_go_negative(): void
+    public function test_sku_cannot_go_negative(): void
     {
+        // The flexible SKU model has no backorder mode — an order beyond stock
+        // is refused, and stock is never driven negative.
         $product = $this->createProduct(['stock' => 1]);
-        $variant = $product->variants->first();
-        $variant->update(['purchasable' => 'backorder', 'backorder' => 100]);
+        $variant = $product->skus->first();
 
-        $this->placeOrder($variant, 3)->assertSuccessful();
+        $this->postJson('/api/v1/cart', ['sku_id' => $variant->id, 'quantity' => 3])
+            ->assertStatus(422);
 
-        $this->assertSame(-2, (int) $variant->fresh()->stock);
+        $this->assertSame(1, (int) $variant->fresh()->quantity);
     }
 
     public function test_notify_me_requires_out_of_stock_variant(): void
     {
         $product = $this->createProduct(['stock' => 5]);
-        $variant = $product->variants->first();
+        $variant = $product->skus->first();
 
         // In stock → nothing to wait for.
         $this->postJson('/api/v1/inventory/notify-me', [
-            'variant_id' => $variant->id,
+            'sku_id' => $variant->id,
             'email' => 'shopper@example.com',
         ])->assertStatus(422);
 
         $this->assertDatabaseCount('stock_notifications', 0);
     }
 
-    public function test_notify_me_allows_backorder_variant_with_zero_stock(): void
+    public function test_notify_me_allows_a_zero_stock_sku(): void
     {
-        // Regression: a stock=0 "always"/backorder variant still shows "Hết hàng"
-        // on the storefront, so the shopper must be able to subscribe — even
-        // though Lunar's canBeFulfilledAtQuantity() reports it as purchasable.
+        // A stock=0 SKU shows "Hết hàng" on the storefront, so the shopper must
+        // be able to subscribe to be notified when it is restocked.
         $product = $this->createProduct(['stock' => 0]);
-        $variant = $product->variants->first();
-        $variant->update(['purchasable' => 'always']);
+        $variant = $product->skus->first();
 
         $this->postJson('/api/v1/inventory/notify-me', [
-            'variant_id' => $variant->id,
+            'sku_id' => $variant->id,
             'email' => 'shopper@example.com',
         ])->assertCreated();
 
         $this->assertDatabaseHas('stock_notifications', [
-            'product_variant_id' => $variant->id,
+            'product_sku_id' => $variant->id,
             'email' => 'shopper@example.com',
         ]);
     }
@@ -113,10 +113,10 @@ class InventoryTest extends TestCase
     public function test_notify_me_subscription_is_idempotent(): void
     {
         $product = $this->createProduct(['stock' => 0]);
-        $variant = $product->variants->first();
-        $variant->update(['purchasable' => 'in_stock']);
+        $variant = $product->skus->first();
+        $variant->update(['status' => 'published']); // SKUs are always stock-tracked
 
-        $payload = ['variant_id' => $variant->id, 'email' => 'Shopper@Example.com'];
+        $payload = ['sku_id' => $variant->id, 'email' => 'Shopper@Example.com'];
 
         $this->postJson('/api/v1/inventory/notify-me', $payload)->assertCreated();
         $this->postJson('/api/v1/inventory/notify-me', $payload)->assertCreated();
@@ -124,7 +124,7 @@ class InventoryTest extends TestCase
         // Stored once, lowercased.
         $this->assertDatabaseCount('stock_notifications', 1);
         $this->assertDatabaseHas('stock_notifications', [
-            'product_variant_id' => $variant->id,
+            'product_sku_id' => $variant->id,
             'email' => 'shopper@example.com',
         ]);
     }
@@ -134,15 +134,15 @@ class InventoryTest extends TestCase
         Mail::fake();
 
         $product = $this->createProduct(['stock' => 0]);
-        $variant = $product->variants->first();
+        $variant = $product->skus->first();
 
         StockNotification::create([
-            'product_variant_id' => $variant->id,
+            'product_sku_id' => $variant->id,
             'email' => 'waiting@example.com',
         ]);
 
         // Admin tops up stock (0 → 8).
-        $variant->update(['stock' => 8]);
+        $variant->update(['quantity' => 8]);
 
         Mail::assertQueued(BackInStockMail::class, fn ($mail) => $mail->hasTo('waiting@example.com'));
 
@@ -154,32 +154,34 @@ class InventoryTest extends TestCase
         Mail::fake();
 
         $product = $this->createProduct(['stock' => 0]);
-        $variant = $product->variants->first();
+        $variant = $product->skus->first();
 
         StockNotification::create([
-            'product_variant_id' => $variant->id,
+            'product_sku_id' => $variant->id,
             'email' => 'waiting@example.com',
             'notified_at' => now(),
         ]);
 
-        $variant->update(['stock' => 8]);
+        $variant->update(['quantity' => 8]);
 
         Mail::assertNothingQueued();
     }
 
-    public function test_available_honours_purchasable_mode(): void
+    public function test_available_reflects_sku_quantity(): void
     {
         $service = app(InventoryService::class);
 
         $product = $this->createProduct(['stock' => 4]);
-        $variant = $product->variants->first();
+        $variant = $product->skus->first();
 
-        $variant->update(['purchasable' => 'in_stock']);
+        // A SKU's available inventory is simply its on-hand quantity (no
+        // backorder/always modes).
         $this->assertSame(4, $service->available($variant->id));
+        $this->assertTrue($service->inStock($variant->id, 4));
+        $this->assertFalse($service->inStock($variant->id, 5));
 
-        $variant->update(['purchasable' => 'backorder', 'backorder' => 6]);
+        $variant->update(['quantity' => 10]);
         $this->assertSame(10, $service->available($variant->id));
-
         $this->assertTrue($service->inStock($variant->id, 9));
     }
 }

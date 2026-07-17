@@ -41,6 +41,6 @@ class ApiErrorEnvelopeTest extends TestCase
 
         $this->postJson('/api/v1/cart', ['quantity' => 1])
             ->assertStatus(422)
-            ->assertJsonStructure(['message', 'errors' => ['variant_id']]);
+            ->assertJsonStructure(['message', 'errors' => ['sku_id']]);
     }
 }

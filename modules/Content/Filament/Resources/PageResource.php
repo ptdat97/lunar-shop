@@ -8,11 +8,11 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
+use Modules\Assets\Filament\Forms\MediaPicker;
 use Modules\Content\Filament\Resources\PageResource\Pages\CreatePage;
 use Modules\Content\Filament\Resources\PageResource\Pages\EditPage;
 use Modules\Content\Filament\Resources\PageResource\Pages\ListPages;
 use Modules\Content\Models\Page;
-use Modules\Assets\Filament\Forms\MediaPicker;
 
 class PageResource extends Resource
 {

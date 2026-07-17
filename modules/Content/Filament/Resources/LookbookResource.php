@@ -9,11 +9,11 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 use Lunar\Models\Product;
+use Modules\Assets\Filament\Forms\MediaPicker;
 use Modules\Content\Filament\Resources\LookbookResource\Pages\CreateLookbook;
 use Modules\Content\Filament\Resources\LookbookResource\Pages\EditLookbook;
 use Modules\Content\Filament\Resources\LookbookResource\Pages\ListLookbooks;
 use Modules\Content\Models\Lookbook;
-use Modules\Assets\Filament\Forms\MediaPicker;
 
 class LookbookResource extends Resource
 {

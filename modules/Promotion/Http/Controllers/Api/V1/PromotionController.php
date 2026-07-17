@@ -16,8 +16,7 @@ class PromotionController extends Controller
         protected PromotionService $promotions,
         protected MembershipService $membership,
         protected CustomerResolver $customers,
-    ) {
-    }
+    ) {}
 
     /**
      * The authenticated customer's membership tier + progress to the next one.

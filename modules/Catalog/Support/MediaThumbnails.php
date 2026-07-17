@@ -2,6 +2,7 @@
 
 namespace Modules\Catalog\Support;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 
 /**
@@ -23,7 +24,7 @@ class MediaThumbnails
      * `media` collection. Models without `media` loaded are skipped (so accessing
      * `->thumbnail` there still lazy-loads as before — no behaviour change).
      *
-     * @param  Collection<int, \Illuminate\Database\Eloquent\Model>  $models
+     * @param  Collection<int, Model>  $models
      */
     public static function backfill(Collection $models): void
     {

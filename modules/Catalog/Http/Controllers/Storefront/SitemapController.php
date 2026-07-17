@@ -21,20 +21,20 @@ class SitemapController extends Controller
     {
         $xml = cache()->remember('sitemap.xml', now()->addHour(), function (): string {
             $out = '<?xml version="1.0" encoding="UTF-8"?>'
-                . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
+                .'<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
 
             foreach ($this->sitemap->urls() as $entry) {
                 $out .= '<url>';
-                $out .= '<loc>' . htmlspecialchars($entry['loc'], ENT_XML1) . '</loc>';
+                $out .= '<loc>'.htmlspecialchars($entry['loc'], ENT_XML1).'</loc>';
                 if (! empty($entry['lastmod'])) {
-                    $out .= '<lastmod>' . $entry['lastmod'] . '</lastmod>';
+                    $out .= '<lastmod>'.$entry['lastmod'].'</lastmod>';
                 }
-                $out .= '<changefreq>' . $entry['changefreq'] . '</changefreq>';
-                $out .= '<priority>' . $entry['priority'] . '</priority>';
+                $out .= '<changefreq>'.$entry['changefreq'].'</changefreq>';
+                $out .= '<priority>'.$entry['priority'].'</priority>';
                 $out .= '</url>';
             }
 
-            return $out . '</urlset>';
+            return $out.'</urlset>';
         });
 
         return response($xml, 200, ['Content-Type' => 'application/xml']);

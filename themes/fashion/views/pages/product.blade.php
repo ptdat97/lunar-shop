@@ -183,8 +183,8 @@
           @endforeach
 
           <div class="small text-muted mb-3" data-product-stock>
-            @if ($selectedVariant && $selectedVariant->stock > 0)
-              {{ __('storefront.product.in_stock', ['count' => $selectedVariant->stock]) }}
+            @if ($selectedVariant && $selectedVariant->quantity > 0)
+              {{ __('storefront.product.in_stock', ['count' => $selectedVariant->quantity]) }}
             @elseif($selectedVariant)
               {{ __('storefront.product.out_of_stock') }}
             @endif
@@ -193,8 +193,8 @@
           <form method="POST" action="{{ route('storefront.cart') }}" data-add-to-cart>
             @csrf
             <input type="hidden" name="variant_id" value="{{ $selectedVariant?->id }}" data-variant-input>
-            <button class="btn btn-dark btn-lg w-100" type="submit" data-add-to-cart-btn @disabled(!$selectedVariant || $selectedVariant->stock <= 0)>
-              {{ $selectedVariant && $selectedVariant->stock > 0 ? __('storefront.product.add_to_cart') : __('storefront.product.out_of_stock') }}
+            <button class="btn btn-dark btn-lg w-100" type="submit" data-add-to-cart-btn @disabled(!$selectedVariant || $selectedVariant->quantity <= 0)>
+              {{ $selectedVariant && $selectedVariant->quantity > 0 ? __('storefront.product.add_to_cart') : __('storefront.product.out_of_stock') }}
             </button>
           </form>
 
@@ -218,7 +218,7 @@
                      Hidden by default; revealed by JS (no JS → add-to-cart above
                      already shows "Out of stock", which is the honest no-JS state). --}}
           <div class="notify-me mt-3" data-notify-me hidden
-            @if ($selectedVariant && $selectedVariant->stock <= 0) data-initial-out="1" @endif>
+            @if ($selectedVariant && $selectedVariant->quantity <= 0) data-initial-out="1" @endif>
             <p class="small text-muted mb-2">
               <i class="bi bi-bell me-1"></i>{{ __('storefront.product.notify_intro') }}
             </p>

@@ -2,6 +2,7 @@
 
 namespace Modules\Content\Services;
 
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\HtmlString;
@@ -24,10 +25,10 @@ use Modules\Content\Models\PageSection;
  */
 class SectionRenderer
 {
-    /** @var array<string, callable> type => fn(array $settings): array view data */
+    /** @var array<string, callable> type => fn(array): array view data */
     protected array $providers = [];
 
-    /** @var array<string, callable> type => fn(array $data, array $settings): array JSON payload */
+    /** @var array<string, callable> type => fn(array, array): array JSON payload */
     protected array $serializers = [];
 
     /**
@@ -84,9 +85,9 @@ class SectionRenderer
      * Raw attribute rows are cached (not model instances) and rehydrated, so
      * the cache payload stays driver-agnostic and casts run normally.
      *
-     * @return \Illuminate\Database\Eloquent\Collection<int, PageSection>
+     * @return Collection<int, PageSection>
      */
-    protected function sections(string $pageHandle): \Illuminate\Database\Eloquent\Collection
+    protected function sections(string $pageHandle): Collection
     {
         $rows = Cache::rememberForever(
             PageSection::cacheKey($pageHandle),

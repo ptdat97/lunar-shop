@@ -5,10 +5,10 @@ namespace Modules\Catalog\Http\Controllers\Storefront;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Modules\Catalog\Services\CollectionService;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Http\Resources\SearchResultResource;
+use Modules\Catalog\Services\CollectionService;
 
 class CollectionController extends Controller
 {
@@ -39,7 +39,7 @@ class CollectionController extends Controller
         $result = $this->search->search(SearchQuery::fromRequest($request));
         // `media` powers the product-card hover (second) image; eager-load it so
         // the grid composer stays N+1-free.
-        $result->items->loadMissing(['variants', 'thumbnail', 'brand', 'media']);
+        $result->items->loadMissing(['skus', 'thumbnail', 'brand', 'media']);
 
         // Same contract as GET /api/v1/search — one shape for SSR + island.
         $state = SearchResultResource::toState($result, $request);

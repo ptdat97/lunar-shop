@@ -31,13 +31,13 @@ class HeadlessCartTest extends TestCase
 
     private function variantId(): int
     {
-        return $this->createProduct()->variants->first()->id;
+        return $this->createProduct()->skus->first()->id;
     }
 
     private function addToCart(array $headers, int $variantId, int $qty = 1)
     {
         return $this->withHeaders($headers)
-            ->postJson('/api/v1/cart', ['variant_id' => $variantId, 'quantity' => $qty]);
+            ->postJson('/api/v1/cart', ['sku_id' => $variantId, 'quantity' => $qty]);
     }
 
     public function test_guest_app_gets_a_cart_token_on_its_first_call(): void
@@ -142,7 +142,7 @@ class HeadlessCartTest extends TestCase
         $this->seedBaseData();
         $variant = $this->variantId();
 
-        $first = $this->postJson('/api/v1/cart', ['variant_id' => $variant, 'quantity' => 1])
+        $first = $this->postJson('/api/v1/cart', ['sku_id' => $variant, 'quantity' => 1])
             ->assertSuccessful();
         $second = $this->getJson('/api/v1/cart')->assertSuccessful();
 

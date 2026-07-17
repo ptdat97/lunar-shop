@@ -59,7 +59,7 @@ class SizeIntelligenceDemoSeeder extends Seeder
     /**
      * Create the reusable charts + rows.
      *
-     * @return array<string, SizeChart>  name => chart
+     * @return array<string, SizeChart> name => chart
      */
     protected function seedCharts(): array
     {

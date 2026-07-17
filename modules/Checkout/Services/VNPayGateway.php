@@ -4,7 +4,9 @@ namespace Modules\Checkout\Services;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Lunar\Models\Order;
+use Modules\Core\Support\Settings;
 
 /**
  * VNPay gateway helper: builds the signed redirect URL and verifies the
@@ -28,7 +30,7 @@ class VNPayGateway
 
     public static function fromConfig(): self
     {
-        $settings = app(\Modules\Core\Support\Settings::class);
+        $settings = app(Settings::class);
 
         return new self(
             (string) $settings->get('payment.vnpay.tmn_code'),
@@ -133,14 +135,14 @@ class VNPayGateway
         $decimals = $order->currency->decimal_places ?? 0;
         $vnpAmount = (int) round($amount / (10 ** $decimals) * 100);
 
-        $requestId = (string) \Illuminate\Support\Str::uuid();
+        $requestId = (string) Str::uuid();
         $createDate = Carbon::now()->format('YmdHis');
         // Full vs partial refund: 02 = full, 03 = partial.
         $orderTotalMinor = (int) $order->total->value;
         $transactionType = $amount >= $orderTotalMinor ? '02' : '03';
         $txnDate = (string) ($captureMeta['vnp_PayDate'] ?? $captureMeta['vnp_CreateDate'] ?? $createDate);
         $transactionNo = (string) ($captureMeta['vnp_TransactionNo'] ?? '');
-        $orderInfo = 'Refund order ' . $order->reference;
+        $orderInfo = 'Refund order '.$order->reference;
 
         // VNPay refund signature: fixed pipe-joined field order (per API docs).
         $data = implode('|', [

@@ -2,15 +2,14 @@
 
 namespace Tests\Feature;
 
+use Lunar\Models\Channel;
 use Lunar\Models\Currency;
 use Lunar\Models\Customer;
 use Lunar\Models\Order;
 use Lunar\Models\OrderLine;
 use Lunar\Models\Product;
-use Lunar\Models\ProductOption;
-use Lunar\Models\ProductOptionValue;
-use Lunar\Models\ProductVariant;
 use Lunar\Models\TaxClass;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Catalog\Services\FitHistoryService;
 use Modules\Order\Models\ReturnRequest;
 use Tests\Concerns\CreatesStorefrontData;
@@ -24,38 +23,42 @@ class FitHistoryTest extends TestCase
 {
     use CreatesStorefrontData;
 
-    /** @var array<string, ProductVariant> size label => variant */
+    /** @var array<string, ProductSku> size label => variant */
     private array $variants = [];
 
     private Product $product;
 
     private Customer $customer;
 
-    /** Build a product with one variant per chart size, each tagged Size=<label>. */
+    /** Build a product with one SKU per chart size, via the flexible Size axis. */
     private function makeSizedProduct(): void
     {
-        $this->product = $this->attachSizeChart($this->createProduct());
+        $sizes = ['S', 'M', 'L'];
 
-        $option = ProductOption::create(['name' => ['en' => 'Size'], 'handle' => 'size']);
+        // A single "Size" variable whose values are S/M/L. A SKU picks a size by
+        // its index into this variable (variant_indexes = [i]).
+        $this->product = $this->attachSizeChart($this->createProduct([
+            'variables' => [[
+                'name' => ['en' => 'Size'],
+                'values' => array_map(fn ($s) => ['name' => ['en' => $s], 'image' => ''], $sizes),
+                'isImage' => false,
+            ]],
+        ]));
 
-        foreach (['S', 'M', 'L'] as $i => $size) {
-            $value = ProductOptionValue::create([
-                'product_option_id' => $option->id,
-                'name' => ['en' => $size],
-                'position' => $i + 1,
-            ]);
+        // createProduct already made a default SKU; repurpose the product to hold
+        // exactly one SKU per size.
+        $this->product->skus()->forceDelete();
 
-            $variant = ProductVariant::create([
+        foreach ($sizes as $i => $size) {
+            $this->variants[$size] = ProductSku::create([
                 'product_id' => $this->product->id,
                 'sku' => 'FIT-'.$size.'-'.uniqid(),
-                'stock' => 10,
-                'unit_quantity' => 1,
+                'variants' => [$i],
+                'quantity' => 10,
+                'is_default' => $i === 0,
+                'status' => 'published',
                 'tax_class_id' => TaxClass::getDefault()?->id,
             ]);
-
-            $variant->values()->sync([$value->id]);
-
-            $this->variants[$size] = $variant;
         }
 
         $this->customer = Customer::factory()->create();
@@ -65,7 +68,7 @@ class FitHistoryTest extends TestCase
     private function buy(string $size, string $status = 'payment-received'): OrderLine
     {
         $order = Order::factory()->create([
-            'channel_id' => \Lunar\Models\Channel::getDefault()->id,
+            'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
             'customer_id' => $this->customer->id,
             'status' => $status,
@@ -75,7 +78,7 @@ class FitHistoryTest extends TestCase
 
         return OrderLine::factory()->create([
             'order_id' => $order->id,
-            'purchasable_type' => 'product_variant',
+            'purchasable_type' => 'product_sku',
             'purchasable_id' => $this->variants[$size]->id,
             'type' => 'physical',
             'description' => 'Tee '.$size,

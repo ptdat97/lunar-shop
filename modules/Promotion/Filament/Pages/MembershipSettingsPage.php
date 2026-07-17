@@ -2,7 +2,6 @@
 
 namespace Modules\Promotion\Filament\Pages;
 
-use Modules\Core\Support\Settings;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
@@ -12,6 +11,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Modules\Core\Support\Settings;
 
 /**
  * Admin page for spend-based membership tiers (Silver/Gold …). Stored in

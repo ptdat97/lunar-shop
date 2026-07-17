@@ -18,7 +18,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Lunar\Models\Currency;
-use Lunar\Models\ProductVariant;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Enums\StockMovementType;
 use Modules\Inventory\Exceptions\InvalidStockAdjustmentException;
 use Modules\Inventory\Models\StockMovement;
@@ -26,15 +26,12 @@ use Modules\Inventory\Services\InventoryService;
 use Modules\Inventory\Services\StockLedger;
 
 /**
- * Admin stock overview: every variant's stock at a glance, lowest first, with a
- * Status badge (out / low / in stock) and quick filters to focus on what needs
- * reordering. Read-only — editing happens on the variant itself (Lunar's
- * ProductVariant resource). Stock is decremented automatically on order
- * placement by DecrementStock, and "notify me" subscribers (the Waiting column)
- * are emailed when a variant is restocked.
- *
- * Note: variants set to `purchasable = always` never run out (unlimited), so
- * their status shows "Unlimited" rather than a stock warning.
+ * Admin stock overview: every SKU's stock at a glance, lowest first, with a
+ * Status badge (out / low / in stock / disabled) and quick filters to focus on
+ * what needs reordering. Read-only — editing happens on the product's variant
+ * builder. Stock is decremented automatically on order placement by
+ * DecrementStock, and "notify me" subscribers (the Waiting column) are emailed
+ * when a SKU is restocked.
  */
 class StockOverview extends Page implements HasTable
 {
@@ -127,15 +124,16 @@ class StockOverview extends Page implements HasTable
     {
         return $table
             ->query($this->baseQuery())
-            ->defaultSort('stock', 'asc')
+            ->defaultSort('quantity', 'asc')
             ->columns([
                 TextColumn::make('product.attribute_data.name')
                     ->label(__('admin.inventory.product'))
-                    ->getStateUsing(fn (ProductVariant $r) => $r->product?->translateAttribute('name'))
+                    ->getStateUsing(fn (ProductSku $r) => $r->product?->translateAttribute('name'))
                     ->searchable(query: fn (Builder $q, string $search) => $q->whereHas(
                         'product',
                         fn (Builder $p) => $p->where('attribute_data->name->en->value', 'like', "%{$search}%")
                     ))
+                    ->description(fn (ProductSku $r) => $r->getOption())
                     ->wrap(),
                 TextColumn::make('sku')
                     ->label(__('admin.inventory.sku'))
@@ -143,25 +141,17 @@ class StockOverview extends Page implements HasTable
                 TextColumn::make('status')
                     ->label(__('admin.inventory.status'))
                     ->badge()
-                    ->state(fn (ProductVariant $r) => $this->status($r))
+                    ->state(fn (ProductSku $r) => $this->status($r))
                     ->color(fn (string $state): string => match ($state) {
                         'Out of stock' => 'danger',
                         'Low stock' => 'warning',
-                        'Unlimited' => 'gray',
+                        'Disabled' => 'gray',
                         default => 'success',
                     }),
-                TextColumn::make('stock')
+                TextColumn::make('quantity')
                     ->label(__('admin.inventory.stock'))
                     ->numeric()
                     ->sortable(),
-                TextColumn::make('backorder')
-                    ->label(__('admin.inventory.backorder'))
-                    ->numeric()
-                    ->toggleable(),
-                TextColumn::make('purchasable')
-                    ->label(__('admin.inventory.mode'))
-                    ->badge()
-                    ->toggleable(),
                 TextColumn::make('waiting')
                     ->label(__('admin.inventory.waiting'))
                     ->badge()
@@ -177,9 +167,9 @@ class StockOverview extends Page implements HasTable
                         'tracked' => __('admin.inventory.filter_tracked'),
                     ])
                     ->query(fn (Builder $q, array $data): Builder => match ($data['value'] ?? null) {
-                        'out' => $q->where('purchasable', '!=', 'always')->where('stock', '<=', 0),
-                        'low' => $q->where('purchasable', '!=', 'always')->whereBetween('stock', [1, $this->lowThreshold()]),
-                        'tracked' => $q->where('purchasable', '!=', 'always'),
+                        'out' => $q->where('quantity', '<=', 0),
+                        'low' => $q->whereBetween('quantity', [1, $this->lowThreshold()]),
+                        'tracked' => $q,
                         default => $q,
                     }),
             ])
@@ -194,7 +184,7 @@ class StockOverview extends Page implements HasTable
             ])
             ->emptyStateIcon('heroicon-o-check-circle')
             ->emptyStateHeading('Nothing to restock')
-            ->emptyStateDescription('No product variants match this filter. Stock is decremented automatically when orders are placed.');
+            ->emptyStateDescription('No SKUs match this filter. Stock is decremented automatically when orders are placed.');
     }
 
     /** Row action: +/- or set a single variant's stock, with a reason. */
@@ -226,7 +216,7 @@ class StockOverview extends Page implements HasTable
                     ->label(__('admin.inventory.note'))
                     ->maxLength(255),
             ])
-            ->action(fn (ProductVariant $record, array $data) => $this->applyAdjustment($record->id, $data));
+            ->action(fn (ProductSku $record, array $data) => $this->applyAdjustment($record->id, $data));
     }
 
     /** Bulk action: set/increment stock across the selected variants. */
@@ -280,7 +270,7 @@ class StockOverview extends Page implements HasTable
      * the page). increment/decrement → adjust(); set → set(). restock reasons
      * are typed Restock so they show distinctly in the history.
      */
-    protected function applyAdjustment(int $variantId, array $data, bool $notify = true): void
+    protected function applyAdjustment(int $skuId, array $data, bool $notify = true): void
     {
         $ledger = app(StockLedger::class);
         $staff = Filament::auth()->user();
@@ -290,10 +280,10 @@ class StockOverview extends Page implements HasTable
 
         try {
             match ($data['mode']) {
-                'set' => $ledger->set($variantId, $quantity, StockMovementType::Manual, $reason, $staff, $meta),
-                'decrement' => $ledger->adjust($variantId, -$quantity, StockMovementType::Adjustment, $reason, $staff, $meta),
+                'set' => $ledger->set($skuId, $quantity, StockMovementType::Manual, $reason, $staff, $meta),
+                'decrement' => $ledger->adjust($skuId, -$quantity, StockMovementType::Adjustment, $reason, $staff, $meta),
                 default => $ledger->adjust(
-                    $variantId,
+                    $skuId,
                     $quantity,
                     $reason === 'restock' ? StockMovementType::Restock : StockMovementType::Adjustment,
                     $reason,
@@ -326,10 +316,10 @@ class StockOverview extends Page implements HasTable
             ->modalHeading(__('admin.inventory.history'))
             ->modalWidth('3xl')
             ->modalSubmitAction(false)
-            ->modalContent(fn (ProductVariant $record) => view(
+            ->modalContent(fn (ProductSku $record) => view(
                 'inventory::filament.partials.stock-history',
                 [
-                    'movements' => StockMovement::where('product_variant_id', $record->id)
+                    'movements' => StockMovement::where('product_sku_id', $record->id)
                         ->with('causer')
                         ->latest('created_at')
                         ->latest('id')
@@ -339,34 +329,33 @@ class StockOverview extends Page implements HasTable
             ));
     }
 
-    /** Human-readable stock status for a variant. */
-    protected function status(ProductVariant $variant): string
+    /** Human-readable stock status for a SKU. */
+    protected function status(ProductSku $sku): string
     {
-        if ($variant->purchasable === 'always') {
-            return 'Unlimited';
+        if ($sku->status === 'disabled') {
+            return 'Disabled';
         }
 
         return match (true) {
-            $variant->stock <= 0 => 'Out of stock',
-            $variant->stock <= $this->lowThreshold() => 'Low stock',
+            $sku->quantity <= 0 => 'Out of stock',
+            $sku->quantity <= $this->lowThreshold() => 'Low stock',
             default => 'In stock',
         };
     }
 
     protected function baseQuery(): Builder
     {
-        $table = (new ProductVariant)->getTable();
+        $table = (new ProductSku)->getTable();
 
-        // Show every variant — lowest stock first — so the page is a real stock
+        // Show every SKU — lowest stock first — so the page is a real stock
         // table, not just an (often empty) alert list. Filters narrow to
         // out/low/tracked when the merchandiser wants to focus.
-        return ProductVariant::query()
+        return ProductSku::query()
             ->with('product')
-            // Count of pending "notify me" subscribers, without needing a
-            // relation on Lunar's variant model.
+            // Count of pending "notify me" subscribers per SKU.
             ->selectRaw("{$table}.*, ("
                 .'select count(*) from stock_notifications '
-                ."where stock_notifications.product_variant_id = {$table}.id "
+                ."where stock_notifications.product_sku_id = {$table}.id "
                 .'and stock_notifications.notified_at is null) as waiting');
     }
 }

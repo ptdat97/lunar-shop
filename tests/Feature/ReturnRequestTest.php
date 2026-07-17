@@ -5,8 +5,10 @@ namespace Tests\Feature;
 use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
+use Lunar\Models\Channel;
 use Lunar\Models\Currency;
 use Lunar\Models\Order;
+use Lunar\Models\OrderAddress;
 use Lunar\Models\OrderLine;
 use Lunar\Models\Transaction;
 use Modules\Customer\Services\CustomerResolver;
@@ -42,11 +44,11 @@ class ReturnRequestTest extends TestCase
             : null;
 
         $order = Order::factory()->create([
-            'channel_id' => \Lunar\Models\Channel::getDefault()->id,
+            'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
             'customer_id' => $customerId,
             'status' => 'payment-received',
-            'reference' => 'RMA-' . uniqid(),
+            'reference' => 'RMA-'.uniqid(),
             'sub_total' => 100000, 'discount_total' => 0, 'shipping_total' => 0,
             'tax_total' => 0, 'total' => 100000,
         ]);
@@ -58,7 +60,7 @@ class ReturnRequestTest extends TestCase
         ]);
 
         // A shipping address gives the status email a recipient.
-        \Lunar\Models\OrderAddress::factory()->create([
+        OrderAddress::factory()->create([
             'order_id' => $order->id, 'type' => 'shipping',
             'first_name' => 'Mai', 'last_name' => 'Nguyen',
             'contact_email' => 'mai@example.com', 'line_one' => '1 St', 'city' => 'Hanoi',

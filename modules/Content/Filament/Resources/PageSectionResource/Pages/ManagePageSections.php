@@ -4,6 +4,7 @@ namespace Modules\Content\Filament\Resources\PageSectionResource\Pages;
 
 use Filament\Actions\CreateAction;
 use Filament\Resources\Pages\ManageRecords;
+use Illuminate\Support\Facades\Cache;
 use Modules\Content\Filament\Resources\PageSectionResource;
 use Modules\Content\Models\PageSection;
 use Modules\Content\Support\SectionSchemas;
@@ -31,7 +32,7 @@ class ManagePageSections extends ManageRecords
             ->whereIn((new PageSection)->getKeyName(), array_values($order))
             ->distinct()
             ->pluck('page_handle')
-            ->each(fn (string $handle) => \Illuminate\Support\Facades\Cache::forget(PageSection::cacheKey($handle)));
+            ->each(fn (string $handle) => Cache::forget(PageSection::cacheKey($handle)));
     }
 
     protected function getHeaderActions(): array

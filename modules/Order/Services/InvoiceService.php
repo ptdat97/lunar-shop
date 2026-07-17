@@ -39,6 +39,6 @@ class InvoiceService
      */
     public function filename(Order $order): string
     {
-        return 'invoice-' . $order->reference . '.pdf';
+        return 'invoice-'.$order->reference.'.pdf';
     }
 }

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Sanctum\PersonalAccessToken;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -88,7 +89,7 @@ class TokenAuthTest extends TestCase
             ->assertJsonPath('data.status', 'token_revoked');
 
         // The PAT row is gone.
-        $this->assertSame(0, \Laravel\Sanctum\PersonalAccessToken::count());
+        $this->assertSame(0, PersonalAccessToken::count());
 
         // The same token must no longer authenticate. Clear the memoized auth
         // guards first: the previous (authenticated) request leaves the `web`

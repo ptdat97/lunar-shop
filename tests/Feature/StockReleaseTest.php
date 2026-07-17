@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use Lunar\Models\Order;
-use Lunar\Models\ProductVariant;
+use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Services\StockReleaser;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
@@ -27,7 +27,7 @@ class StockReleaseTest extends TestCase
         $product = $this->createProduct(['stock' => $stock]);
 
         $this->postJson('/api/v1/cart', [
-            'variant_id' => $product->variants->first()->id,
+            'sku_id' => $product->skus->first()->id,
             'quantity' => $quantity,
         ])->assertSuccessful();
 
@@ -40,7 +40,7 @@ class StockReleaseTest extends TestCase
 
     private function stock(): int
     {
-        return (int) ProductVariant::first()->stock;
+        return (int) ProductSku::first()->quantity;
     }
 
     public function test_placing_an_order_still_reserves_stock(): void

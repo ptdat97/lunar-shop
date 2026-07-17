@@ -19,7 +19,7 @@ return new class extends Migration
         });
 
         $prefix = config('lunar.database.table_prefix', '');
-        $productsTable = $prefix . 'products';
+        $productsTable = $prefix.'products';
 
         Schema::create('lookbook_items', function (Blueprint $table) use ($productsTable) {
             $table->id();

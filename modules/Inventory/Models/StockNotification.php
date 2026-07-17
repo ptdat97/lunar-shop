@@ -4,20 +4,21 @@ namespace Modules\Inventory\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Lunar\Models\ProductVariant;
+use Illuminate\Support\Carbon;
+use Modules\Catalog\Models\ProductSku;
 
 /**
- * A back-in-stock subscription: notify {email} when {variant} is restocked.
+ * A back-in-stock subscription: notify {email} when {sku} is restocked.
  *
  * @property int $id
- * @property int $product_variant_id
+ * @property int $product_sku_id
  * @property string $email
- * @property \Illuminate\Support\Carbon|null $notified_at
+ * @property Carbon|null $notified_at
  */
 class StockNotification extends Model
 {
     protected $fillable = [
-        'product_variant_id',
+        'product_sku_id',
         'email',
         'notified_at',
     ];
@@ -29,9 +30,9 @@ class StockNotification extends Model
         ];
     }
 
-    public function variant(): BelongsTo
+    public function sku(): BelongsTo
     {
-        return $this->belongsTo(ProductVariant::class, 'product_variant_id');
+        return $this->belongsTo(ProductSku::class, 'product_sku_id');
     }
 
     /** Subscriptions still waiting to be notified. */

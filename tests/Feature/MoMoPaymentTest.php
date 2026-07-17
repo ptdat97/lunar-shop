@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Mail;
 use Lunar\Facades\CartSession;
 use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Order;
+use Modules\Checkout\Services\CheckoutService;
 use Modules\Checkout\Services\MoMoGateway;
 use Modules\Checkout\Services\MoMoPaymentProcessor;
 use Modules\Order\Mail\OrderConfirmationMail;
@@ -37,7 +38,7 @@ class MoMoPaymentTest extends TestCase
     private function placeMoMoOrder(): Order
     {
         $product = $this->createProduct(['price' => 5000]);
-        CartSession::add($product->variants->first(), 1);
+        CartSession::add($product->skus->first(), 1);
         $cart = CartSession::current();
         $address = $this->shippingPayload(['postcode' => '00000']);
         $cart->setShippingAddress($address);
@@ -45,7 +46,7 @@ class MoMoPaymentTest extends TestCase
         $cart->calculate();
         $cart->setShippingOption(ShippingManifest::getOptions($cart)->first())->calculate();
 
-        return app(\Modules\Checkout\Services\CheckoutService::class)->placeOrder('momo');
+        return app(CheckoutService::class)->placeOrder('momo');
     }
 
     /** Build a signed callback array as MoMo would send it. */
@@ -54,10 +55,10 @@ class MoMoPaymentTest extends TestCase
         $gateway = MoMoGateway::fromConfig();
         $data = array_merge([
             'partnerCode' => 'MOMOTEST',
-            'orderId' => $order->id . '-1699999999',
+            'orderId' => $order->id.'-1699999999',
             'requestId' => 'req-1',
             'amount' => (string) $gateway->amountFor($order),
-            'orderInfo' => 'Order ' . $order->reference,
+            'orderInfo' => 'Order '.$order->reference,
             'orderType' => 'momo_wallet',
             'transId' => '2887880',
             'resultCode' => '0',

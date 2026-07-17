@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Support\Facades\Mail;
+use Lunar\Models\Channel;
 use Lunar\Models\Currency;
 use Lunar\Models\Order;
 use Lunar\Models\OrderAddress;
@@ -24,7 +26,7 @@ class OrderMailI18nTest extends TestCase
     private function makeOrder(): Order
     {
         $order = Order::factory()->create([
-            'channel_id' => \Lunar\Models\Channel::getDefault()->id,
+            'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
             'status' => 'payment-received',
             'reference' => 'TEST-0001',
@@ -94,12 +96,12 @@ class OrderMailI18nTest extends TestCase
         $this->seedBaseData();
         $order = $this->makeOrder();
 
-        \Illuminate\Support\Facades\Mail::fake();
+        Mail::fake();
         app()->setLocale('vi');
 
         app(OrderMailer::class)->send($order, new OrderConfirmationMail($order));
 
-        \Illuminate\Support\Facades\Mail::assertQueued(
+        Mail::assertQueued(
             OrderConfirmationMail::class,
             fn (OrderConfirmationMail $m) => $m->locale === 'vi',
         );

@@ -4,8 +4,8 @@ namespace Modules\Catalog\Strategies;
 
 use Illuminate\Support\Collection;
 use Lunar\Models\Product;
-use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Contracts\RecommendationStrategy;
+use Modules\Catalog\Services\ProductService;
 
 /**
  * Fallback recommendations: other published products in the same collection(s).

@@ -22,7 +22,7 @@ class SearchController extends Controller
         $result = $this->search->search(SearchQuery::fromRequest($request));
 
         // `media` → ProductResource.hover_thumbnail (card hover second image).
-        $result->items->loadMissing(['variants', 'thumbnail', 'brand', 'media']);
+        $result->items->loadMissing(['skus', 'thumbnail', 'brand', 'media']);
 
         return SearchResultResource::collection($result);
     }
