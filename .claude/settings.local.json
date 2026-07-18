@@ -35,7 +35,12 @@
       "Bash(mysql -h127.0.0.1 -P3306 -uroot lunar -N -e \"SELECT COUNT\\(*\\) AS products_with_variables FROM lunar_products WHERE variables IS NOT NULL AND variables != '[]' AND variables != 'null';\")",
       "Bash(mysql -h127.0.0.1 -P3306 -uroot lunar -N -e \"SELECT id, variables FROM lunar_products WHERE variables LIKE '%variant-swatches%' OR variables LIKE '%\\\\\"image\\\\\"%' LIMIT 10;\")",
       "Bash(mysql -h127.0.0.1 -P3306 -uroot lunar -N -e \"SELECT COUNT\\(*\\) AS with_real_swatch FROM lunar_products WHERE variables LIKE '%variant-swatches%';\")",
-      "Bash(mysql -h127.0.0.1 -P3306 -uroot lunar -N -e \"SELECT id, variables FROM lunar_products WHERE variables LIKE '%variant-swatches%';\")"
+      "Bash(mysql -h127.0.0.1 -P3306 -uroot lunar -N -e \"SELECT id, variables FROM lunar_products WHERE variables LIKE '%variant-swatches%';\")",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:packagist.org)",
+      "Skill(artifact-design)",
+      "Skill(artifact-design:*)"
     ]
   }
 }
