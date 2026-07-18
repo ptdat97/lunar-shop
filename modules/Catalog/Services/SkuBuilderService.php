@@ -4,11 +4,11 @@ namespace Modules\Catalog\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Lunar\Models\Currency;
 use Lunar\Models\Product;
 use Modules\Assets\Definitions\FashionMediaDefinitions;
+use Modules\Assets\Services\MediaLibraryService;
 use Modules\Catalog\Models\ProductSku;
 
 /**
@@ -408,16 +408,16 @@ class SkuBuilderService
         }
 
         // A freshly uploaded temp file on the media disk → move it into the
-        // collection (no preservingOriginal, so the temp file is cleaned up).
-        if (Storage::disk('media')->exists($img)) {
-            $media = $product->addMedia(Storage::disk('media')->path($img))
-                ->toMediaCollection($collection);
+        // collection via the shared ingest (no preservingOriginal → temp file
+        // is cleaned up). Missing file → null.
+        $media = app(MediaLibraryService::class)->ingestFromDisk($product, $img, $collection);
+
+        if ($media) {
             $keptIds[] = $media->id;
 
             return $media->id;
         }
 
-        // Path resolves to nothing (broken/missing) → drop it.
         return null;
     }
 

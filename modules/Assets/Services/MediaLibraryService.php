@@ -3,8 +3,10 @@
 namespace Modules\Assets\Services;
 
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Lunar\Models\Asset;
+use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -218,5 +220,36 @@ class MediaLibraryService
         $base = Str::slug(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) ?: 'file';
 
         return $base.($ext ? '.'.$ext : '');
+    }
+
+    /**
+     * Ingest a file that already lives on the public `media` disk (e.g. a
+     * Filament temp upload, a seed image) into a model's media collection —
+     * the shared "path → Spatie media" step used across modules instead of each
+     * re-writing `addMedia(Storage::disk('media')->path(...))->toMediaCollection(...)`.
+     *
+     * By default the source is MOVED (temp upload cleanup); pass
+     * $preserveOriginal to copy it instead (seeds / migrations that keep the
+     * source). Returns null when the file is missing.
+     */
+    public function ingestFromDisk(
+        HasMedia $model,
+        string $relativePath,
+        string $collection,
+        bool $preserveOriginal = false,
+    ): ?Media {
+        $relativePath = ltrim($relativePath, '/');
+
+        if (! Storage::disk('media')->exists($relativePath)) {
+            return null;
+        }
+
+        $adder = $model->addMedia(Storage::disk('media')->path($relativePath));
+
+        if ($preserveOriginal) {
+            $adder->preservingOriginal();
+        }
+
+        return $adder->toMediaCollection($collection);
     }
 }

@@ -3,8 +3,10 @@
 namespace Modules\Assets\Services;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Modules\Assets\Jobs\GenerateConversionJob;
-use Modules\Assets\Services\MediaSettings;
+use Modules\Core\Support\Settings;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -62,7 +64,7 @@ class MediaUrl
             return null;
         }
 
-        $key = $media->id . ':' . $conversion;
+        $key = $media->id.':'.$conversion;
 
         if (array_key_exists($key, $this->conversionMemo)) {
             return $this->conversionMemo[$key];
@@ -95,6 +97,39 @@ class MediaUrl
     }
 
     /**
+     * Resolve a stored image reference to a browser URL — the single place that
+     * knows how the app stores images. The value may be:
+     *
+     *  - a Spatie media id (int/numeric string) → the given conversion URL
+     *    (self-healing, memoised via conversion()); null if the media or
+     *    conversion is missing;
+     *  - an absolute URL or root-relative path (`http(s)://…`, `/…`) → returned
+     *    as-is;
+     *  - a bare path on the public `media` disk → its public URL.
+     *
+     * Callers across modules (product swatches, CMS sections, theme settings)
+     * use this instead of re-implementing the id/path/URL branching.
+     */
+    public function imageUrl(int|string|null $value, string $conversion = 'large'): ?string
+    {
+        if (empty($value)) {
+            return null;
+        }
+
+        if (is_numeric($value)) {
+            $media = Media::find($value);
+
+            return $media ? $this->conversion($media, $conversion) : null;
+        }
+
+        if (Str::startsWith($value, ['http://', 'https://', '/'])) {
+            return $value;
+        }
+
+        return Storage::disk('media')->url($value);
+    }
+
+    /**
      * Dispatch a pre-warm job for one conversion, collapsed across requests /
      * repeat uploads: Cache::add is atomic on every driver, so a burst queues
      * one job per window instead of flooding the `media` queue with duplicates.
@@ -112,7 +147,7 @@ class MediaUrl
     /** Whether on-demand generation runs inline (sync) or defers to the queue. */
     protected function syncOnDemand(): bool
     {
-        return $this->syncMemo ??= (bool) app(\Modules\Core\Support\Settings::class)
+        return $this->syncMemo ??= (bool) app(Settings::class)
             ->get('media.on_demand_sync', config('lunar.media.on_demand.sync', false));
     }
 
@@ -136,7 +171,7 @@ class MediaUrl
             return null;
         }
 
-        $memoKey = $media->id . ':' . implode(',', $widths) . ':' . $base;
+        $memoKey = $media->id.':'.implode(',', $widths).':'.$base;
 
         if (array_key_exists($memoKey, $this->responsiveMemo)) {
             return $this->responsiveMemo[$memoKey];

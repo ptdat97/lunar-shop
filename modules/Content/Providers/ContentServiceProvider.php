@@ -2,7 +2,6 @@
 
 namespace Modules\Content\Providers;
 
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Models\Collection as LunarCollection;
@@ -280,11 +279,8 @@ class ContentServiceProvider extends ServiceProvider
      */
     protected function sectionImageUrl(string $path): string
     {
-        if (str_starts_with($path, '/') || str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            return $path;
-        }
-
-        return Storage::disk('media')->url($path);
+        // Shared resolver in modules/Assets (path/URL → browser URL).
+        return media_url($path) ?? '';
     }
 
     /**

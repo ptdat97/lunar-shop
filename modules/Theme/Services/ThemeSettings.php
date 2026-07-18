@@ -5,7 +5,6 @@ namespace Modules\Theme\Services;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 /**
@@ -64,13 +63,8 @@ class ThemeSettings
      */
     public function url(?string $path): string
     {
-        if (! $path) {
-            return '';
-        }
-
-        return Str::startsWith($path, ['/', 'http'])
-            ? $path
-            : Storage::disk('media')->url($path);
+        // Shared resolver in modules/Assets (path/URL → browser URL).
+        return media_url($path) ?? '';
     }
 
     /**

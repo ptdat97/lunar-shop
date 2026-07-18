@@ -66,7 +66,8 @@
         },
         "files": [
             "modules/Lunar/src/helpers.php",
-            "modules/LunarAdmin/src/helpers.php"
+            "modules/LunarAdmin/src/helpers.php",
+            "modules/Assets/Support/helpers.php"
         ]
     },
     "autoload-dev": {

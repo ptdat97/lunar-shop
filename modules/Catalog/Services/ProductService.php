@@ -3,7 +3,6 @@
 namespace Modules\Catalog\Services;
 
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Lunar\Models\Product;
 use Modules\Assets\Definitions\FashionMediaDefinitions;
@@ -217,21 +216,16 @@ class ProductService
      */
     protected function swatchImageUrl($image, ?Collection $swatchById = null): ?string
     {
-        if (empty($image)) {
-            return null;
-        }
-
+        // Media ids resolve from the pre-loaded map (no per-swatch Media::find),
+        // to the small swatch conversion.
         if (is_numeric($image)) {
             $media = $swatchById?->get((int) $image);
 
             return $media ? app(MediaUrl::class)->conversion($media, FashionMediaDefinitions::SWATCH_CONVERSION) : null;
         }
 
-        if (Str::startsWith($image, ['http://', 'https://', '/'])) {
-            return $image;
-        }
-
-        return Storage::disk('media')->url($image);
+        // Legacy absolute URL / bare path — shared resolver in modules/Assets.
+        return app(MediaUrl::class)->imageUrl($image, FashionMediaDefinitions::SWATCH_CONVERSION);
     }
 
     /**

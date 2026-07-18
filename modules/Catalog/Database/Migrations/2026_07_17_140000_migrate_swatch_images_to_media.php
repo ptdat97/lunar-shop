@@ -1,10 +1,10 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Lunar\Models\Product;
 use Modules\Assets\Definitions\FashionMediaDefinitions;
+use Modules\Assets\Services\MediaLibraryService;
 
 /**
  * Move legacy variant swatch images (a raw path stored in the product's
@@ -39,17 +39,12 @@ return new class extends Migration
                         continue;
                     }
 
-                    $path = ltrim($img, '/');
+                    // Shared ingest; preserve the source so a re-run/rollback
+                    // stays safe. Missing file → null.
+                    $media = app(MediaLibraryService::class)
+                        ->ingestFromDisk($product, $img, $collection, preserveOriginal: true);
 
-                    if (Storage::disk('media')->exists($path)) {
-                        $media = $product->addMedia(Storage::disk('media')->path($path))
-                            ->preservingOriginal()
-                            ->toMediaCollection($collection);
-                        $variables[$ai]['values'][$vi]['image'] = $media->id;
-                    } else {
-                        $variables[$ai]['values'][$vi]['image'] = null;
-                    }
-
+                    $variables[$ai]['values'][$vi]['image'] = $media?->id;
                     $changed = true;
                 }
             }
