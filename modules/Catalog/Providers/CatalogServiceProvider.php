@@ -5,6 +5,8 @@ namespace Modules\Catalog\Providers;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Lunar\Facades\ModelManifest;
+use Lunar\Models\Contracts\ProductOption as ProductOptionContract;
 use Lunar\Models\Product;
 use Modules\Catalog\Console\Commands\MigrateVariantsToSkus;
 use Modules\Catalog\Contracts\SearchEngine;
@@ -12,6 +14,7 @@ use Modules\Catalog\Drivers\DatabaseSearchEngine;
 use Modules\Catalog\Filament\Pages\CatalogSettingsPage;
 use Modules\Catalog\Filament\Resources\SizeChartResource;
 use Modules\Catalog\Models\ProductMaterial;
+use Modules\Catalog\Models\ProductOption;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Catalog\Models\SizeChart;
 use Modules\Catalog\Services\PricingService;
@@ -29,6 +32,12 @@ class CatalogServiceProvider extends ServiceProvider
     {
         $this->mergeConfigFrom(base_path('config/review.php'), 'review');
         $this->mergeConfigFrom(base_path('config/recommend.php'), 'recommend');
+
+        // Swap Lunar's ProductOption for ours, which adds the `display_type`
+        // accessor (stored in meta) driving the storefront option picker and
+        // the admin variant builder. Must run in register(), before anything
+        // resolves ProductOption::modelClass().
+        ModelManifest::replace(ProductOptionContract::class, ProductOption::class);
 
         // Scoped (per request, Octane-safe): holds per-request memos of matched
         // prices and the currency map used to prime price->currency.

@@ -31,9 +31,13 @@ return [
         'collection' => FashionMediaDefinitions::class,
         'product' => FashionMediaDefinitions::class,
         // The rest stay on Lunar's StandardMediaDefinitions (not overridden):
-        // brand, product-option, product-option-value.
+        // brand, product-option.
         'brand' => StandardMediaDefinitions::class,
         'product-option' => StandardMediaDefinitions::class,
-        'product-option-value' => StandardMediaDefinitions::class,
+        // Option values carry the variant `swatch` collection (colour/pattern
+        // chips), so they need FashionMediaDefinitions' swatch conversions.
+        // NB: lookups snake_case the model basename, so this key — not the
+        // kebab-case 'product-option-value' — is the one that matches.
+        'product_option_value' => FashionMediaDefinitions::class,
     ],
 ];

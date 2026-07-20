@@ -1,7 +1,7 @@
 <?php
 
-use Lunar\Base\OptionValueMediaDefinitions;
 use Lunar\Base\StandardMediaDefinitions;
+use Modules\Assets\Definitions\FashionMediaDefinitions;
 
 return [
 
@@ -12,8 +12,9 @@ return [
         'product' => StandardMediaDefinitions::class,
         'product-option' => StandardMediaDefinitions::class,
         // NB: lookups snake_case the model basename, so this key (not the
-        // kebab-case one above) is the one that actually matches.
-        'product_option_value' => OptionValueMediaDefinitions::class,
+        // kebab-case one above) is the one that actually matches. Option values
+        // carry the `swatch` collection defined by FashionMediaDefinitions.
+        'product_option_value' => FashionMediaDefinitions::class,
     ],
 
     'collection' => 'images',
