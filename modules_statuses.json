@@ -1,0 +1,15 @@
+{
+    "Analytics": true,
+    "Assets": true,
+    "Catalog": true,
+    "Checkout": true,
+    "Content": true,
+    "Core": true,
+    "Customer": true,
+    "Inventory": true,
+    "Notification": true,
+    "Order": true,
+    "Promotion": true,
+    "Shipping": true,
+    "Theme": true
+}

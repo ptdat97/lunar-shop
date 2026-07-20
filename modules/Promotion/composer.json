@@ -1,0 +1,18 @@
+{
+    "name": "modules/promotion",
+    "description": "",
+    "authors": [],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": []
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Promotion\\": "app/",
+            "Modules\\Promotion\\Database\\Seeders\\": "database/seeders/"
+        },
+        "files": []
+    }
+}

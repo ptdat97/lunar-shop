@@ -1,0 +1,11 @@
+{
+    "name": "Analytics",
+    "alias": "analytics",
+    "description": "",
+    "keywords": [],
+    "priority": 13,
+    "providers": [
+        "Modules\\Analytics\\Providers\\AnalyticsServiceProvider"
+    ],
+    "files": []
+}

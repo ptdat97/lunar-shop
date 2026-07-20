@@ -1,0 +1,17 @@
+{
+    "name": "modules/analytics",
+    "description": "",
+    "authors": [],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": []
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Analytics\\": "app/"
+        },
+        "files": []
+    }
+}
