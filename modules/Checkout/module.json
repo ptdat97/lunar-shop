@@ -1,0 +1,11 @@
+{
+    "name": "Checkout",
+    "alias": "checkout",
+    "description": "",
+    "keywords": [],
+    "priority": 5,
+    "providers": [
+        "Modules\\Checkout\\Providers\\CheckoutServiceProvider"
+    ],
+    "files": []
+}

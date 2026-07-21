@@ -1,0 +1,17 @@
+{
+    "name": "modules/core",
+    "description": "",
+    "authors": [],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": []
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Core\\": "app/"
+        },
+        "files": []
+    }
+}

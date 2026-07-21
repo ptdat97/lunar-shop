@@ -11,43 +11,20 @@ use Modules\Catalog\Filament\Resources as Catalog;
 use Modules\Core\Support\AdminPages;
 use Modules\Theme\Filament\Resources as Custom;
 
+/**
+ * Wires Lunar's admin panel together from what the modules contribute.
+ *
+ * The modules themselves are discovered and registered by nwidart/laravel-modules
+ * from each modules/<Name>/module.json, in ascending `priority` order (that file
+ * is the single source of truth for load order — Notification must come after
+ * Order, whose domain events it listens for). nwidart's provider is package
+ * auto-discovered, so every module is already registered by the time this
+ * provider's register() runs.
+ */
 class ModulesServiceProvider extends ServiceProvider
 {
-    /**
-     * Modules registered in the application.
-     *
-     * Each module lives in modules/<Name> with namespace Modules\<Name>
-     * and a Providers\<Name>ServiceProvider. Order matters when one module
-     * depends on bindings from another.
-     *
-     * @var list<string>
-     */
-    protected array $modules = [
-        'Core',
-        'Theme',
-        'Catalog',
-        'Inventory',
-        'Checkout',
-        'Customer',
-        'Order',
-        'Notification',   // listens to Order's domain events
-        'Content',
-        'Assets',
-        'Promotion',
-        'Shipping',
-        'Analytics',
-    ];
-
     public function register(): void
     {
-        foreach ($this->modules as $module) {
-            $provider = "Modules\\{$module}\\Providers\\{$module}ServiceProvider";
-
-            if (class_exists($provider)) {
-                $this->app->register($provider);
-            }
-        }
-
         $this->registerLunarPanel();
     }
 

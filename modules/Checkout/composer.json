@@ -1,0 +1,17 @@
+{
+    "name": "modules/checkout",
+    "description": "",
+    "authors": [],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": []
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Checkout\\": "app/"
+        },
+        "files": []
+    }
+}

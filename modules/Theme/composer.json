@@ -1,0 +1,17 @@
+{
+    "name": "modules/theme",
+    "description": "",
+    "authors": [],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": []
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Theme\\": "app/"
+        },
+        "files": []
+    }
+}

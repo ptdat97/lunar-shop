@@ -1,0 +1,17 @@
+{
+    "name": "modules/notification",
+    "description": "",
+    "authors": [],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": []
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Notification\\": "app/"
+        },
+        "files": []
+    }
+}

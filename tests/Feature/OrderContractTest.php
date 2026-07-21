@@ -42,7 +42,7 @@ class OrderContractTest extends TestCase
         $this->assertTrue(class_exists(OrderResource::class));
 
         $this->assertFileDoesNotExist(
-            base_path('modules/Checkout/Http/Resources/OrderResource.php'),
+            base_path('modules/Checkout/app/Http/Resources/OrderResource.php'),
             'the duplicate Checkout OrderResource should be gone',
         );
     }
