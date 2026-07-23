@@ -1,7 +1,7 @@
 # Production Deploy Runbook — SME Fashion Ecommerce
 
 > Quy trình đưa **Laravel 12 + LunarPHP** lên production và vận hành. Đọc kèm
-> [lunarphp_sme_fashion_plan.md](lunarphp_sme_fashion_plan.md).
+> [../architecture/overview.md](../architecture/overview.md).
 > Cập nhật lần cuối: **2026-07-08**.
 
 ---
@@ -251,16 +251,17 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
   `public/media` (conversion tăng dần).
 - **Nâng cấp**: `composer outdated` hàng tháng (Laravel, Filament, Spatie…) — chạy full
   test suite trước khi lên.
-  ⚠️ **Lunar KHÔNG nằm trong `composer outdated` nữa.** Nó đã fork vào repo
-  (`modules/Lunar` + `modules/LunarAdmin`, xem plan.md), nên **không có bản vá nào tự về**
-  — kể cả security patch. Phải chủ động: theo dõi release/advisory của
-  [`lunarphp/lunar`](https://github.com/lunarphp/lunar), đối chiếu tay và port sang
-  `modules/Lunar`. Đây là **cái giá đã chấp nhận khi fork** — đưa vào lịch rà hằng tháng
-  cùng `composer outdated`, đừng để nó rơi vào quên lãng.
+  Lunar là composer package (`lunarphp/lunar`) nên **nằm trong `composer outdated`
+  bình thường** và nhận security patch như mọi dependency khác.
+  ⚠️ Ngoại lệ duy nhất: thư mục `patches/` (áp qua `cweagans/composer-patches`).
+  Một bản nâng cấp Lunar có thể làm patch không áp được — khi đó `composer update`
+  sẽ **fail rõ ràng**, không im lặng. Xử lý: kiểm tra fix đã được upstream nhận
+  chưa, nếu rồi thì gỡ patch; nếu chưa thì rebase patch theo source mới.
+  Xem [../architecture/overview.md](../architecture/overview.md).
 
 ## 9. Chưa làm (chấp nhận được ở quy mô SME, làm khi cần)
 
-- CDN cho `public/` (build assets + media) — todo #4 trong todo.md.
+- CDN cho `public/` (build assets + media) — todo #4 trong ../roadmap.md.
 - Error tracker bên thứ ba (Sentry).
 - CI pipeline (test + pint chạy tay trước commit theo standards §15).
 - Zero-downtime deploy (symlink releases / Deployer) — hiện dùng maintenance

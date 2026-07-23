@@ -11,7 +11,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * Media Library logic built on Lunar's Asset model + Spatie MediaLibrary
- * (the media stack that ships with Lunar — see lunarphp_sme_fashion_plan.md).
+ * (the media stack that ships with Lunar — see docs/architecture/overview.md).
  *
  * Each library file is a standalone Lunar Asset with a single attached Media
  * item (collection "images"). Conversions (thumb/webp/large/zoom…) are produced

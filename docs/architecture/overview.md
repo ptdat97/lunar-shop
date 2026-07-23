@@ -7,9 +7,9 @@
 >
 > Cập nhật lần cuối: **2026-07-13** — 13 module nghiệp vụ, 63 route `api/v1`, 394 test xanh.
 >
-> **Lunar không còn là composer package:** đã fork vào repo — `modules/Lunar` (core engine,
-> namespace `Lunar\`) + `modules/LunarAdmin` (Filament panel, `Lunar\Admin\`). Xem
-> § [Lunar là code trong repo](#lunar-là-code-trong-repo-không-còn-composer-package).
+> **Lunar là composer package `lunarphp/lunar` trong `vendor/`** — bản fork trong repo
+> đã được gỡ (2026-07-20). Đừng sửa `vendor/`; xem
+> § [Lunar là composer package](#lunar-là-composer-package-không-fork-vào-repo).
 >
 > **Storefront Next.js: ⏸ TẠM HOÃN (2026-07-13).** Đã từng tồn tại (Next.js 16, App Router,
 > TS, Tailwind 4 ở `../storefront`) và tiêu thụ `/api/v1` qua bearer token + `X-Cart-Token`
@@ -29,7 +29,7 @@
 > 394 test nguyên trạng. Luật: **GIỮ, KHÔNG MỞ RỘNG** — thêm endpoint vì Blade SSR cần thì
 > cứ làm; thêm "để sẵn cho app sau này" thì **không** (build cho consumer không tồn tại).
 > Luật ghi ở `routes/api.php`; danh sách route chưa có consumer Blade + ngưỡng bỏ đóng băng
-> ở [todo.md § 11](lunarphp_sme_fashion_todo.md) và § Quyết định có chủ đích.
+> ở [todo.md § 11](../roadmap.md) và § Quyết định có chủ đích.
 
 ## Bản đồ tài liệu
 
@@ -37,12 +37,15 @@
 
 | File | Trả lời câu hỏi |
 |---|---|
-| **plan.md** (file này) | *Hệ thống hiện có những gì, hoạt động ra sao?* |
-| [coding_standards.md](lunarphp_sme_fashion_coding_standards.md) | *Viết code ở đây theo quy tắc nào?* |
-| [deploy.md](lunarphp_sme_fashion_deploy.md) | *Đưa lên production thế nào, vận hành ra sao?* |
-| [theme_plan.md](lunarphp_sme_fashion_theme_plan.md) | *Theme `fashion` cấu tạo thế nào?* |
-| [todo.md](lunarphp_sme_fashion_todo.md) | *Còn việc gì chưa làm?* |
-| [platform_audit.md](lunarphp_sme_fashion_platform_audit.md) | *Biên bản lịch sử: đã tìm ra và sửa những bug nào, bằng chứng gì?* |
+| **architecture/overview.md** (file này) | *Hệ thống hiện có những gì, hoạt động ra sao?* |
+| [guides/coding-standards.md](../guides/coding-standards.md) | *Viết code ở đây theo quy tắc nào?* |
+| [guides/deployment.md](../guides/deployment.md) | *Đưa lên production thế nào, vận hành ra sao?* |
+| [guides/commands.md](../guides/commands.md) | *Lệnh artisan nào hay dùng?* |
+| [architecture/theme.md](theme.md) | *Theme `fashion` cấu tạo thế nào?* |
+| [roadmap.md](../roadmap.md) | *Còn việc gì chưa làm?* |
+| [history/2026-07-platform-audit.md](../history/2026-07-platform-audit.md) | *Biên bản lịch sử: đã tìm ra và sửa những bug nào, bằng chứng gì?* |
+
+Điểm vào tổng quan: [docs/README.md](../README.md).
 
 ---
 
@@ -62,14 +65,14 @@ Ecommerce fashion cho SME single-store:
 ## Nguyên tắc kiến trúc cốt lõi
 
 > Chuẩn code chi tiết ở
-> [lunarphp_sme_fashion_coding_standards.md](lunarphp_sme_fashion_coding_standards.md).
+> [../guides/coding-standards.md](../guides/coding-standards.md).
 
 1. **Không dựng lại tính năng Lunar đã có — chỉ kế thừa và mở rộng.** Cách mở rộng
    theo thứ tự ưu tiên: cấu hình `config/lunar/*` → điểm mở rộng chính chủ của Lunar
    (bind model, pipelines cart/checkout, custom field/attribute, Filament hook,
-   events) → wrap bằng service trong module → **cuối cùng** mới sửa thẳng
-   `modules/Lunar`. Lunar nay là code trong repo (fork), nên sửa core là *khả thi* —
-   nhưng mỗi dòng sửa là một dòng phải tự bảo trì (xem § dưới).
+   events) → wrap bằng service trong module → **cuối cùng** mới là composer patch
+   trong `patches/`. Lunar nằm trong `vendor/` nên **không sửa trực tiếp** — mỗi patch
+   là một thứ có thể vỡ khi nâng cấp, phải tự bảo trì (xem § dưới).
 2. **Lunar là source of truth** cho catalog, cart, pricing, order, customer. Bọc qua
    service/API, không nhân bản dữ liệu/logic.
 3. **Một service là nguồn logic duy nhất**, cả Storefront controller lẫn API
@@ -81,41 +84,37 @@ Ecommerce fashion cho SME single-store:
 
 ---
 
-# Lunar là code trong repo (không còn composer package)
+# Lunar là composer package (không fork vào repo)
 
-LunarPHP đã được **fork thẳng vào repo** (2026-07-13). Không còn `vendor/lunarphp`,
-không còn `composer require lunarphp/*`:
+LunarPHP là dependency bình thường: `lunarphp/lunar` trong `vendor/`, provider nạp
+qua package auto-discovery.
 
-| | Trước | Nay |
-|---|---|---|
-| Core engine (`Lunar\`) | `vendor/lunarphp/core` | **`modules/Lunar/src`** |
-| Admin panel (`Lunar\Admin\`) | `vendor/lunarphp/admin` | **`modules/LunarAdmin/src`** |
-| Autoload | composer package | PSR-4 tay trong `composer.json` (+ `files`: 2 `helpers.php`) |
-| Provider | package auto-discovery | khai báo tay trong `bootstrap/providers.php` |
+> **Lịch sử:** Lunar từng được fork vào repo (`modules/Lunar` + `modules/LunarAdmin`,
+> 2026-07-13) rồi **đưa trở lại vendor (2026-07-20)**. Lý do đảo ngược: toàn bộ bản
+> fork 1201 file chỉ có **6 file thực sự bị sửa** (~90 dòng), trong đó 2 file là
+> docblock và code chết. Cái giá — mất mọi security fix và bug fix của upstream — quá
+> đắt so với thứ nhận lại. Mọi thay đổi nay đi qua điểm mở rộng chính chủ.
 
-```php
-// bootstrap/providers.php — không còn auto-discovery nên phải đăng ký tay,
-// và phải đứng TRƯỚC ModulesServiceProvider (nó cấu hình Lunar panel trong register()).
-Lunar\LunarServiceProvider::class,
-Lunar\Admin\LunarPanelProvider::class,
-```
+| | Cách làm hiện tại |
+|---|---|
+| Core engine (`Lunar\`) | `vendor/lunarphp/core` — **không sửa** |
+| Admin panel (`Lunar\Admin\`) | `vendor/lunarphp/admin` — subclass + `$swaps` trong `ModulesServiceProvider` |
+| Thêm quan hệ vào model core | `Model::resolveRelationUsing()` |
+| Thay hẳn model core | `ModelManifest::replace()` — ví dụ `ProductOption` (thêm `display_type`) |
+| Sửa thứ không có extension point | **composer patch** trong `patches/` — bậc cuối |
 
 **Hệ quả cần nhớ:**
 
-* **`composer update` không còn nâng cấp Lunar.** Muốn lấy fix từ upstream: đối chiếu
-  tay với repo `lunarphp/lunar` rồi port sang `modules/Lunar`. Vì thế **giữ diff với
-  upstream càng nhỏ càng tốt** — đừng reformat, đừng refactor tiện tay (đây cũng là lý
-  do `pint` phải loại trừ hai thư mục này, xem coding_standards §15).
-* **Sửa core là được phép, nhưng là bậc cuối** trong thang mở rộng. Thứ tự vẫn:
-  config → điểm mở rộng chính chủ → service wrap → *rồi mới* sửa `modules/Lunar`.
-  Sửa core thì commit riêng, diff tối thiểu, nói rõ vì sao không dùng được extension point.
-* **Config có hai bản:** `modules/Lunar/config/*.php` (default của engine, `mergeConfigFrom`)
-  và `config/lunar/*.php` (bản đã publish — **bản này thắng**, vì `mergeConfigFrom` chỉ
-  điền khoá còn thiếu). Đổi hành vi thì sửa `config/lunar/*` hoặc dùng
-  `LunarConfigOverride`; sửa `modules/Lunar/config` **một mình** sẽ không có tác dụng nếu
-  khoá đó đã tồn tại trong bản publish.
-* `vendor/` từ nay chỉ còn package bên thứ ba thật (Laravel, Filament, Spatie…) —
-  quy tắc "không sửa `vendor/`" vẫn nguyên với chúng.
+* **`composer update` nâng cấp Lunar bình thường**, security patch tự về.
+* **Không sửa `vendor/`.** Muốn đổi hành vi thì leo thang mở rộng dưới đây; hết cách
+  mới viết patch vào `patches/` (`cweagans/composer-patches`). Hiện có đúng **1 patch**:
+  fix locale fallback trong `HasTranslations` — một trait, nên không swap được bằng
+  `ModelManifest`. Patch nào cũng nên kèm PR ngược lên upstream để sớm bỏ được.
+* **Patch có thể vỡ khi nâng cấp** — khi đó `composer update` **fail rõ ràng**, không
+  im lặng. Kiểm tra upstream đã nhận fix chưa: rồi thì gỡ patch, chưa thì rebase.
+* **Config có hai bản:** default trong package (`mergeConfigFrom`) và `config/lunar/*.php`
+  (bản đã publish — **bản này thắng**, vì `mergeConfigFrom` chỉ điền khoá còn thiếu).
+  Đổi hành vi thì sửa `config/lunar/*` hoặc dùng `LunarConfigOverride`.
 
 ## Điểm mở rộng chính chủ của Lunar (ưu tiên trước khi sửa core)
 
@@ -139,15 +138,15 @@ Cần PHẢN ỨNG khi có sự kiện?             → (5) Event::listen(LunarE
 Cần đổi ADMIN (Filament)?                → (6) ResourceExtension / *PageExtension
                                            (hoặc reuse action native của Lunar)
 
-Không cách nào ở trên chạm tới được?     → (7) sửa thẳng modules/Lunar — BẬC CUỐI:
-                                           commit riêng, diff tối thiểu, ghi rõ lý do
+Không cách nào ở trên chạm tới được?     → (7) composer patch trong patches/ — BẬC CUỐI:
+                                           kèm PR ngược lên upstream, ghi rõ lý do
 ```
 
 ## (1) Config / pipeline override — nhẹ nhất, không cần code
 
 Lunar đọc hành vi từ `config/lunar/*` (cart, orders, pricing, payments, media, taxes…) —
-bản **đã publish** từ default của engine ở `modules/Lunar/config/*`, và **bản publish
-thắng** (`mergeConfigFrom` chỉ điền khoá còn thiếu). Ghi đè trực tiếp ở `config/lunar/*`,
+bản **đã publish** từ default của package, và **bản publish thắng**
+(`mergeConfigFrom` chỉ điền khoá còn thiếu). Ghi đè trực tiếp ở `config/lunar/*`,
 hoặc dùng **`Modules\Core\Support\LunarConfigOverride`** để re-apply override lên config
 đã publish — an toàn trước `php artisan vendor:publish --tag=lunar --force` (chạy trong
 `boot()`).
@@ -448,7 +447,7 @@ attributes. Các bảng fashion-specific thêm trong module tương ứng:
 - **Customer:** `wishlist_items`, `vn_locations` (provinces/wards).
 - **Inventory:** `stock_notifications`.
 - **Shipping:** `shipping_zones`.
-- **Performance indexes** ([add_performance_indexes.php](database/migrations/2026_06_29_050039_add_performance_indexes.php)):
+- **Performance indexes** ([add_performance_indexes.php](../../database/migrations/2026_06_29_050039_add_performance_indexes.php)):
   composite index cho `lunar_products(brand_id,status)`, `lunar_urls(slug,element_type,default)`,
   `lunar_prices(priceable_type,price,currency_id)`, variant joins.
 
@@ -750,7 +749,7 @@ sau quyết định bằng dữ kiện chứ không bằng cảm tính.
 | 3 | 2026-07-09 | **Phase 1** — sửa nợ P0: một nguồn `paid_statuses`, `OrderPaid` cho COD, rate-limit toàn `api/v1`, health-check thật | 218 test |
 | 4 | 2026-07-10 | **Phase 2** — headless: `TokenAwareCartSession` (rebind singleton của Lunar), CSRF cho client stateless, pagination một chuẩn, token expiry + abilities | 279 test |
 | 5 | 2026-07-10 | **Phase 3** — mobile: module `Notification` (in-app + push contract), order timeline từ `activity_log`, recently-viewed server-side | 315 test |
-| 6 | 2026-07-10 | **Rà soát ecommerce cốt lõi** — tìm + sửa 6 bug tiền/tồn kho (E1–E6), xem [audit](lunarphp_sme_fashion_platform_audit.md) | 347 test |
+| 6 | 2026-07-10 | **Rà soát ecommerce cốt lõi** — tìm + sửa 6 bug tiền/tồn kho (E1–E6), xem [audit](../history/2026-07-platform-audit.md) | 347 test |
 | 7 | 2026-07-10 | **Dọn mã nguồn** — `paid_statuses` 5 bản sao → 1; controller về dưới 100 dòng; gỡ N+1 | 349 test |
 | 8 | 2026-07-10 | **Siết payment callback** — `GatewayReconciler` chung cho VNPay+MoMo: chặn thiếu tiền, chặn hồi sinh đơn đã đóng, khoá chống race + unique index | 356 test; mutation-check từng guard |
 | 9 | 2026-07-10 | **Siết refund** — RMA claim dưới khoá (COD/bank trước đây không có trần nào), nhả claim khi gateway fail, reference refund duy nhất | 360 test; mutation-check từng guard |
@@ -761,9 +760,14 @@ sau quyết định bằng dữ kiện chứ không bằng cảm tính.
 | 14 | 2026-07-12 | **Bug thật do client headless lộ ra** — 3 probe công khai (`GET /customer`, `/wishlist`, `/customer/measurements`) nằm ở group `web`, guard mặc định là **session** nên **không thấy bearer token**: client có token hợp lệ vẫn nhận `200 {"data":null}` = "khách vãng lai". Next.js đọc đó là "chưa đăng nhập" → **đá ngược về /login vô hạn**, không lỗi nào hiện ra. Sửa: `$request->user('sanctum')` (guard sanctum đọc **cả** cookie session lẫn bearer, vẫn trả null cho guest thật) | 394 test; mutation-check: trả về `user()` → test đỏ |
 | 15 | 2026-07-13 | **Fork Lunar vào repo** — `vendor/lunarphp/{core,admin}` → **`modules/Lunar`** + **`modules/LunarAdmin`**; PSR-4 khai báo tay trong `composer.json`, provider đăng ký tay ở `bootstrap/providers.php` (mất package auto-discovery). Đổi bậc cuối của thang mở rộng: sửa core nay *khả thi* nhưng vẫn là lựa chọn sau cùng — đánh đổi là **tự bảo trì + tự port fix upstream** | Xem § "Lunar là code trong repo" |
 | 16 | 2026-07-13 | **Hoãn headless, chốt Blade SSR** — storefront Next.js (`../storefront`) cố ý dừng; Blade SSR là storefront duy nhất. `/api/v1` + `/home-feed` (#13) + token abilities (#4) **giữ nguyên** làm nền, quy tắc **"giữ, KHÔNG mở rộng"**. Hai increment #13/#14 vẫn có giá trị: #14 là bug thật do chính client đó phát hiện | Không đổi code; xanh nguyên trạng |
+| 17 | 2026-07-20 | **Đảo ngược #15 — Lunar về lại vendor.** Fork 1201 file nhưng chỉ **6 file thực sự sửa** (~90 dòng), 2 trong số đó là docblock + code chết. Cái giá (mất mọi security/bug fix upstream) quá đắt. `display_type` chuyển sang `ModelManifest::replace` + subclass resource; fix locale `HasTranslations` (trait, không swap được) thành **composer patch** duy nhất trong `patches/` | 423 test xanh, không hồi quy |
+| 18 | 2026-07-20 | **nwidart/laravel-modules v13** — package đã cài sẵn nhưng không làm gì; module nạp bằng vòng lặp tay. Chuyển 13 module sang layout v13 (`app/` + `config/database/routes/resources` viết thường, 198 rename giữ history), `module.json` khai báo provider + `priority` thay mảng cứng. `modules_statuses.json` **phải commit** — FileActivator coi module không có trong file là *disabled* | 423 test xanh; panel dựng đúng 30 resource |
+| 19 | 2026-07-23 | **Seed đủ tầng SKU** — `lunar_product_skus`, `product_reviews`, `stock_movements` đều **rỗng** dù module đã implement: storefront đọc `skus` nên mọi trang sản phẩm demo không có bộ chọn màu/size, không tồn kho, nút thêm giỏ bị vô hiệu. Thêm 3 seeder (ma trận 3 màu × 4 size, review có hàng đợi duyệt, ledger qua `StockLedger`) | 423 test; ledger invariant 120 SKU, 0 lệch |
+| 20 | 2026-07-23 | **Gallery theo màu + sửa N+1** — SKU `images` trả cột JSON thô trong khi gallery cần `{small,large,zoom}`; `swapGallery` bắt theo variant id nên đổi size cũng rebuild. Thêm serialize qua `MediaImageResource`, SSR scope theo variant đang chọn, key theo *tập ảnh*. `chaperone()` trên quan hệ `skus` xoá N+1: endpoint `?slugs=…` từ **297 → 33 statement** | 432 test; mutation-check cả thứ tự ảnh lẫn N+1 |
+| 21 | 2026-07-23 | **Sửa lỗi `db:seed` chết giữa chừng** — `menu_items.parent_id` là FK tự tham chiếu `ON DELETE CASCADE`, MySQL từ chối quá 30 lần mở rộng (lỗi 6575). Thêm `Menu::deleteItems()` xoá lá trước. Không chỉ lỗi seed: `MenuTree::save()` (đường lưu menu trong admin) dính cùng lỗi | 431 test; `db:seed` chạy trọn, lặp lại được |
 
-> **Quy tắc cho mọi refactor:** giải thích *why* trước khi viết code · sửa `modules/Lunar`
-> là **bậc cuối** (thử hết extension point trước; nếu sửa thì commit riêng, diff tối thiểu)
+> **Quy tắc cho mọi refactor:** giải thích *why* trước khi viết code · composer patch
+> là **bậc cuối** (thử hết extension point trước; nếu patch thì kèm PR upstream)
 > và không sửa `vendor/` (package bên thứ ba) · public API (service + shape `/api/v1`) chỉ
 > mở rộng tương thích ngược · `vendor/bin/phpunit` xanh + `pint --test` xanh **trên file đã
 > sửa** (không phải toàn repo — xem standards §15) trước khi coi là xong · cập nhật tài liệu

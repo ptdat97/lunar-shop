@@ -6,7 +6,7 @@
 > đến từ Storefront controller (gọi service module) hoặc Vue/vanilla island fetch
 > `/api/v1/*`.
 >
-> Tham chiếu kiến trúc: [lunarphp_sme_fashion_plan.md](lunarphp_sme_fashion_plan.md)
+> Tham chiếu kiến trúc: [overview.md](overview.md)
 > (mục "Storefront", "Quy ước JS", "Nguyên tắc SSR-first", "CMS & Sections").
 
 ---

@@ -1,8 +1,8 @@
 # SME Fashion Ecommerce — Coding Standards
 
 > Chuẩn code cho repo **Laravel 12 + LunarPHP 1.0 + Filament 3 + theme `fashion` (SSR)**.
-> Đọc kèm [lunarphp_sme_fashion_plan.md](lunarphp_sme_fashion_plan.md) (kiến trúc
-> tổng thể) và [lunarphp_sme_fashion_theme_plan.md](lunarphp_sme_fashion_theme_plan.md)
+> Đọc kèm [../architecture/overview.md](../architecture/overview.md) (kiến trúc
+> tổng thể) và [../architecture/theme.md](../architecture/theme.md)
 > (chi tiết theme).
 >
 > Mỗi quy tắc dưới đây có **một nguồn sự thật duy nhất** — đã bám đúng codebase
@@ -14,8 +14,8 @@
 ## 0. Nguyên tắc cốt lõi
 
 1. **Inherit Lunar, đừng dựng lại** — Lunar là source of truth cho catalog, cart,
-   pricing, order, customer, discount, media, payment. Kiểm tra `modules/Lunar` +
-   `modules/LunarAdmin` trước; có → extend, không → mới build (xem §5).
+   pricing, order, customer, discount, media, payment. Kiểm tra `vendor/lunarphp/` trước;
+   có → extend, không → mới build (xem §5).
 2. **Service-first** — business logic, transaction (`DB::transaction`) và cache
    chỉ sống trong Service. Cấm ở Controller, Blade, JS, Model, Resource (§3, §4, §7).
 3. **SSR-first** — nội dung SEO render HTML thật ở server; JS chỉ *enhance* (§7, §9).
@@ -59,23 +59,32 @@ Cấu trúc thực tế:
 
 ```text
 modules/<Name>/
-├── Http/
-│   ├── Controllers/        # Storefront/ (Blade) + Api/V1/ (JSON)
-│   ├── Requests/
-│   └── Resources/          # API Resource — JSON contract ổn định
-├── Services/               # business logic (web + API gọi chung)
-├── Models/                 # model fashion-specific (wrap/extend Lunar)
-├── Support/                # *Hooks (đăng ký hook), value objects
-├── Database/Migrations/
-├── Config/
-├── Routes/                 # web.php + api.php
-├── Tests/
-└── Providers/<Name>ServiceProvider.php
+├── module.json             # manifest nwidart: provider + priority (thứ tự nạp)
+├── composer.json           # PSR-4 root (wikimedia/composer-merge-plugin)
+├── app/
+│   ├── Http/
+│   │   ├── Controllers/    # Storefront/ (Blade) + Api/V1/ (JSON)
+│   │   ├── Requests/
+│   │   └── Resources/      # API Resource — JSON contract ổn định
+│   ├── Services/           # business logic (web + API gọi chung)
+│   ├── Models/             # model fashion-specific (wrap/extend Lunar)
+│   ├── Filament/           # trang/resource admin do module đóng góp
+│   ├── Support/            # value objects, helper nội bộ module
+│   └── Providers/<Name>ServiceProvider.php
+├── config/
+├── database/migrations|seeders/
+├── resources/views/
+└── routes/                 # web.php + api.php
 ```
+
+> **Layout nwidart v13** (`app/` lồng + thư mục dữ liệu viết thường). Seeder nằm
+> ngoài `app/` nên module có seeder phải khai thêm PSR-4 root
+> `Modules\<Name>\Database\Seeders\` trong `composer.json` của nó.
 
 > Tên module hiện có (**13**): **Core** (hạ tầng), Analytics, Assets, Catalog, Checkout,
 > Content, Customer, Inventory, Notification, Order, Promotion, Shipping, Theme.
-> Danh sách sống ở `app/Providers/ModulesServiceProvider::$modules`.
+> **Thứ tự nạp** nằm ở `priority` trong từng `module.json` (không còn mảng cứng trong
+> `ModulesServiceProvider`) — `Notification` phải sau `Order` vì nghe domain event của nó.
 
 ---
 
@@ -130,17 +139,18 @@ gọi service, không tự `Cache::remember`.
 
 ## 5. Lunar — kiểm tra trước khi build (BẮT BUỘC)
 
-> **Lunar không còn là composer package.** Nó đã được fork vào repo:
-> `modules/Lunar` (core engine, namespace `Lunar\`) và `modules/LunarAdmin`
-> (Filament panel, namespace `Lunar\Admin\`). Autoload khai báo trong
-> `composer.json`; provider đăng ký tay ở `bootstrap/providers.php` (không còn
-> package-discovery). Xem plan.md § "Lunar là code trong repo".
+> **Lunar là composer package (`lunarphp/lunar`), KHÔNG fork vào repo.** Bản fork
+> cũ (`modules/Lunar` + `modules/LunarAdmin`) đã được gỡ — đừng sửa `vendor/`.
+> Muốn đổi hành vi thì dùng điểm mở rộng chính chủ (`ModelManifest::replace`,
+> subclass, `resolveRelationUsing`, event, Filament Extension); chỉ khi không còn
+> cách nào khác mới dùng composer patch trong `patches/`.
+> Xem [../architecture/overview.md](../architecture/overview.md).
 
 Trước khi viết một dòng code cho tính năng mới, **phải** kiểm tra Lunar đã có chưa.
 Checklist (dừng ngay khi tìm thấy):
 
-1. **Model/nghiệp vụ?** `grep -ri "<feature>" modules/Lunar/src --include=*.php -l`
-2. **Admin (Filament resource)?** `find modules/LunarAdmin -path "*Resources*Resource.php" | grep -i "<feature>"`
+1. **Model/nghiệp vụ?** `grep -ri "<feature>" vendor/lunarphp/core/src --include=*.php -l`
+2. **Admin (Filament resource)?** `find vendor/lunarphp/admin/src -path "*Resources*Resource.php" | grep -i "<feature>"`
 3. **Config / điểm mở rộng?** xem `config/lunar/*` + pipelines/events Lunar expose.
 
 **Kết luận:**
@@ -148,23 +158,23 @@ Checklist (dừng ngay khi tìm thấy):
   Filament hook) → wrap bằng service. **Không** copy ra module viết lại.
 * **Không** → build mới trong module, ghi rõ "Lunar không có" trong PR/commit.
 
-**Sửa thẳng `modules/Lunar` — được, nhưng là lựa chọn cuối.** Fork bỏ rào cản kỹ
-thuật, **không** bỏ lý do của quy tắc: mỗi dòng sửa trong core là một dòng phải tự
-bảo trì và tự merge lại khi lấy fix từ upstream. Thứ tự vẫn là:
+**Composer patch — lựa chọn cuối.** Thứ tự leo thang:
 
 ```text
 config/lunar/* → điểm mở rộng chính chủ (pipeline, ModelManifest::replace,
 Payments::extend, Discounts::addType, Event::listen, ResourceExtension)
-→ wrap bằng service trong module  →  (cuối cùng) sửa modules/Lunar
+→ wrap bằng service trong module  →  (cuối cùng) composer patch trong patches/
 ```
 
-Chỉ sửa core khi **không có điểm mở rộng nào chạm tới** được. Khi đó:
+Chỉ viết patch khi **không có điểm mở rộng nào chạm tới** được — điển hình là trait
+(`ModelManifest` không swap được trait). Khi đó:
 * Commit **riêng**, message nói rõ *tại sao không dùng được extension point*.
-* Sửa **tối thiểu**, không refactor tiện tay — diff càng nhỏ càng dễ đối chiếu upstream.
+* Patch **tối thiểu**, và **kèm PR ngược lên upstream** để sớm gỡ được patch.
+* Nhớ: nâng cấp Lunar có thể làm patch không áp được → `composer update` sẽ fail.
 
 **Vẫn cấm:** copy code Lunar ra module rồi viết lại (fork logic), nhân bản dữ liệu
-Lunar sang bảng của mình, và sửa code trong `vendor/` (nay chỉ còn package bên thứ ba
-thật sự: Laravel, Filament, Spatie…).
+Lunar sang bảng của mình, và **sửa trực tiếp `vendor/`** (thay đổi sẽ mất sạch ở lần
+`composer install` kế tiếp).
 
 ---
 
@@ -180,7 +190,7 @@ thật sự: Laravel, Filament, Spatie…).
 >   abstraction thừa (cùng loại với "event phòng xa" ở §10).
 >
 > Danh sách route hiện không có consumer Blade + ngưỡng bỏ đóng băng: `routes/api.php`
-> và [todo.md § 11](lunarphp_sme_fashion_todo.md).
+> và [todo.md § 11](../roadmap.md).
 
 * Mọi endpoint **trả model** đều dùng `JsonResource`; route tự prefix `api/v1`
   (mở `v2` không phá v1).
@@ -322,6 +332,83 @@ Module giao tiếp qua **service công khai** của module khác hoặc **domain
 
 ---
 
+## 11. Admin = Filament của Lunar
+
+Resource Lunar đã có (Products, Discounts, Orders, Customers, CustomerGroups,
+Taxes…) **không tạo lại** — chỉ thêm field/tab/action qua extension point, hoặc
+swap subclass trong `ModulesServiceProvider`. Resource mới chỉ cho phần Lunar
+không có (Pages, Menus, Banners, Lookbooks, Themes…). Discount type mới đăng ký
+qua `Discounts::addType(...)` để hiện trong panel + chạy trong cart pipeline.
+
+---
+
+## 12. Tiền tệ, Enum & i18n
+
+* **Tiền** luôn thao tác **minor units** (`Price->value`); format qua
+  `->formatted()` / `Number::currency`. Không tự nhân/chia currency factor rải rác.
+* **Magic number → Enum / Constants / Config.** Không `status = 1`; dùng
+  `OrderStatus::PAID`. Paid statuses qua `config('analytics.paid_statuses')`.
+* App chạy `APP_LOCALE=vi`; chuỗi hiển thị qua `__()` / lang file khi có thể.
+  **Lưu ý format tiền theo locale** (`12,34 US$`) khi viết assert test.
+
+---
+
+## 13. Naming
+
+| Loại | Mẫu |
+|---|---|
+| Service | `CheckoutService`, `PricingService` |
+| Resolver / Strategy / Engine | `CustomerResolver`, `AssociationStrategy`, `DatabaseSearchEngine` |
+| Hook registrar | `PromotionHooks` |
+| API Resource | `ProductResource` |
+| Event / Listener | `OrderPaid` / `SendOrderEmail` |
+| DTO | `CheckoutData` |
+
+**Cấm:** `Helper`, `Utils`, `Common`, `Manager` (trừ Manager chính chủ Lunar/Filament).
+
+---
+
+## 14. Testing
+
+* Feature test ở `tests/Feature`, chạy **MySQL `lunar_testing`** (app dùng JSON
+  functions/facets — SQLite không emulate được), `RefreshDatabase`, trait
+  `Tests\Concerns\CreatesStorefrontData` (seed base data + fixture product).
+* **Bắt buộc test** cho mọi thay đổi chạm Cart, Checkout, Promotion, Payment,
+  Search, Auth, Order.
+* Chạy `php artisan test` sau mỗi bước refactor; **không merge nếu chưa xanh**.
+* Shape API mới = superset tương thích ngược (test xác nhận shape cũ không đổi).
+
+---
+
+## 15. Chất lượng & refactor
+
+* **Format bắt buộc:** `vendor/bin/pint --dirty` (hoặc `pint <file bạn đã sửa>`)
+  trước khi commit. **Đừng** chạy `vendor/bin/pint` trần trên toàn repo: chưa có
+  `pint.json`, nên preset `laravel` mặc định sẽ format lại hàng loạt file có sẵn và
+  trộn chúng vào diff của bạn.
+  ⚠️ `--dirty` coi **file vừa di chuyển cũng là file đã sửa** — sau một đợt `git mv`
+  hàng loạt, nó sẽ format cả những file bạn chỉ dời chỗ. Kiểm tra `git status` trước,
+  và hoàn tác phần format ngoài phạm vi. Dọn một lượt = **commit riêng, không kèm thay
+  đổi logic** (xem roadmap P0 mục 2).
+* **Khuyến nghị (chưa wire CI):** PHPStan/Larastan level cao dần khi thêm; bật khi
+  cài. Không merge code có dead code hoặc duplicated business logic.
+* **Phải refactor khi:** Controller > 100, Blade > 300, Service > 500, function >
+  50 dòng, hoặc cyclomatic complexity quá cao. Refactor *trước* khi thêm tính năng.
+* **Tài liệu là một nguồn:** cập nhật `../architecture/overview.md` (trạng thái +
+  **ngày tuyệt đối**) khi hoàn thành tính năng; chi tiết theme ở
+  `../architecture/theme.md`.
+
+---
+
+## 16. KHÔNG build sớm
+
+multi-vendor / marketplace, visual drag-drop editor, microservices, GraphQL-first,
+headless SPA full (giữ API sẵn, chưa tách), AI/vector recommendations. Với SME:
+co-purchase + curate tay là đủ ROI.
+
+
+---
+
 ## 17. Guard phải được *chứng minh là có chạy*
 
 Một guard viết đúng vẫn có thể **chưa từng chạy một lần nào**.
@@ -394,78 +481,3 @@ Kết quả đo được: stock 2, đặt 10 → checkout **200 OK**, stock **�
 mảng fallback bị copy-paste ra **5 nơi** — đúng loại drift đã sinh ra bug COD-không-lên-hạng.
 Tương tự: `OrderStatus::RETURNABLE`, `OrderStatus::CLOSED`. Không tạo danh sách status riêng
 cho từng module — chúng sẽ trôi khỏi nhau.
-
----
-
-## 11. Admin = Filament của Lunar
-
-Resource Lunar đã có (Products, Discounts, Orders, Customers, CustomerGroups,
-Taxes…) **không tạo lại** — chỉ thêm field/tab/action qua extension point, hoặc
-swap subclass trong `ModulesServiceProvider`. Resource mới chỉ cho phần Lunar
-không có (Pages, Menus, Banners, Lookbooks, Themes…). Discount type mới đăng ký
-qua `Discounts::addType(...)` để hiện trong panel + chạy trong cart pipeline.
-
----
-
-## 12. Tiền tệ, Enum & i18n
-
-* **Tiền** luôn thao tác **minor units** (`Price->value`); format qua
-  `->formatted()` / `Number::currency`. Không tự nhân/chia currency factor rải rác.
-* **Magic number → Enum / Constants / Config.** Không `status = 1`; dùng
-  `OrderStatus::PAID`. Paid statuses qua `config('analytics.paid_statuses')`.
-* App chạy `APP_LOCALE=vi`; chuỗi hiển thị qua `__()` / lang file khi có thể.
-  **Lưu ý format tiền theo locale** (`12,34 US$`) khi viết assert test.
-
----
-
-## 13. Naming
-
-| Loại | Mẫu |
-|---|---|
-| Service | `CheckoutService`, `PricingService` |
-| Resolver / Strategy / Engine | `CustomerResolver`, `AssociationStrategy`, `DatabaseSearchEngine` |
-| Hook registrar | `PromotionHooks` |
-| API Resource | `ProductResource` |
-| Event / Listener | `OrderPaid` / `SendOrderEmail` |
-| DTO | `CheckoutData` |
-
-**Cấm:** `Helper`, `Utils`, `Common`, `Manager` (trừ Manager chính chủ Lunar/Filament).
-
----
-
-## 14. Testing
-
-* Feature test ở `tests/Feature`, chạy **MySQL `lunar_testing`** (app dùng JSON
-  functions/facets — SQLite không emulate được), `RefreshDatabase`, trait
-  `Tests\Concerns\CreatesStorefrontData` (seed base data + fixture product).
-* **Bắt buộc test** cho mọi thay đổi chạm Cart, Checkout, Promotion, Payment,
-  Search, Auth, Order.
-* Chạy `php artisan test` sau mỗi bước refactor; **không merge nếu chưa xanh**.
-* Shape API mới = superset tương thích ngược (test xác nhận shape cũ không đổi).
-
----
-
-## 15. Chất lượng & refactor
-
-* **Format bắt buộc:** `vendor/bin/pint <file bạn đã sửa>` trước khi commit.
-  **Đừng** chạy `vendor/bin/pint` trần trên toàn repo: chưa có `pint.json`, nên preset
-  `laravel` mặc định sẽ format lại **241 file có sẵn** và trộn chúng vào diff của bạn.
-  Từ khi fork Lunar vào repo, **119/241 file đó nằm trong `modules/Lunar` +
-  `modules/LunarAdmin`** — reformat code upstream là tự tay làm mọi diff đối chiếu với
-  Lunar gốc thành vô dụng. Dọn một lượt = commit riêng + `pint.json` loại trừ hai thư mục
-  fork (xem todo P1).
-* **Khuyến nghị (chưa wire CI):** PHPStan/Larastan level cao dần khi thêm; bật khi
-  cài. Không merge code có dead code hoặc duplicated business logic.
-* **Phải refactor khi:** Controller > 100, Blade > 300, Service > 500, function >
-  50 dòng, hoặc cyclomatic complexity quá cao. Refactor *trước* khi thêm tính năng.
-* **Tài liệu là một nguồn:** cập nhật `lunarphp_sme_fashion_plan.md` (trạng thái +
-  **ngày tuyệt đối**) khi hoàn thành tính năng; chi tiết theme ở
-  `lunarphp_sme_fashion_theme_plan.md`.
-
----
-
-## 16. KHÔNG build sớm
-
-multi-vendor / marketplace, visual drag-drop editor, microservices, GraphQL-first,
-headless SPA full (giữ API sẵn, chưa tách), AI/vector recommendations. Với SME:
-co-purchase + curate tay là đủ ROI.

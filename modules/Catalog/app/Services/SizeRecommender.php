@@ -9,7 +9,7 @@ use Modules\Catalog\Models\SizeChartRow;
  * Fashion Size Intelligence: recommends the best-fitting size for a product
  * given a shopper's body measurements, using the product's assigned reusable
  * size chart. Lunar has no sizing logic, so this is a fashion-specific addition
- * (see lunarphp_sme_fashion_plan.md, module Product).
+ * (see docs/architecture/overview.md, module Product).
  *
  * Strategy: compare the shopper's body (plus a small ease allowance) against
  * each chart row's garment measurements and score the fit. Being smaller than

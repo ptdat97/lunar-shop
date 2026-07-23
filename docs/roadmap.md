@@ -1,7 +1,7 @@
 # SME Fashion Ecommerce — Việc còn lại
 
-> **Chỉ ghi việc CHƯA làm.** Hiện trạng ở [plan.md](lunarphp_sme_fashion_plan.md);
-> lịch sử bug đã sửa ở [platform_audit.md](lunarphp_sme_fashion_platform_audit.md).
+> **Chỉ ghi việc CHƯA làm.** Hiện trạng ở [plan.md](architecture/overview.md);
+> lịch sử bug đã sửa ở [platform_audit.md](history/2026-07-platform-audit.md).
 > Xếp theo ROI giảm dần. Cập nhật: **2026-07-13**.
 >
 > **Thứ tự ưu tiên đã đảo lại (2026-07-13).** Trước đây danh sách này mở đầu bằng
@@ -14,16 +14,15 @@
 > **cố ý hoãn** (2026-07-13) — xem mục 11. `/api/v1` giữ nguyên làm nền, nhưng
 > **giữ, KHÔNG mở rộng**: không thêm endpoint/shape cho client chưa tồn tại.
 >
-> **Trước khi build bất cứ gì:** kiểm tra Lunar đã có chưa (Nguyên tắc #1) — Lunar nay
-> là code trong repo: `modules/Lunar` (core) + `modules/LunarAdmin` (Filament panel),
-> không còn `vendor/lunarphp`. Có thì kế thừa/mở rộng, không thì mới build trong module
-> tương ứng; sửa thẳng core là **lựa chọn cuối** (coding_standards §5). Giữ phạm vi
-> single-store SME. `vendor/bin/phpunit` xanh trước khi coi là xong (383 test), và
-> `vendor/bin/pint --test <file bạn đã sửa>` xanh — **không** phải cả repo: chạy
-> `pint --test` trên toàn repo hiện đỏ **241 file** có từ trước (không có `pint.json`,
-> preset `laravel` mặc định bắt cả code fork của Lunar — **119/241 file nằm trong
-> `modules/Lunar` + `modules/LunarAdmin`**). Dọn một lượt là commit khổng lồ trộn lẫn
-> với thay đổi thật → xem P0 mục 2.
+> **Trước khi build bất cứ gì:** kiểm tra Lunar đã có chưa (Nguyên tắc #1). Lunar là
+> composer package `lunarphp/lunar` trong `vendor/` — **bản fork cũ trong repo đã được
+> gỡ (2026-07-20)**. Có sẵn thì kế thừa/mở rộng qua điểm mở rộng chính chủ, không thì
+> mới build trong module tương ứng; **không sửa `vendor/`** — composer patch là lựa
+> chọn cuối ([guides/coding-standards.md](guides/coding-standards.md) §5). Giữ phạm vi
+> single-store SME. `php artisan test` xanh trước khi coi là xong, và
+> `vendor/bin/pint --dirty` xanh — **không** phải cả repo: chạy `pint` toàn repo sẽ
+> reformat hàng loạt file không liên quan, tạo commit khổng lồ trộn lẫn với thay đổi
+> thật → xem P0 mục 2.
 
 ---
 
@@ -42,13 +41,10 @@ hoặc vi phạm nghĩa vụ pháp lý, hoặc hỏng mà không ai biết.
   khi khách chịu khó nhắn tin. Đây là việc rẻ nhất trong cả danh sách và có ROI cao nhất.
 - ⬜ **CI** — `.github/` **chưa tồn tại**. Tối thiểu: chạy `phpunit` mỗi push (~20 dòng
   YAML). 394 test đang chạy **bằng tay** → chỉ cần quên một lần là bug lên production.
-  Muốn thêm `pint --test` thì trước đó phải thêm **`pint.json`** `exclude`
-  **`modules/Lunar` + `modules/LunarAdmin`** (code fork từ upstream — reformat nó là
-  phá mọi diff đối chiếu với Lunar gốc) và các thư mục publish-from-vendor
-  (migration/seeder/config), rồi chạy `pint` một lần trên phần code **của mình**
-  trong **commit riêng, không kèm thay đổi logic**.
-  Hiện `pint --test` đỏ **241 file** có sẵn (119 trong fork) → bật thẳng vào CI sẽ đỏ
-  ngay ngày đầu.
+  Muốn thêm `pint --test` thì trước đó phải chạy `pint` một lượt trên code của mình
+  trong **commit riêng, không kèm thay đổi logic** — bật thẳng vào CI sẽ đỏ ngay ngày
+  đầu vì còn nhiều file chưa từng format. (Con số 241 file đỏ trong bản ghi cũ đã lỗi
+  thời: 119 file trong đó thuộc bản fork Lunar, nay đã gỡ khỏi repo.)
 
 ### 3. Hoá đơn điện tử (HĐĐT) — nghĩa vụ pháp lý, không phải tính năng
 - ⬜ `Modules\Order\Services\InvoiceService` hiện sinh **PDF qua dompdf** — đó là *phiếu
@@ -66,7 +62,7 @@ hoặc vi phạm nghĩa vụ pháp lý, hoặc hỏng mà không ai biết.
 **Không phải "chưa nghĩ tới" — là đang bị chặn bởi việc ngoài code.** Chưa ký hợp đồng
 với GHN/GHTK nên chưa có API key, chưa có sandbox → **hoãn**, không ước lượng, không
 code trước theo tài liệu (đoán shape rồi sửa lại là lãng phí — đúng bài học Phase 4/POS
-trong [audit](lunarphp_sme_fashion_platform_audit.md#phần-4--việc-đã-khảo-sát-rồi-cố-ý-dừng)).
+trong [audit](history/2026-07-platform-audit.md#phần-4--việc-đã-khảo-sát-rồi-cố-ý-dừng)).
 
 **Hiện trạng đo được:** `modules/Shipping` chỉ có `ShippingZone` với 4 field
 (`country_code`, `states`, `rate`, `free_threshold`) → **flat-rate tính tay theo tỉnh**.
@@ -102,7 +98,7 @@ lớn nhất và đang 100% thủ công.** Càng nhiều đơn, càng đau.
 - ⬜ **CDN** cho `public/` (media + build assets) khi deploy.
 - ⬜ Rà lại DB index sau khi có traffic thật (`add_performance_indexes` đã làm nền).
 
-Xem [deploy.md](lunarphp_sme_fashion_deploy.md) cho runbook đầy đủ.
+Xem [deploy.md](guides/deployment.md) cho runbook đầy đủ.
 
 ### 5. Test còn thiếu
 - ⬜ `modules/<Name>/Tests` **vẫn trống** — toàn bộ 54 file ở `tests/Feature`. Thêm smoke
@@ -148,7 +144,7 @@ size (gắn với RMA), export báo cáo.
 nay **dừng để tập trung Blade SSR** — storefront chính thức và duy nhất.
 
 **Không phải công cốc:** chính client đó làm lộ bug bearer-token ở 3 probe công khai
-(plan.md increment #14) — thứ chỉ lộ ra khi có client thật.
+(architecture/overview.md increment #14) — thứ chỉ lộ ra khi có client thật.
 
 #### ⚠️ `/api/v1` **KHÔNG** phải "API cho headless"
 Nó là **xương sống của chính Blade SSR**: **14 file JS** trong `themes/fashion` đang gọi nó
@@ -156,7 +152,7 @@ Nó là **xương sống của chính Blade SSR**: **14 file JS** trong `themes/
 **Gỡ/khoá API = gãy storefront ngay.** Vì thế "đóng băng" ở đây là đóng băng **bề mặt**,
 không phải đóng băng code — **không đụng một dòng code nào**, 394 test giữ nguyên.
 
-#### Luật: **GIỮ, KHÔNG MỞ RỘNG** (đã ghi vào [routes/api.php](routes/api.php))
+#### Luật: **GIỮ, KHÔNG MỞ RỘNG** (đã ghi vào [routes/api.php](../routes/api.php))
 - Thêm endpoint/shape vì **Blade SSR cần** → bình thường, cứ làm.
 - Thêm vì *"sau này app dùng"* / *"để sẵn cho lúc quay lại headless"* → **KHÔNG**. Đó là
   build cho một consumer không tồn tại — đúng cái bẫy audit § Phần 4 đã tránh khi hoãn
@@ -177,7 +173,7 @@ dùng thật, không phải "phòng xa".
 
 ### 12. Omnichannel / POS ⏸ và AI ⏸
 Đã khảo sát rồi **cố ý dừng** — lý do + số liệu đo được ở
-[platform_audit.md § Phần 4](lunarphp_sme_fashion_platform_audit.md#phần-4--việc-đã-khảo-sát-rồi-cố-ý-dừng).
+[platform_audit.md § Phần 4](history/2026-07-platform-audit.md#phần-4--việc-đã-khảo-sát-rồi-cố-ý-dừng).
 
 ---
 
@@ -214,4 +210,4 @@ editor · microservices/GraphQL · headless SPA tách rời · plugin/hook engin
 Action layer · BFF · module rỗng (ERP/CRM/Loyalty/Wallet) · AI recommendations.
 
 Lý do + **ngưỡng kích hoạt** từng mục:
-[plan.md § Quyết định có chủ đích](lunarphp_sme_fashion_plan.md#quyết-định-có-chủ-đích--không-phải-thiếu-sót).
+[plan.md § Quyết định có chủ đích](architecture/overview.md#quyết-định-có-chủ-đích--không-phải-thiếu-sót).

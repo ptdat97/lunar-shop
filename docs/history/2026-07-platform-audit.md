@@ -1,11 +1,11 @@
 # Biên bản audit & sửa lỗi (2026-07-09 → 2026-07-10)
 
 > **File này là lịch sử, không phải hiện trạng.** Hiện trạng ở
-> [plan.md](lunarphp_sme_fashion_plan.md). Mọi số liệu dưới đây là **snapshot của ngày
+> [plan.md](../architecture/overview.md). Mọi số liệu dưới đây là **snapshot của ngày
 > ghi**, cố ý **không** cập nhật theo thời gian — chúng là bằng chứng, không phải mô tả.
 >
 > Giữ lại vì hai lý do: (1) mỗi bug đều **đo được**, để sau này không ai phải chứng minh
-> lại; (2) các bài học rút ra đã đưa vào [coding_standards.md](lunarphp_sme_fashion_coding_standards.md)
+> lại; (2) các bài học rút ra đã đưa vào [coding_standards.md](../guides/coding-standards.md)
 > §17 — đây là chỗ chúng có ngữ cảnh đầy đủ.
 
 **Baseline lúc bắt đầu (2026-07-09):** 191 test / 596 assertion xanh · `vendor/` sạch ·
@@ -119,5 +119,5 @@ prompt. **Không** đụng recommendation cho tới khi CoPurchase hết dư đ�
 
 ### Những gì cố ý **không** xây
 
-Xem [plan.md § Quyết định có chủ đích](lunarphp_sme_fashion_plan.md#quyết-định-có-chủ-đích--không-phải-thiếu-sót)
+Xem [plan.md § Quyết định có chủ đích](../architecture/overview.md#quyết-định-có-chủ-đích--không-phải-thiếu-sót)
 — mỗi mục kèm **ngưỡng kích hoạt** để sau này quyết bằng dữ kiện.
