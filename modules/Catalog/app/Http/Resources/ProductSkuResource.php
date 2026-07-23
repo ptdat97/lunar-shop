@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Catalog\Services\PricingService;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * SKU JSON contract, including resolved price via the Pricing service (wraps
@@ -41,10 +42,49 @@ class ProductSkuResource extends JsonResource
             // Raw value-index combination into the product's `variables`, so a
             // client can map a picker selection back to this SKU without labels.
             'variant_indexes' => $this->variants ?? [],
-            // Per-SKU images (the `images` JSON column). Empty when the admin
-            // hasn't assigned SKU-specific media — the gallery island then falls
-            // back to the product-level images.
-            'images' => collect($this->images ?? [])->values(),
+            // Per-SKU images, resolved to the same {small,large,zoom,width,height}
+            // shape as the product-level gallery so the storefront can swap one
+            // for the other without knowing where the images came from. Empty
+            // when the SKU has no own media — the gallery then falls back to the
+            // product-level images.
+            'images' => $this->galleryImages(),
         ];
+    }
+
+    /**
+     * Resolve the SKU's `images` JSON column (a list of media ids) into the
+     * gallery image shape.
+     *
+     * The column holds ids rather than URLs — mirroring how swatch images are
+     * stored — so conversions stay resolvable after a disk move and the
+     * serialization lives in one place (MediaImageResource), shared with the
+     * product-level gallery.
+     *
+     * Media is read off the parent product's already-loaded collection, so a
+     * page with N SKUs costs no extra queries.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    protected function galleryImages(): array
+    {
+        $ids = collect($this->images ?? [])
+            ->map(fn ($id) => is_array($id) ? ($id['id'] ?? null) : $id)
+            ->filter(fn ($id) => is_numeric($id))
+            ->map(fn ($id) => (int) $id);
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        $mediaById = $this->resource->product?->relationLoaded('media')
+            ? $this->resource->product->media->keyBy('id')
+            : Media::whereIn('id', $ids)->get()->keyBy('id');
+
+        // Preserve the admin's ordering: map over the ids, not the media rows.
+        return $ids
+            ->map(fn (int $id) => MediaImageResource::one($mediaById->get($id)))
+            ->filter()
+            ->values()
+            ->all();
     }
 }

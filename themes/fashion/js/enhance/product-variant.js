@@ -124,6 +124,20 @@ export default function (root = document) {
     const groups = buildOptionGroups(variants);
     const selected = {}; // option name → value
 
+    // A variant's gallery: its own images when the admin assigned any (all sizes
+    // of one colour share the same set), else the product-level images. Never
+    // returns an empty list while the product has images, so choosing a colour
+    // without its own photos shows the full product gallery rather than nothing.
+    function imagesFor(variant) {
+        const own = variant?.images;
+        return (Array.isArray(own) && own.length) ? own : (state.images || []);
+    }
+
+    // Identity of an image set, so we only re-render when the set really changes.
+    function galleryKey(images) {
+        return (images || []).map((img) => img.id ?? img.large ?? '').join('|');
+    }
+
     const priceEl = panel.querySelector('[data-product-price]');
     const stockEl = panel.querySelector('[data-product-stock]');
     const variantInput = panel.querySelector('[data-variant-input]');
@@ -137,9 +151,11 @@ export default function (root = document) {
     (first?.options || []).forEach(({ option, value }) => { selected[option] = value; });
     Object.assign(selected, selectionFromUrl(groups));
 
-    // The SSR gallery already shows the first variant; only re-render the
-    // gallery when the chosen variant actually changes.
-    let lastGalleryVariantId = first?.id ?? null;
+    // The SSR gallery already shows the first variant's images. Track the image
+    // SET (by id), not the variant id: every size of a colour shares one set, so
+    // keying on the variant id would tear down and rebuild an identical gallery
+    // — losing the visitor's slide position — on every size change.
+    let lastGalleryKey = galleryKey(imagesFor(first));
 
     function currentVariant() {
         if (!groups.length) return variants[0] ?? null;
@@ -187,9 +203,13 @@ export default function (root = document) {
             addBtn.textContent = !allChosen ? t.select_options : (!inStock ? t.out_of_stock : t.add_to_cart);
         }
 
-        if (variant && variant.id !== lastGalleryVariantId) {
-            lastGalleryVariantId = variant.id;
-            swapGallery(variant);
+        if (variant) {
+            const images = imagesFor(variant);
+            const key = galleryKey(images);
+            if (key !== lastGalleryKey) {
+                lastGalleryKey = key;
+                MediaUrlGallery(root, images, state.name);
+            }
         }
 
         // Keep the URL in step with the current selection (deep-linkable, no reload).
@@ -201,13 +221,6 @@ export default function (root = document) {
             bubbles: true,
             detail: { variant, inStock, allChosen },
         }));
-    }
-
-    // Swap the gallery to the variant's images (fall back to product images).
-    function swapGallery(variant) {
-        const images = (variant.images && variant.images.length) ? variant.images : state.images;
-        if (!images || !images.length) return;
-        MediaUrlGallery(root, images, state.name);
     }
 
     panel.addEventListener('click', (e) => {

@@ -57,7 +57,7 @@ class ProductSkuMatrixSeeder extends Seeder
     {
         $products = Product::query()
             ->where('status', 'published')
-            ->with('skus')
+            ->with('skus', 'media')
             ->get();
 
         if ($products->isEmpty()) {
@@ -114,6 +114,41 @@ class ProductSkuMatrixSeeder extends Seeder
     }
 
     /**
+     * Split the product's gallery across the colour axis, so each colour owns a
+     * distinct photo set and switching colour visibly changes the gallery.
+     *
+     * The demo products carry ~3 shared photos rather than real per-colour
+     * shoots, so this rotates the media list per colour (starting each colour at
+     * a different offset) instead of inventing images. Products with a single
+     * photo get an empty set, which makes the storefront fall back to the full
+     * product gallery — the documented no-own-images behaviour.
+     *
+     * @return array<int, list<int>> keyed by colour index
+     */
+    protected function imagesByColor(Product $product): array
+    {
+        $ids = $product->media->pluck('id')->values();
+
+        if ($ids->count() < 2) {
+            return [];
+        }
+
+        $byColor = [];
+
+        foreach (array_keys(self::COLORS) as $ci) {
+            // Rotate so each colour leads with a different photo but every set
+            // stays a real, non-empty subset of the product's own media.
+            $byColor[$ci] = $ids
+                ->skip($ci % $ids->count())
+                ->concat($ids->take($ci % $ids->count()))
+                ->values()
+                ->all();
+        }
+
+        return $byColor;
+    }
+
+    /**
      * One row per Cartesian combination, in the same order combinations()
      * produces them (colour outer, size inner) — save() binds rows to
      * combinations by position.
@@ -123,6 +158,7 @@ class ProductSkuMatrixSeeder extends Seeder
     protected function rows(Product $product, int $basePrice, int $productIndex): array
     {
         $prefix = Str::upper(Str::substr(Str::slug($product->translateAttribute('name') ?: 'sku'), 0, 6));
+        $imagesByColor = $this->imagesByColor($product);
         $rows = [];
         $position = 0;
 
@@ -151,7 +187,10 @@ class ProductSkuMatrixSeeder extends Seeder
                     'cost_price' => (int) round($price * 0.55),
                     'quantity' => $quantity,
                     'weight' => self::WEIGHT_BY_SIZE[$size['en']] ?? 250,
-                    'images' => [],
+                    // Every size of a colour shares that colour's photo set, so
+                    // switching size keeps the gallery still and switching
+                    // colour swaps it.
+                    'images' => $imagesByColor[$ci] ?? [],
                     'is_default' => $position === 0,
                     // One disabled SKU per product so the storefront's
                     // `status = published` filter has something to exclude.

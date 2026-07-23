@@ -185,9 +185,35 @@ class AssetsServiceProvider extends ServiceProvider
 
         // Product page: zoom dimensions, OG image, and the gallery image set.
         View::composer('theme::pages.product', function ($view): void {
-            $product = $view->getData()['product'] ?? null;
+            $data = $view->getData();
+            $product = $data['product'] ?? null;
             $media = $product?->media ?? collect();
             $urls = app(MediaUrl::class);
+
+            // Render the gallery for the SELECTED variant (deep link
+            // ?màu-sắc=Trắng, else the first SKU), so the SSR page already shows
+            // that colour's photos. Without this the page would paint the full
+            // product gallery and enhance/product-variant.js would swap it on
+            // load — a visible flash on every colour deep link.
+            //
+            // The SKU stores media ids. Map over the IDS (not the media
+            // collection) so the SKU's own ordering survives — a colour whose
+            // set leads with a different photo must actually open on it, which
+            // a whereIn() filter would silently undo by keeping media order.
+            // Falls back to the whole gallery when the SKU has none of its own.
+            $skuImageIds = collect($data['selectedVariant']?->images ?? [])
+                ->map(fn ($id) => is_array($id) ? ($id['id'] ?? null) : $id)
+                ->filter(fn ($id) => is_numeric($id))
+                ->map(fn ($id) => (int) $id);
+
+            if ($skuImageIds->isNotEmpty()) {
+                $byId = $media->keyBy('id');
+                $scoped = $skuImageIds->map(fn (int $id) => $byId->get($id))->filter();
+
+                if ($scoped->isNotEmpty()) {
+                    $media = $scoped->values();
+                }
+            }
 
             $gallery = $media->map(fn ($image) => [
                 'small' => $urls->conversion($image, 'small') ?? $urls->conversion($image, 'large'),
