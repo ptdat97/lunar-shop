@@ -10,7 +10,8 @@
     },
     "autoload": {
         "psr-4": {
-            "Modules\\Inventory\\": "app/"
+            "Modules\\Inventory\\": "app/",
+            "Modules\\Inventory\\Database\\Seeders\\": "database/seeders/"
         },
         "files": []
     }
