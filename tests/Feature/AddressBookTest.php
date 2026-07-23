@@ -2,6 +2,10 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Support\Facades\DB;
+use Lunar\Models\Address;
+use Modules\Customer\Services\AddressService;
+use Modules\Customer\Services\CustomerResolver;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -63,6 +67,43 @@ class AddressBookTest extends TestCase
 
         // The first address should no longer be the default.
         $this->assertDatabaseHas('lunar_addresses', ['id' => $first, 'shipping_default' => false]);
+    }
+
+    /**
+     * create() writes the address and then clears the default flag on its
+     * siblings — two statements upholding one invariant. If the second fails,
+     * the transaction must take the first with it, otherwise the customer ends
+     * up with two defaults and checkout picks one arbitrarily.
+     */
+    public function test_a_failed_default_sync_rolls_back_the_new_address(): void
+    {
+        $user = $this->createUser();
+        $service = app(AddressService::class);
+        $customer = app(CustomerResolver::class)->forUser($user);
+
+        $existing = $service->create($customer, $this->shippingPayload(['shipping_default' => true]));
+
+        $before = Address::count();
+
+        // Fail the sibling UPDATE only. Hooked at the query layer because
+        // syncDefaults() uses a query-builder update, which fires no model
+        // events. Not DDL either: MySQL commits implicitly on ALTER, which would
+        // break RefreshDatabase's outer transaction and void the assertion.
+        DB::listen(function ($query) {
+            if (str_starts_with($query->sql, 'update `lunar_addresses`')) {
+                throw new \RuntimeException('sibling update failed');
+            }
+        });
+
+        try {
+            $service->create($customer, $this->shippingPayload(['shipping_default' => true]));
+            $this->fail('expected the sibling update to fail');
+        } catch (\RuntimeException) {
+            // expected
+        }
+
+        $this->assertSame($before, Address::count(), 'the half-written address must be rolled back');
+        $this->assertDatabaseHas('lunar_addresses', ['id' => $existing->id, 'shipping_default' => true]);
     }
 
     public function test_cannot_touch_another_users_address(): void

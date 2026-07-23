@@ -20,6 +20,7 @@ use Modules\Catalog\Models\SizeChart;
 use Modules\Catalog\Services\PricingService;
 use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Services\RecommendationService;
+use Modules\Catalog\Services\ReviewService;
 use Modules\Core\Support\AdminPages;
 use Modules\Core\Support\Settings;
 
@@ -42,6 +43,11 @@ class CatalogServiceProvider extends ServiceProvider
         // Scoped (per request, Octane-safe): holds per-request memos of matched
         // prices and the currency map used to prime price->currency.
         $this->app->scoped(PricingService::class);
+
+        // Scoped for the same reason: ReviewService memoises review summaries per
+        // request. ProductResource embeds one per product, so a grid would
+        // otherwise fire a count + an avg query for every card.
+        $this->app->scoped(ReviewService::class);
 
         // Storefront/API talk only to the SearchEngine contract, so swapping the
         // implementation later (e.g. Meilisearch) is a one-line binding change.

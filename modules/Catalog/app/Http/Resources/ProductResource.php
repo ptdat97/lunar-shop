@@ -3,6 +3,7 @@
 namespace Modules\Catalog\Http\Resources;
 
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Collection;
 use Lunar\Models\Product;
@@ -31,6 +32,29 @@ class ProductResource extends JsonResource
 
     /** @var Collection<int, Product>|null */
     protected $related = null;
+
+    /**
+     * Warm the review-summary memo for the whole set before serialising it.
+     *
+     * Each product embeds a review summary, so a 24-card grid cost 48 queries
+     * (a COUNT + an AVG per product). Batching here — rather than at each of the
+     * ~10 call sites — means every caller benefits and no one has to remember.
+     *
+     * @param  iterable<int, Product>  $resource
+     */
+    public static function collection($resource): AnonymousResourceCollection
+    {
+        $ids = collect($resource)
+            ->map(fn ($product) => $product->id ?? null)
+            ->filter()
+            ->all();
+
+        if ($ids) {
+            app(ReviewService::class)->loadSummaries($ids);
+        }
+
+        return parent::collection($resource);
+    }
 
     public function toArray(Request $request): array
     {

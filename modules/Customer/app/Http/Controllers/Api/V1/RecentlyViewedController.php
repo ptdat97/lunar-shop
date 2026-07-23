@@ -6,7 +6,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
-use Lunar\Models\Product;
 use Modules\Catalog\Http\Resources\ProductResource;
 use Modules\Customer\Services\RecentlyViewedService;
 
@@ -42,13 +41,12 @@ class RecentlyViewedController extends Controller
             'product_id' => ['required', 'integer', 'exists:lunar_products,id'],
         ]);
 
-        // Only published products: an unpublished one would be recorded and then
-        // silently dropped on read, which is just a wasted row.
-        $published = Product::whereKey($data['product_id'])->where('status', 'published')->exists();
-
-        abort_unless($published, 404);
-
-        $this->recentlyViewed->record($request->user(), $data['product_id']);
+        // The service owns the "published only" rule (standards §3: controllers
+        // don't query) and reports back whether the product was recordable.
+        abort_unless(
+            $this->recentlyViewed->record($request->user(), $data['product_id']),
+            404,
+        );
 
         return response()->json(['data' => ['status' => 'recorded']], 201);
     }

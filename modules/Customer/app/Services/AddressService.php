@@ -3,6 +3,7 @@
 namespace Modules\Customer\Services;
 
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Lunar\Models\Address;
 use Lunar\Models\Customer;
 
@@ -30,10 +31,16 @@ class AddressService
      */
     public function create(Customer $customer, array $data): Address
     {
-        $address = $customer->addresses()->create($data);
-        $this->syncDefaults($customer, $address, $data);
+        // Two writes upholding one invariant (exactly one default per type):
+        // insert the address, then clear the flag on its siblings. Without a
+        // transaction a failure between them leaves the customer with two
+        // defaults, and checkout then picks one arbitrarily.
+        return DB::transaction(function () use ($customer, $data) {
+            $address = $customer->addresses()->create($data);
+            $this->syncDefaults($customer, $address, $data);
 
-        return $address->refresh();
+            return $address->refresh();
+        });
     }
 
     /**
@@ -43,11 +50,13 @@ class AddressService
      */
     public function update(Customer $customer, int $addressId, array $data): Address
     {
-        $address = $this->owned($customer, $addressId);
-        $address->update($data);
-        $this->syncDefaults($customer, $address, $data);
+        return DB::transaction(function () use ($customer, $addressId, $data) {
+            $address = $this->owned($customer, $addressId);
+            $address->update($data);
+            $this->syncDefaults($customer, $address, $data);
 
-        return $address->refresh();
+            return $address->refresh();
+        });
     }
 
     /**

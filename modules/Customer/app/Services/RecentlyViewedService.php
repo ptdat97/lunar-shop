@@ -27,9 +27,18 @@ class RecentlyViewedService
 
     /**
      * Record a view, moving the product to the top of the list.
+     *
+     * Only published products are recorded — an unpublished one would be stored
+     * and then silently dropped on read (productsFor filters on status), which
+     * is just a wasted row. Returns false when the product is not recordable so
+     * callers can 404 without re-querying.
      */
-    public function record(User $user, int $productId): void
+    public function record(User $user, int $productId): bool
     {
+        if (! Product::whereKey($productId)->where('status', 'published')->exists()) {
+            return false;
+        }
+
         DB::transaction(function () use ($user, $productId) {
             // `sequence` orders the list, not `viewed_at`: consecutive views
             // share a millisecond, so a timestamp cannot separate them. Read
@@ -47,6 +56,8 @@ class RecentlyViewedService
 
             $this->trim($user);
         });
+
+        return true;
     }
 
     /**
