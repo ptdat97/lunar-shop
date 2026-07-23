@@ -5,7 +5,8 @@
 > (native của Lunar), storefront **100% Blade SSR + vanilla JS** (không Vue).
 > Chỉ ghi những gì đã có trong code.
 >
-> Cập nhật lần cuối: **2026-07-13** — 13 module nghiệp vụ, 63 route `api/v1`, 394 test xanh.
+> Cập nhật lần cuối: **2026-07-23** — 13 module nghiệp vụ (layout nwidart v13),
+> 63 route `api/v1`, 432 test xanh.
 >
 > **Lunar là composer package `lunarphp/lunar` trong `vendor/`** — bản fork trong repo
 > đã được gỡ (2026-07-20). Đừng sửa `vendor/`; xem
@@ -26,7 +27,7 @@
 > là gãy storefront ngay.
 >
 > 🧊 **Đóng băng (2026-07-13) là đóng băng BỀ MẶT, không phải code** — không đụng một dòng,
-> 394 test nguyên trạng. Luật: **GIỮ, KHÔNG MỞ RỘNG** — thêm endpoint vì Blade SSR cần thì
+> test nguyên trạng. Luật: **GIỮ, KHÔNG MỞ RỘNG** — thêm endpoint vì Blade SSR cần thì
 > cứ làm; thêm "để sẵn cho app sau này" thì **không** (build cho consumer không tồn tại).
 > Luật ghi ở `routes/api.php`; danh sách route chưa có consumer Blade + ngưỡng bỏ đóng băng
 > ở [todo.md § 11](../roadmap.md) và § Quyết định có chủ đích.
@@ -154,15 +155,15 @@ hoặc dùng **`Modules\Core\Support\LunarConfigOverride`** để re-apply overr
 - **Pipelines** (`cart.pipelines.*`, `orders.pipelines.creation`): chèn / đổi / bỏ bước
   xử lý. Stage là class implement pipeline; muốn thêm logic thì viết stage riêng và
   chèn vào mảng.
-  - ✅ **Đang dùng:** `Inventory/Config/overrides.php` chèn `DecrementStock` vào cuối
+  - ✅ **Đang dùng:** `Inventory/config/overrides.php` chèn `DecrementStock` vào cuối
     `orders.pipelines.creation` (giảm tồn khi tạo order).
   - Các stage core có sẵn để tham chiếu/sắp lại: `FillOrderFromCart`, `CreateOrderLines`,
     `CreateOrderAddresses`, `CreateShippingLine`, `CleanUpOrderLines`, `MapDiscountBreakdown`
     (order); `CalculateLines`, `ApplyShipping`, `ApplyDiscounts`, `CalculateTax`,
     `Calculate` (cart).
 - **Payment types / media definitions / cart_session**:
-  - ✅ **Đang dùng:** `Checkout/Config/payment-overrides.php` (COD/bank/vnpay/momo type),
-    `Assets/Config/overrides.php` (FashionMediaDefinitions), cart_session auto_create.
+  - ✅ **Đang dùng:** `Checkout/config/payment-overrides.php` (COD/bank/vnpay/momo type),
+    `Assets/config/overrides.php` (FashionMediaDefinitions), cart_session auto_create.
 
 ## (2) Manager / Facade `extend()` — thêm driver/type, cực sạch
 
@@ -274,10 +275,10 @@ Lunar cho phép mở rộng resource/page admin qua `Support/Extending/*` mà kh
 | Commerce core | LunarPHP 1.0 |
 | Admin | Filament 3 (qua Lunar) |
 | Storefront render | Blade (SSR) |
-| Storefront JS | Vanilla JS + jQuery (tiện ích) — **không Vue** |
+| Storefront JS | Vanilla JS + Bootstrap 5 — **không Vue, không jQuery** |
 | Build | Vite 7 + Laravel Vite Plugin |
 | HTTP client (JS) | Axios |
-| CSS | Tailwind CSS 4 + SCSS (`themes/fashion/css`) |
+| CSS | Bootstrap 5 + SCSS (`themes/fashion/css`, entry `app.scss`) — **không Tailwind** |
 | API auth | Laravel Sanctum (token PAT + cookie SPA) |
 | DB | MySQL 8 |
 | Search | Driver `database` (MySQL) sau interface `SearchEngine` |
@@ -294,12 +295,16 @@ riêng. Theme chỉ render view.
 
 ```text
 app/
- ├── Providers/ModulesServiceProvider.php   # quét & đăng ký provider của từng module + Lunar panel
+ ├── Providers/ModulesServiceProvider.php   # CHỈ dựng Lunar panel (module do nwidart nạp)
  └── Models/User.php                         # auth user (Lunar customer riêng)
 
+config/modules.php                           # cấu hình nwidart (paths.modules → base_path('modules'))
+modules_statuses.json                        # bật/tắt module — PHẢI commit
+patches/                                     # composer patch cho vendor (hiện 1 file)
 routes/{web,api}.php                         # gom routes từ các module
 modules/                                     # 13 module (12 feature + Core hạ tầng)
 themes/fashion/                              # theme active (view + JS + CSS)
+docs/                                        # tài liệu kỹ thuật
 ```
 
 ## 13 module (12 feature + Core)
@@ -342,27 +347,49 @@ page/resource module đóng góp), `Support\LunarConfigOverride` (re-apply overr
 
 ## Cấu trúc một Module
 
+Layout **nwidart/laravel-modules v13**: mã PSR-4 nằm trong `app/`, thư mục dữ liệu
+viết thường ở gốc module.
+
 ```text
 modules/<Name>/
- ├── Http/Controllers/{Storefront,Api/V1}/   # Blade (theme::) và JSON (/api/v1)
- ├── Http/{Requests,Resources}/              # validation + API Resource (JSON contract)
- ├── Services/                               # business logic (web + API gọi chung, ≤ 500 dòng)
- ├── Support/                                # value object, hằng số (vd OrderStatus)
- ├── Data/                                   # DTO / result object, bất biến
- ├── Contracts/                              # CHỈ khi có ≥ 2 implementation (SearchEngine, PushSender)
- ├── Models/ Events/ Listeners/ Jobs/ Observers/
- ├── Pipelines/                              # stage chèn vào pipeline Lunar (DecrementStock)
- ├── DiscountTypes/ | PaymentTypes/ | Modifiers/ | Strategies/ | Drivers/
- ├── Console/                                # artisan command của module
- ├── Filament/  Database/{Migrations,Seeders}  Config/
- ├── Routes/{web,api}.php                    # api tự prefix /api/v1
- └── Providers/<Name>ServiceProvider.php
+ ├── module.json                             # manifest: providers[] + priority (thứ tự nạp)
+ ├── composer.json                           # PSR-4 root (wikimedia/composer-merge-plugin)
+ ├── app/
+ │   ├── Http/Controllers/{Storefront,Api/V1}/   # Blade (theme::) và JSON (/api/v1)
+ │   ├── Http/{Requests,Resources}/              # validation + API Resource (JSON contract)
+ │   ├── Services/                               # business logic (web + API gọi chung, ≤ 500 dòng)
+ │   ├── Support/                                # value object, hằng số (vd OrderStatus)
+ │   ├── Data/                                   # DTO / result object, bất biến
+ │   ├── Contracts/                              # CHỈ khi có ≥ 2 implementation (SearchEngine, PushSender)
+ │   ├── Models/ Events/ Listeners/ Jobs/ Observers/
+ │   ├── Pipelines/                              # stage chèn vào pipeline Lunar (DecrementStock)
+ │   ├── DiscountTypes/ | PaymentTypes/ | Modifiers/ | Strategies/ | Drivers/
+ │   ├── Console/                                # artisan command của module
+ │   ├── Filament/
+ │   └── Providers/<Name>ServiceProvider.php
+ ├── config/
+ ├── database/{migrations,seeders}/
+ ├── resources/views/
+ └── routes/{web,api}.php                    # api tự prefix /api/v1
 ```
 
-Namespace PSR-4 `Modules\<Name>` → `modules/<Name>`. `ModulesServiceProvider` quét mảng
-module, đăng ký provider từng module rồi đăng ký Lunar panel cuối cùng (để gom Filament
-page/resource do module đóng góp). Thứ tự trong mảng có ý nghĩa khi module này phụ thuộc
-binding của module kia (vd `Notification` sau `Order`).
+Namespace PSR-4 `Modules\<Name>` → `modules/<Name>/app`, khai trong `composer.json`
+của từng module (merge-plugin gom lại) — **không** còn dòng `"Modules\\": "modules/"`
+ở composer.json gốc. Seeder nằm ngoài `app/` nên module có seeder phải khai thêm root
+`Modules\<Name>\Database\Seeders\`.
+
+**Ai nạp module:** nwidart đọc `module.json` của từng module và đăng ký provider theo
+`priority` tăng dần (Core=1 … Analytics=13). Thứ tự có ý nghĩa khi module này phụ thuộc
+binding của module kia — `Notification` phải sau `Order` vì nghe domain event của nó.
+Đổi thứ tự = sửa `priority`, không sửa code.
+
+`app/Providers/ModulesServiceProvider` **không còn quét/đăng ký module** — nó chỉ còn
+`registerLunarPanel()`, gom Filament page/resource các module đóng góp (qua
+`Core\Support\AdminPages`) rồi dựng Lunar panel. Nó vẫn chạy sau mọi module vì provider
+của nwidart được package auto-discovery nạp trước `bootstrap/providers.php`.
+
+`modules_statuses.json` (bật/tắt module) **phải commit**: nwidart coi module không có
+tên trong file là *disabled*, nên thiếu file thì clone mới boot ra zero module.
 
 **Chiều phụ thuộc** (kiểm bằng review):
 
@@ -485,8 +512,10 @@ theo session không cần crawl (cart drawer/page, wishlist).
   flash sale đang chạy, tự ẩn khi không có flash sale).
 - **Product** — gallery Swiper + PhotoSwipe (thumbs-first DOM, responsive `<picture>`
   cho LCP), variant picker (`enhance/product-variant.js`). **Deep-link variant**
-  (`?color=red&size=m`): SSR preselect variant + active buttons + **giá đúng variant**
-  (no-JS/crawler), JS đồng bộ URL qua `replaceState`. Size chart modal + "find my size".
+  (`?màu-sắc=Đen&kích-cỡ=M` — key là **nhãn đã localise** đã slugify, không phải handle):
+  SSR preselect SKU + active buttons + **giá đúng SKU** (no-JS/crawler), JS đồng bộ URL
+  qua `replaceState`. **Gallery đổi theo màu** (mỗi màu một bộ ảnh; đổi size giữ nguyên
+  gallery). Size chart modal + "find my size".
   Notify-me khi hết hàng. Recently-viewed strip. "You may also like" (Recommend).
   JSON-LD Product + BreadcrumbList.
 - **Collection / Search** — SSR-first grid + facet sidebar (`size/color/brand/price`),
@@ -507,22 +536,49 @@ theo session không cần crawl (cart drawer/page, wishlist).
 
 ## Quy ước JS
 
+- **Vanilla + Bootstrap 5, không Vue, không jQuery.** 25 file trong
+  `themes/fashion/js/enhance/`; file `_*.js` là helper (import, không auto-run).
 - `enhance/*.js`: mỗi module export `default fn(root=document)`, target qua `data-*`,
-  bootstrap tự động trong `app.js`. Card động render qua `enhance/_card.js` (khớp
-  `product-card.blade.php`).
+  bootstrap tự động trong `app.js`, idempotent để chạy lại trên fragment mới. Card động
+  render qua `enhance/_card.js` (khớp `product-card.blade.php` 1:1).
 - Đồng bộ giữa consumer qua DOM event (`cart:updated` → `cart.js` refresh →
-  `cart:refreshed`). Không coupling trực tiếp.
-- jQuery chỉ cho tiện ích/plugin (slider, lazyload). Axios gọi `/api/v1` (CSRF +
-  Sanctum cookie cùng domain). State giỏ là server-side (Lunar cart).
+  `cart:refreshed`; `size:recommended` → variant picker). Không coupling trực tiếp.
+- Axios gọi `/api/v1` (CSRF + Sanctum cookie cùng domain). State giỏ là server-side
+  (Lunar cart).
+- `app.js` phải gán `window.bootstrap` — enhancer gọi Offcanvas/Modal bằng tay; chỉ
+  import side-effect thì các lệnh đó im lặng không chạy.
 
 ---
 
 # Các domain nghiệp vụ
 
 ## Catalog / Product / Search / Recommend
-- Product/variant/options map thẳng lên Lunar. `ProductService` là nguồn read duy nhất
-  (list qua `SearchEngine`, `findBySlug`, `bySlugs` giữ thứ tự, `related`,
-  `resolveSelectedVariant` cho deep-link).
+- **Tầng SKU linh hoạt (VaniCommerce-style) là purchasable thật.** Product map lên Lunar,
+  nhưng biến thể **không** dùng `lunar_product_variants` + bảng option/value; thay vào đó:
+  - `Product.variables` (JSON) định nghĩa các trục — mỗi trục có `name` (map locale),
+    `display_type` (`text` | `color` | `image`) và danh sách `values`.
+  - `Modules\Catalog\Models\ProductSku` (`lunar_product_skus`) giữ **một dòng cho mỗi tổ
+    hợp Cartesian**: `variants` (mảng chỉ số vào `variables`), `sku`, `price`,
+    `origin_price`, `quantity`, `weight`, `images`, `status`.
+  - Cart/order line trỏ vào SKU qua morph alias **`product_sku`**
+    (`Relation::morphMap` trong `CatalogServiceProvider`).
+  - **`SkuBuilderService` là writer duy nhất** (`save()`): validate số dòng khớp số tổ
+    hợp, chặn trùng mã SKU, ghi lại theo kiểu delete-and-recreate rồi **re-point** mọi
+    tham chiếu theo mã SKU (discount target, cart/order line) sang dòng mới, đồng bộ một
+    `Price` cơ sở, và đảm bảo **đúng một** SKU mặc định (ưu tiên bản published).
+  - Quan hệ `Product::skus` khai bằng `resolveRelationUsing` + **`chaperone()`** — mỗi SKU
+    được trỏ ngược về product đã nạp nó, nếu không `optionPairs()` và ảnh SKU sẽ lazy-load
+    product/media **một lần mỗi SKU** (N+1 thật, đã đo: 297 → 33 statement).
+- `ProductService` là nguồn read duy nhất (list qua `SearchEngine`, `findBySlug`,
+  `bySlugs` giữ thứ tự, `related`, `resolveSelectedVariant` cho deep-link).
+  ⚠️ `resolveSelectedVariant` khớp theo **nhãn đã localise** (`?màu-sắc=Đen`), không phải
+  handle — `product-variant.js` slugify đúng nhãn đó nên hai bên khớp nhau.
+- **Ảnh theo màu:** `ProductSku.images` giữ danh sách **media id**; `ProductSkuResource`
+  resolve chúng qua `MediaImageResource` để ra **cùng shape** với gallery cấp product
+  (`{small,large,zoom,width,height}`), giữ nguyên thứ tự do admin đặt. SSR đã render
+  đúng bộ ảnh của variant đang chọn (view composer trong Assets), nên deep-link không bị
+  nháy; JS chỉ đổi gallery khi **tập ảnh** đổi — đổi size cùng màu không rebuild.
+  SKU không có ảnh riêng → fallback về gallery product.
 - **Search abstraction:** interface `SearchEngine` + driver `DatabaseSearchEngine`
   (MySQL, `computeFacets` trả size/color/brand/price, `applyFilters`). Đổi engine sau =
   thêm driver, không sửa caller.
@@ -617,8 +673,19 @@ theo session không cần crawl (cart drawer/page, wishlist).
   → tối ưu N+1 trên product card.
 
 ## Inventory
-- Stock per-variant. **Reserve** khi tạo order (`DecrementStock` pipeline) + oversell guard
+- Stock per-SKU. **Reserve** khi tạo order (`DecrementStock` pipeline) + oversell guard
   (conditional UPDATE atomic, tôn trọng `backorder`/`always`).
+- **Sổ cái tồn kho (`stock_movements`)** — mọi thay đổi tồn đều để lại một dòng
+  (`type`: sale · release · adjustment · restock · manual · edit) kèm `stock_before` /
+  `stock_after`, người gây ra và `order_id` nếu có.
+  **`StockLedger` là writer duy nhất:** `record()` chỉ ghi sổ cho thay đổi caller đã áp,
+  `adjust()`/`set()` vừa đổi tồn vừa ghi sổ trong **một transaction có row lock**, và từ
+  chối kết quả âm.
+  ⚠️ **Bất biến:** mọi lệnh ghi tồn nuôi sổ cái (`StockLedger`, `DecrementStock`,
+  `StockReleaser`) đều dùng **query builder** (`whereKey()->update`), **không** dùng
+  `$sku->save()` — `save()` bắn event `updated` khiến `ProductSkuObserver` ghi thêm một
+  dòng `edit`, tức **đếm đôi** cùng một thay đổi. Observer chỉ để bắt sửa tay qua editor.
+  Kiểm nhanh tính đúng: `stock_after` của dòng cuối mỗi SKU phải bằng `quantity` hiện tại.
 - **Mặc định `purchasable = in_stock`** (migration đổi default của Lunar, vốn là `always`).
   ⚠️ Trước 2026-07-10 mọi variant đều `always` nên **guard chống oversell chưa từng chạy**
   (đo được: stock=2, đặt 10 → checkout 200, stock **−8**). Admin vẫn chọn backorder/always
@@ -687,10 +754,11 @@ morph-alias-aware, cache 1h) + `robots.txt`. Storefront SSR Blade → crawlable.
 
 # Test
 
-**383 test / 1629 assertion, all green (2026-07-10)** — `tests/Feature/`, chạy trên MySQL
-`lunar_testing` (app phụ thuộc JSON functions/facets — SQLite không emulate được).
-`tests/TestCase` dùng `RefreshDatabase`; trait `CreatesStorefrontData` seed base data +
-fixture product/size-chart. Chạy: `vendor/bin/phpunit` (testsuite `Feature`).
+**432 test / 1792 assertion, all green (2026-07-23)** — 68 file trong `tests/Feature/`,
+chạy trên MySQL `lunar_testing` (app phụ thuộc JSON functions/facets — SQLite không
+emulate được; các test cascade menu cũng cần đúng engine MySQL). `tests/TestCase` dùng
+`RefreshDatabase`; trait `CreatesStorefrontData` seed base data + fixture
+product/size-chart. Chạy: `php artisan test`.
 
 Bao phủ: auth (register/login/logout + profile/password), cart (add/update/remove/
 coupon), address book CRUD + ownership, checkout→order COD + API + order history/detail
@@ -701,7 +769,9 @@ product/collection page smoke render, SEO (sitemap + JSON-LD), facet price/brand
 recently-viewed, email branding (logo absolute URL + accent, chặn CSS injection),
 fit history (kept/returned → size, between-sizes, cách ly theo customer), cart headless
 (X-Cart-Token, không claim được cart của người khác), token policy (expiry/abilities/refresh),
-oversell + release tồn kho, RMA (không trả 2 lần, không trả đơn chưa giao), notification.
+oversell + release tồn kho, RMA (không trả 2 lần, không trả đơn chưa giao), notification,
+gallery theo màu (shape ảnh SKU, giữ thứ tự, fallback khi SKU không có ảnh, **guard N+1**
+trên `/api/v1/products?slugs=`), rebuild menu lồng nhau (self-cascade MySQL).
 
 **Kỷ luật test:**
 - **Mutation-check mọi guard**: tắt guard → test phải đỏ. Không đỏ = test không bảo vệ gì.
@@ -711,8 +781,8 @@ oversell + release tồn kho, RMA (không trả 2 lần, không trả đơn chư
 - ⚠️ **Luôn `php artisan optimize:clear` trước khi chạy test.** `config:cache` che các `<env>`
   trong `phpunit.xml` → `DB_DATABASE` trỏ về DB dev và `RefreshDatabase` **xoá sạch nó**.
 
-⬜ **Còn thiếu:** `modules/<Name>/Tests` vẫn trống (toàn bộ 54 file ở `tests/Feature`); chưa
-phủ phần thuần-JS (picture/srcset, search-panel, lookbook) — cần browser driver.
+⬜ **Còn thiếu:** `modules/<Name>/tests/` vẫn trống (toàn bộ 68 file ở `tests/Feature`);
+chưa phủ phần thuần-JS (picture/srcset, search-panel, lookbook) — cần browser driver.
 
 ---
 
@@ -765,6 +835,7 @@ sau quyết định bằng dữ kiện chứ không bằng cảm tính.
 | 19 | 2026-07-23 | **Seed đủ tầng SKU** — `lunar_product_skus`, `product_reviews`, `stock_movements` đều **rỗng** dù module đã implement: storefront đọc `skus` nên mọi trang sản phẩm demo không có bộ chọn màu/size, không tồn kho, nút thêm giỏ bị vô hiệu. Thêm 3 seeder (ma trận 3 màu × 4 size, review có hàng đợi duyệt, ledger qua `StockLedger`) | 423 test; ledger invariant 120 SKU, 0 lệch |
 | 20 | 2026-07-23 | **Gallery theo màu + sửa N+1** — SKU `images` trả cột JSON thô trong khi gallery cần `{small,large,zoom}`; `swapGallery` bắt theo variant id nên đổi size cũng rebuild. Thêm serialize qua `MediaImageResource`, SSR scope theo variant đang chọn, key theo *tập ảnh*. `chaperone()` trên quan hệ `skus` xoá N+1: endpoint `?slugs=…` từ **297 → 33 statement** | 432 test; mutation-check cả thứ tự ảnh lẫn N+1 |
 | 21 | 2026-07-23 | **Sửa lỗi `db:seed` chết giữa chừng** — `menu_items.parent_id` là FK tự tham chiếu `ON DELETE CASCADE`, MySQL từ chối quá 30 lần mở rộng (lỗi 6575). Thêm `Menu::deleteItems()` xoá lá trước. Không chỉ lỗi seed: `MenuTree::save()` (đường lưu menu trong admin) dính cùng lỗi | 431 test; `db:seed` chạy trọn, lặp lại được |
+| 22 | 2026-07-23 | **Đồng bộ tài liệu với code** — gom `.md` vào `docs/` rồi rà lại từng khẳng định. Sửa những chỗ tài liệu **mô tả sai hệ thống**: layout module còn là bản tiền-v13, `ModulesServiceProvider` vẫn được mô tả là nơi nạp module, tầng SKU linh hoạt (purchasable thật) **hoàn toàn vắng mặt**, sổ cái tồn kho không được nhắc, và `theme.md` vẫn là *kế hoạch dựng theme* mô tả 3 Vue island chưa từng tồn tại + Tailwind trong khi theme chạy Bootstrap 5 + SCSS với 25 enhancer vanilla | Không đổi code; 432 test nguyên trạng |
 
 > **Quy tắc cho mọi refactor:** giải thích *why* trước khi viết code · composer patch
 > là **bậc cuối** (thử hết extension point trước; nếu patch thì kèm PR upstream)

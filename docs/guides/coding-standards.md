@@ -53,9 +53,9 @@ View → Database                  ❌
 
 ## 2. Cấu trúc module
 
-Mỗi module ở `modules/<Name>`, namespace `Modules\<Name>`, đăng ký qua
-`<Name>ServiceProvider` (gom trong `app/Providers/ModulesServiceProvider`).
-Cấu trúc thực tế:
+Mỗi module ở `modules/<Name>`, namespace `Modules\<Name>` → `modules/<Name>/app`,
+đăng ký qua `<Name>ServiceProvider` khai trong `module.json` — **nwidart nạp**, không
+phải `ModulesServiceProvider` (provider đó nay chỉ dựng Lunar panel). Cấu trúc thực tế:
 
 ```text
 modules/<Name>/
@@ -283,7 +283,8 @@ Storefront là **Blade SSR + Vanilla JS**:
 * **Vue / React** — **cần kiến trúc phê duyệt riêng** trước khi thêm (storefront
   đã bỏ Vue hoàn toàn; đừng tự thêm lại).
 
-jQuery chỉ cho plugin/tiện ích nhỏ; Axios gọi `/api/v1/*`.
+Storefront hiện **không dùng jQuery** (đã gỡ) — đừng thêm lại cho tiện. Bootstrap 5 JS
+lo dropdown/modal/offcanvas/carousel; Axios gọi `/api/v1/*`.
 
 * Mỗi enhancer: `themes/fashion/js/enhance/*.js`, export `default fn(root=document)`,
   tự target qua `data-*`, auto-bootstrap qua `app.js` (glob). File `_*.js` (gạch

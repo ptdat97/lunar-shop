@@ -2,7 +2,7 @@
     "name": "Fashion",
     "version": "1.0.0",
     "author": "SME",
-    "description": "SSR-first fashion storefront theme (Blade + Bootstrap 5 + vanilla JS, Vue islands for variant/quick-view/checkout).",
+    "description": "SSR-first fashion storefront theme (Blade + Bootstrap 5 + SCSS + vanilla JS enhancers, no Vue).",
     "supports": {
         "vite": true,
         "bootstrap": "5"

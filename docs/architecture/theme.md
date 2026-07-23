@@ -1,13 +1,15 @@
-# Theme `fashion` — Build Plan (SSR-first)
+# Theme `fashion` — kiến trúc storefront
 
-> Kế hoạch dựng theme storefront `fashion` từ đầu. `themes/fashion/` hiện **rỗng**
-> (theme `modave` đã bị xoá ở commit `966c84e`). Theme này là **lớp trình bày thuần**:
-> chỉ Blade + JS + CSS, **không** query DB / model Lunar / business logic. Mọi data
-> đến từ Storefront controller (gọi service module) hoặc Vue/vanilla island fetch
-> `/api/v1/*`.
+> Theme storefront đang chạy (theme active duy nhất). **Lớp trình bày thuần**: chỉ
+> Blade + SCSS + vanilla JS — **không** query DB, **không** gọi model Lunar, **không**
+> business logic. Mọi data đến từ Storefront controller (gọi service module) hoặc từ
+> `/api/v1/*` khi người dùng tương tác.
 >
-> Tham chiếu kiến trúc: [overview.md](overview.md)
-> (mục "Storefront", "Quy ước JS", "Nguyên tắc SSR-first", "CMS & Sections").
+> Stack: **Blade SSR + Bootstrap 5 (SCSS) + vanilla JS**. **Không có Vue** — xem
+> § [Vì sao không Vue](#vì-sao-không-vue).
+>
+> Tham chiếu kiến trúc: [overview.md](overview.md) · quy tắc code:
+> [../guides/coding-standards.md](../guides/coding-standards.md) §7–§9.
 
 ---
 
@@ -15,195 +17,164 @@
 
 1. **SSR-first.** Mọi nội dung công khai (home, product, collection, search, CMS page)
    render **HTML thật** ở server. Crawlable, không flash trắng, chạy khi tắt JS.
-2. **3 lớp:** *SSR shell (Blade)* → *JSON hydration payload (`$state`, cùng shape
-   với `/api/v1`)* → *JS enhancement (đọc payload, chỉ fetch khi tương tác)*.
-3. **Một contract dữ liệu duy nhất.** SSR và island dùng **cùng API Resource shape**
-   (`ProductResource`, …). Không nhân đôi shape, không lệch dữ liệu.
-4. **Vue tối thiểu (3 island), vanilla là mặc định.** Vue CHỈ cho `product-purchase`,
-   `checkout-page`, `quick-view`. Mọi thứ khác: Blade + `enhance/*.js`.
+2. **3 lớp:** *SSR shell (Blade)* → *JSON hydration payload (cùng shape `/api/v1`)* →
+   *JS enhancement (đọc payload, chỉ fetch khi tương tác)*.
+3. **Một contract dữ liệu duy nhất.** SSR và JS dùng **cùng API Resource shape**
+   (`ProductResource`…). Không nhân đôi shape, không lệch dữ liệu.
+4. **Vanilla JS là mặc định.** Mỗi enhancer là một file `enhance/*.js`.
 5. **No-JS fallback thật.** Filter/sort/search/pagination là `GET` form/link thật.
-6. **Cấm CSR trá hình** cho nội dung SEO (`onMounted(fetch)` rồi để SSR trong `<noscript>`).
+6. **Cấm CSR trá hình** cho nội dung SEO (fetch-on-mount rồi để SSR trong `<noscript>`).
 
-> Hợp đồng giữa codebase ↔ theme đã được wire sẵn:
-> - `ThemeServiceProvider` đăng ký namespace `theme::` → `themes/<active>/views`,
->   và view composer biến `$theme` (ThemeSettings) khả dụng trong mọi view `theme::*`.
+> Hợp đồng codebase ↔ theme:
+> - `ThemeServiceProvider` đăng ký namespace `theme::` → `themes/<active>/views`, và
+>   view composer đưa `$theme` (ThemeSettings) vào mọi view `theme::*`.
 > - `config/theme.php` → `active = env('THEME','fashion')`.
-> - Storefront controller đã `return view('theme::pages.*', [...])` với data + `$state`.
-> Theme chỉ cần **cung cấp các view + JS/CSS** mà các controller này gọi.
+> - Storefront controller `return view('theme::pages.*', [...])` kèm data + `$state`.
+
+### Vì sao không Vue
+
+Storefront **từng** có 3 Vue island (variant picker, quick-view, checkout). Chúng đã
+được thay bằng vanilla enhancer và **Vue gỡ hoàn toàn** khỏi `package.json`. Dòng đầu
+`enhance/product-variant.js` còn ghi lại điều này.
+
+Thêm Vue/React trở lại **cần phê duyệt kiến trúc riêng** — xem
+[coding-standards §9](../guides/coding-standards.md#9-javascript-theme). Lý do: trang
+sản phẩm là nội dung SEO bắt buộc SSR, component framework rất dễ trượt sang
+render client-side.
 
 ---
 
-## 1. Cấu trúc thư mục theme
+## 1. Cấu trúc thư mục
 
 ```text
 themes/fashion/
  ├── theme.json                 # manifest: name, version, author
  ├── views/
- │    ├── layouts/
- │    │    └── app.blade.php     # <html> shell: head/meta/seo, header, @yield, footer, @stack
- │    ├── partials/
- │    │    ├── header.blade.php          # logo, mega-menu (CMS menu), search, cart count, account
- │    │    ├── footer.blade.php
- │    │    ├── cart-drawer.blade.php     # markup #shoppingCart (vanilla, fetch /api/v1/cart)
- │    │    ├── search-modal.blade.php    # vanilla suggest
- │    │    └── flash.blade.php
- │    ├── pages/
- │    │    ├── home.blade.php            # render sections (SectionBuilder)
- │    │    ├── product.blade.php         # detail + variant island + size + related
- │    │    ├── collection.blade.php      # SSR grid + facets + $state
- │    │    ├── search.blade.php          # SSR results + $state
- │    │    ├── cart.blade.php            # trang giỏ (vanilla)
- │    │    ├── checkout.blade.php        # checkout island (Vue)
- │    │    ├── wishlist.blade.php
- │    │    ├── page.blade.php            # CMS page (sections)
- │    │    └── auth/{login,register,account}.blade.php
- │    ├── sections/              # SectionBuilder: 1 type = 1 partial
- │    │    ├── hero.blade.php
- │    │    ├── product-grid.blade.php
- │    │    ├── banner.blade.php
- │    │    ├── slider.blade.php
- │    │    ├── collection.blade.php
- │    │    ├── rich-text.blade.php
- │    │    └── video.blade.php
- │    └── components/            # Blade components UI tái dùng
- │         ├── product-card.blade.php    # markup chuẩn — _card.js render khớp 1:1
- │         ├── price.blade.php
- │         ├── pagination.blade.php
- │         ├── facet.blade.php
- │         ├── breadcrumb.blade.php
- │         └── rating.blade.php
+ │    ├── layouts/app.blade.php # <html> shell: head/meta/SEO, header, @yield, footer, @stack
+ │    ├── partials/  (14)       # header, footer, cart-drawer, search-panel, size-chart,
+ │    │                         # promo-bar, recently-viewed, product-jsonld, pixels…
+ │    ├── pages/     (16)       # home, product, collection, search, cart, checkout(+confirmation),
+ │    │                         # wishlist, account, login, register, page, lookbook(s), promotion(s)
+ │    ├── sections/  (8)        # SectionBuilder: 1 type = 1 partial (hero-slider, collection-grid,
+ │    │                         # flash-sale, lookbook, product-tabs, promotion-slider, iconbox…)
+ │    ├── components/ (3)       # product-card · price · picture (responsive <picture>)
+ │    └── menus/                # menu render theo cấu trúc CMS Menu
  ├── js/
- │    ├── app.js                 # bootstrap: VUE_ISLANDS allow-list + auto-load enhance/*
- │    ├── api.js                 # axios instance (baseURL /api/v1, CSRF/Sanctum cookie)
- │    ├── events.js              # cart:updated / cart:refreshed bus
- │    ├── islands/               # Vue islands (CHỈ 3)
- │    │    ├── ProductPurchase.vue
- │    │    ├── QuickView.vue
- │    │    └── CheckoutPage.vue
- │    └── enhance/               # vanilla — mỗi file export default fn(root=document)
- │         ├── _card.js          # render product card khớp product-card.blade.php
- │         ├── cart.js           # mini-cart drawer + header count
- │         ├── cart-page.js
- │         ├── collection-shop.js # đọc $state, fetch khi đổi filter/sort/page
- │         ├── search-results.js
- │         ├── search-modal.js
- │         ├── wishlist.js
- │         └── auth.js
- ├── css/
- │    └── app.css                # Tailwind 4 (@import "tailwindcss")
- └── assets/                     # ảnh tĩnh, fonts
+ │    ├── app.js                # bootstrap: import Bootstrap JS + auto-load enhance/*
+ │    ├── api.js                # axios instance (baseURL /api/v1, CSRF/Sanctum cookie)
+ │    ├── events.js             # cart:updated / cart:refreshed bus
+ │    ├── config/               # hằng số chia sẻ giữa Blade và JS (vd grid.js)
+ │    └── enhance/   (25)       # vanilla — mỗi file export default fn(root=document)
+ └── css/
+      ├── app.scss              # entry Vite
+      ├── features/             # _header, _product-card, _mini-cart, _search-panel…
+      └── pages/                # style riêng từng trang
 ```
 
-`theme.json`:
-```json
-{ "name": "Fashion", "version": "1.0.0", "author": "SME", "supports": { "vite": true } }
-```
+**Quy ước `enhance/`:** file bắt đầu bằng `_` (`_card.js`, `_gallery.js`, `_shop.js`) là
+**helper**, được import chứ không auto-run. Còn lại auto-load qua glob trong `app.js`,
+gọi `default(document)` khi DOM ready; mỗi enhancer tự target qua `data-*` và phải
+**idempotent** để chạy lại được trên fragment mới.
 
 ---
 
-## 2. Bản đồ trang ↔ controller ↔ endpoint (đã tồn tại trong codebase)
+## 2. Bản đồ trang ↔ controller ↔ endpoint
 
-Các route/endpoint dưới đây **đã có**; theme chỉ dựng view + JS khớp với chúng.
-
-| Trang | Web route → view | Data SSR (controller) | API island/enhance dùng |
+| Trang | Web route → view | Data SSR (controller) | API mà JS gọi |
 |---|---|---|---|
 | Home | `storefront.home` → `pages.home` | `HomeController` (sections) | — (tĩnh) |
-| Product | `storefront.product` → `pages.product` | `ProductService::findBySlug`, `sizeChart`, `related` | `GET /api/v1/cart`, `POST /api/v1/cart`, `GET products/{slug}/size-chart`, `POST products/{slug}/recommend-size`, `GET products/{slug}/recommendations` |
-| Collection | `storefront.collection` → `pages.collection` | `SearchEngine` + `$state` (ProductResource) | `GET /api/v1/search?scope=…` |
-| Search | `storefront.search` → `pages.search` | `SearchEngine` + `$state` | `GET /api/v1/search`, `GET /api/v1/search/suggest` |
-| Cart | `storefront.cart` → `pages.cart` | (SSR shell) | `GET/POST /api/v1/cart`, `PATCH/DELETE cart/lines/{line}`, `POST/DELETE cart/coupon`, `GET cart/coupons` |
-| Checkout | `storefront.checkout` → `pages.checkout` | `CheckoutController::index` | `GET checkout/shipping-options`, `POST checkout/addresses`, `POST checkout/shipping`, `POST checkout` |
+| Product | `storefront.product` → `pages.product` | `ProductService::findBySlug`, `sizeChart`, `related` | `GET/POST /api/v1/cart`, `products/{slug}/size-chart`, `POST products/{slug}/recommend-size`, `products/{slug}/recommendations` |
+| Collection | `storefront.collection` → `pages.collection` | `SearchEngine` + `$state` | `GET /api/v1/search?scope=…` |
+| Search | `storefront.search` → `pages.search` | `SearchEngine` + `$state` | `GET /api/v1/search`, `search/suggest` |
+| Cart | `storefront.cart` → `pages.cart` | (SSR shell) | `GET/POST /api/v1/cart`, `PATCH/DELETE cart/lines/{line}`, `POST/DELETE cart/coupon` |
+| Checkout | `storefront.checkout` → `pages.checkout` | `CheckoutController::index` | `checkout/shipping-options`, `POST checkout/addresses`, `POST checkout/shipping`, `POST checkout` |
 | Confirmation | `storefront.checkout.confirmation` | `CheckoutController::confirmation` | — |
-| Wishlist | `storefront.wishlist` → `pages.wishlist` | `WishlistController` | `GET /api/v1/wishlist`, `POST /api/v1/wishlist` (toggle) |
-| Auth | `storefront.{login,register,account}` | `AuthPageController` | `POST auth/{register,login,logout}`, `GET customer`, `GET customer/orders` |
-| CMS page | `storefront.page` → `pages.page` | `CMS PageController` (sections) | `GET /api/v1/pages/{slug}` (nếu cần) |
+| Wishlist | `storefront.wishlist` → `pages.wishlist` | `WishlistController` | `GET/POST /api/v1/wishlist` |
+| Account/Auth | `storefront.{login,register,account}` | `AuthPageController` | `auth/{register,login,logout}`, `customer`, `customer/orders` |
+| CMS page | `storefront.page` → `pages.page` | `PageController` (sections) | — |
+| Lookbook | `storefront.lookbook(s)` | `LookbookController` | — (pin toạ độ render SSR) |
+| Promotion | `storefront.promotion(s)` | `PromotionController` | — |
 
-> **Hợp đồng hydration:** với collection/search, controller serialize **cùng shape**
-> `GET /api/v1/search` (`{ data, facets, meta }`) và nhúng:
-> ```blade
-> <script type="application/json" data-island-state>@json($state)</script>
-> ```
-> `enhance/collection-shop.js` & `search-results.js` đọc payload này làm state đầu,
-> **không fetch lần đầu**, chỉ gọi API khi đổi filter/sort/page/term.
+**Hợp đồng hydration** — hai payload nhúng, cùng shape với `/api/v1`:
+
+```blade
+<script type="application/json" data-product-state>@json($state)</script>  {{-- product --}}
+<script type="application/json" data-island-state>@json($state)</script>   {{-- collection/search --}}
+```
+
+JS đọc payload này làm state đầu, **không fetch lần đầu**, chỉ gọi API khi đổi
+filter/sort/page/term và đồng bộ URL qua `history.replaceState`.
 
 ---
 
 ## 3. Lớp JS
 
 ### `app.js` — bootstrap
-- Định nghĩa `VUE_ISLANDS = { 'product-purchase': ProductPurchase, 'quick-view': QuickView, 'checkout-page': CheckoutPage }`. Quét `[data-vue]`, **chỉ** mount nếu nằm trong allow-list — ngoài danh sách thì bỏ qua (không phải cứ có `data-vue` là mount).
-- Auto-load mọi `enhance/*.js` (trừ `_card.js`), gọi `default(document)` khi DOM ready; mỗi enhancer tự target qua `data-*`, idempotent để chạy lại trên fragment mới.
+Import Bootstrap 5 JS và gán `window.bootstrap` (enhancer cần gọi Offcanvas/Modal bằng
+tay — chỉ import side-effect thì `window.bootstrap` undefined và các lệnh đó **im lặng
+không chạy**). Sau đó auto-load mọi `enhance/*.js` không bắt đầu bằng `_`.
 
 ### `api.js` — axios
-- `axios.create({ baseURL: '/api/v1', withCredentials: true, headers: { 'X-Requested-With': 'XMLHttpRequest' } })`; CSRF + Sanctum cookie tự đính kèm (cùng domain). Interceptor map lỗi 422 → field errors, 401 → điều hướng login.
+`baseURL: '/api/v1'`, `withCredentials: true`; CSRF + Sanctum cookie tự đính kèm (cùng
+domain).
 
 ### `events.js` — đồng bộ giỏ
-- `cart:updated` (ai đó đổi giỏ: add-to-cart card, variant island, cart-page) → `enhance/cart.js` refresh từ `/api/v1/cart` → bắn `cart:refreshed` → `cart-page.js` re-render. Refresh **không** bắn `cart:updated` (tránh vòng lặp). Checkout (Vue) nghe cùng event qua store riêng.
+`cart:updated` (add-to-cart, cart-page, checkout) → `enhance/cart.js` refresh từ
+`/api/v1/cart` → bắn `cart:refreshed` → consumer re-render. Refresh **không** bắn lại
+`cart:updated` (tránh vòng lặp).
 
-### Vanilla enhancers (mẫu `enhance/_card.js`)
-- Render card sản phẩm từ JSON `ProductResource` **khớp 1:1** `components/product-card.blade.php` → SSR grid và grid re-render sau filter trông y hệt.
+### Helper (không auto-run)
+- **`_card.js`** — render product card từ JSON `ProductResource` **khớp 1:1**
+  `components/product-card.blade.php`, để grid SSR và grid sau filter trông y hệt.
+- **`_gallery.js`** — dựng Swiper + PhotoSwipe cho gallery; `MediaUrlGallery()` re-render
+  khi đổi bộ ảnh.
+- **`_shop.js`** — logic dùng chung cho collection/search grid.
 
-### Vue islands (3)
-- `ProductPurchase.vue`: variant matrix (size/color), tồn kho, giá theo variant, add-to-cart → `POST /api/v1/cart` → `dispatchEvent('cart:updated')`. Hydrate từ `data-island-state` của product page (không fetch on mount).
-- `QuickView.vue`: mở từ card (delegated), fetch `GET products/{slug}` (nội dung session/tương tác, được phép fetch-on-open), chứa variant + add-to-cart.
-- `CheckoutPage.vue`: flow address → shipping → place, dùng 4 endpoint checkout. State giỏ là server-side (Lunar cart).
+### Enhancer đáng chú ý
+- **`product-variant.js`** — đọc `data-product-state`, chọn SKU theo option, cập nhật
+  giá/tồn/nút add-to-cart, đồng bộ URL (`?màu-sắc=Đen`), và **đổi gallery theo màu**.
+  Key theo **tập ảnh** chứ không theo variant id: mọi size cùng màu dùng chung bộ ảnh
+  nên đổi size **không** rebuild gallery (giữ nguyên vị trí slide đang xem).
+- **`add-to-cart.js`**, **`cart.js`**, **`cart-page.js`** — giỏ + mini-cart drawer.
+- **`collection-shop.js`**, **`search-results.js`**, **`search-panel.js`** — filter/sort/
+  phân trang + suggest.
+- **`size-finder.js`** — "tìm size của tôi" → bắn event `size:recommended`, variant
+  picker nghe và chọn size tương ứng.
+- **`notify-me.js`**, **`wishlist.js`**, **`membership.js`**, **`flash-sale.js`**,
+  **`lookbook.js`**, **`recently-viewed.js`**, **`pixels.js`**.
 
 ---
 
 ## 4. SSR shell — quy ước Blade
 
-- `layouts/app.blade.php`: `<head>` đổ SEO/meta từ data (product/collection/page có `seo`); `@stack('head')`, `@yield('content')`, `@stack('scripts')`; `@vite` trỏ entry theme.
-- **Catalog grid**: render `@foreach($products as $p) <x-theme::product-card :product="$p"/>` (HTML thật) + nhúng `$state` cho enhancer. Facet sidebar + pagination là `GET` link thật.
-- **Sections**: `pages.home`/`pages.page` lặp `page_sections` → `@include('theme::sections.'.$section->type, ['settings' => $section->settings])`. Render server-side (tốt SEO), không drag-drop editor.
-- `$theme` (ThemeSettings) dùng cho logo/màu/typography/social — đã được composer inject.
+- `layouts/app.blade.php`: `<head>` đổ SEO/meta từ data; `@stack('head')`,
+  `@yield('content')`, `@stack('scripts')`; `@vite` trỏ entry theme.
+- **Catalog grid**: `@foreach` render `product-card` (HTML thật) + nhúng `$state` cho
+  enhancer. Facet sidebar + pagination là `GET` link thật.
+- **Sections**: `pages.home`/`pages.page` lặp `page_sections` →
+  `@include('theme::sections.'.$section->type, [...])`. Render server-side.
+- `$theme` (ThemeSettings) cho logo/màu/typography/social — composer đã inject.
+- **Blade chỉ format.** Giá, ảnh, menu… do view composer inject (coding-standards §7);
+  Blade không resolve service.
 
 ---
 
 ## 5. Build / Vite
 
-- `@vitejs/plugin-vue` + `@tailwindcss/vite` đã cài; `vite.config.js` chọn entry theo `process.env.THEME` (default `fashion`) — trỏ `themes/fashion/js/app.js` + `css/app.css`.
-- `css/app.css`: `@import "tailwindcss";` + design tokens (CSS vars cho brand color/font lấy từ ThemeSettings, có thể inject qua `<style>` inline ở layout).
-- Dev: `THEME=fashion npm run dev`; prod: `npm run build`.
-- **Cleanup nhỏ:** comment trong `vite.config.js` còn nhắc "modave uses vendor CSS" → cập nhật/bỏ cho khớp theme `fashion`.
+- `vite.config.js` chọn entry theo `process.env.THEME` (default `fashion`):
+  `themes/<theme>/css/app.scss` + `themes/<theme>/js/app.js`.
+- CSS là **SCSS + Bootstrap 5**, chia `features/` và `pages/`; app.scss là entry duy nhất.
+- Dev: `npm run dev` (hoặc `composer dev` chạy kèm server/queue/logs).
+  Prod: `npm run build`.
 
 ---
 
-## 6. Lộ trình thực hiện
+## 6. Definition of Done (cho thay đổi theme)
 
-**Bước 1 — Khung chạy được (SSR shell)**
-- `theme.json`, `css/app.css`, `js/app.js` (bootstrap rỗng), `js/api.js`, `js/events.js`.
-- `layouts/app.blade.php` + `partials/{header,footer,flash}` + `components/{product-card,price,pagination,breadcrumb}`.
-- `pages/home.blade.php` render sections → xác nhận `/` lên hình, `npm run dev` OK.
-
-**Bước 2 — Catalog SSR-first**
-- `pages/product.blade.php` (SSR đầy đủ, chưa cần island) + `pages/collection.blade.php` + `pages/search.blade.php` với SSR grid + facet + nhúng `$state`.
-- `enhance/_card.js` khớp `product-card.blade.php`; `collection-shop.js` + `search-results.js` đọc `$state`, fetch khi tương tác, `history.replaceState` đồng bộ URL.
-- Kiểm thử **no-JS**: filter/sort/page/search vẫn chạy bằng `GET`.
-
-**Bước 3 — Giỏ & wishlist (vanilla)**
-- `partials/cart-drawer.blade.php` (`#shoppingCart`) + `enhance/cart.js` + `pages/cart.blade.php` + `enhance/cart-page.js`; per-card add-to-cart (delegated) + event bus.
-- `pages/wishlist.blade.php` + `enhance/wishlist.js` (toggle, count, load membership 1 lần).
-
-**Bước 4 — Vue islands**
-- `ProductPurchase.vue` gắn vào product page (`data-vue="product-purchase"` + `data-island-state`); size chart + recommend-size; `related`/recommendations.
-- `QuickView.vue` mở từ card; `search-modal.js` (suggest).
-
-**Bước 5 — Checkout & account**
-- `pages/checkout.blade.php` + `CheckoutPage.vue` (4 endpoint) + confirmation page.
-- `pages/auth/*` + `enhance/auth.js` (login/register/logout, customer + orders).
-
-**Bước 6 — Hoàn thiện**
-- SEO/meta đầy đủ mọi trang, OpenGraph, breadcrumb JSON-LD; responsive; lazyload ảnh (jQuery plugin nếu cần); a11y; gỡ comment modave trong vite.
-
----
-
-## 7. Definition of Done
-
-- [ ] Mọi trang catalog render HTML thật, pass kiểm thử tắt JS (filter/sort/search/paginate qua `GET`).
-- [ ] SSR grid và grid sau-tương-tác khớp pixel (cùng `product-card` markup).
-- [ ] SSR `$state` ↔ `/api/v1/search` cùng một shape, không lệch.
-- [ ] Chỉ đúng 3 Vue island được mount; `data-vue` ngoài allow-list bị bỏ qua.
+- [ ] Trang catalog render HTML thật, **pass kiểm thử tắt JS** (filter/sort/search/
+      paginate qua `GET`).
+- [ ] Grid SSR và grid sau-tương-tác khớp nhau (cùng markup `product-card`).
+- [ ] `$state` nhúng ↔ `/api/v1/*` cùng một shape, không lệch.
 - [ ] Giỏ đồng bộ qua `cart:updated`/`cart:refreshed`, không vòng lặp.
-- [ ] Checkout đặt hàng end-to-end (COD/bank qua driver hiện có).
-- [ ] SEO/meta + OpenGraph đầy đủ; Lighthouse SEO ≥ 95, không layout shift do hydrate.
-- [ ] Đổi brand = copy `themes/fashion` → `themes/<brand>`, đổi `THEME` env, không đụng `app/`.
+- [ ] SEO/meta + OpenGraph đầy đủ; không layout shift khi JS chạy.
+- [ ] Không thêm Vue/React nếu chưa có phê duyệt kiến trúc.

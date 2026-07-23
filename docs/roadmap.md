@@ -1,8 +1,9 @@
 # SME Fashion Ecommerce — Việc còn lại
 
-> **Chỉ ghi việc CHƯA làm.** Hiện trạng ở [plan.md](architecture/overview.md);
-> lịch sử bug đã sửa ở [platform_audit.md](history/2026-07-platform-audit.md).
-> Xếp theo ROI giảm dần. Cập nhật: **2026-07-13**.
+> **Chỉ ghi việc CHƯA làm.** Hiện trạng ở
+> [architecture/overview.md](architecture/overview.md); lịch sử bug đã sửa ở
+> [history/2026-07-platform-audit.md](history/2026-07-platform-audit.md).
+> Xếp theo ROI giảm dần. Cập nhật: **2026-07-23**.
 >
 > **Thứ tự ưu tiên đã đảo lại (2026-07-13).** Trước đây danh sách này mở đầu bằng
 > tính năng chuyển đổi (quick-view, size intelligence, search engine). Rà lại code cho
@@ -40,7 +41,7 @@ hoặc vi phạm nghĩa vụ pháp lý, hoặc hỏng mà không ai biết.
   `storage/logs/laravel-*.log`: khách gặp 500 lúc thanh toán thì **không ai biết**, trừ
   khi khách chịu khó nhắn tin. Đây là việc rẻ nhất trong cả danh sách và có ROI cao nhất.
 - ⬜ **CI** — `.github/` **chưa tồn tại**. Tối thiểu: chạy `phpunit` mỗi push (~20 dòng
-  YAML). 394 test đang chạy **bằng tay** → chỉ cần quên một lần là bug lên production.
+  YAML). 432 test đang chạy **bằng tay** → chỉ cần quên một lần là bug lên production.
   Muốn thêm `pint --test` thì trước đó phải chạy `pint` một lượt trên code của mình
   trong **commit riêng, không kèm thay đổi logic** — bật thẳng vào CI sẽ đỏ ngay ngày
   đầu vì còn nhiều file chưa từng format. (Con số 241 file đỏ trong bản ghi cũ đã lỗi
@@ -78,7 +79,7 @@ lớn nhất và đang 100% thủ công.** Càng nhiều đơn, càng đau.
 đừng làm hai).
 
 **Nền đã sẵn, khi làm chỉ cần cắm vào** — *ghi ở đây để lúc bắt tay không phải khảo sát lại*:
-- `OrderStatus::DISPATCHED` (`dispatched`) **đã có** trong `modules/Order/Support/OrderStatus.php`
+- `OrderStatus::DISPATCHED` (`dispatched`) **đã có** trong `modules/Order/app/Support/OrderStatus.php`
   và trong `config/lunar/orders.php`.
 - Domain event `Modules\Order\Events\OrderStatusUpdated` **đã có** + đã có consumer
   (Notification gửi thông báo, Inventory trả tồn kho) → webhook của hãng chỉ cần bắn vào
@@ -98,17 +99,21 @@ lớn nhất và đang 100% thủ công.** Càng nhiều đơn, càng đau.
 - ⬜ **CDN** cho `public/` (media + build assets) khi deploy.
 - ⬜ Rà lại DB index sau khi có traffic thật (`add_performance_indexes` đã làm nền).
 
-Xem [deploy.md](guides/deployment.md) cho runbook đầy đủ.
+Xem [guides/deployment.md](guides/deployment.md) cho runbook đầy đủ.
+
+> **Đã xong (2026-07-20 → 07-23), gỡ khỏi danh sách:** Lunar về lại composer package ·
+> 13 module chuyển sang layout nwidart v13 (`module.json` + `priority`) · seed đủ tầng
+> SKU/review/tồn kho · gallery đổi theo màu + xoá N+1 trên `/api/v1/products` ·
+> sửa `db:seed` chết ở `HeaderMenuSeeder` (self-cascade MySQL) · gom tài liệu vào `docs/`.
+> Chi tiết ở changelog [architecture/overview.md](architecture/overview.md) #17–#21.
 
 ### 5. Test còn thiếu
-- ⬜ `modules/<Name>/Tests` **vẫn trống** — toàn bộ 54 file ở `tests/Feature`. Thêm smoke
+- ⬜ `modules/<Name>/tests/` **vẫn trống** — toàn bộ 68 file ở `tests/Feature`. Thêm smoke
   test cạnh module **khi chạm module đó**, không làm một lượt.
 - ⬜ Phần thuần-JS chưa phủ: picture/srcset, search-panel, notify-me UI, lookbook-shoppable.
   Cần browser driver (Dusk/Playwright) — quyết định riêng, không phải việc nhỏ.
-- ⬜ **1 test đang đỏ** (phát hiện 2026-07-13): `OnDemandConversionTest:76` —
-  `MediaUrl::conversion()` trả **`null`** cho conversion lạ, test chờ **string** (fallback
-  về URL gốc). Đến từ commit `c4dc7f6` (`MediaUrl`/`FileManager`). Phải quyết: đổi code về
-  fallback, hay đổi test theo hành vi mới? **Đừng để đỏ trước khi bật CI** (P0 mục 2).
+- ✅ ~~1 test đỏ (`OnDemandConversionTest:76`)~~ — đã xanh (kiểm lại 2026-07-23:
+  `OnDemandConversionTest` 7/7 pass). Toàn bộ suite **432 test xanh**.
 
 ---
 
