@@ -15,7 +15,10 @@ class FooterMenuSeeder extends Seeder
     public function run(): void
     {
         $menu = Menu::firstOrCreate(['handle' => 'footer'], ['name' => 'Footer']);
-        $menu->items()->delete();
+
+        // Leaves first — a plain delete() trips MySQL's self-cascade limit on
+        // menu_items.parent_id (error 6575).
+        $menu->deleteItems();
 
         $collections = LunarCollection::query()->get()->keyBy(fn ($c) => $c->defaultUrl?->slug);
 

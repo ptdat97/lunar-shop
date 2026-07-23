@@ -44,7 +44,9 @@ class MenuTree
      */
     public static function save(Menu $menu, array $tree): void
     {
-        $menu->items()->delete();
+        // Leaves first: menu_items.parent_id cascades onto itself, and MySQL
+        // rejects a plain delete of a nested menu with error 6575.
+        $menu->deleteItems();
 
         $persist = function (array $nodes, ?int $parentId) use (&$persist, $menu) {
             foreach (array_values($nodes) as $sort => $node) {

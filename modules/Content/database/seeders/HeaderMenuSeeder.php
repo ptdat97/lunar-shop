@@ -17,8 +17,10 @@ class HeaderMenuSeeder extends Seeder
     {
         $menu = Menu::firstOrCreate(['handle' => 'header'], ['name' => 'Header']);
 
-        // Rebuild cleanly so re-seeding doesn't duplicate.
-        $menu->items()->delete();
+        // Rebuild cleanly so re-seeding doesn't duplicate. deleteItems() removes
+        // leaves first — a plain delete() trips MySQL's self-cascade limit on
+        // menu_items.parent_id (error 6575).
+        $menu->deleteItems();
 
         $collections = LunarCollection::query()->get()->keyBy(
             fn ($c) => $c->defaultUrl?->slug
