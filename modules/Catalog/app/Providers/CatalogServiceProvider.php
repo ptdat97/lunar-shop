@@ -118,10 +118,19 @@ class CatalogServiceProvider extends ServiceProvider
         Product::retrieved($castVariables);
         Product::saving($castVariables);
 
+        // chaperone(): every loaded SKU gets its `product` relation pointed back
+        // at the parent that loaded it. Without it, anything a SKU reads off its
+        // product — optionPairs() (the `variables` blob) and ProductSkuResource's
+        // image ids (the product's media) — lazy-loads that product once per SKU,
+        // so a single product page or a 24-card grid fires dozens of duplicate
+        // `lunar_products` + `media` queries. Set here, at the one place the
+        // relation is defined, so every eager-load path is covered rather than
+        // each caller having to remember.
         Product::resolveRelationUsing(
             'skus',
             fn (Product $product) => $product->hasMany(ProductSku::class, 'product_id')
-                ->orderBy('position'),
+                ->orderBy('position')
+                ->chaperone(),
         );
     }
 

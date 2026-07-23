@@ -195,4 +195,59 @@ class VariantGalleryTest extends TestCase
 
         $this->assertSame(0, $mediaQueries, 'SKU images must resolve off the already-loaded product media');
     }
+
+    /**
+     * The multi-product endpoints (bySlugs/byIds/related/search) are separate
+     * query builders from findBySlug. They regressed once already: a single
+     * GET /api/v1/products?slugs=… fired 297 statements, 263 of them duplicate
+     * `lunar_products` and `media` lookups, one pair per SKU.
+     *
+     * The `skus` relation is chaperoned at its definition so every path is
+     * covered; this asserts the endpoint itself, not one service method.
+     */
+    public function test_the_products_endpoint_does_not_n_plus_one_over_skus(): void
+    {
+        $this->seedBaseData();
+
+        $slugs = [];
+        foreach (range(1, 3) as $p) {
+            $product = $this->createProduct(['slug' => "bulk-tee-{$p}"]);
+            $ids = $this->attachImages($product, 2);
+            $slugs[] = "bulk-tee-{$p}";
+
+            // Several SKUs each, so an N+1 would be unmistakable.
+            foreach (range(1, 4) as $i) {
+                ProductSku::create([
+                    'product_id' => $product->id,
+                    'sku' => "BULK-{$p}-{$i}",
+                    'variants' => [(string) $i],
+                    'quantity' => 5,
+                    'price' => 1999,
+                    'images' => $ids,
+                    'is_default' => false,
+                    'status' => 'published',
+                ]);
+            }
+        }
+
+        \DB::enableQueryLog();
+        \DB::flushQueryLog();
+
+        $this->getJson('/api/v1/products?slugs='.implode(',', $slugs))
+            ->assertSuccessful();
+
+        $log = collect(\DB::getQueryLog());
+        \DB::disableQueryLog();
+
+        $repeatedProduct = $log
+            ->filter(fn ($q) => str_contains($q['query'], 'from `lunar_products` where `lunar_products`.`id` ='))
+            ->count();
+
+        $repeatedMedia = $log
+            ->filter(fn ($q) => str_contains($q['query'], 'from `media` where `id` in'))
+            ->count();
+
+        $this->assertSame(0, $repeatedProduct, 'each SKU must reuse the parent product that loaded it');
+        $this->assertSame(0, $repeatedMedia, 'SKU images must resolve off the already-loaded product media');
+    }
 }

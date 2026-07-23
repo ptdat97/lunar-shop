@@ -76,9 +76,17 @@ class ProductSkuResource extends JsonResource
             return [];
         }
 
-        $mediaById = $this->resource->product?->relationLoaded('media')
-            ? $this->resource->product->media->keyBy('id')
-            : Media::whereIn('id', $ids)->get()->keyBy('id');
+        // Read off the parent only when it (and its media) are already loaded —
+        // the `skus` relation is chaperoned, so on every storefront path they
+        // are. Touching $this->product unguarded would itself lazy-load the
+        // product, which is the N+1 this avoids.
+        $product = $this->resource->relationLoaded('product')
+            ? $this->resource->getRelation('product')
+            : null;
+
+        $mediaById = $product?->relationLoaded('media')
+            ? $product->media->keyBy('id')
+            : Media::whereIn('id', $ids->all())->get()->keyBy('id');
 
         // Preserve the admin's ordering: map over the ids, not the media rows.
         return $ids

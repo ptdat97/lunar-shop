@@ -41,7 +41,7 @@ class ProductService
      */
     public function findBySlug(string $slug): ?Product
     {
-        $product = Product::query()
+        return Product::query()
             ->select('lunar_products.*')
             ->where('lunar_products.status', 'published')
             ->join('lunar_urls', function ($join) {
@@ -59,22 +59,6 @@ class ProductService
                 'thumbnail', 'brand', 'collections.defaultUrl', 'defaultUrl', 'media',
             ])
             ->first();
-
-        return $product ? $this->shareMediaWithSkus($product) : null;
-    }
-
-    /**
-     * Point every SKU's `product` relation at the already-loaded parent.
-     *
-     * ProductSkuResource resolves its image ids against the product's media
-     * collection; without this each SKU would lazy-load its own product (and
-     * that product's media), turning one gallery into N+1 queries per page.
-     */
-    protected function shareMediaWithSkus(Product $product): Product
-    {
-        $product->skus->each(fn (ProductSku $sku) => $sku->setRelation('product', $product));
-
-        return $product;
     }
 
     /**
