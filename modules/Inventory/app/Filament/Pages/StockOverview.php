@@ -334,7 +334,15 @@ class StockOverview extends Page implements HasTable
                 throw $e;
             }
 
-            Notification::make()->title(__('admin.inventory.adjust_negative'))->danger()->send();
+            // Two different mistakes, two different fixes — telling someone
+            // "cannot go below zero" when they set 1 against 3 committed units
+            // sends them looking for the wrong problem.
+            Notification::make()
+                ->title($e->committed !== null
+                    ? __('admin.inventory.adjust_below_committed', ['committed' => $e->committed])
+                    : __('admin.inventory.adjust_negative'))
+                ->danger()
+                ->send();
 
             return;
         }

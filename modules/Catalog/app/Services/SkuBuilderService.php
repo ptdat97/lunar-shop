@@ -92,6 +92,7 @@ class SkuBuilderService
         $combinations = $this->combinations($variables);
         $this->assertSkuCountMatches($combinations, $skus);
         $this->assertUniqueSkuCodes($product, $skus);
+        $this->assertStockCoversCommitments($product, $skus);
 
         DB::transaction(function () use ($product, $variables, $skus, $combinations) {
             // Move any freshly-uploaded swatch files into the Spatie `swatch`
@@ -106,6 +107,12 @@ class SkuBuilderService
             // dropping them, so anything that referenced a SKU by its (disposable)
             // id can be re-pointed at the recreated row that carries the same code.
             $oldIdsBySku = $product->skus()->pluck('id', 'sku');
+
+            // Committed units are NOT the admin's to edit — they are the units
+            // open orders have already claimed. The editor's payload has no such
+            // field, so without carrying it across this rewrite every hold would
+            // silently vanish and sold stock would go back on sale.
+            $committedBySku = $product->skus()->pluck('committed', 'sku');
 
             // Authoritative rewrite: drop the old set, recreate from the payload.
             $product->skus()->forceDelete();
@@ -125,6 +132,8 @@ class SkuBuilderService
                     'origin_price' => (int) ($row['origin_price'] ?? 0),
                     'cost_price' => isset($row['cost_price']) ? (int) $row['cost_price'] : null,
                     'quantity' => (int) ($row['quantity'] ?? 0),
+                    // Carried from the pre-rewrite row, never from the payload.
+                    'committed' => (int) ($committedBySku[$row['sku']] ?? 0),
                     'weight' => $row['weight'] ?? null,
                     'tax_class_id' => $row['tax_class_id'] ?? null,
                     'is_default' => (bool) ($row['is_default'] ?? $position === 0),
@@ -272,6 +281,44 @@ class SkuBuilderService
      *
      * @throws ValidationException
      */
+    /**
+     * Refuse a stock figure lower than what open orders have already claimed.
+     *
+     * The editor writes an absolute quantity, so typing 1 into a SKU with 3
+     * units committed would leave the shop having sold goods it cannot ship —
+     * and nothing downstream would notice, because sellable clamps at 0 either
+     * way. The honest fix is to cancel the orders that cannot be filled, so say
+     * that rather than silently accepting an impossible number.
+     *
+     * @param  array<int, array<string, mixed>>  $skus
+     *
+     * @throws ValidationException
+     */
+    protected function assertStockCoversCommitments(Product $product, array $skus): void
+    {
+        $committedBySku = $product->skus()->pluck('committed', 'sku');
+
+        $short = collect($skus)
+            ->filter(function (array $row) use ($committedBySku): bool {
+                $committed = (int) ($committedBySku[$row['sku'] ?? ''] ?? 0);
+
+                return $committed > 0 && (int) ($row['quantity'] ?? 0) < $committed;
+            })
+            ->map(fn (array $row) => sprintf(
+                '%s (%d < %d)',
+                $row['sku'],
+                (int) ($row['quantity'] ?? 0),
+                (int) $committedBySku[$row['sku']],
+            ));
+
+        if ($short->isNotEmpty()) {
+            throw ValidationException::withMessages([
+                'skus' => 'Stock cannot be set below the units already sold and awaiting dispatch: '
+                    .$short->implode(', ').'. Cancel those orders first if the goods really are gone.',
+            ]);
+        }
+    }
+
     protected function assertUniqueSkuCodes(Product $product, array $skus): void
     {
         $codes = collect($skus)->pluck('sku')->filter();

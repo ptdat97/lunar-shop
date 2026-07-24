@@ -703,6 +703,16 @@ trong kho — đọc nhầm cột là bán chồng đơn: `CartService::guardSto
 `canBeFulfilledAtQuantity()`, filter/badge trong Stock Overview, `lowStock()`,
 `lowCount()`/`outCount()` đều đã dùng `quantity - committed`.
 
+⚠️ **Bất biến `committed ≤ quantity`.** Không được hạ tồn xuống dưới số đã bán chưa
+giao — đó là mô tả một shop đã hứa giao hàng không có trong kho, và **không có gì
+báo động** vì `sellable` bị kẹp về 0 trong cả hai trường hợp. Hai đường ghi đều chặn:
+`StockLedger::mutate()` ném `InvalidStockAdjustmentException` (kèm số `committed` để
+admin hiện đúng thông báo), và `SkuBuilderService::assertStockCoversCommitments()`
+ném `ValidationException` cho trang biến thể.
+`SkuBuilderService` cũng **mang `committed` qua** lần delete-and-recreate — nó không
+nằm trong payload của editor, không mang qua thì lưu tab biến thể sẽ **xoá sạch mọi
+hold** và hàng đã bán quay lại kệ.
+
 ⚠️ **Cảnh báo tồn đọng:** committed chỉ được giải phóng khi giao hoặc huỷ. Đơn đã
 thanh toán quá `STALE_COMMITMENT_DAYS` (3) mà chưa `dispatched` sẽ giữ hàng vô hạn →
 `InventoryService::staleCommitments()` liệt kê và Stock Overview hiện banner cảnh báo.

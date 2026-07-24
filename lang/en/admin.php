@@ -492,6 +492,7 @@ return [
         'reason_other' => 'Other',
         'adjust_done' => 'Stock updated.',
         'adjust_negative' => 'Cannot adjust stock below zero.',
+        'adjust_below_committed' => 'Cannot drop stock below the :committed unit(s) already sold and awaiting dispatch. Cancel those orders first if the goods really are gone.',
         'bulk_done' => 'Updated :ok variants (:failed failed).',
 
         // History modal

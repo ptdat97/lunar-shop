@@ -494,6 +494,7 @@ return [
         'reason_other' => 'Khác',
         'adjust_done' => 'Đã cập nhật tồn kho.',
         'adjust_negative' => 'Không thể điều chỉnh xuống dưới 0.',
+        'adjust_below_committed' => 'Không thể hạ tồn xuống dưới :committed sản phẩm đã bán chưa giao. Huỷ bớt đơn chưa giao nếu thực sự không còn hàng.',
         'bulk_done' => 'Đã cập nhật :ok biến thể (:failed lỗi).',
 
         // History modal

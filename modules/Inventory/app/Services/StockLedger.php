@@ -234,6 +234,22 @@ class StockLedger
                 throw new InvalidStockAdjustmentException($skuId, $before, $after - $before);
             }
 
+            // Never let the shelf fall below what is already promised. A manual
+            // correction to "1 on hand" while 3 units are committed describes a
+            // shop that has sold goods it cannot ship — and nothing downstream
+            // would flag it, because sellable is clamped at 0 either way. Refuse
+            // it: the honest fix is to cancel the orders that cannot be filled.
+            $committed = (int) $sku->committed;
+
+            if ($after < $committed) {
+                throw new InvalidStockAdjustmentException(
+                    variantId: $skuId,
+                    current: $before,
+                    delta: $after - $before,
+                    committed: $committed,
+                );
+            }
+
             ProductSku::whereKey($skuId)->update(['quantity' => $after]);
 
             $movement = $this->record($skuId, $type, $after - $before, $before, $after, $reason, $causer, null, $meta);

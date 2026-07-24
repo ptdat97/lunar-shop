@@ -7,10 +7,17 @@ use RuntimeException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
 /**
- * Thrown when a manual stock adjustment would drive a variant's stock below
- * zero. Unlike a sale (backorder/always variants may go negative on purpose), a
- * manual correction to a negative on-hand count is always a mistake, so we
- * refuse it and leave the stock untouched.
+ * Thrown when a manual stock adjustment would leave the SKU in a state the shop
+ * cannot honour:
+ *
+ *  - below zero — a negative on-hand count is always a mistake; and
+ *  - below `committed` — the units are already sold and awaiting dispatch, so
+ *    setting the shelf under that number describes goods that have been
+ *    promised but cannot be shipped.
+ *
+ * Either way we refuse and leave the stock untouched. (A sale is different:
+ * backorder/always SKUs may go negative on purpose, and that path does not come
+ * through here.)
  *
  * A 422 (client error) via the shared api/v1 envelope ({@see ApiErrorResponse}).
  */
@@ -20,9 +27,15 @@ class InvalidStockAdjustmentException extends RuntimeException implements HttpEx
         public readonly int $variantId,
         public readonly int $current,
         public readonly int $delta,
+        public readonly ?int $committed = null,
     ) {
+        $target = $current + $delta;
+
         parent::__construct(
-            "Stock adjustment would make variant #{$variantId} negative: {$current} {$delta}."
+            $committed !== null
+                ? "Stock adjustment would leave variant #{$variantId} at {$target}, "
+                    ."below the {$committed} unit(s) already committed to orders."
+                : "Stock adjustment would make variant #{$variantId} negative: {$current} {$delta}."
         );
     }
 
