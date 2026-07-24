@@ -6,7 +6,6 @@ use Closure;
 use Lunar\Models\Contracts\Order as OrderContract;
 use Lunar\Models\Order;
 use Modules\Catalog\Models\ProductSku;
-use Modules\Inventory\Enums\StockMovementType;
 use Modules\Inventory\Exceptions\InsufficientStockException;
 use Modules\Inventory\Services\StockLedger;
 
@@ -49,53 +48,22 @@ class DecrementStock
     }
 
     /**
-     * Atomically decrement a SKU's stock, guarding against overselling under
-     * concurrency, and record a faithful `sale` ledger entry.
+     * Hold the units for this order.
      *
-     * The row is SELECT … FOR UPDATE first, so `before` is the exact pre-sale
-     * level and `after = before - quantity` is derived — not re-read in a second
-     * query that a concurrent order could have changed in between (which made the
-     * ledger's before/after describe a state that never existed). The lock also
-     * serialises the oversell check, the write and the ledger row into one unit.
-     * All of this runs inside the order-creation transaction.
+     * Placing an order no longer takes stock off the shelf — it *commits* it.
+     * `quantity` keeps answering "how many are in the stockroom" and `committed`
+     * answers "how many of those are already sold", so the shop can tell the two
+     * apart. The units leave `quantity` when the order is dispatched
+     * (StockLedger::settleCommitment), or return to the sellable pool when it is
+     * cancelled (StockLedger::uncommit).
+     *
+     * StockLedger::commit() locks the row, so the oversell check, the write and
+     * the ledger entry are one unit — no read-then-write race. All of it runs
+     * inside the order-creation transaction, so a later failure rolls the hold
+     * back with the order.
      */
     protected function reserve(int $skuId, int $quantity, string $description, int $orderId): void
     {
-        $before = ProductSku::whereKey($skuId)->lockForUpdate()->value('quantity');
-
-        if ($before === null) {
-            throw new InsufficientStockException(
-                variantId: $skuId,
-                requested: $quantity,
-                available: 0,
-                description: $description,
-            );
-        }
-
-        $before = (int) $before;
-
-        if ($quantity > $before) {
-            throw new InsufficientStockException(
-                variantId: $skuId,
-                requested: $quantity,
-                available: $before,
-                description: $description,
-            );
-        }
-
-        $after = $before - $quantity;
-
-        ProductSku::whereKey($skuId)->update(['quantity' => $after]);
-
-        app(StockLedger::class)->record(
-            skuId: $skuId,
-            type: StockMovementType::Sale,
-            delta: -$quantity,
-            before: $before,
-            after: $after,
-            causer: null,
-            orderId: $orderId,
-            meta: ['line' => $description],
-        );
+        app(StockLedger::class)->commit($skuId, $quantity, $description, $orderId);
     }
 }

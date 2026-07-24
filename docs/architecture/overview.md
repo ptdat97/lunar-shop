@@ -673,8 +673,42 @@ theo session không cần crawl (cart drawer/page, wishlist).
   → tối ưu N+1 trên product card.
 
 ## Inventory
-- Stock per-SKU. **Reserve** khi tạo order (`DecrementStock` pipeline) + oversell guard
-  (conditional UPDATE atomic, tôn trọng `backorder`/`always`).
+
+### Ba con số, không phải một
+
+Tồn kho tách làm hai cột, số thứ ba là suy ra — học từ `ordered_inventories` của
+[Bagisto](https://github.com/bagisto/bagisto), rút về **một cột** cho shop một kho:
+
+| | Ý nghĩa | Nguồn |
+|---|---|---|
+| **on-hand** | Hàng đang nằm trong kho — **kiểm kê đếm ra đúng số này** | `lunar_product_skus.quantity` |
+| **committed** | Trong số đó, đã bán nhưng **chưa xuất kho** | `lunar_product_skus.committed` |
+| **sellable** | Thực sự còn bán được | `quantity - committed` (`getTotalInventory()`) |
+
+**Vì sao cần tách:** trước đây đặt hàng trừ thẳng `quantity`, nên một con số trả lời
+đúng câu "còn bán được bao nhiêu" và **sai** câu "trong kho còn bao nhiêu". Chủ shop
+đi kiểm kê không bao giờ khớp được với hệ thống.
+
+**Vòng đời:**
+
+```text
+đặt hàng   → StockLedger::commit()          quantity giữ nguyên, committed +N
+giao hàng  → StockLedger::settleCommitment() quantity -N, committed -N   (dispatched_at)
+huỷ/hoàn   → StockLedger::uncommit()         committed -N   (hàng chưa từng rời kho)
+hoàn SAU giao → StockReleaser cộng lại quantity (hàng thật sự quay về)
+```
+
+⚠️ **Mọi guard phải đọc `sellable`, không đọc `quantity`.** Hàng đã giữ vẫn nằm
+trong kho — đọc nhầm cột là bán chồng đơn: `CartService::guardStock`,
+`canBeFulfilledAtQuantity()`, filter/badge trong Stock Overview, `lowStock()`,
+`lowCount()`/`outCount()` đều đã dùng `quantity - committed`.
+
+⚠️ **Cảnh báo tồn đọng:** committed chỉ được giải phóng khi giao hoặc huỷ. Đơn đã
+thanh toán quá `STALE_COMMITMENT_DAYS` (3) mà chưa `dispatched` sẽ giữ hàng vô hạn →
+`InventoryService::staleCommitments()` liệt kê và Stock Overview hiện banner cảnh báo.
+
+- **Reserve** khi tạo order (`DecrementStock` pipeline) + oversell guard
+  (row lock + kiểm tra sellable, tôn trọng `backorder`/`always`).
 - **Sổ cái tồn kho (`stock_movements`)** — mọi thay đổi tồn đều để lại một dòng
   (`type`: sale · release · adjustment · restock · manual · edit) kèm `stock_before` /
   `stock_after`, người gây ra và `order_id` nếu có.
@@ -835,6 +869,7 @@ sau quyết định bằng dữ kiện chứ không bằng cảm tính.
 | 19 | 2026-07-23 | **Seed đủ tầng SKU** — `lunar_product_skus`, `product_reviews`, `stock_movements` đều **rỗng** dù module đã implement: storefront đọc `skus` nên mọi trang sản phẩm demo không có bộ chọn màu/size, không tồn kho, nút thêm giỏ bị vô hiệu. Thêm 3 seeder (ma trận 3 màu × 4 size, review có hàng đợi duyệt, ledger qua `StockLedger`) | 423 test; ledger invariant 120 SKU, 0 lệch |
 | 20 | 2026-07-23 | **Gallery theo màu + sửa N+1** — SKU `images` trả cột JSON thô trong khi gallery cần `{small,large,zoom}`; `swapGallery` bắt theo variant id nên đổi size cũng rebuild. Thêm serialize qua `MediaImageResource`, SSR scope theo variant đang chọn, key theo *tập ảnh*. `chaperone()` trên quan hệ `skus` xoá N+1: endpoint `?slugs=…` từ **297 → 33 statement** | 432 test; mutation-check cả thứ tự ảnh lẫn N+1 |
 | 21 | 2026-07-23 | **Sửa lỗi `db:seed` chết giữa chừng** — `menu_items.parent_id` là FK tự tham chiếu `ON DELETE CASCADE`, MySQL từ chối quá 30 lần mở rộng (lỗi 6575). Thêm `Menu::deleteItems()` xoá lá trước. Không chỉ lỗi seed: `MenuTree::save()` (đường lưu menu trong admin) dính cùng lỗi | 431 test; `db:seed` chạy trọn, lặp lại được |
+| 23 | 2026-07-24 | **Tách tồn thực khỏi hàng đã giữ** (học `ordered_inventories` của Bagisto, rút về 1 cột cho shop một kho). Đặt hàng nay **giữ** chứ không trừ: `quantity` = hàng trong kho (kiểm kê khớp), `committed` = đã bán chưa giao, `sellable = quantity - committed`. Hàng rời kho ở `dispatched` (`dispatched_at` chống trừ hai lần). Huỷ **trước** giao chỉ nhả giữ chỗ — cộng lại `quantity` sẽ **đẻ ra hàng không có thật**. Cảnh báo đơn đã thanh toán >3 ngày chưa giao | 450 test; mutation-check: bỏ trừ `committed` → 3 test đỏ, gồm cả guard oversell |
 | 22 | 2026-07-23 | **Đồng bộ tài liệu với code** — gom `.md` vào `docs/` rồi rà lại từng khẳng định. Sửa những chỗ tài liệu **mô tả sai hệ thống**: layout module còn là bản tiền-v13, `ModulesServiceProvider` vẫn được mô tả là nơi nạp module, tầng SKU linh hoạt (purchasable thật) **hoàn toàn vắng mặt**, sổ cái tồn kho không được nhắc, và `theme.md` vẫn là *kế hoạch dựng theme* mô tả 3 Vue island chưa từng tồn tại + Tailwind trong khi theme chạy Bootstrap 5 + SCSS với 25 enhancer vanilla | Không đổi code; 432 test nguyên trạng |
 
 > **Quy tắc cho mọi refactor:** giải thích *why* trước khi viết code · composer patch

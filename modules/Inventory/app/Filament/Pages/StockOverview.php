@@ -18,6 +18,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Lunar\Models\Currency;
+use Lunar\Models\Order;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Enums\StockMovementType;
 use Modules\Inventory\Exceptions\InvalidStockAdjustmentException;
@@ -57,6 +58,25 @@ class StockOverview extends Page implements HasTable
     protected static ?string $slug = 'stock-levels';
 
     protected static string $view = 'inventory::filament.pages.stock-overview';
+
+    /**
+     * Orders holding stock long after payment.
+     *
+     * Committed units only free up on dispatch or cancellation, so an order the
+     * shop forgets to mark dispatched holds its stock indefinitely and the shelf
+     * quietly stops selling. Surface them rather than let the hold rot.
+     *
+     * @return Collection<int, Order>
+     */
+    public function staleCommitments()
+    {
+        return app(InventoryService::class)->staleCommitments();
+    }
+
+    public function staleCommitmentDays(): int
+    {
+        return InventoryService::STALE_COMMITMENT_DAYS;
+    }
 
     /**
      * Stock value + low/out/tracked counts, rendered inline in the page blade
@@ -149,9 +169,24 @@ class StockOverview extends Page implements HasTable
                         default => 'success',
                     }),
                 TextColumn::make('quantity')
-                    ->label(__('admin.inventory.stock'))
+                    ->label(__('admin.inventory.on_hand'))
+                    ->tooltip(__('admin.inventory.on_hand_tip'))
                     ->numeric()
                     ->sortable(),
+                TextColumn::make('committed')
+                    ->label(__('admin.inventory.committed'))
+                    ->tooltip(__('admin.inventory.committed_tip'))
+                    ->numeric()
+                    ->sortable()
+                    ->badge()
+                    ->color(fn (int $state): string => $state > 0 ? 'warning' : 'gray'),
+                // Derived, so it cannot drift from the two columns above.
+                TextColumn::make('sellable')
+                    ->label(__('admin.inventory.sellable'))
+                    ->tooltip(__('admin.inventory.sellable_tip'))
+                    ->state(fn ($record): int => $record->getTotalInventory())
+                    ->numeric()
+                    ->weight('bold'),
                 TextColumn::make('waiting')
                     ->label(__('admin.inventory.waiting'))
                     ->badge()
@@ -166,9 +201,12 @@ class StockOverview extends Page implements HasTable
                         'low' => __('admin.inventory.filter_low'),
                         'tracked' => __('admin.inventory.filter_tracked'),
                     ])
+                    // Filter on SELLABLE stock (quantity - committed): a SKU whose
+                    // last units are all promised to an unshipped order is out of
+                    // stock for shoppers, even though the shelf isn't empty.
                     ->query(fn (Builder $q, array $data): Builder => match ($data['value'] ?? null) {
-                        'out' => $q->where('quantity', '<=', 0),
-                        'low' => $q->whereBetween('quantity', [1, $this->lowThreshold()]),
+                        'out' => $q->whereRaw('quantity - committed <= 0'),
+                        'low' => $q->whereRaw('quantity - committed BETWEEN 1 AND ?', [$this->lowThreshold()]),
                         'tracked' => $q,
                         default => $q,
                     }),
@@ -336,9 +374,14 @@ class StockOverview extends Page implements HasTable
             return 'Disabled';
         }
 
+        // Judge on SELLABLE stock: a shelf full of units already promised to an
+        // unshipped order cannot take another order, so calling it "In stock"
+        // would mislead the very person deciding whether to reorder.
+        $sellable = $sku->getTotalInventory();
+
         return match (true) {
-            $sku->quantity <= 0 => 'Out of stock',
-            $sku->quantity <= $this->lowThreshold() => 'Low stock',
+            $sellable <= 0 => 'Out of stock',
+            $sellable <= $this->lowThreshold() => 'Low stock',
             default => 'In stock',
         };
     }

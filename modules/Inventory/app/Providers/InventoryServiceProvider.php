@@ -12,6 +12,7 @@ use Modules\Inventory\Filament\Pages\InventorySettingsPage;
 use Modules\Inventory\Filament\Pages\StockNotificationsPage;
 use Modules\Inventory\Filament\Pages\StockOverview;
 use Modules\Inventory\Listeners\ReleaseStockOnOrderClosed;
+use Modules\Inventory\Listeners\SettleStockOnDispatch;
 use Modules\Inventory\Observers\ProductSkuObserver;
 use Modules\Order\Events\OrderStatusUpdated;
 
@@ -52,6 +53,10 @@ class InventoryServiceProvider extends ServiceProvider
         // a gateway order. Give it back when the order is cancelled or refunded,
         // or those units are destroyed for good.
         Event::listen(OrderStatusUpdated::class, ReleaseStockOnOrderClosed::class);
+
+        // Dispatch settles the commitment: the units physically leave the shelf,
+        // so `quantity` falls here rather than at order creation.
+        Event::listen(OrderStatusUpdated::class, SettleStockOnDispatch::class);
 
         if ($this->app->runningInConsole()) {
             $this->commands([ExpireAbandonedOrders::class]);

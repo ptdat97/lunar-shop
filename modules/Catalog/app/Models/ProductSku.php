@@ -249,8 +249,16 @@ class ProductSku extends Model implements Purchasable
         return $quantity <= $this->getTotalInventory();
     }
 
+    /**
+     * Units a shopper can still buy.
+     *
+     * `quantity` is what is physically in the stockroom and `committed` is the
+     * part of it already sold but not yet dispatched, so the sellable figure is
+     * the difference. Purchasable checks and the storefront must use this, not
+     * `quantity`, or units already promised to another order get sold twice.
+     */
     public function getTotalInventory(): int
     {
-        return max(0, (int) $this->quantity);
+        return max(0, (int) $this->quantity - (int) $this->committed);
     }
 }

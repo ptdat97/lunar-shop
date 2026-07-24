@@ -38,9 +38,16 @@ class StockReleaseTest extends TestCase
         return Order::latest('id')->first();
     }
 
+    /**
+     * What a shopper can still buy.
+     *
+     * Ordering now *commits* stock rather than decrementing it (units stay on
+     * the shelf until dispatch), so these reserve/release assertions are about
+     * the sellable figure — `quantity` minus what is already spoken for.
+     */
     private function stock(): int
     {
-        return (int) ProductSku::first()->quantity;
+        return ProductSku::first()->getTotalInventory();
     }
 
     public function test_placing_an_order_still_reserves_stock(): void
@@ -75,19 +82,24 @@ class StockReleaseTest extends TestCase
         // Simulate a product edit that delete-and-recreates the SKU: the order
         // line's purchasable_id now points at a hard-deleted row, but a new SKU
         // carries the same code. (This is the state a removal path can leave.)
+        // The order held a commitment, so the shelf still reads 5 with 2 of them
+        // committed — that is the state the recreated row must carry over.
         ProductSku::where('sku', $code)->forceDelete();
         $recreated = ProductSku::create([
             'product_id' => $productId,
-            'sku' => $code, 'variants' => [], 'quantity' => 3, 'price' => 1999,
+            'sku' => $code, 'variants' => [], 'quantity' => 5, 'committed' => 2, 'price' => 1999,
             'status' => 'published', 'is_default' => true,
         ]);
         $this->assertNull(ProductSku::find((int) $line->purchasable_id), 'ordered id should be gone');
 
         $order->update(['status' => 'cancelled']);
 
-        // The 2 reserved units are credited back to the recreated SKU via the
-        // identifier fallback (3 + 2 = 5) rather than lost.
-        $this->assertSame(5, (int) $recreated->fresh()->quantity);
+        // The 2 held units are freed on the recreated SKU via the identifier
+        // fallback rather than lost: the shelf never moved, the hold is gone.
+        $fresh = $recreated->fresh();
+        $this->assertSame(5, (int) $fresh->quantity);
+        $this->assertSame(0, (int) $fresh->committed);
+        $this->assertSame(5, $fresh->getTotalInventory());
         $this->assertNotNull($order->fresh()->stock_released_at);
     }
 

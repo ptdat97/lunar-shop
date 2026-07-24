@@ -57,14 +57,14 @@ class OrphanOrderSweepTest extends TestCase
         $this->seedBaseData();
         [$order, $variant] = $this->orphanOrder();
 
-        $this->assertSame(3, $variant->fresh()->quantity, 'stock reserved and committed');
+        $this->assertSame(3, $variant->fresh()->getTotalInventory(), 'stock reserved and committed');
         $this->assertNull($order->placed_at, 'checkout never completed');
 
         Order::whereKey($order->id)->update(['created_at' => now()->subDay()]);
         Artisan::call('orders:expire-abandoned', ['--minutes' => 60]);
 
         $this->assertSame(OrderStatus::CANCELLED, $order->fresh()->status);
-        $this->assertSame(5, $variant->fresh()->quantity, 'the held units came back');
+        $this->assertSame(5, $variant->fresh()->getTotalInventory(), 'the held units came back');
         $this->assertNotNull($order->fresh()->stock_released_at);
     }
 
@@ -77,7 +77,7 @@ class OrphanOrderSweepTest extends TestCase
         Artisan::call('orders:expire-abandoned', ['--minutes' => 60]);
 
         $this->assertNotSame(OrderStatus::CANCELLED, $order->fresh()->status);
-        $this->assertSame(3, $variant->fresh()->quantity, 'still reserved');
+        $this->assertSame(3, $variant->fresh()->getTotalInventory(), 'still reserved');
     }
 
     /** Bank transfer sits in awaiting-payment for days and is settled by hand. */
@@ -94,7 +94,7 @@ class OrphanOrderSweepTest extends TestCase
         Artisan::call('orders:expire-abandoned', ['--minutes' => 60]);
 
         $this->assertSame(OrderStatus::AWAITING_PAYMENT, $order->fresh()->status);
-        $this->assertSame(3, $variant->fresh()->quantity, 'still reserved for the buyer');
+        $this->assertSame(3, $variant->fresh()->getTotalInventory(), 'still reserved for the buyer');
     }
 
     /** The pre-existing behaviour: an abandoned gateway order still expires. */
@@ -109,7 +109,7 @@ class OrphanOrderSweepTest extends TestCase
         Artisan::call('orders:expire-abandoned', ['--minutes' => 60]);
 
         $this->assertSame(OrderStatus::CANCELLED, $order->fresh()->status);
-        $this->assertSame(5, $variant->fresh()->quantity);
+        $this->assertSame(5, $variant->fresh()->getTotalInventory());
     }
 
     public function test_dry_run_changes_nothing(): void
@@ -121,6 +121,6 @@ class OrphanOrderSweepTest extends TestCase
         Artisan::call('orders:expire-abandoned', ['--minutes' => 60, '--dry-run' => true]);
 
         $this->assertNotSame(OrderStatus::CANCELLED, $order->fresh()->status);
-        $this->assertSame(3, $variant->fresh()->quantity);
+        $this->assertSame(3, $variant->fresh()->getTotalInventory());
     }
 }

@@ -77,6 +77,17 @@ class StockReleaser
                     continue;
                 }
 
+                // Which figure to credit depends on whether the units ever left
+                // the shelf. An order cancelled BEFORE dispatch only ever held a
+                // commitment — `quantity` never moved, so adding to it here would
+                // invent stock. An order cancelled AFTER dispatch (a return) did
+                // leave, so the units genuinely come back on the shelf.
+                if ($fresh->dispatched_at === null) {
+                    $this->ledger->uncommit($sku->id, $quantity, (int) $fresh->id);
+
+                    continue;
+                }
+
                 $before = (int) ProductSku::whereKey($sku->id)->value('quantity');
 
                 ProductSku::whereKey($sku->id)->update([
@@ -93,7 +104,7 @@ class StockReleaser
                     after: $before + $quantity,
                     causer: null,
                     orderId: (int) $fresh->id,
-                    meta: ['status' => (string) $fresh->status],
+                    meta: ['status' => (string) $fresh->status, 'after_dispatch' => true],
                 );
             }
 

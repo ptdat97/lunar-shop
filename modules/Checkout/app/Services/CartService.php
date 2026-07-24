@@ -164,11 +164,16 @@ class CartService
         }
 
         $fresh = ProductSku::query()
-            ->select(['quantity', 'status'])
+            ->select(['quantity', 'committed', 'status'])
             ->whereKey($sku->getKey())
             ->first();
 
-        $available = $fresh && $fresh->status !== 'disabled' ? max(0, (int) $fresh->quantity) : 0;
+        // SELLABLE stock, not the shelf count: units committed to an order that
+        // hasn't shipped are physically present but already sold. Reading
+        // `quantity` here lets them into a second cart, and the rejection then
+        // surfaces from Lunar's own cart validator as an unhandled CartException
+        // (a 500) instead of this 422.
+        $available = $fresh && $fresh->status !== 'disabled' ? $fresh->getTotalInventory() : 0;
 
         if ($quantity > $available) {
             throw ValidationException::withMessages([

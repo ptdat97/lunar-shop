@@ -4,10 +4,12 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Testing\TestResponse;
+use Lunar\Models\Order;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Mail\BackInStockMail;
 use Modules\Inventory\Models\StockNotification;
 use Modules\Inventory\Services\InventoryService;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -29,14 +31,37 @@ class InventoryTest extends TestCase
         return $this->postJson('/api/v1/checkout', ['payment_type' => 'cod']);
     }
 
-    public function test_placing_an_order_decrements_stock(): void
+    public function test_placing_an_order_commits_stock_without_emptying_the_shelf(): void
     {
         $product = $this->createProduct(['stock' => 10]);
         $variant = $product->skus->first();
 
         $this->placeOrder($variant, 3)->assertSuccessful();
 
-        $this->assertSame(7, (int) $variant->fresh()->quantity);
+        $fresh = $variant->fresh();
+
+        // The goods have not shipped, so they are still in the stockroom …
+        $this->assertSame(10, (int) $fresh->quantity, 'on-hand must not drop before dispatch');
+        // … but they are spoken for, so they are no longer sellable.
+        $this->assertSame(3, (int) $fresh->committed);
+        $this->assertSame(7, $fresh->getTotalInventory());
+    }
+
+    public function test_dispatching_takes_the_committed_units_off_the_shelf(): void
+    {
+        $product = $this->createProduct(['stock' => 10]);
+        $variant = $product->skus->first();
+
+        $this->placeOrder($variant, 3)->assertSuccessful();
+
+        Order::latest('id')->first()
+            ->update(['status' => OrderStatus::DISPATCHED]);
+
+        $fresh = $variant->fresh();
+
+        $this->assertSame(7, (int) $fresh->quantity, 'dispatch is when stock actually leaves');
+        $this->assertSame(0, (int) $fresh->committed);
+        $this->assertSame(7, $fresh->getTotalInventory());
     }
 
     public function test_in_stock_variant_cannot_be_oversold(): void

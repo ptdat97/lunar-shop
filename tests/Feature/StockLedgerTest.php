@@ -44,9 +44,17 @@ class StockLedgerTest extends TestCase
         $this->assertNotNull($movement);
         $this->assertSame(StockMovementType::Sale, $movement->type);
         $this->assertSame(-3, $movement->quantity);
+
+        // Ordering commits stock rather than shipping it, so the shelf count is
+        // unchanged on both sides — a faithful record of what a stock-take would
+        // have counted. The hold shows up in the movement's meta instead.
         $this->assertSame(10, $movement->stock_before);
-        $this->assertSame(7, $movement->stock_after);
-        $this->assertSame(7, (int) $variant->fresh()->quantity);
+        $this->assertSame(10, $movement->stock_after);
+        $this->assertSame(3, $movement->meta['committed_after']);
+
+        $fresh = $variant->fresh();
+        $this->assertSame(10, (int) $fresh->quantity);
+        $this->assertSame(7, $fresh->getTotalInventory());
     }
 
     public function test_cancelling_an_order_records_a_release_movement(): void
@@ -55,7 +63,7 @@ class StockLedgerTest extends TestCase
         $variant = $product->skus->first();
 
         $this->placeOrder($variant, 4)->assertSuccessful();
-        $this->assertSame(6, (int) $variant->fresh()->quantity);
+        $this->assertSame(6, $variant->fresh()->getTotalInventory(), 'held units are not sellable');
 
         $order = Order::latest('id')->first();
         $order->update(['status' => OrderStatus::CANCELLED]);
@@ -66,9 +74,15 @@ class StockLedgerTest extends TestCase
 
         $this->assertNotNull($release);
         $this->assertSame(4, $release->quantity);
-        $this->assertSame(10, (int) $variant->fresh()->quantity);
-        // Mutation check: the release entry's after matches the real stock.
-        $this->assertSame((int) $variant->fresh()->quantity, $release->stock_after);
+
+        $fresh = $variant->fresh();
+        // Cancelled before dispatch: the units never left the shelf, so only the
+        // hold unwinds. Crediting `quantity` here would invent stock.
+        $this->assertSame(10, (int) $fresh->quantity);
+        $this->assertSame(0, (int) $fresh->committed);
+        $this->assertSame(10, $fresh->getTotalInventory());
+        // Mutation check: the release entry's after matches the real shelf count.
+        $this->assertSame((int) $fresh->quantity, $release->stock_after);
     }
 
     public function test_adjust_changes_stock_and_records_before_after(): void

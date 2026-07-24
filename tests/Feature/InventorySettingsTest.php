@@ -50,7 +50,7 @@ class InventorySettingsTest extends TestCase
     {
         $this->seedBaseData();
         [$order, $variant] = $this->unpaidGatewayOrder(ageMinutes: 30);
-        $this->assertSame(3, $variant->fresh()->quantity, 'reserved');
+        $this->assertSame(3, $variant->fresh()->getTotalInventory(), 'reserved');
 
         // Default is 60 minutes: a 30-minute-old order is still the shopper's.
         Artisan::call('orders:expire-abandoned');
@@ -61,7 +61,7 @@ class InventorySettingsTest extends TestCase
 
         Artisan::call('orders:expire-abandoned');
         $this->assertSame(OrderStatus::CANCELLED, $order->fresh()->status);
-        $this->assertSame(5, $variant->fresh()->quantity, 'units back on sale');
+        $this->assertSame(5, $variant->fresh()->getTotalInventory(), 'units back on sale');
     }
 
     public function test_an_explicit_flag_still_outranks_the_setting(): void

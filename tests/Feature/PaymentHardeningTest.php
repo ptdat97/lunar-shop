@@ -128,18 +128,18 @@ class PaymentHardeningTest extends TestCase
         Event::fake([OrderPaid::class]);
         $order = $this->placeVNPayOrder(stock: 10);
         $variant = ProductSku::find($order->lines->first()->purchasable_id);
-        $this->assertSame(9, $variant->fresh()->quantity, 'reserved at order creation');
+        $this->assertSame(9, $variant->fresh()->getTotalInventory(), 'reserved at order creation');
 
         // Abandoned: cancelled, stock returned by ReleaseStockOnOrderClosed.
         $order->update(['status' => OrderStatus::CANCELLED]);
-        $this->assertSame(10, $variant->fresh()->quantity);
+        $this->assertSame(10, $variant->fresh()->getTotalInventory());
         $this->assertNotNull($order->fresh()->stock_released_at);
 
         $result = VNPayPaymentProcessor::make()->reconcile($this->signedCallback($order));
 
         $this->assertFalse($result->paid);
         $this->assertSame(OrderStatus::CANCELLED, $order->fresh()->status);
-        $this->assertSame(10, $variant->fresh()->quantity, 'must not silently oversell');
+        $this->assertSame(10, $variant->fresh()->getTotalInventory(), 'must not silently oversell');
         Event::assertNotDispatched(OrderPaid::class);
 
         // Recorded so an operator can refund it.

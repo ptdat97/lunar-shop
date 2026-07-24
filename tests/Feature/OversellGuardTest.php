@@ -54,7 +54,11 @@ class OversellGuardTest extends TestCase
         $this->postJson('/api/v1/checkout/shipping', ['identifier' => 'standard'])->assertSuccessful();
         $this->postJson('/api/v1/checkout', ['payment_type' => 'cod'])->assertSuccessful();
 
-        $this->assertSame(0, (int) ProductSku::find($variant->id)->quantity);
+        // Buying the last units leaves nothing sellable, even though they are
+        // still physically on the shelf until the order is dispatched.
+        $fresh = ProductSku::find($variant->id);
+        $this->assertSame(0, $fresh->getTotalInventory());
+        $this->assertSame(2, (int) $fresh->committed);
     }
 
     public function test_the_pipeline_still_guards_when_stock_vanishes_after_the_cart_check(): void

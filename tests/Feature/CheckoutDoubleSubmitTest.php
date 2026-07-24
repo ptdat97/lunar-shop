@@ -54,7 +54,7 @@ class CheckoutDoubleSubmitTest extends TestCase
         $this->postJson('/api/v1/checkout', ['payment_type' => 'cod'])->assertStatus(422);
 
         // 10 − 2, once.
-        $this->assertSame(8, (int) ProductSku::first()->quantity);
+        $this->assertSame(8, ProductSku::first()->getTotalInventory());
     }
 
     public function test_checking_out_an_empty_cart_is_refused(): void
