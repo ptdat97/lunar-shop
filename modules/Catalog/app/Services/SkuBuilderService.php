@@ -103,6 +103,11 @@ class SkuBuilderService
             $product->variables = $variables;
             $product->save();
 
+            // Move any freshly-uploaded per-SKU photos into the product's own
+            // gallery collection (the same one product-level images live in),
+            // rewriting each row's `images` to the resulting media ids.
+            $skus = $this->ingestSkuImages($product, $skus);
+
             // Snapshot the old SKUs' ids keyed by their durable `sku` code BEFORE
             // dropping them, so anything that referenced a SKU by its (disposable)
             // id can be re-pointed at the recreated row that carries the same code.
@@ -495,5 +500,92 @@ class SkuBuilderService
         }
 
         return $variables;
+    }
+
+    /**
+     * Normalise each SKU row's `images` to a list of Spatie media ids: keep
+     * existing ids, ingest freshly-uploaded temp files into the product's own
+     * gallery collection (the same collection the product-level photos live
+     * in, so a SKU can point at either its own shots or the shared gallery).
+     *
+     * Unlike swatch media, a SKU photo is never deleted here just because a
+     * row no longer references it — it may still be the product's gallery
+     * image or reused by another SKU, so orphan cleanup is not this method's
+     * call to make.
+     *
+     * @param  array<int, array<string, mixed>>  $skus
+     * @return array<int, array<string, mixed>>
+     */
+    protected function ingestSkuImages(Product $product, array $skus): array
+    {
+        $collection = config('lunar.media.collection', 'images');
+
+        // Existing gallery media, indexed by on-disk path, to recognise a
+        // hydrated path that came back unchanged from the form.
+        $pathToId = $product->getMedia($collection)
+            ->mapWithKeys(fn ($m) => [$m->getPathRelativeToRoot() => $m->id])->all();
+
+        foreach ($skus as $i => $row) {
+            $images = collect($row['images'] ?? [])
+                ->map(fn ($img) => $this->ingestSkuImageValue($product, $collection, $img, $pathToId))
+                ->filter()
+                ->values()
+                ->all();
+
+            $skus[$i]['images'] = $images;
+        }
+
+        return $skus;
+    }
+
+    /**
+     * Resolve one SKU image value (a media id, a hydrated path, or a freshly
+     * uploaded temp path) to a media id, or null when it cannot be resolved.
+     *
+     * @param  array<string, int>  $pathToId
+     */
+    protected function ingestSkuImageValue(Product $product, string $collection, mixed $img, array $pathToId): ?int
+    {
+        if (empty($img)) {
+            return null;
+        }
+
+        // Already a media id → keep as-is.
+        if (is_numeric($img)) {
+            return (int) $img;
+        }
+
+        // A hydrated path pointing at an existing gallery media → map back to id.
+        if (is_string($img) && isset($pathToId[$img])) {
+            return $pathToId[$img];
+        }
+
+        // A freshly uploaded temp file on the media disk → move it into the
+        // product's gallery collection.
+        if (! is_string($img)) {
+            return null;
+        }
+
+        return app(MediaLibraryService::class)->ingestFromDisk($product, $img, $collection)?->id;
+    }
+
+    /**
+     * Turn a SKU's stored image media ids back into disk paths so the admin
+     * FileUpload can preview the saved images. Ids with no surviving media
+     * are dropped.
+     *
+     * @param  array<int, mixed>  $images
+     * @return array<int, string>
+     */
+    public function hydrateSkuImagePaths(Product $product, array $images): array
+    {
+        $collection = config('lunar.media.collection', 'images');
+        $byId = $product->getMedia($collection)->keyBy('id');
+
+        return collect($images)
+            ->map(fn ($id) => is_numeric($id) ? $byId->get((int) $id)?->getPathRelativeToRoot() : null)
+            ->filter()
+            ->values()
+            ->all();
     }
 }

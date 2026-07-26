@@ -40,7 +40,9 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:packagist.org)",
       "Skill(artifact-design)",
-      "Skill(artifact-design:*)"
+      "Skill(artifact-design:*)",
+      "Bash(composer show *)",
+      "Bash(php artisan *)"
     ]
   }
 }

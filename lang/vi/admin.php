@@ -585,6 +585,7 @@ return [
         'price_help' => 'Lưu theo đơn vị nhỏ (vd xu). Đồng bộ vào bộ định giá khi lưu.',
         'quantity' => 'Tồn kho',
         'status' => 'Trạng thái',
+        'sku_images' => 'Hình ảnh',
         'published' => 'Hiển thị',
         'disabled' => 'Tắt',
         'generated' => 'Đã sinh :count tổ hợp.',

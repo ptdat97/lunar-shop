@@ -122,4 +122,79 @@ class VariantSwatchTest extends TestCase
         $this->assertSame('image', $groups['Pattern']['display_type']);
         $this->assertSame('https://cdn.example.com/s.png', $groups['Pattern']['values'][0]['image']);
     }
+
+    // ---- per-SKU images ---------------------------------------------------
+
+    public function test_a_skus_own_uploaded_image_is_ingested_into_the_product_gallery(): void
+    {
+        $this->seedBaseData();
+        $product = $this->createProduct();
+
+        Storage::disk('media')->putFileAs(
+            'sku-images',
+            UploadedFile::fake()->image('front.png', 400, 400),
+            'front.png',
+        );
+
+        [$svc, $skus] = $this->builder();
+        $variables = [['name' => ['en' => 'Size'], 'display_type' => 'text', 'values' => [
+            ['name' => ['en' => 'S']],
+        ]]];
+        $rows = $skus($variables);
+        $rows[0]['images'] = ['sku-images/front.png'];
+        $svc->save($product, $variables, $rows);
+
+        $sku = $product->fresh()->skus()->first();
+        $this->assertCount(1, $sku->images);
+        $this->assertIsInt($sku->images[0]);
+        $this->assertSame(1, $product->fresh()->getMedia('images')->count());
+        $this->assertFalse(Storage::disk('media')->exists('sku-images/front.png')); // moved
+    }
+
+    public function test_a_skus_existing_media_id_is_kept_and_not_deleted_when_dropped_from_another_sku(): void
+    {
+        $this->seedBaseData();
+        $product = $this->createProduct();
+        $media = $product->addMedia(UploadedFile::fake()->image('shared.png', 300, 300))
+            ->toMediaCollection('images');
+
+        [$svc, $skus] = $this->builder();
+        $variables = [['name' => ['en' => 'Size'], 'display_type' => 'text', 'values' => [
+            ['name' => ['en' => 'S']], ['name' => ['en' => 'M']],
+        ]]];
+        $rows = $skus($variables);
+        $rows[0]['images'] = [$media->id];
+        $rows[1]['images'] = [$media->id];
+        $svc->save($product, $variables, $rows);
+
+        $product = $product->fresh();
+        $this->assertSame([$media->id], $product->skus()->where('sku', $rows[0]['sku'])->first()->images);
+        $this->assertSame([$media->id], $product->skus()->where('sku', $rows[1]['sku'])->first()->images);
+
+        // Re-save with the image removed from one SKU only — the media itself
+        // must survive, since it is the shared product gallery, not a swatch.
+        $rows2 = $skus($variables);
+        $rows2[0]['sku'] = $rows[0]['sku'];
+        $rows2[1]['sku'] = $rows[1]['sku'];
+        $rows2[0]['images'] = [];
+        $rows2[1]['images'] = [$media->id];
+        $svc->save($product->fresh(), $variables, $rows2);
+
+        $product = $product->fresh();
+        $this->assertSame([], $product->skus()->where('sku', $rows[0]['sku'])->first()->images);
+        $this->assertSame([$media->id], $product->skus()->where('sku', $rows[1]['sku'])->first()->images);
+        $this->assertSame(1, $product->getMedia('images')->count(), 'shared gallery media must not be deleted');
+    }
+
+    public function test_sku_image_ids_hydrate_back_to_disk_paths_for_the_admin_preview(): void
+    {
+        $this->seedBaseData();
+        $product = $this->createProduct();
+        $media = $product->addMedia(UploadedFile::fake()->image('hydrate.png', 300, 300))
+            ->toMediaCollection('images');
+
+        $paths = app(SkuBuilderService::class)->hydrateSkuImagePaths($product, [$media->id, 999999]);
+
+        $this->assertSame([$media->getPathRelativeToRoot()], $paths);
+    }
 }

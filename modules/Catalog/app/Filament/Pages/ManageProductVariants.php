@@ -136,6 +136,20 @@ class ManageProductVariants extends BaseEditRecord
                                 ->label(__('admin.variants.status'))
                                 ->options(['published' => __('admin.variants.published'), 'disabled' => __('admin.variants.disabled')])
                                 ->default('published')->native(false),
+                            // Per-SKU photos: uploads land on the shared `media` disk
+                            // like the swatch field above, then SkuBuilderService
+                            // ingests them into the product's own gallery collection
+                            // and rewrites this to media ids on save.
+                            Forms\Components\FileUpload::make('images')
+                                ->label(__('admin.variants.sku_images'))
+                                ->multiple()
+                                ->image()
+                                ->disk('media')
+                                ->directory('sku-images')
+                                ->visibility('public')
+                                ->reorderable()
+                                ->appendFiles()
+                                ->columnSpanFull(),
                         ])
                         ->columns(3)
                         ->addable(false)
@@ -179,6 +193,7 @@ class ManageProductVariants extends BaseEditRecord
                 'price' => $prior['price'] ?? 0,
                 'quantity' => $prior['quantity'] ?? 0,
                 'status' => $prior['status'] ?? 'published',
+                'images' => $prior['images'] ?? [],
             ];
         })->all();
 
@@ -195,10 +210,10 @@ class ManageProductVariants extends BaseEditRecord
     {
         $product = $this->getRecord();
 
-        // Swatch images are stored as media ids; turn them back into disk paths
-        // so the FileUpload component can preview the saved image.
-        $data['variables'] = app(SkuBuilderService::class)
-            ->hydrateSwatchPaths($product, $product->variables ?? []);
+        // Swatch/SKU images are stored as media ids; turn them back into disk
+        // paths so the FileUpload components can preview the saved images.
+        $builder = app(SkuBuilderService::class);
+        $data['variables'] = $builder->hydrateSwatchPaths($product, $product->variables ?? []);
         $data['skus'] = $product->skus()->orderBy('position')->get()
             ->map(fn ($sku) => [
                 'variants' => $sku->variants ?? [],
@@ -206,6 +221,7 @@ class ManageProductVariants extends BaseEditRecord
                 'price' => (int) $sku->price,
                 'quantity' => (int) $sku->quantity,
                 'status' => $sku->status,
+                'images' => $builder->hydrateSkuImagePaths($product, $sku->images ?? []),
             ])->all();
 
         return parent::mutateFormDataBeforeFill($data);

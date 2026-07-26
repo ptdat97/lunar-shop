@@ -583,6 +583,7 @@ return [
         'price_help' => 'Stored in minor units (e.g. cents). Syncs to the pricing engine on save.',
         'quantity' => 'Stock',
         'status' => 'Status',
+        'sku_images' => 'Images',
         'published' => 'Published',
         'disabled' => 'Disabled',
         'generated' => 'Generated :count combination(s).',
