@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
 use Lunar\Base\Purchasable;
 use Lunar\Base\Traits\HasPrices;
+use Lunar\Models\Asset;
 use Lunar\Models\Contracts\TaxClass as TaxClassContract;
 use Lunar\Models\Product;
 use Lunar\Models\TaxClass;
@@ -33,7 +34,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * @property ?int $tax_class_id
  * @property ?array<int, int> $variants indexes into products.variables
  * @property int $position
- * @property ?array<int, mixed> $images
+ * @property ?array<int, int> $images Media Library Asset ids (picked via MediaPicker)
  * @property string $model
  * @property string $sku
  * @property int $price
@@ -222,15 +223,16 @@ class ProductSku extends Model implements Purchasable
     }
 
     /**
-     * The first of this SKU's own images, resolved to a Media model when the
-     * stored value is a media id; otherwise falls back to the product thumbnail.
+     * The first of this SKU's own images (a Media Library Asset id, picked via
+     * MediaPicker), resolved to its Media model; otherwise falls back to the
+     * product thumbnail.
      */
     public function getThumbnail(): ?Media
     {
         $first = collect($this->images ?? [])->first();
 
         if (is_numeric($first)) {
-            return Media::find($first) ?: $this->product->thumbnail;
+            return Asset::find($first)?->file ?: $this->product->thumbnail;
         }
 
         return $this->product->thumbnail;

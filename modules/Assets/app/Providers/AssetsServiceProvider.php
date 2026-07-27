@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Horizon\Horizon;
+use Modules\Assets\Console\Commands\MigrateLegacyImagesToLibrary;
 use Modules\Assets\Filament\Pages\MediaImageSizes;
 use Modules\Assets\Filament\Pages\MediaLibrary;
 use Modules\Assets\Filament\Pages\QueueWorkers;
@@ -60,6 +61,12 @@ class AssetsServiceProvider extends ServiceProvider
         $this->composeThemeImages();
         $this->composeLookbookFiles();
         $this->warmConversionsOnUpload();
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([
+                MigrateLegacyImagesToLibrary::class,
+            ]);
+        }
     }
 
     /**

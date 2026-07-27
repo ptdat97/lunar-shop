@@ -12,8 +12,8 @@
                     @if($child->type === 'banner')
                         <div class="col-12 col-lg-3">
                             <a href="{{ $child->resolveUrl() }}" class="d-block text-decoration-none">
-                                @if($child->image)
-                                    <img src="{{ $child->image }}" alt="{{ $child->label }}"
+                                @if($bannerImage = media_url($child->image))
+                                    <img src="{{ $bannerImage }}" alt="{{ $child->label }}"
                                          class="img-fluid rounded mb-2"
                                          onerror="this.style.display='none'">
                                 @endif

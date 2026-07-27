@@ -11,7 +11,8 @@
         <div class="row g-4">
             @foreach($slides as $slide)
                 @php
-                    $banner = $slide['banner'] ?? '';
+                    $banner = media_url($slide['banner'] ?? null);
+                    $pinImage = media_url($slide['pin_image'] ?? null);
                     // Pin placement preset → top/left percentages. Falls back to centre.
                     $positions = [
                         'position3' => ['top' => '32%', 'left' => '28%'],
@@ -25,14 +26,14 @@
                             <img src="{{ $banner }}" alt="{{ $slide['pin_title'] ?? 'Lookbook' }}"
                                  class="w-100 h-100" style="object-fit:cover" loading="lazy">
 
-                            @if(!empty($slide['pin_title']) || !empty($slide['pin_image']))
+                            @if(!empty($slide['pin_title']) || $pinImage)
                                 <div class="lookbook__pin position-absolute"
                                      style="top: {{ $pos['top'] }}; left: {{ $pos['left'] }};">
                                     <button type="button" class="lookbook__dot" aria-label="Shop this item"></button>
                                     <a href="{{ $slide['pin_url'] ?? '#' }}"
                                        class="lookbook__card text-decoration-none text-dark d-flex align-items-center gap-2">
-                                        @if(!empty($slide['pin_image']))
-                                            <img src="{{ $slide['pin_image'] }}" alt="{{ $slide['pin_title'] ?? '' }}"
+                                        @if($pinImage)
+                                            <img src="{{ $pinImage }}" alt="{{ $slide['pin_title'] ?? '' }}"
                                                  class="lookbook__thumb" loading="lazy">
                                         @endif
                                         <span class="lookbook__meta">

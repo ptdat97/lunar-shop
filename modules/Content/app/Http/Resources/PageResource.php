@@ -13,6 +13,10 @@ use Modules\Content\Models\Page;
  * every column — including the `published` flag and timestamps — was part of the
  * contract by accident, and any new column would have leaked automatically.
  *
+ * `featured_image` is stored as a Media Library Asset id (picked via
+ * MediaPicker) — resolved to a browser URL here, the single place that knows
+ * how the app stores images (modules/Assets' media_url()).
+ *
  * @mixin Page
  */
 class PageResource extends JsonResource
@@ -23,7 +27,7 @@ class PageResource extends JsonResource
             'id' => $this->id,
             'title' => $this->title,
             'slug' => $this->slug,
-            'featured_image' => $this->featured_image,
+            'featured_image' => media_url($this->featured_image),
             'content' => $this->content,
             'seo' => [
                 'meta_title' => $this->meta_title,

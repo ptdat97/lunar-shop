@@ -5,6 +5,7 @@ namespace Modules\Assets\Services;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Lunar\Models\Asset;
 use Modules\Assets\Jobs\GenerateConversionJob;
 use Modules\Core\Support\Settings;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -34,9 +35,44 @@ class MediaUrl
      */
     private array $responsiveMemo = [];
 
+    /**
+     * Per-request memo of resolved library Assets' Media, keyed by Asset id.
+     * A product page can render dozens of SKUs, each with their own picked
+     * Asset ids (ProductSkuResource); without this each fresh JsonResource
+     * instance would re-query the same handful of library Assets.
+     *
+     * @var array<int, Media|null>
+     */
+    private array $assetMediaMemo = [];
+
     public function __construct(
         protected ConversionGenerator $generator,
     ) {}
+
+    /**
+     * Resolve a batch of Media Library Asset ids to their Media models in ONE
+     * query for whatever isn't already memoized, preserving the given order.
+     * Missing/deleted-from-library ids resolve to null.
+     *
+     * @param  iterable<int>  $assetIds
+     * @return array<int, Media|null> keyed by asset id
+     */
+    public function assetMedia(iterable $assetIds): array
+    {
+        $ids = collect($assetIds)->map(fn ($id) => (int) $id)->unique()->values();
+
+        $missing = $ids->reject(fn (int $id) => array_key_exists($id, $this->assetMediaMemo));
+
+        if ($missing->isNotEmpty()) {
+            $loaded = Asset::with('file')->whereIn('id', $missing->all())->get()->keyBy('id');
+
+            foreach ($missing as $id) {
+                $this->assetMediaMemo[$id] = $loaded->get($id)?->file;
+            }
+        }
+
+        return $ids->mapWithKeys(fn (int $id) => [$id => $this->assetMediaMemo[$id]])->all();
+    }
 
     /**
      * URL for a conversion. Two modes (config `lunar.media.on_demand.sync`):

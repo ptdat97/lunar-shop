@@ -4,6 +4,7 @@ namespace Modules\Assets\Filament\Forms;
 
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Components\Select;
+use Illuminate\Support\HtmlString;
 use Lunar\Models\Asset;
 
 /**
@@ -18,17 +19,20 @@ use Lunar\Models\Asset;
  * Usage:
  *   MediaPicker::make('image')->label('Banner image')
  *   MediaPicker::make('cover_image', type: 'image')
+ *   MediaPicker::make('payment', type: 'image', multiple: true)   // array of asset ids
  *
  * @param  string|null  $type  Restrict to a single library type (image|video|document).
+ * @param  bool  $multiple  Store an array of asset ids instead of a single id — for
+ *                          fields that need several library files (e.g. payment badges).
  */
 class MediaPicker
 {
     /**
      * Build the picker field.
      */
-    public static function make(string $name, ?string $type = null): Select
+    public static function make(string $name, ?string $type = null, bool $multiple = false): Select
     {
-        return Select::make($name)
+        $field = Select::make($name)
             ->searchable()
             ->preload()
             ->native(false)
@@ -44,10 +48,24 @@ class MediaPicker
                 ->get()
                 ->mapWithKeys(fn (Asset $a) => [$a->id => static::optionLabel($a)])
                 ->all())
+            ->suffixAction(static::openLibraryAction());
+
+        if ($multiple) {
+            return $field
+                ->multiple()
+                ->getOptionLabelsUsing(fn (array $values): array => collect($values)
+                    ->mapWithKeys(fn ($id) => [$id => static::labelForId($id)])
+                    ->filter()
+                    ->all())
+                // Reorderable thumbnail strip instead of the single-image helper text.
+                ->helperText(fn ($state) => static::previewStrip($state))
+                ->dehydrateStateUsing(fn ($state) => array_values(array_filter((array) $state)));
+        }
+
+        return $field
             ->getOptionLabelUsing(fn ($value): ?string => static::labelForId($value))
             // Live thumbnail preview shown beneath the select.
             ->helperText(fn ($state) => static::previewHint($state))
-            ->suffixAction(static::openLibraryAction())
             ->dehydrateStateUsing(fn ($state) => $state ?: null);
     }
 
@@ -72,12 +90,12 @@ class MediaPicker
         $media = $asset->file;
 
         if (! $media) {
-            return 'Asset #' . $asset->id;
+            return 'Asset #'.$asset->id;
         }
 
         $type = $media->getCustomProperty('type') ?? 'file';
 
-        return $media->name . ' (' . ucfirst($type) . ', ' . $media->humanReadableSize . ')';
+        return $media->name.' ('.ucfirst($type).', '.$media->humanReadableSize.')';
     }
 
     protected static function labelForId($id): ?string
@@ -94,17 +112,46 @@ class MediaPicker
     /**
      * HTML hint with a small thumbnail of the selected file.
      */
-    protected static function previewHint($id): ?\Illuminate\Support\HtmlString
+    protected static function previewHint($id): ?HtmlString
     {
         if (! $id) {
             return null;
         }
 
+        return static::thumbHtml($id);
+    }
+
+    /**
+     * HTML strip of small thumbnails for a multiple-picker's selected ids, in
+     * the order they were selected/reordered.
+     *
+     * @param  array<int, mixed>|null  $ids
+     */
+    protected static function previewStrip(?array $ids): ?HtmlString
+    {
+        $ids = array_filter((array) $ids);
+
+        if (empty($ids)) {
+            return null;
+        }
+
+        $html = collect($ids)->map(fn ($id) => (string) static::thumbHtml($id))->implode('');
+
+        return new HtmlString(
+            '<div style="display:flex;flex-wrap:wrap;gap:8px;">'.$html.'</div>'
+        );
+    }
+
+    /**
+     * HTML for one selected file's thumbnail/preview (image/video/document).
+     */
+    protected static function thumbHtml($id): HtmlString
+    {
         $asset = Asset::with('file')->find($id);
         $media = $asset?->file;
 
         if (! $media) {
-            return new \Illuminate\Support\HtmlString(
+            return new HtmlString(
                 '<span class="text-warning-600">Selected file no longer exists in the library.</span>'
             );
         }
@@ -117,19 +164,19 @@ class MediaPicker
                 ? e($media->getUrl('thumb'))
                 : $url;
 
-            return new \Illuminate\Support\HtmlString(
-                '<img src="' . $thumb . '" alt="" style="height:64px;border-radius:8px;margin-top:4px;object-fit:cover;" />'
+            return new HtmlString(
+                '<img src="'.$thumb.'" alt="" style="height:64px;border-radius:8px;margin-top:4px;object-fit:cover;" />'
             );
         }
 
         if ($type === 'video') {
-            return new \Illuminate\Support\HtmlString(
-                '<video src="' . $url . '" style="height:64px;border-radius:8px;margin-top:4px;" muted></video>'
+            return new HtmlString(
+                '<video src="'.$url.'" style="height:64px;border-radius:8px;margin-top:4px;" muted></video>'
             );
         }
 
-        return new \Illuminate\Support\HtmlString(
-            '<a href="' . $url . '" target="_blank" class="text-primary-600 underline">Open ' . e($media->name) . '</a>'
+        return new HtmlString(
+            '<a href="'.$url.'" target="_blank" class="text-primary-600 underline">Open '.e($media->name).'</a>'
         );
     }
 

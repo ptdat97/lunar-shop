@@ -7,8 +7,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Lunar\Models\Currency;
 use Lunar\Models\Product;
-use Modules\Assets\Definitions\FashionMediaDefinitions;
-use Modules\Assets\Services\MediaLibraryService;
+use Modules\Assets\Filament\Forms\MediaPicker;
 use Modules\Catalog\Models\ProductSku;
 
 /**
@@ -29,6 +28,13 @@ use Modules\Catalog\Models\ProductSku;
  * `lunar_prices` (priceable_type = product_sku). This service syncs each SKU's
  * `price` column down to a base Price row so the engine and the admin cache
  * never drift.
+ *
+ * Image fields (variable image-swatches, SKU `images`) are picked from the
+ * shared Media Library (modules/Assets) via {@see MediaPicker}
+ * — the form already posts Lunar Asset ids, so this service persists them
+ * as-is. There is no upload/ingest step here: MediaPicker never lets an admin
+ * upload a file outside the library, so every image reference is guaranteed
+ * to already be a library Asset.
  */
 class SkuBuilderService
 {
@@ -95,18 +101,8 @@ class SkuBuilderService
         $this->assertStockCoversCommitments($product, $skus);
 
         DB::transaction(function () use ($product, $variables, $skus, $combinations) {
-            // Move any freshly-uploaded swatch files into the Spatie `swatch`
-            // media collection and rewrite the blob to store media ids, so the
-            // storefront can serve a small conversion instead of the original.
-            $variables = $this->ingestSwatchMedia($product, $variables);
-
             $product->variables = $variables;
             $product->save();
-
-            // Move any freshly-uploaded per-SKU photos into the product's own
-            // gallery collection (the same one product-level images live in),
-            // rewriting each row's `images` to the resulting media ids.
-            $skus = $this->ingestSkuImages($product, $skus);
 
             // Snapshot the old SKUs' ids keyed by their durable `sku` code BEFORE
             // dropping them, so anything that referenced a SKU by its (disposable)
@@ -392,200 +388,5 @@ class SkuBuilderService
     protected function comboKey(array $combo): string
     {
         return implode('-', $combo);
-    }
-
-    /**
-     * Normalise every image-swatch value to a Spatie media id: keep existing
-     * ids, ingest freshly-uploaded temp files into the `swatch` collection, and
-     * delete media no longer referenced. Returns the rewritten variables.
-     *
-     * @param  array<int, mixed>  $variables
-     * @return array<int, mixed>
-     */
-    protected function ingestSwatchMedia(Product $product, array $variables): array
-    {
-        $collection = FashionMediaDefinitions::SWATCH_COLLECTION;
-
-        // Existing swatch media, indexed by their on-disk path (to recognise a
-        // hydrated id that came back unchanged from the form).
-        $existing = $product->getMedia($collection);
-        $pathToId = $existing->mapWithKeys(fn ($m) => [$m->getPathRelativeToRoot() => $m->id])->all();
-
-        $keptIds = [];
-
-        foreach ($variables as $ai => $axis) {
-            if (($axis['display_type'] ?? null) !== 'image') {
-                continue;
-            }
-
-            foreach ($axis['values'] ?? [] as $vi => $value) {
-                $img = $value['image'] ?? null;
-                $variables[$ai]['values'][$vi]['image'] = $this->ingestSwatchValue(
-                    $product, $collection, $img, $pathToId, $keptIds
-                );
-            }
-        }
-
-        // Orphans: swatch media no longer referenced by any value.
-        $existing->reject(fn ($m) => in_array($m->id, $keptIds, true))
-            ->each(fn ($m) => $m->delete());
-
-        return $variables;
-    }
-
-    /**
-     * Resolve one swatch value to a media id (or null). Mutates $keptIds.
-     *
-     * @param  array<string, int>  $pathToId
-     * @param  array<int, int>  $keptIds
-     */
-    protected function ingestSwatchValue(Product $product, string $collection, $img, array $pathToId, array &$keptIds): ?int
-    {
-        if (empty($img)) {
-            return null;
-        }
-
-        // Already a media id → keep as-is.
-        if (is_numeric($img)) {
-            $keptIds[] = (int) $img;
-
-            return (int) $img;
-        }
-
-        // A hydrated path pointing at an existing swatch media → map back to id.
-        if (isset($pathToId[$img])) {
-            $keptIds[] = $pathToId[$img];
-
-            return $pathToId[$img];
-        }
-
-        // A freshly uploaded temp file on the media disk → move it into the
-        // collection via the shared ingest (no preservingOriginal → temp file
-        // is cleaned up). Missing file → null.
-        $media = app(MediaLibraryService::class)->ingestFromDisk($product, $img, $collection);
-
-        if ($media) {
-            $keptIds[] = $media->id;
-
-            return $media->id;
-        }
-
-        return null;
-    }
-
-    /**
-     * Turn stored swatch media ids back into disk paths so the admin FileUpload
-     * can preview the saved image. Called from the page's fill. Ids with no
-     * surviving media become null. Non-id values (legacy paths/URLs) pass through.
-     *
-     * @param  array<int, mixed>  $variables
-     * @return array<int, mixed>
-     */
-    public function hydrateSwatchPaths(Product $product, array $variables): array
-    {
-        $byId = $product->getMedia(FashionMediaDefinitions::SWATCH_COLLECTION)->keyBy('id');
-
-        foreach ($variables as $ai => $axis) {
-            if (($axis['display_type'] ?? null) !== 'image') {
-                continue;
-            }
-
-            foreach ($axis['values'] ?? [] as $vi => $value) {
-                $img = $value['image'] ?? null;
-
-                if (is_numeric($img)) {
-                    $variables[$ai]['values'][$vi]['image'] = $byId->get((int) $img)?->getPathRelativeToRoot();
-                }
-            }
-        }
-
-        return $variables;
-    }
-
-    /**
-     * Normalise each SKU row's `images` to a list of Spatie media ids: keep
-     * existing ids, ingest freshly-uploaded temp files into the product's own
-     * gallery collection (the same collection the product-level photos live
-     * in, so a SKU can point at either its own shots or the shared gallery).
-     *
-     * Unlike swatch media, a SKU photo is never deleted here just because a
-     * row no longer references it — it may still be the product's gallery
-     * image or reused by another SKU, so orphan cleanup is not this method's
-     * call to make.
-     *
-     * @param  array<int, array<string, mixed>>  $skus
-     * @return array<int, array<string, mixed>>
-     */
-    protected function ingestSkuImages(Product $product, array $skus): array
-    {
-        $collection = config('lunar.media.collection', 'images');
-
-        // Existing gallery media, indexed by on-disk path, to recognise a
-        // hydrated path that came back unchanged from the form.
-        $pathToId = $product->getMedia($collection)
-            ->mapWithKeys(fn ($m) => [$m->getPathRelativeToRoot() => $m->id])->all();
-
-        foreach ($skus as $i => $row) {
-            $images = collect($row['images'] ?? [])
-                ->map(fn ($img) => $this->ingestSkuImageValue($product, $collection, $img, $pathToId))
-                ->filter()
-                ->values()
-                ->all();
-
-            $skus[$i]['images'] = $images;
-        }
-
-        return $skus;
-    }
-
-    /**
-     * Resolve one SKU image value (a media id, a hydrated path, or a freshly
-     * uploaded temp path) to a media id, or null when it cannot be resolved.
-     *
-     * @param  array<string, int>  $pathToId
-     */
-    protected function ingestSkuImageValue(Product $product, string $collection, mixed $img, array $pathToId): ?int
-    {
-        if (empty($img)) {
-            return null;
-        }
-
-        // Already a media id → keep as-is.
-        if (is_numeric($img)) {
-            return (int) $img;
-        }
-
-        // A hydrated path pointing at an existing gallery media → map back to id.
-        if (is_string($img) && isset($pathToId[$img])) {
-            return $pathToId[$img];
-        }
-
-        // A freshly uploaded temp file on the media disk → move it into the
-        // product's gallery collection.
-        if (! is_string($img)) {
-            return null;
-        }
-
-        return app(MediaLibraryService::class)->ingestFromDisk($product, $img, $collection)?->id;
-    }
-
-    /**
-     * Turn a SKU's stored image media ids back into disk paths so the admin
-     * FileUpload can preview the saved images. Ids with no surviving media
-     * are dropped.
-     *
-     * @param  array<int, mixed>  $images
-     * @return array<int, string>
-     */
-    public function hydrateSkuImagePaths(Product $product, array $images): array
-    {
-        $collection = config('lunar.media.collection', 'images');
-        $byId = $product->getMedia($collection)->keyBy('id');
-
-        return collect($images)
-            ->map(fn ($id) => is_numeric($id) ? $byId->get((int) $id)?->getPathRelativeToRoot() : null)
-            ->filter()
-            ->values()
-            ->all();
     }
 }

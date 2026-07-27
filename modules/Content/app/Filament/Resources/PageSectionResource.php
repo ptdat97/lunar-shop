@@ -2,7 +2,6 @@
 
 namespace Modules\Content\Filament\Resources;
 
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section as FormSection;
 use Filament\Forms\Components\Select;
@@ -20,6 +19,7 @@ use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 use Lunar\Models\Collection as LunarCollection;
 use Lunar\Models\Product;
+use Modules\Assets\Filament\Forms\MediaPicker;
 use Modules\Content\Filament\Resources\PageSectionResource\Pages;
 use Modules\Content\Models\PageSection;
 use Modules\Content\Support\SectionSchemas;
@@ -84,7 +84,7 @@ class PageSectionResource extends Resource
                     Repeater::make('settings.slides')
                         ->label(__('admin.section.slides'))
                         ->schema([
-                            FileUpload::make('image')->image()->disk('media')->directory('sections/hero')
+                            MediaPicker::make('image', type: 'image')
                                 ->helperText(__('admin.section.hero_image_help'))->columnSpanFull(),
                             TextInput::make('title')->label(__('admin.common.title')),
                             Textarea::make('subtitle')->label(__('admin.common.subheading'))->rows(2),
@@ -114,8 +114,8 @@ class PageSectionResource extends Resource
                     Repeater::make('settings.slides')
                         ->label(__('admin.section.slides'))
                         ->schema([
-                            FileUpload::make('banner')->label(__('admin.section.banner_image'))->image()->disk('media')->directory('sections/lookbook')->columnSpanFull(),
-                            FileUpload::make('pin_image')->label(__('admin.section.pin_image'))->image()->disk('media')->directory('sections/lookbook'),
+                            MediaPicker::make('banner', type: 'image')->label(__('admin.section.banner_image'))->columnSpanFull(),
+                            MediaPicker::make('pin_image', type: 'image')->label(__('admin.section.pin_image')),
                             TextInput::make('position')->label(__('admin.section.pin_position'))->placeholder('position3 / position5'),
                             TextInput::make('pin_title')->label(__('admin.section.product_title')),
                             TextInput::make('pin_price')->label(__('admin.section.price')),
@@ -144,9 +144,8 @@ class PageSectionResource extends Resource
                                     ->whereIn('id', $values)->get()
                                     ->mapWithKeys(fn ($c) => [$c->id => $c->translateAttribute('name')])
                                     ->all()),
-                            FileUpload::make('image')
+                            MediaPicker::make('image', type: 'image')
                                 ->label(__('admin.section.collection_image'))
-                                ->image()->disk('media')->directory('sections/collection')
                                 ->helperText(__('admin.section.collection_image_help')),
                         ])
                         ->columns(2)->collapsible()->reorderable()

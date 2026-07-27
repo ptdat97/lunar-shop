@@ -4,7 +4,6 @@ namespace Modules\Theme\Filament\Pages;
 
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\ColorPicker;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
@@ -16,6 +15,7 @@ use Filament\Forms\Form;
 use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Modules\Assets\Filament\Forms\MediaPicker;
 use Modules\Theme\Services\ThemeSettings;
 
 /**
@@ -62,10 +62,8 @@ class ThemeSettingsPage extends Page implements HasForms
             ->statePath('data')
             ->schema([
                 Section::make(__('admin.theme.general'))->columns(2)->schema([
-                    FileUpload::make('general.logo')->label(__('admin.theme.logo'))
-                        ->image()->disk('media')->directory('theme/logo'),
-                    FileUpload::make('general.logo_footer')->label(__('admin.theme.logo_footer'))
-                        ->image()->disk('media')->directory('theme/logo'),
+                    MediaPicker::make('general.logo', type: 'image')->label(__('admin.theme.logo')),
+                    MediaPicker::make('general.logo_footer', type: 'image')->label(__('admin.theme.logo_footer')),
                     TextInput::make('copyright')->label(__('admin.theme.copyright'))->columnSpanFull(),
                 ]),
 
@@ -73,9 +71,8 @@ class ThemeSettingsPage extends Page implements HasForms
                     ->description(__('admin.theme.brand_desc'))
                     ->columns(2)
                     ->schema([
-                        FileUpload::make('brand.email_logo')->label(__('admin.theme.email_logo'))
-                            ->helperText(__('admin.theme.email_logo_help'))
-                            ->image()->disk('media')->directory('theme/logo'),
+                        MediaPicker::make('brand.email_logo', type: 'image')->label(__('admin.theme.email_logo'))
+                            ->helperText(__('admin.theme.email_logo_help')),
                         ColorPicker::make('brand.email_accent')->label(__('admin.theme.email_accent'))
                             ->helperText(__('admin.theme.email_accent_help')),
                     ]),
@@ -101,9 +98,8 @@ class ThemeSettingsPage extends Page implements HasForms
                 ]),
 
                 Section::make(__('admin.theme.payment'))->schema([
-                    FileUpload::make('payment')->label(__('admin.theme.payment_images'))
-                        ->image()->multiple()->reorderable()
-                        ->disk('media')->directory('theme/payment'),
+                    MediaPicker::make('payment', type: 'image', multiple: true)
+                        ->label(__('admin.theme.payment_images')),
                 ]),
 
                 Section::make(__('admin.theme.language'))

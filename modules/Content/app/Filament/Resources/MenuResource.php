@@ -3,7 +3,6 @@
 namespace Modules\Content\Filament\Resources;
 
 use Filament\Forms\Components\Component;
-use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section as FormSection;
 use Filament\Forms\Components\Select;
@@ -15,6 +14,7 @@ use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Lunar\Models\Collection as LunarCollection;
+use Modules\Assets\Filament\Forms\MediaPicker;
 use Modules\Content\Filament\Resources\MenuResource\Pages;
 use Modules\Content\Models\Menu;
 
@@ -111,8 +111,7 @@ class MenuResource extends Resource
                         ->options(['mega-column' => __('admin.menu.type_column'), 'banner' => __('admin.menu.type_banner')])
                         ->default('mega-column')->required()->live(),
                     TextInput::make('label')->label(__('admin.menu.heading_alt')),
-                    FileUpload::make('image')->label(__('admin.menu.banner_image'))
-                        ->image()->disk('media')->directory('menus/banners')
+                    MediaPicker::make('image', type: 'image')->label(__('admin.menu.banner_image'))
                         ->visible(fn (Get $get) => $get('type') === 'banner'),
                     TextInput::make('url')->label(__('admin.menu.banner_link'))
                         ->visible(fn (Get $get) => $get('type') === 'banner'),

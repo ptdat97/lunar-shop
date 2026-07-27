@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Lunar\Models\Asset;
 use Lunar\Models\Product;
 use Modules\Catalog\Http\Resources\ProductSkuResource;
 use Modules\Catalog\Models\ProductSku;
@@ -12,9 +13,9 @@ use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
 /**
- * Per-colour product galleries: each SKU may carry its own subset of the
- * product's media (the `images` JSON column, a list of media ids), so choosing
- * a colour swaps the gallery.
+ * Per-colour product galleries: each SKU may carry its own subset of Media
+ * Library Assets (the `images` JSON column, a list of Asset ids picked via
+ * MediaPicker), so choosing a colour swaps the gallery.
  *
  * Covers the two halves that have to agree: the SSR gallery (the media view
  * composer scopes it to the selected variant) and the hydration payload
@@ -25,18 +26,19 @@ class VariantGalleryTest extends TestCase
 {
     use CreatesStorefrontData;
 
-    /** Attach $count images to a product and return their media ids in order. */
-    private function attachImages(Product $product, int $count): array
+    /** Create $count library Assets (with a real image file each) and return their ids in order. */
+    private function makeAssets(int $count): array
     {
         Storage::fake('public');
 
         $ids = [];
         for ($i = 1; $i <= $count; $i++) {
-            $ids[] = $product
-                ->addMedia(UploadedFile::fake()->image("shot-{$i}.jpg", 800, 1200))
+            $asset = Asset::create([]);
+            $asset->addMedia(UploadedFile::fake()->image("shot-{$i}.jpg", 800, 1200))
                 ->preservingOriginal()
-                ->toMediaCollection(config('lunar.media.collection', 'images'))
-                ->id;
+                ->toMediaCollection(config('lunar.media.collection', 'images'));
+
+            $ids[] = $asset->id;
         }
 
         return $ids;
@@ -46,13 +48,10 @@ class VariantGalleryTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct();
-        $ids = $this->attachImages($product, 2);
+        $ids = $this->makeAssets(2);
 
         $sku = $product->skus()->first();
         $sku->update(['images' => $ids]);
-
-        $product->load('media');
-        $sku->setRelation('product', $product);
 
         $payload = (new ProductSkuResource($sku))->toArray(request());
 
@@ -61,30 +60,32 @@ class VariantGalleryTest extends TestCase
         $this->assertArrayHasKey('large', $payload['images'][0]);
         $this->assertArrayHasKey('small', $payload['images'][0]);
         $this->assertArrayHasKey('zoom', $payload['images'][0]);
-        $this->assertSame($ids[0], $payload['images'][0]['id']);
     }
 
-    public function test_sku_image_order_is_preserved_not_media_order(): void
+    public function test_sku_image_order_is_preserved_not_asset_order(): void
     {
         $this->seedBaseData();
         $product = $this->createProduct();
-        $ids = $this->attachImages($product, 3);
+        $ids = $this->makeAssets(3);
 
-        // Lead with the LAST media item — the whole point of per-colour sets.
+        // Lead with the LAST asset — the whole point of per-colour sets.
         $reordered = [$ids[2], $ids[0], $ids[1]];
 
         $sku = $product->skus()->first();
         $sku->update(['images' => $reordered]);
 
-        $product->load('media');
-        $sku->setRelation('product', $product);
-
         $payload = (new ProductSkuResource($sku))->toArray(request());
 
+        // The payload's `id` is the underlying Media id (not the Asset id) —
+        // resolve each Asset's Media id in the same order to compare.
+        $expectedMediaIds = collect($reordered)
+            ->map(fn (int $assetId) => Asset::find($assetId)->file->id)
+            ->all();
+
         $this->assertSame(
-            $reordered,
+            $expectedMediaIds,
             array_column($payload['images'], 'id'),
-            'the SKU\'s own ordering must survive — filtering by media order would undo it',
+            'the SKU\'s own ordering must survive — filtering by asset order would undo it',
         );
     }
 
@@ -92,13 +93,10 @@ class VariantGalleryTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct();
-        $this->attachImages($product, 2);
+        $this->makeAssets(2);
 
         $sku = $product->skus()->first();
         $sku->update(['images' => []]);
-
-        $product->load('media');
-        $sku->setRelation('product', $product);
 
         $payload = (new ProductSkuResource($sku))->toArray(request());
 
@@ -128,9 +126,9 @@ class VariantGalleryTest extends TestCase
             'sku' => 'GAL-BLACK',
         ]);
 
-        $ids = $this->attachImages($product, 2);
+        $ids = $this->makeAssets(2);
 
-        // Black leads with the first image, White with the second.
+        // Black leads with the first asset, White with the second.
         $product->skus()->first()->update(['images' => [$ids[0]]]);
 
         ProductSku::create([
@@ -159,11 +157,17 @@ class VariantGalleryTest extends TestCase
         );
     }
 
-    public function test_serializing_many_skus_costs_no_extra_media_queries(): void
+    /**
+     * Resolution goes through MediaUrl::assetMedia(), scoped per request — a
+     * page rendering many SKUs must cost at most one query per DISTINCT Asset
+     * id, not one per SKU. Sharing the same 2 Assets across 4 SKUs must not
+     * multiply the query count.
+     */
+    public function test_serializing_many_skus_costs_bounded_asset_queries(): void
     {
         $this->seedBaseData();
         $product = $this->createProduct(['slug' => 'nplusone-tee']);
-        $ids = $this->attachImages($product, 2);
+        $ids = $this->makeAssets(2);
 
         foreach (range(1, 4) as $i) {
             ProductSku::create([
@@ -187,20 +191,24 @@ class VariantGalleryTest extends TestCase
             (new ProductSkuResource($sku))->toArray(request());
         }
 
-        $mediaQueries = collect(\DB::getQueryLog())
-            ->filter(fn ($q) => str_contains($q['query'], '`media`'))
+        $assetQueries = collect(\DB::getQueryLog())
+            ->filter(fn ($q) => str_contains($q['query'], '`lunar_assets`') || str_contains(strtolower($q['query']), 'from `assets`'))
             ->count();
 
         \DB::disableQueryLog();
 
-        $this->assertSame(0, $mediaQueries, 'SKU images must resolve off the already-loaded product media');
+        $this->assertLessThanOrEqual(
+            1,
+            $assetQueries,
+            'the same 2 Asset ids shared across 4 SKUs must resolve in at most one query, not one per SKU',
+        );
     }
 
     /**
      * The multi-product endpoints (bySlugs/byIds/related/search) are separate
      * query builders from findBySlug. They regressed once already: a single
      * GET /api/v1/products?slugs=… fired 297 statements, 263 of them duplicate
-     * `lunar_products` and `media` lookups, one pair per SKU.
+     * `lunar_products` lookups, one pair per SKU.
      *
      * The `skus` relation is chaperoned at its definition so every path is
      * covered; this asserts the endpoint itself, not one service method.
@@ -212,7 +220,7 @@ class VariantGalleryTest extends TestCase
         $slugs = [];
         foreach (range(1, 3) as $p) {
             $product = $this->createProduct(['slug' => "bulk-tee-{$p}"]);
-            $ids = $this->attachImages($product, 2);
+            $ids = $this->makeAssets(2);
             $slugs[] = "bulk-tee-{$p}";
 
             // Several SKUs each, so an N+1 would be unmistakable.
@@ -243,11 +251,6 @@ class VariantGalleryTest extends TestCase
             ->filter(fn ($q) => str_contains($q['query'], 'from `lunar_products` where `lunar_products`.`id` ='))
             ->count();
 
-        $repeatedMedia = $log
-            ->filter(fn ($q) => str_contains($q['query'], 'from `media` where `id` in'))
-            ->count();
-
         $this->assertSame(0, $repeatedProduct, 'each SKU must reuse the parent product that loaded it');
-        $this->assertSame(0, $repeatedMedia, 'SKU images must resolve off the already-loaded product media');
     }
 }

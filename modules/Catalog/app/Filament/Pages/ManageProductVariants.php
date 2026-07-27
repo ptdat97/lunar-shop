@@ -9,6 +9,7 @@ use Filament\Support\Facades\FilamentIcon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 use Lunar\Admin\Support\Pages\BaseEditRecord;
+use Modules\Assets\Filament\Forms\MediaPicker;
 use Modules\Catalog\Filament\Resources\ProductResource;
 use Modules\Catalog\Services\SkuBuilderService;
 
@@ -86,13 +87,10 @@ class ManageProductVariants extends BaseEditRecord
                                     Forms\Components\ColorPicker::make('color')
                                         ->label(__('admin.variants.value_color'))
                                         ->visible(fn (Forms\Get $get) => $get('../../display_type') === 'color'),
-                                    // Image swatch: a thumbnail stored on the public media disk.
-                                    Forms\Components\FileUpload::make('image')
+                                    // Image swatch: picked from the shared Media Library
+                                    // (modules/Assets) — an Asset id, never a direct upload.
+                                    MediaPicker::make('image', type: 'image')
                                         ->label(__('admin.variants.value_image'))
-                                        ->image()
-                                        ->disk('media')
-                                        ->directory('variant-swatches')
-                                        ->visibility('public')
                                         ->visible(fn (Forms\Get $get) => $get('../../display_type') === 'image'),
                                 ])
                                 ->addActionLabel(__('admin.variants.add_value'))
@@ -136,19 +134,10 @@ class ManageProductVariants extends BaseEditRecord
                                 ->label(__('admin.variants.status'))
                                 ->options(['published' => __('admin.variants.published'), 'disabled' => __('admin.variants.disabled')])
                                 ->default('published')->native(false),
-                            // Per-SKU photos: uploads land on the shared `media` disk
-                            // like the swatch field above, then SkuBuilderService
-                            // ingests them into the product's own gallery collection
-                            // and rewrites this to media ids on save.
-                            Forms\Components\FileUpload::make('images')
+                            // Per-SKU photos: picked from the shared Media Library
+                            // (modules/Assets) — a list of Asset ids, never a direct upload.
+                            MediaPicker::make('images', type: 'image', multiple: true)
                                 ->label(__('admin.variants.sku_images'))
-                                ->multiple()
-                                ->image()
-                                ->disk('media')
-                                ->directory('sku-images')
-                                ->visibility('public')
-                                ->reorderable()
-                                ->appendFiles()
                                 ->columnSpanFull(),
                         ])
                         ->columns(3)
@@ -210,10 +199,9 @@ class ManageProductVariants extends BaseEditRecord
     {
         $product = $this->getRecord();
 
-        // Swatch/SKU images are stored as media ids; turn them back into disk
-        // paths so the FileUpload components can preview the saved images.
-        $builder = app(SkuBuilderService::class);
-        $data['variables'] = $builder->hydrateSwatchPaths($product, $product->variables ?? []);
+        // Swatch/SKU images are stored as Asset ids (MediaPicker's native
+        // value) — no hydration needed, the picker resolves ids directly.
+        $data['variables'] = $product->variables ?? [];
         $data['skus'] = $product->skus()->orderBy('position')->get()
             ->map(fn ($sku) => [
                 'variants' => $sku->variants ?? [],
@@ -221,7 +209,7 @@ class ManageProductVariants extends BaseEditRecord
                 'price' => (int) $sku->price,
                 'quantity' => (int) $sku->quantity,
                 'status' => $sku->status,
-                'images' => $builder->hydrateSkuImagePaths($product, $sku->images ?? []),
+                'images' => $sku->images ?? [],
             ])->all();
 
         return parent::mutateFormDataBeforeFill($data);

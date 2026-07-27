@@ -4,9 +4,9 @@ namespace Modules\Catalog\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Modules\Assets\Services\MediaUrl;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Catalog\Services\PricingService;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * SKU JSON contract, including resolved price via the Pricing service (wraps
@@ -52,16 +52,16 @@ class ProductSkuResource extends JsonResource
     }
 
     /**
-     * Resolve the SKU's `images` JSON column (a list of media ids) into the
-     * gallery image shape.
+     * Resolve the SKU's `images` JSON column (a list of Media Library Asset ids,
+     * picked via MediaPicker — modules/Assets) into the gallery image shape.
      *
-     * The column holds ids rather than URLs — mirroring how swatch images are
-     * stored — so conversions stay resolvable after a disk move and the
-     * serialization lives in one place (MediaImageResource), shared with the
-     * product-level gallery.
+     * The column holds Asset ids rather than URLs so conversions stay resolvable
+     * after a library file is replaced, and the serialization lives in one place
+     * (MediaImageResource), shared with the product-level gallery.
      *
-     * Media is read off the parent product's already-loaded collection, so a
-     * page with N SKUs costs no extra queries.
+     * Resolution goes through MediaUrl::assetMedia(), which memoizes per Asset
+     * id on the scoped MediaUrl instance — a product page rendering dozens of
+     * SKUs costs at most one query per distinct Asset id across the whole page.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -76,21 +76,11 @@ class ProductSkuResource extends JsonResource
             return [];
         }
 
-        // Read off the parent only when it (and its media) are already loaded —
-        // the `skus` relation is chaperoned, so on every storefront path they
-        // are. Touching $this->product unguarded would itself lazy-load the
-        // product, which is the N+1 this avoids.
-        $product = $this->resource->relationLoaded('product')
-            ? $this->resource->getRelation('product')
-            : null;
+        $mediaByAssetId = app(MediaUrl::class)->assetMedia($ids->all());
 
-        $mediaById = $product?->relationLoaded('media')
-            ? $product->media->keyBy('id')
-            : Media::whereIn('id', $ids->all())->get()->keyBy('id');
-
-        // Preserve the admin's ordering: map over the ids, not the media rows.
+        // Preserve the admin's ordering: map over the ids, not the loaded rows.
         return $ids
-            ->map(fn (int $id) => MediaImageResource::one($mediaById->get($id)))
+            ->map(fn (int $id) => MediaImageResource::one($mediaByAssetId[$id] ?? null))
             ->filter()
             ->values()
             ->all();

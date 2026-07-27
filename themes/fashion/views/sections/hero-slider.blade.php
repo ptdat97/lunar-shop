@@ -4,8 +4,9 @@
         <div class="swiper" data-hero-swiper>
             <div class="swiper-wrapper">
                 @foreach($slides as $i => $slide)
+                    @php $slideImage = media_url($slide['image'] ?? null); @endphp
                     <div class="swiper-slide"
-                         @if(!empty($slide['image'])) style="background-image:url('{{ $slide['image'] }}');" @endif>
+                         @if($slideImage) style="background-image:url('{{ $slideImage }}');" @endif>
                         <div class="hero-slide__content">
                             @if(!empty($slide['kicker']))
                                 <span class="hero-slide__kicker">{{ $slide['kicker'] }}</span>
