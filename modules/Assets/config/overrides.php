@@ -30,8 +30,15 @@ return [
         // Storefront-facing models get responsive + WebP conversions.
         'collection' => FashionMediaDefinitions::class,
         'product' => FashionMediaDefinitions::class,
-        // The rest stay on Lunar's StandardMediaDefinitions (not overridden):
-        // brand, product-option.
+        // The rest stay on Lunar's StandardMediaDefinitions. Listed explicitly
+        // for documentation only — both already resolve to StandardMediaDefinitions
+        // via HasMedia::getDefinitionClass()'s fallback, so these two lines change
+        // nothing.
+        //
+        // WARNING: 'product-option' is a DEAD key — the lookup snake_cases the
+        // model basename (see the note below), so only 'product_option' would
+        // ever match. If you need to give ProductOption real conversions, add it
+        // under the snake_case key; editing this kebab-case line has no effect.
         'brand' => StandardMediaDefinitions::class,
         'product-option' => StandardMediaDefinitions::class,
         // Option values carry the variant `swatch` collection (colour/pattern

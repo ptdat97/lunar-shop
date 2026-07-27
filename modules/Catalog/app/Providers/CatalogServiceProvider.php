@@ -22,6 +22,7 @@ use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Services\RecommendationService;
 use Modules\Catalog\Services\ReviewService;
 use Modules\Core\Support\AdminPages;
+use Modules\Core\Support\LunarConfigOverride;
 use Modules\Core\Support\Settings;
 
 class CatalogServiceProvider extends ServiceProvider
@@ -81,6 +82,12 @@ class CatalogServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Re-apply the cart eager-load override on top of Lunar's published
+        // config/lunar/cart.php — survives `lunar:install` / `vendor:publish
+        // --force`. Drops `lines.purchasable.values`, which ProductSku (our
+        // purchasable) does not define. See config/cart-eager-load-overrides.php.
+        LunarConfigOverride::applyFrom('lunar.cart', __DIR__.'/../../config/cart-eager-load-overrides.php');
+
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'catalog-admin');
 

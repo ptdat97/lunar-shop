@@ -161,9 +161,19 @@ hoặc dùng **`Modules\Core\Support\LunarConfigOverride`** để re-apply overr
     `CreateOrderAddresses`, `CreateShippingLine`, `CleanUpOrderLines`, `MapDiscountBreakdown`
     (order); `CalculateLines`, `ApplyShipping`, `ApplyDiscounts`, `CalculateTax`,
     `Calculate` (cart).
-- **Payment types / media definitions / cart_session**:
+- **Payment types / media definitions / cart_session / cart eager-load**:
   - ✅ **Đang dùng:** `Checkout/config/payment-overrides.php` (COD/bank/vnpay/momo type),
     `Assets/config/overrides.php` (FashionMediaDefinitions), cart_session auto_create.
+  - ✅ **Đang dùng:** `Catalog/config/cart-eager-load-overrides.php` bỏ `lines.purchasable.values`
+    khỏi `cart.eager_load` — purchasable ở dự án này là `ProductSku`, **không có**
+    quan hệ `values` (option label dựng từ blob `variables`), để nguyên thì mọi lần
+    render cart ném `BadMethodCallException`.
+
+> **Bất biến:** mọi tuỳ biến `lunar.*` phải nằm ở `modules/*/config/*.php` + gọi
+> `LunarConfigOverride::applyFrom()` trong `boot()` — **không** sửa tay `config/lunar/*.php`.
+> `config/lunar/` được giữ **y hệt bản vendor**, nên `php artisan lunar:install` /
+> `vendor:publish --tag=lunar --force` chạy lúc nào cũng an toàn, không mất gì.
+> Kiểm chứng nhanh sau khi nâng cấp Lunar: `git status config/lunar/` phải sạch.
 
 ## (2) Manager / Facade `extend()` — thêm driver/type, cực sạch
 
