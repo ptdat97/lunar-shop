@@ -25,6 +25,7 @@ return [
         'wishlist' => 'Wishlist',
         'account' => 'My account',
         'cart' => 'Cart',
+        'view_all_in' => 'View all :label',
     ],
 
     'common' => [

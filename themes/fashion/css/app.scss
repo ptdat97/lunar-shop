@@ -41,6 +41,7 @@
 
 // ── Features / components (scoped to component classes) ──────────────────────
 @use 'features/header' as feat-header;
+@use 'features/mobile-menu' as feat-mobile-menu;
 @use 'features/footer' as feat-footer;
 @use 'features/mini-cart' as feat-mini-cart;
 @use 'features/product-card' as feat-product-card;

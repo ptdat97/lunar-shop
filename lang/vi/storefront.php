@@ -25,6 +25,7 @@ return [
         'wishlist' => 'Yêu thích',
         'account' => 'Tài khoản',
         'cart' => 'Giỏ hàng',
+        'view_all_in' => 'Xem tất cả :label',
     ],
 
     'common' => [

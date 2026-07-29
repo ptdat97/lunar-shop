@@ -265,50 +265,7 @@
         }
     }
 
-    // Mobile offcanvas header polish (ID lives on #mobileMenu)
-    #mobileMenu {
-        .offcanvas-header {
-            border-bottom: v.$border-width solid v.$border-color;
-            padding: 1rem 1.25rem;
-            background: v.$bg-primary;
-
-            .offcanvas-title {
-                font-family: v.$font-display;
-                font-weight: v.$font-weight-normal;
-                letter-spacing: v.$letter-spacing-wide;
-                text-transform: uppercase;
-                font-size: v.$font-size-lg;
-            }
-
-            .btn-close {
-                margin: 0;
-                padding: .5rem;
-                transition: transform v.$transition-fast;
-
-                &:hover {
-                    transform: rotate(90deg);
-                }
-            }
-        }
-
-        .offcanvas-body {
-            background: v.$bg-primary;
-
-            .navbar-nav {
-                .nav-link {
-                    font-size: v.$font-size-base;
-                    padding: .65rem 0;
-                    border-bottom: v.$border-width solid v.$border-color;
-                    transition: all v.$transition-fast;
-
-                    &:hover {
-                        padding-left: v.$spacing-sm;
-                        color: v.$accent;
-                    }
-                }
-            }
-        }
-    }
+    // The mobile off-canvas drawer styles itself — see features/_mobile-menu.scss.
 
     // Search icon active state
     .header-actions [data-search-toggle] {

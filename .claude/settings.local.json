@@ -52,7 +52,14 @@
       "Bash(cat > *)",
       "Bash(grep -n 'protected $table\\\\|getTable' /Users/dat/Ecommerce/lunar-shop/vendor/lunarphp/core/src/Models/Asset.php /Users/dat/Ecommerce/lunar-shop/vendor/lunarphp/core/src/Base/BaseModel.php)",
       "Bash(vendor/bin/pint modules/Assets/app/Filament/Forms/MediaPicker.php modules/Assets/app/Console/Commands/MigrateLegacyImagesToLibrary.php modules/Catalog/app/Services/SkuBuilderService.php modules/Theme/app/Filament/Pages/ThemeSettingsPage.php)",
-      "Bash(vendor/bin/pint --test modules/Assets/app/Filament/Forms/MediaPicker.php modules/Assets/app/Services/MediaUrl.php modules/Assets/app/Console/Commands/MigrateLegacyImagesToLibrary.php modules/Assets/app/Providers/AssetsServiceProvider.php modules/Catalog/app/Filament/Pages/ManageProductVariants.php modules/Catalog/app/Services/SkuBuilderService.php modules/Catalog/app/Services/ProductService.php modules/Catalog/app/Models/ProductSku.php modules/Catalog/app/Http/Resources/ProductSkuResource.php modules/Content/app/Filament/Resources/MenuResource.php modules/Content/app/Filament/Resources/PageSectionResource.php modules/Content/app/Http/Resources/BannerResource.php modules/Content/app/Http/Resources/PageResource.php modules/Theme/app/Filament/Pages/ThemeSettingsPage.php tests/Feature/VariantSwatchTest.php tests/Feature/VariantGalleryTest.php tests/Feature/MigrateLegacyImagesToLibraryTest.php)"
+      "Bash(vendor/bin/pint --test modules/Assets/app/Filament/Forms/MediaPicker.php modules/Assets/app/Services/MediaUrl.php modules/Assets/app/Console/Commands/MigrateLegacyImagesToLibrary.php modules/Assets/app/Providers/AssetsServiceProvider.php modules/Catalog/app/Filament/Pages/ManageProductVariants.php modules/Catalog/app/Services/SkuBuilderService.php modules/Catalog/app/Services/ProductService.php modules/Catalog/app/Models/ProductSku.php modules/Catalog/app/Http/Resources/ProductSkuResource.php modules/Content/app/Filament/Resources/MenuResource.php modules/Content/app/Filament/Resources/PageSectionResource.php modules/Content/app/Http/Resources/BannerResource.php modules/Content/app/Http/Resources/PageResource.php modules/Theme/app/Filament/Pages/ThemeSettingsPage.php tests/Feature/VariantSwatchTest.php tests/Feature/VariantGalleryTest.php tests/Feature/MigrateLegacyImagesToLibraryTest.php)",
+      "Bash(npx sass *)",
+      "Bash(sed -i '' \"s|require __DIR__ . '/../../../../../Users/dat/Ecommerce/lunar-shop/vendor/autoload.php';|require '/Users/dat/Ecommerce/lunar-shop/vendor/autoload.php';|\" /private/tmp/claude-501/-Users-dat-Ecommerce-lunar-shop/075b2149-e409-4850-9361-8ba42f8bed3a/scratchpad/blade-lint.php)",
+      "Bash(php /private/tmp/claude-501/-Users-dat-Ecommerce-lunar-shop/075b2149-e409-4850-9361-8ba42f8bed3a/scratchpad/blade-lint.php themes/fashion/views/menus/mobile-item.blade.php themes/fashion/views/partials/header.blade.php themes/fashion/views/partials/language-switcher.blade.php)",
+      "Bash(npx vite *)",
+      "Bash(grep -v \"^$\")",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(git --no-pager diff -- themes/fashion/views/ lang/)"
     ],
     "additionalDirectories": [
       "/tmp"

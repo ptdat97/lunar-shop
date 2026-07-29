@@ -59,18 +59,40 @@
 </header>
 
 {{-- Mobile off-canvas menu --}}
-<div class="offcanvas offcanvas-start" tabindex="-1" id="mobileMenu" aria-labelledby="mobileMenuLabel">
-    <div class="offcanvas-header border-bottom">
+<div class="offcanvas offcanvas-start mobile-menu" tabindex="-1" id="mobileMenu"
+     aria-labelledby="mobileMenuLabel" data-mobile-menu>
+    <div class="offcanvas-header">
         <h5 class="offcanvas-title" id="mobileMenuLabel">{{ __('storefront.nav.menu') }}</h5>
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="{{ __('storefront.common.cancel') }}"></button>
     </div>
+
     <div class="offcanvas-body">
-        <div class="accordion accordion-flush" id="mobileMenuAccordion">
+        {{-- Search first: on mobile it is the fastest path to a product. Real
+             link to /search, so it works with the drawer open and no JS. --}}
+        <a href="{{ route('storefront.search') }}" class="mobile-menu__search">
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <span>{{ __('storefront.nav.search') }}</span>
+        </a>
+
+        <nav class="mobile-menu__nav" id="mobileMenuAccordion" aria-label="{{ __('storefront.nav.menu') }}">
             {!! $menus->renderMobile('header') !!}
+        </nav>
+    </div>
+
+    {{-- Pinned footer: account actions stay reachable without scrolling past
+         the whole category tree. --}}
+    <div class="mobile-menu__footer">
+        <div class="mobile-menu__actions">
+            <a href="{{ route('storefront.account') }}" class="mobile-menu__action">
+                <i class="bi bi-person" aria-hidden="true"></i>
+                <span>{{ __('storefront.nav.account') }}</span>
+            </a>
+            <a href="{{ route('storefront.wishlist') }}" class="mobile-menu__action">
+                <i class="bi bi-heart" aria-hidden="true"></i>
+                <span>{{ __('storefront.nav.wishlist') }}</span>
+                <span class="mobile-menu__badge" data-wishlist-count hidden>0</span>
+            </a>
         </div>
-        {{-- Language switcher (mobile) --}}
-        <div class="border-top pt-3 mt-3">
-            @include('theme::partials.language-switcher')
-        </div>
+        @include('theme::partials.language-switcher')
     </div>
 </div>
