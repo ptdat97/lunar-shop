@@ -59,7 +59,9 @@
       "Bash(npx vite *)",
       "Bash(grep -v \"^$\")",
       "Bash(echo \"EXIT=$?\")",
-      "Bash(git --no-pager diff -- themes/fashion/views/ lang/)"
+      "Bash(git --no-pager diff -- themes/fashion/views/ lang/)",
+      "Bash(git stash *)",
+      "Bash(git --no-pager diff --stat)"
     ],
     "additionalDirectories": [
       "/tmp"
