@@ -159,7 +159,6 @@ body::after {
     // selected (.btn-dark) / unselected (.btn-outline-dark) swap from JS; we
     // make the hit target comfortable and mark unavailable values clearly.
     [data-option] {
-        min-width: 3rem;
         padding-inline: .85rem;
         border-radius: v.$radius;
         font-weight: 500;
