@@ -59,7 +59,16 @@ function renderPrice(el, variant, promotion) {
     el.innerHTML = `<span data-price-sale>${esc(original)}</span>`;
 }
 
-function buildOptionGroups(variants) {
+function buildOptionGroups(state, variants) {
+    if (state.options && !Array.isArray(state.options)) {
+        return Object.entries(state.options).map(([name, group]) => ({
+            name,
+            values: (group.values || [])
+                .map((value) => value?.label ?? value?.value ?? value)
+                .filter((value) => value !== undefined && value !== null && value !== ''),
+        }));
+    }
+
     const groups = new Map();
     variants.forEach((v) => {
         (v.options || []).forEach(({ option, value }) => {
@@ -69,6 +78,40 @@ function buildOptionGroups(variants) {
         });
     });
     return [...groups.entries()].map(([name, values]) => ({ name, values: [...values] }));
+}
+
+function variantKey(indexes = []) {
+    return (indexes || []).map((index) => String(parseInt(index, 10))).join('-');
+}
+
+function signatureFor(constraints) {
+    return Object.keys(constraints)
+        .sort((a, b) => Number(a) - Number(b))
+        .map((axis) => `${axis}:${constraints[axis]}`)
+        .join('|');
+}
+
+function buildVariantIndex(variants) {
+    const byKey = new Map();
+    const partials = new Set();
+
+    variants.forEach((variant) => {
+        const indexes = variant.variant_indexes || [];
+        const key = variant.variant_key || variantKey(indexes);
+        byKey.set(key, variant);
+
+        const total = indexes.length;
+        const subsetCount = 2 ** total;
+        for (let mask = 1; mask < subsetCount; mask += 1) {
+            const constraints = {};
+            indexes.forEach((valueIndex, axis) => {
+                if (mask & (1 << axis)) constraints[axis] = parseInt(valueIndex, 10);
+            });
+            partials.add(signatureFor(constraints));
+        }
+    });
+
+    return { byKey, partials };
 }
 
 // URL param key for an option — lowercased option name (e.g. "Color" → "color"),
@@ -121,7 +164,11 @@ export default function (root = document) {
     const t = readI18n(panel);
 
     const variants = state.variants;
-    const groups = buildOptionGroups(variants);
+    const groups = buildOptionGroups(state, variants);
+    groups.forEach((group) => {
+        group.valueIndexes = new Map(group.values.map((value, index) => [String(value), index]));
+    });
+    const variantIndex = buildVariantIndex(variants);
     const selected = {}; // option name → value
 
     // A variant's gallery: its own images when the admin assigned any (all sizes
@@ -157,25 +204,34 @@ export default function (root = document) {
     // — losing the visitor's slide position — on every size change.
     let lastGalleryKey = galleryKey(imagesFor(first));
 
-    function currentVariant() {
+    function selectionIndexes(candidate = null) {
+        const constraints = {};
+
+        groups.forEach((group, axis) => {
+            const chosen = candidate?.name === group.name ? candidate.value : selected[group.name];
+            if (!chosen) return;
+
+            const valueIndex = group.valueIndexes.get(String(chosen));
+            if (valueIndex !== undefined) constraints[axis] = valueIndex;
+        });
+
+        return constraints;
+    }
+
+    function currentVariant(allChosen) {
         if (!groups.length) return variants[0] ?? null;
-        return variants.find((v) =>
-            groups.every((g) => {
-                const chosen = selected[g.name];
-                return chosen && (v.options || []).some((o) => o.option === g.name && o.value === chosen);
-            })
-        ) ?? null;
+        if (!allChosen) return null;
+
+        const constraints = selectionIndexes();
+        const indexes = groups.map((_, axis) => constraints[axis]);
+
+        return variantIndex.byKey.get(variantKey(indexes)) ?? null;
     }
 
     function isAvailable(optionName, value) {
-        return variants.some((v) => {
-            if (!(v.options || []).some((o) => o.option === optionName && o.value === value)) return false;
-            return groups.every((g) => {
-                if (g.name === optionName) return true;
-                const chosen = selected[g.name];
-                return !chosen || (v.options || []).some((o) => o.option === g.name && o.value === chosen);
-            });
-        });
+        const constraints = selectionIndexes({ name: optionName, value });
+
+        return variantIndex.partials.has(signatureFor(constraints));
     }
 
     function render() {
@@ -189,8 +245,8 @@ export default function (root = document) {
             btn.disabled = !isAvailable(name, value);
         });
 
-        const variant = currentVariant();
         const allChosen = !groups.length || groups.every((g) => selected[g.name]);
+        const variant = currentVariant(allChosen);
         const inStock = (variant?.stock ?? 0) > 0;
 
         if (priceEl && variant?.price?.formatted) renderPrice(priceEl, variant, state.promotion);

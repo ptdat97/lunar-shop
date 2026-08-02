@@ -155,14 +155,42 @@ class ProductService
             return $first;
         }
 
-        return $product->skus->first(function (ProductSku $sku) use ($queryOptions) {
-            $skuOptions = collect($this->selectedOptionValues($sku))
-                ->mapWithKeys(fn ($val, $key) => [strtolower((string) $key) => strtolower((string) $val)]);
+        $locale = app()->getLocale();
+        $selectedIndexes = [];
 
-            // Every queried option must be present on this SKU with a matching value.
-            return $queryOptions->every(
-                fn ($val, $key) => $skuOptions->has($key) && $skuOptions->get($key) === $val,
-            );
+        foreach ($product->variables ?? [] as $axis => $variable) {
+            $optionName = $this->localised($variable['name'] ?? [], $locale) ?: 'Option';
+            $rawValue = $queryOptions->get(strtolower($optionName))
+                ?? $queryOptions->get(Str::slug($optionName));
+
+            if ($rawValue === null) {
+                continue;
+            }
+
+            $valueIndex = collect($variable['values'] ?? [])
+                ->search(fn ($value) => strtolower($this->localised($value['name'] ?? [], $locale)) === $rawValue);
+
+            if ($valueIndex === false) {
+                return $first;
+            }
+
+            $selectedIndexes[(int) $axis] = (int) $valueIndex;
+        }
+
+        if ($selectedIndexes === []) {
+            return $first;
+        }
+
+        return $product->skus->first(function (ProductSku $sku) use ($selectedIndexes) {
+            $indexes = $sku->variants ?? [];
+
+            foreach ($selectedIndexes as $axis => $valueIndex) {
+                if ((int) ($indexes[$axis] ?? -1) !== $valueIndex) {
+                    return false;
+                }
+            }
+
+            return true;
         }) ?? $first;
     }
 

@@ -387,6 +387,6 @@ class SkuBuilderService
      */
     protected function comboKey(array $combo): string
     {
-        return implode('-', $combo);
+        return ProductSku::variantKeyFor($combo);
     }
 }

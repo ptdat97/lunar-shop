@@ -167,6 +167,26 @@ class ProductSku extends Model implements Purchasable
     }
 
     /**
+     * Stable key for this SKU's positional variant combination, e.g. [0,1] =>
+     * "0-1". The storefront uses this to jump straight from selected swatches
+     * to the matching SKU instead of scanning every SKU on each click.
+     */
+    public function variantKey(): string
+    {
+        return static::variantKeyFor($this->variants ?? []);
+    }
+
+    /**
+     * @param  array<int, int|string>  $combo
+     */
+    public static function variantKeyFor(array $combo): string
+    {
+        return collect($combo)
+            ->map(fn ($index) => (string) (int) $index)
+            ->implode('-');
+    }
+
+    /**
      * The option NAME → VALUE pairs for this SKU's combination, localised, in
      * variable order — e.g. [['option' => 'Color', 'value' => 'Black'], …].
      * This is the shape the storefront variant picker groups on; empty for a

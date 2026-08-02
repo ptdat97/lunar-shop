@@ -88,6 +88,30 @@ class SkuBuilderTest extends TestCase
         app(SkuBuilderService::class)->save($product, [$variables[0]], $skus);
     }
 
+    public function test_deep_link_resolves_options_with_slugged_names(): void
+    {
+        $this->seedBaseData();
+        $product = $this->createProduct();
+        $variables = [[
+            'name' => ['en' => 'Shoe Size'],
+            'display_type' => 'text',
+            'values' => [
+                ['name' => ['en' => 'Small']],
+                ['name' => ['en' => 'Medium']],
+            ],
+        ]];
+
+        app(SkuBuilderService::class)->save($product, $variables, [
+            ['variants' => [0], 'sku' => 'SIZE-S', 'price' => 1000, 'quantity' => 5],
+            ['variants' => [1], 'sku' => 'SIZE-M', 'price' => 1000, 'quantity' => 5],
+        ]);
+
+        $selected = app(ProductService::class)
+            ->resolveSelectedVariant($product->fresh(['skus']), ['shoe-size' => 'medium']);
+
+        $this->assertSame('SIZE-M', $selected->sku);
+    }
+
     // ---- C2: id-based references follow the sku code across a re-save ----------
 
     public function test_variant_scoped_discount_and_cart_line_follow_the_sku_across_a_resave(): void

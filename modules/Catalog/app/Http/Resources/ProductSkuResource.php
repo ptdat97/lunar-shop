@@ -28,7 +28,11 @@ class ProductSkuResource extends JsonResource
         return [
             'id' => $this->id,
             'sku' => $this->sku,
-            'stock' => $this->quantity,
+            // Public stock is the sellable figure. `quantity` is on-hand stock;
+            // committed units are already sold and must not be offered again.
+            'stock' => $this->getTotalInventory(),
+            'on_hand' => $this->quantity,
+            'committed' => (int) $this->committed,
             'status' => $this->status,
             'price' => [
                 'amount' => $price?->decimal(),
@@ -42,6 +46,7 @@ class ProductSkuResource extends JsonResource
             // Raw value-index combination into the product's `variables`, so a
             // client can map a picker selection back to this SKU without labels.
             'variant_indexes' => $this->variants ?? [],
+            'variant_key' => $this->variantKey(),
             // Per-SKU images, resolved to the same {small,large,zoom,width,height}
             // shape as the product-level gallery so the storefront can swap one
             // for the other without knowing where the images came from. Empty

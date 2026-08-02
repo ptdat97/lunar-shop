@@ -53,4 +53,18 @@ class ProductPageTest extends TestCase
             ->assertOk()
             ->assertSee('No image');
     }
+
+    public function test_product_page_uses_sellable_stock_for_the_selected_variant(): void
+    {
+        $this->seedBaseData();
+        $product = $this->createProduct(['stock' => 2]);
+        $product->skus()->first()->update(['committed' => 2]);
+        $slug = $product->defaultUrl->slug;
+
+        $this->get("/products/{$slug}")
+            ->assertOk()
+            ->assertSee('Out of stock')
+            ->assertSee('data-add-to-cart-btn disabled', false)
+            ->assertSee('data-initial-out="1"', false);
+    }
 }

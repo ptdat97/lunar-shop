@@ -27,6 +27,22 @@ class ProductIncludeTest extends TestCase
             ->assertJsonStructure(['data' => ['id', 'name', 'slug', 'variants']]);
     }
 
+    public function test_variant_payload_uses_sellable_stock_and_exposes_variant_key(): void
+    {
+        $this->seedBaseData();
+        $product = $this->createProduct(['stock' => 2, 'variant_indexes' => [0, 1]]);
+        $sku = $product->skus()->first();
+        $sku->update(['committed' => 2]);
+        $slug = $product->defaultUrl->slug;
+
+        $this->getJson("/api/v1/products/{$slug}")
+            ->assertOk()
+            ->assertJsonPath('data.variants.0.stock', 0)
+            ->assertJsonPath('data.variants.0.on_hand', 2)
+            ->assertJsonPath('data.variants.0.committed', 2)
+            ->assertJsonPath('data.variants.0.variant_key', '0-1');
+    }
+
     public function test_include_size_chart_attaches_chart(): void
     {
         $this->seedBaseData();

@@ -10,7 +10,8 @@
   //   Promotion composer → $sale
   $name = $product->translateAttribute('name');
   $description = $product->translateAttribute('description');
-  $inStock = $product->variants->sum('stock') > 0;
+  $selectedStock = $selectedVariant?->getTotalInventory() ?? 0;
+  $inStock = $product->skus->contains(fn ($sku) => $sku->getTotalInventory() > 0);
 @endphp
 
 {{-- SEO attributes (meta_title/meta_description, editable in the product
@@ -183,8 +184,8 @@
           @endforeach
 
           <div class="small text-muted mb-3" data-product-stock>
-            @if ($selectedVariant && $selectedVariant->quantity > 0)
-              {{ __('storefront.product.in_stock', ['count' => $selectedVariant->quantity]) }}
+            @if ($selectedVariant && $selectedStock > 0)
+              {{ __('storefront.product.in_stock', ['count' => $selectedStock]) }}
             @elseif($selectedVariant)
               {{ __('storefront.product.out_of_stock') }}
             @endif
@@ -193,8 +194,8 @@
           <form method="POST" action="{{ route('storefront.cart') }}" data-add-to-cart>
             @csrf
             <input type="hidden" name="variant_id" value="{{ $selectedVariant?->id }}" data-variant-input>
-            <button class="btn btn-dark btn-lg w-100" type="submit" data-add-to-cart-btn @disabled(!$selectedVariant || $selectedVariant->quantity <= 0)>
-              {{ $selectedVariant && $selectedVariant->quantity > 0 ? __('storefront.product.add_to_cart') : __('storefront.product.out_of_stock') }}
+            <button class="btn btn-dark btn-lg w-100" type="submit" data-add-to-cart-btn @disabled(!$selectedVariant || $selectedStock <= 0)>
+              {{ $selectedVariant && $selectedStock > 0 ? __('storefront.product.add_to_cart') : __('storefront.product.out_of_stock') }}
             </button>
           </form>
 
@@ -218,7 +219,7 @@
                      Hidden by default; revealed by JS (no JS → add-to-cart above
                      already shows "Out of stock", which is the honest no-JS state). --}}
           <div class="notify-me mt-3" data-notify-me hidden
-            @if ($selectedVariant && $selectedVariant->quantity <= 0) data-initial-out="1" @endif>
+            @if ($selectedVariant && $selectedStock <= 0) data-initial-out="1" @endif>
             <p class="small text-muted mb-2">
               <i class="bi bi-bell me-1"></i>{{ __('storefront.product.notify_intro') }}
             </p>
