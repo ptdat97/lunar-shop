@@ -61,7 +61,17 @@
       "Bash(echo \"EXIT=$?\")",
       "Bash(git --no-pager diff -- themes/fashion/views/ lang/)",
       "Bash(git stash *)",
-      "Bash(git --no-pager diff --stat)"
+      "Bash(git --no-pager diff --stat)",
+      "Bash(php -r '$l=json_decode\\(file_get_contents\\(\"composer.lock\"\\),true\\); foreach\\($l[\"packages\"] as $p\\){ if\\(str_starts_with\\($p[\"name\"],\"filament/\"\\)||$p[\"name\"]===\"lunarphp/lunar\"||$p[\"name\"]===\"livewire/livewire\"\\) echo $p[\"name\"],\" \",$p[\"version\"],\"\\\\n\";}')",
+      "Bash(php -l modules/Assets/app/Filament/Pages/MediaLibrary.php)",
+      "Bash(php -l modules/Assets/app/Filament/Forms/MediaBrowser.php)",
+      "Bash(php -l lang/en/admin.php)",
+      "Bash(php -l lang/vi/admin.php)",
+      "Bash(cp modules/Assets/app/Filament/Forms/MediaBrowser.php /tmp/mb.bak)",
+      "Bash(perl -0pi -e 's/\\\\$this->setStateValue\\\\\\('\\\\''page'\\\\'', 1\\\\\\);\\\\n    \\\\}/}/s' modules/Assets/app/Filament/Forms/MediaBrowser.php)",
+      "Bash(cp /tmp/mb.bak modules/Assets/app/Filament/Forms/MediaBrowser.php)",
+      "Bash(perl -0pi -e 's/'\\\\''type'\\\\'' => \\\\$this->libraryType,/'\\\\''type'\\\\'' => null,/' modules/Assets/app/Filament/Forms/MediaBrowser.php)",
+      "Bash(vendor/bin/pint --test modules/Assets/app/Filament/Forms/ modules/Assets/app/Services/MediaLibraryService.php modules/Assets/app/Filament/Pages/MediaLibrary.php tests/Feature/MediaPickerTest.php)"
     ],
     "additionalDirectories": [
       "/tmp"

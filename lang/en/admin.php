@@ -427,6 +427,21 @@ return [
         'pick' => 'Select from Media Library…',
         'missing' => 'Selected file no longer exists in the library.',
 
+        // Media picker (browse modal + thumbnail controls)
+        'browse' => 'Browse library',
+        'choose' => 'Use selected',
+        'remove' => 'Remove',
+        'move_left' => 'Move earlier',
+        'move_right' => 'Move later',
+        'search' => 'Search',
+        'search_placeholder' => 'Search by file name…',
+        'all_folders' => 'All folders',
+        'selected_count' => ':count selected',
+        'empty' => 'No files match. Upload one to get started.',
+        'previous' => 'Previous',
+        'next' => 'Next',
+        'page_of' => 'Page :page of :last',
+
         // Media Image Sizes Page
         'no_worker' => 'No queue worker running.',
         'no_worker_desc' => 'Image (re)generation is queued but won\'t process until a worker is up. Start Horizon with :command1 (or :command2).',

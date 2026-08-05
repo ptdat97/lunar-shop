@@ -2,6 +2,7 @@
 
 namespace Modules\Assets\Services;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -168,6 +169,102 @@ class MediaLibraryService
         $conversion = $conversion ?: 'large';
 
         return app(MediaUrl::class)->conversion($media, $conversion);
+    }
+
+    /**
+     * Browse the library: assets that have a media file, newest first, with
+     * optional type/folder/name filters. Shared by the Media Library page and
+     * the MediaPicker's browse modal so both list the same thing the same way.
+     *
+     * @param  array{type?:string|null,folder?:string|null,search?:string|null}  $filters
+     */
+    public function browse(array $filters = []): Builder
+    {
+        $type = $filters['type'] ?? null;
+        $folder = $filters['folder'] ?? null;
+        $search = trim((string) ($filters['search'] ?? ''));
+
+        return Asset::query()
+            ->whereHas('file')
+            ->with('file')
+            ->when($type, fn ($q) => $q->whereHas(
+                'file',
+                fn ($m) => $m->where('custom_properties->type', $type),
+            ))
+            ->when($folder, fn ($q) => $q->whereHas(
+                'file',
+                fn ($m) => $m->where('custom_properties->folder', $folder),
+            ))
+            ->when($search !== '', fn ($q) => $q->whereHas(
+                'file',
+                fn ($m) => $m->where('name', 'like', '%'.$search.'%'),
+            ))
+            ->latest('id');
+    }
+
+    /**
+     * Distinct folder names in the library, for filter dropdowns.
+     *
+     * @return array<string, string>
+     */
+    public function folders(): array
+    {
+        return Media::query()
+            ->whereNotNull('custom_properties->folder')
+            ->pluck('custom_properties')
+            ->map(fn ($p) => $p['folder'] ?? null)
+            ->filter()
+            ->unique()
+            ->sort()
+            ->mapWithKeys(fn ($f) => [$f => $f])
+            ->all();
+    }
+
+    /**
+     * Presentation payload for one library asset id: everything a picker
+     * thumbnail needs (type, name, size, preview URL) or null when the id no
+     * longer resolves to a library file.
+     *
+     * @return array{id:int,name:string,type:string,size:string,url:?string,thumb:?string,alt:?string}|null
+     */
+    public function preview(int|string|null $assetId): ?array
+    {
+        if (! $assetId) {
+            return null;
+        }
+
+        $asset = Asset::with('file')->find($assetId);
+        $media = $asset?->file;
+
+        if (! $asset || ! $media) {
+            return null;
+        }
+
+        return $this->previewOf($asset->id, $media);
+    }
+
+    /**
+     * Presentation payload for an already-loaded asset + media item — same shape
+     * as {@see preview()} without the lookup, for lists that eager-loaded `file`.
+     *
+     * @return array{id:int,name:string,type:string,size:string,url:?string,thumb:?string,alt:?string}
+     */
+    public function previewOf(int $assetId, Media $media): array
+    {
+        $type = $media->getCustomProperty('type') ?? $this->typeOf($media);
+        $url = $media->getUrl();
+
+        return [
+            'id' => $assetId,
+            'name' => (string) $media->name,
+            'type' => $type,
+            'size' => (string) $media->humanReadableSize,
+            'url' => $url,
+            'thumb' => $type === 'image'
+                ? (app(MediaUrl::class)->conversion($media, 'small') ?: $url)
+                : null,
+            'alt' => $media->getCustomProperty('alt'),
+        ];
     }
 
     /**

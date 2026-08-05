@@ -5,8 +5,8 @@
 > (native của Lunar), storefront **100% Blade SSR + vanilla JS** (không Vue).
 > Chỉ ghi những gì đã có trong code.
 >
-> Cập nhật lần cuối: **2026-07-23** — 13 module nghiệp vụ (layout nwidart v13),
-> 63 route `api/v1`, 432 test xanh.
+> Cập nhật lần cuối: **2026-08-05** — 13 module nghiệp vụ (layout nwidart v13),
+> 63 route `api/v1`, 506 test xanh.
 >
 > **Lunar là composer package `lunarphp/lunar` trong `vendor/`** — bản fork trong repo
 > đã được gỡ (2026-07-20). Đừng sửa `vendor/`; xem
@@ -333,7 +333,7 @@ page/resource module đóng góp), `Support\LunarConfigOverride` (re-apply overr
 |---|---|---|---|
 | **Catalog** | Catalog + Product + Pricing + Review + Recommend + Search + Collection | Toàn bộ hiển thị/truy vấn sản phẩm | Services: `ProductService`, `PricingService`, `ReviewService`, `RecommendationService`, `CollectionService`, `SitemapService`, `SizeChartService`, `SizeRecommender`, `FitHistoryService`. Models: `ProductMaterial`, `SizeChart`, `SizeChartRow`, `Review`. Contracts/Drivers: `SearchEngine` + `DatabaseSearchEngine`. Strategies: `Association`, `Collection`. 7 file Filament (SizeChartResource + ProductSizeExtension). Home/sitemap/health + seeders demo. |
 | **Content** | CMS + SectionBuilder + Menu | Nội dung storefront admin-managed | Models: `Page`, `Banner`, `Lookbook`(+Image/Item), `Redirect`, `PageSection`, `Menu`(+Item). Services: `ContentService`, `SectionRenderer`, `MenuRenderer`, `MenuTree`. 20 file Filament (6 resource: Page/Banner/Lookbook/Redirect/PageSection/Menu). |
-| **Assets** | Media + FileManager | Ảnh/file | Services: `MediaUrl`, `ConversionGenerator`, `MediaRegenerator`, `MediaSettings`, `FileManager`. On-demand conversion + media library. 3 file Filament (MediaImageSizes, MediaLibrary, MediaPicker). |
+| **Assets** | Media + FileManager | Ảnh/file | Services: `MediaUrl`, `ConversionGenerator`, `MediaRegenerator`, `MediaSettings`, `MediaLibraryService`. On-demand conversion + media library. 6 file Filament (3 page: MediaImageSizes, MediaLibrary, QueueWorkers + 3 form: `MediaPicker`/`MediaPickerField`/`MediaBrowser`). |
 | **Checkout** | Checkout + Cart + Payment | Luồng cart → checkout → payment | Services: `CartService`, `CheckoutService`, `TokenAwareCartSession`, `RefundService`. Gateway: `VNPayGateway`/`MoMoGateway` + `*PaymentProcessor` kế thừa **`GatewayReconciler`** (nơi duy nhất giữ luật callback: chữ ký → số tiền → đơn đã đóng → khoá chống race). PaymentTypes: `VNPayPayment`, `MoMoPayment`. Config override `cart-overrides.php` + `payment-overrides.php`. |
 | **Customer** | Customer + Location | Khách, địa chỉ, auth, wishlist, địa giới VN | Services: `CustomerResolver`, `AuthService`, `TokenIssuer`, `WishlistService`, `RecentlyViewedService`, `CountryService`. Models: `WishlistItem`, `Province`, `Ward`. Auth web + Sanctum (cookie + PAT), address book, order history, VN provinces/wards API + seeder dataset. |
 | **Order** | — | Order, trạng thái, email giao dịch, RMA | Services: `OrderService`, `OrderMailer`, `ReturnService`, `InvoiceService`, `OrderTimeline`. Support: `OrderStatus` (**một nguồn** cho status handle, nhãn i18n, `PAID`/`CLOSED`/`RETURNABLE`). Events: `OrderPaid`, `OrderStatusUpdated`. 4 mailable queued + observer/listeners. |
@@ -608,6 +608,20 @@ theo session không cần crawl (cart drawer/page, wishlist).
   khi request), sizes cấu hình qua Filament (`MediaSettings`), responsive `<picture>`
   + width-srcset (WebP) ở product card + gallery LCP (`fetchpriority`, dimensions chống
   CLS).
+- **MediaPicker (2026-08-05):** picker **hiện ảnh thật** (thumbnail của file đã chọn,
+  kèm nút bỏ chọn; bản `multiple` thêm nút đổi thứ tự) và mở **thư viện trong modal**
+  ngay tại form — lưới ảnh + tìm theo tên + lọc theo thư mục + phân trang + upload tại
+  chỗ. Trước đó nó là `Select` chỉ hiện tên file, và nút "mở thư viện" **rời khỏi form**
+  sang tab mới → admin mất context đang sửa dở.
+  - **State không đổi:** vẫn đúng một Asset id (hoặc mảng id) — nên mọi consumer đang
+    resolve id đó (storefront, API Resource, `SkuBuilderService`) không phải sửa gì, và
+    mọi callsite `MediaPicker::make(...)` giữ nguyên chữ ký.
+  - Cấu tạo: `MediaPickerField` (hiển thị + xoá/đổi thứ tự) + `MediaBrowser` (lưới trong
+    modal) + `MediaPicker` (factory nối hai cái, giữ API cũ). Truy vấn/lưu file nằm ở
+    `MediaLibraryService::browse()/folders()/preview()` — **trang Media Library dùng
+    chung** đúng các method đó, không còn copy query.
+  - Upload trong modal tự chọn luôn file vừa lên; `type:` giới hạn cả lưới lẫn MIME
+    được upload (picker ảnh không nhận PDF).
 
 ## Cart & Checkout & Payment
 - **Headless (2026-07-10):** cart/checkout chạy được **không cần session**.
@@ -808,7 +822,7 @@ morph-alias-aware, cache 1h) + `robots.txt`. Storefront SSR Blade → crawlable.
 
 # Test
 
-**432 test / 1792 assertion, all green (2026-07-23)** — 68 file trong `tests/Feature/`,
+**506 test / 2036 assertion, all green (2026-08-05)** — 75 file trong `tests/Feature/`,
 chạy trên MySQL `lunar_testing` (app phụ thuộc JSON functions/facets — SQLite không
 emulate được; các test cascade menu cũng cần đúng engine MySQL). `tests/TestCase` dùng
 `RefreshDatabase`; trait `CreatesStorefrontData` seed base data + fixture
@@ -891,6 +905,7 @@ sau quyết định bằng dữ kiện chứ không bằng cảm tính.
 | 21 | 2026-07-23 | **Sửa lỗi `db:seed` chết giữa chừng** — `menu_items.parent_id` là FK tự tham chiếu `ON DELETE CASCADE`, MySQL từ chối quá 30 lần mở rộng (lỗi 6575). Thêm `Menu::deleteItems()` xoá lá trước. Không chỉ lỗi seed: `MenuTree::save()` (đường lưu menu trong admin) dính cùng lỗi | 431 test; `db:seed` chạy trọn, lặp lại được |
 | 23 | 2026-07-24 | **Tách tồn thực khỏi hàng đã giữ** (học `ordered_inventories` của Bagisto, rút về 1 cột cho shop một kho). Đặt hàng nay **giữ** chứ không trừ: `quantity` = hàng trong kho (kiểm kê khớp), `committed` = đã bán chưa giao, `sellable = quantity - committed`. Hàng rời kho ở `dispatched` (`dispatched_at` chống trừ hai lần). Huỷ **trước** giao chỉ nhả giữ chỗ — cộng lại `quantity` sẽ **đẻ ra hàng không có thật**. Cảnh báo đơn đã thanh toán >3 ngày chưa giao | 450 test; mutation-check: bỏ trừ `committed` → 3 test đỏ, gồm cả guard oversell |
 | 22 | 2026-07-23 | **Đồng bộ tài liệu với code** — gom `.md` vào `docs/` rồi rà lại từng khẳng định. Sửa những chỗ tài liệu **mô tả sai hệ thống**: layout module còn là bản tiền-v13, `ModulesServiceProvider` vẫn được mô tả là nơi nạp module, tầng SKU linh hoạt (purchasable thật) **hoàn toàn vắng mặt**, sổ cái tồn kho không được nhắc, và `theme.md` vẫn là *kế hoạch dựng theme* mô tả 3 Vue island chưa từng tồn tại + Tailwind trong khi theme chạy Bootstrap 5 + SCSS với 25 enhancer vanilla | Không đổi code; 432 test nguyên trạng |
+| 23 | 2026-08-05 | **MediaPicker thành picker ảnh thật** — trước đó chọn ảnh là một `Select` chỉ hiện *tên file* (admin phải nhớ tên mới biết mình chọn đúng ảnh chưa), và nút "mở thư viện" `->url(..., newTab: true)` **ném admin sang tab khác**, rời khỏi form đang sửa dở. Nay: thumbnail thật + nút bỏ chọn/đổi thứ tự ngay trên field, và thư viện mở **trong modal** (lưới ảnh + tìm theo tên + lọc thư mục + phân trang + upload tại chỗ, upload xong tự chọn). Tách `MediaPickerField` (hiển thị) + `MediaBrowser` (lưới modal), `MediaPicker` giữ nguyên chữ ký factory nên **0 callsite phải sửa** (14 chỗ ở Content/Catalog/Theme). Query lưới + folder gom về `MediaLibraryService::browse()/folders()/preview()` — trang Media Library dùng chung, hết copy query | +15 test (506 tổng); mutation-check 2 guard: bỏ reset-page khi đổi filter → đỏ, bỏ lọc `type` → đỏ. **State không đổi** (vẫn là Asset id) nên VariantSwatch/VariantGallery/MigrateLegacyImages xanh nguyên trạng |
 
 > **Quy tắc cho mọi refactor:** giải thích *why* trước khi viết code · composer patch
 > là **bậc cuối** (thử hết extension point trước; nếu patch thì kèm PR upstream)

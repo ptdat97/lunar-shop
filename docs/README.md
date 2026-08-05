@@ -143,10 +143,10 @@ modules/<Name>/
 | Hạng mục | Giá trị |
 |---|---|
 | Module | 13 |
-| File PHP trong `modules/` | 403 |
+| File PHP trong `modules/` | 420 |
 | Route `api/v1` | 63 |
 | Route storefront | 21 |
-| Test | 432 |
+| Test | 506 |
 
 > Số liệu là snapshot lúc viết. Chạy `php artisan test` và
 > `php artisan route:list` để lấy con số hiện thời.

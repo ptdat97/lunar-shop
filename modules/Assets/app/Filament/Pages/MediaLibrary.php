@@ -14,7 +14,6 @@ use Illuminate\Http\UploadedFile;
 use Livewire\WithFileUploads;
 use Lunar\Models\Asset;
 use Modules\Assets\Services\MediaLibraryService;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * Gallery-style media library built on Lunar Assets + Spatie MediaLibrary.
@@ -266,18 +265,11 @@ class MediaLibrary extends Page implements HasForms
      */
     public function getFilesProperty(): LengthAwarePaginator
     {
-        return Asset::query()
-            ->whereHas('file')
-            ->with('file')
-            ->when($this->typeFilter, fn ($q) => $q->whereHas(
-                'file',
-                fn ($m) => $m->where('custom_properties->type', $this->typeFilter),
-            ))
-            ->when($this->folderFilter, fn ($q) => $q->whereHas(
-                'file',
-                fn ($m) => $m->where('custom_properties->folder', $this->folderFilter),
-            ))
-            ->latest('id')
+        return $this->library()
+            ->browse([
+                'type' => $this->typeFilter,
+                'folder' => $this->folderFilter,
+            ])
             ->paginate(24);
     }
 
@@ -288,15 +280,7 @@ class MediaLibrary extends Page implements HasForms
      */
     public function getFoldersProperty(): array
     {
-        return Media::query()
-            ->whereNotNull('custom_properties->folder')
-            ->pluck('custom_properties')
-            ->map(fn ($p) => $p['folder'] ?? null)
-            ->filter()
-            ->unique()
-            ->sort()
-            ->mapWithKeys(fn ($f) => [$f => $f])
-            ->all();
+        return $this->library()->folders();
     }
 
     protected function library(): MediaLibraryService

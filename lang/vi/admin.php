@@ -429,6 +429,21 @@ return [
         'pick' => 'Chọn từ Thư viện Media…',
         'missing' => 'File đã chọn không còn trong thư viện.',
 
+        // Media picker (modal chọn ảnh + điều khiển thumbnail)
+        'browse' => 'Chọn từ thư viện',
+        'choose' => 'Dùng file đã chọn',
+        'remove' => 'Bỏ chọn',
+        'move_left' => 'Chuyển lên trước',
+        'move_right' => 'Chuyển xuống sau',
+        'search' => 'Tìm kiếm',
+        'search_placeholder' => 'Tìm theo tên file…',
+        'all_folders' => 'Tất cả thư mục',
+        'selected_count' => 'Đã chọn :count',
+        'empty' => 'Không có file nào khớp. Tải lên một file để bắt đầu.',
+        'previous' => 'Trang trước',
+        'next' => 'Trang sau',
+        'page_of' => 'Trang :page / :last',
+
         // Media Image Sizes Page
         'no_worker' => 'Không có worker hàng đợi đang chạy.',
         'no_worker_desc' => 'Việc (tái)tạo hình ảnh đã được xếp hàng đợi nhưng sẽ không xử lý cho đến khi worker khởi động. Khởi động Horizon với :command1 (hoặc :command2).',
