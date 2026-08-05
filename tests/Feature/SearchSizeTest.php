@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use Modules\Catalog\Contracts\SearchEngine;
+use Modules\Catalog\Data\SearchQuery;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -33,6 +35,30 @@ class SearchSizeTest extends TestCase
 
         $this->assertTrue($names->contains('Linen Shirt'));
         $this->assertFalse($names->contains('Denim Jacket'));
+    }
+
+    public function test_size_filter_matches_values_on_the_size_axis_only(): void
+    {
+        $this->createProduct([
+            'name' => 'Size S, colour M',
+            'variables' => [
+                ['name' => ['en' => 'Size'], 'values' => [['name' => ['en' => 'S']]]],
+                ['name' => ['en' => 'Color'], 'values' => [['name' => ['en' => 'M']]]],
+            ],
+        ]);
+        $matching = $this->createProduct([
+            'name' => 'Size M',
+            'variables' => [
+                ['name' => ['en' => 'Size'], 'values' => [['name' => ['en' => 'M']]]],
+                ['name' => ['en' => 'Color'], 'values' => [['name' => ['en' => 'Black']]]],
+            ],
+        ]);
+
+        $result = app(SearchEngine::class)->search(
+            new SearchQuery(filters: ['size' => ['M']]),
+        );
+
+        $this->assertSame([$matching->id], $result->items->pluck('id')->all());
     }
 
     public function test_suggest_endpoint(): void

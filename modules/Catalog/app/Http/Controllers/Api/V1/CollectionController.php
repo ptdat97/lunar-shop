@@ -28,6 +28,7 @@ class CollectionController extends Controller
             $collection,
             page: max(1, (int) $request->input('page', 1)),
             perPage: min(60, max(1, (int) $request->input('per_page', 24))),
+            sort: $request->input('sort'),
         );
 
         return (new CollectionResource($collection))

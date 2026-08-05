@@ -20,6 +20,6 @@ class CollectionStrategy implements RecommendationStrategy
 
     public function for(Product $product, int $limit = 8): Collection
     {
-        return collect($this->products->related($product, $limit))->values();
+        return collect($this->products->related($product, $limit, withCardRelations: false))->values();
     }
 }

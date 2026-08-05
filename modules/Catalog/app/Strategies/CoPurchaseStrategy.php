@@ -71,7 +71,6 @@ class CoPurchaseStrategy implements RecommendationStrategy
         $products = Product::query()
             ->where('status', 'published')
             ->whereIn('id', $productIds)
-            ->with(['skus', 'thumbnail', 'brand'])
             ->get()
             ->keyBy('id');
 

@@ -4,6 +4,7 @@ namespace Modules\Catalog\Services;
 
 use Illuminate\Support\Facades\DB;
 use Lunar\Models\Collection;
+use Modules\Catalog\Support\MediaThumbnails;
 
 /**
  * Shared collection read-logic. Wraps Lunar's Collection model (inherited,
@@ -38,7 +39,13 @@ class CollectionService
     {
         $query = $collection->products()
             ->where('status', 'published')
-            ->with(['skus', 'thumbnail', 'brand', 'media']); // media → card hover image
+            // ProductSku is the shop's purchasable, so catalog cards must
+            // never load Lunar's legacy variants. Keep disabled SKUs out and
+            // load their prices for ProductResource in one pass.
+            ->with([
+                'skus' => fn ($skus) => $skus->where('status', 'published')->with('prices'),
+                'brand', 'collections', 'defaultUrl', 'media',
+            ]);
 
         // Lunar stores translatable name as JSONB; sort on the extracted value.
         $nameExpr = 'JSON_UNQUOTE(JSON_EXTRACT(lunar_products.attribute_data, "$.name.value"))';
@@ -51,7 +58,13 @@ class CollectionService
             default => $query->latest('lunar_products.id'),
         };
 
-        return $query->paginate(perPage: $perPage, page: $page)->withQueryString();
+        $products = $query->paginate(perPage: $perPage, page: $page)->withQueryString();
+
+        // `media` already contains the primary image. Back-fill `thumbnail`
+        // rather than issuing a second, primary-filtered media query.
+        MediaThumbnails::backfill($products->getCollection());
+
+        return $products;
     }
 
     /**
@@ -60,13 +73,14 @@ class CollectionService
      */
     protected function applyPriceSort($query, string $direction)
     {
-        $minPrice = DB::table('lunar_product_variants as pv')
+        $minPrice = DB::table('lunar_product_skus as ps')
             ->join('lunar_prices as pr', function ($join) {
-                $join->on('pr.priceable_id', '=', 'pv.id')
-                    ->where('pr.priceable_type', '=', 'product_variant');
+                $join->on('pr.priceable_id', '=', 'ps.id')
+                    ->where('pr.priceable_type', '=', 'product_sku');
             })
-            ->selectRaw('pv.product_id, MIN(pr.price) as min_price')
-            ->groupBy('pv.product_id');
+            ->where('ps.status', 'published')
+            ->selectRaw('ps.product_id, MIN(pr.price) as min_price')
+            ->groupBy('ps.product_id');
 
         return $query
             ->leftJoinSub($minPrice, 'product_prices', 'product_prices.product_id', '=', 'lunar_products.id')

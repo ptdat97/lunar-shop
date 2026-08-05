@@ -26,7 +26,9 @@ class AssociationStrategy implements RecommendationStrategy
     {
         return $product->associations()
             ->whereIn('type', $this->types)
-            ->with(['target.variants', 'target.thumbnail', 'target.brand'])
+            // Strategies only rank candidates. RecommendationService hydrates
+            // the final list once with the complete product-card relation set.
+            ->with('target')
             ->get()
             ->map(fn ($association) => $association->target)
             ->filter(fn (?Product $target) => $target !== null && $target->status === 'published')

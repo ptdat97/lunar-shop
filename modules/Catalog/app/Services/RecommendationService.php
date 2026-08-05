@@ -6,6 +6,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Lunar\Models\Product;
 use Modules\Catalog\Contracts\RecommendationStrategy;
+use Modules\Catalog\Support\MediaThumbnails;
 use Modules\Core\Support\Settings;
 
 /**
@@ -75,7 +76,12 @@ class RecommendationService
             }
         }
 
-        return $picked->values();
+        // Strategies intentionally return only the data they need to rank a
+        // candidate. Re-hydrate the final set with the canonical card
+        // relations, just like cached product-page recommendations do. Without
+        // this, cart recommendations could omit SKUs (or leak disabled ones)
+        // depending on which strategy supplied the candidate.
+        return $this->hydrate($picked->pluck('id')->all());
     }
 
     /**
@@ -132,12 +138,20 @@ class RecommendationService
         }
 
         $products = Product::query()
+            ->where('status', 'published')
             ->whereIn('id', $ids)
             // Full product-card relation set (price + url + promotion eligibility)
             // so recommendation grids render flat, not N+1.
-            ->with(['skus.prices', 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media'])
-            ->get()
-            ->keyBy('id');
+            ->with([
+                'skus' => fn ($skus) => $skus->where('status', 'published')->with('prices'),
+                'brand', 'defaultUrl', 'collections', 'media',
+            ])
+            ->get();
+
+        // The full media relation already contains the primary image. Avoid a
+        // redundant, primary-filtered thumbnail eager-load for every grid.
+        MediaThumbnails::backfill($products);
+        $products = $products->keyBy('id');
 
         return collect($ids)
             ->map(fn ($id) => $products->get($id))

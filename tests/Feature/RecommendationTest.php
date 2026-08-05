@@ -121,7 +121,7 @@ class RecommendationTest extends TestCase
 
         $response = $this->getJson('/api/v1/cart/recommendations')
             ->assertOk()
-            ->assertJsonStructure(['data' => []]);
+            ->assertJsonStructure(['data' => [['id', 'name', 'slug', 'skus' => [['id', 'stock', 'price']]]]]);
 
         // The product already in the cart must not be recommended back.
         $ids = collect($response->json('data'))->pluck('id');

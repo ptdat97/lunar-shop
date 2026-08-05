@@ -303,14 +303,23 @@ class ProductService
     /**
      * Products related to the given one (same collections), excluding itself.
      */
-    public function related(Product $product, int $limit = 8)
+    public function related(Product $product, int $limit = 8, bool $withCardRelations = true)
     {
         $collectionIds = $product->collections->pluck('id');
 
         $query = Product::query()
             ->where('status', 'published')
-            ->where('id', '!=', $product->id)
-            ->with(['skus' => fn ($q) => $q->where('status', 'published')->with('prices'), 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media']);
+            ->where('id', '!=', $product->id);
+
+        // Recommendation strategies need only ids/statuses to rank candidates;
+        // the RecommendationService hydrates the final, de-duplicated list
+        // once. Direct callers can still request ready-to-render card models.
+        if ($withCardRelations) {
+            $query->with([
+                'skus' => fn ($q) => $q->where('status', 'published')->with('prices'),
+                'thumbnail', 'brand', 'defaultUrl', 'collections', 'media',
+            ]);
+        }
 
         if ($collectionIds->isNotEmpty()) {
             $query->whereHas('collections', fn ($c) => $c->whereKey($collectionIds));

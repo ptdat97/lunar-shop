@@ -189,18 +189,17 @@ class DatabaseSearchEngine implements SearchEngine
                 continue;
             }
 
-            // Options now live in the product's flexible `variables` JSON (an
-            // array of {name:{en}, values:[{name:{en}}]}). A product matches when
-            // its variables mention BOTH the option name and one of the chosen
-            // values. JSON_SEARCH against the whole blob is a good pre-filter;
-            // exact axis pairing is refined in the facet/label layer.
-            $builder->where(function ($outer) use ($values, $optionName) {
-                $outer->whereRaw("JSON_SEARCH(variables, 'one', ?, NULL, '$[*].name.en') IS NOT NULL", [$optionName]);
-                $outer->where(function ($inner) use ($values) {
-                    foreach ($values as $v) {
-                        $inner->orWhereRaw("JSON_SEARCH(variables, 'one', ?, NULL, '$[*].values[*].name.en') IS NOT NULL", [$v]);
-                    }
-                });
+            // A value must belong to the requested axis. Two independent
+            // JSON_SEARCH calls would incorrectly match e.g. "Size: S" +
+            // "Color: M" for a `size=M` filter. JSON_CONTAINS checks one
+            // complete variable object, keeping the name/value pair together.
+            $builder->where(function ($axis) use ($values, $optionName) {
+                foreach ($values as $value) {
+                    $axis->orWhereRaw(
+                        'JSON_CONTAINS(lunar_products.variables, ?)',
+                        [$this->optionValueNeedle($optionName, (string) $value)]
+                    );
+                }
             });
         }
 
@@ -225,6 +224,19 @@ class DatabaseSearchEngine implements SearchEngine
 
         // Price range — filters['price'] = ['min' => x, 'max' => y] in major units.
         $this->applyPriceFilter($builder, (array) ($filters['price'] ?? []));
+    }
+
+    /**
+     * A JSON_CONTAINS candidate for one option axis and one of its values.
+     * Lunar's flexible variables are localized maps; the filter UI currently
+     * uses the canonical English size/color values, just like facets do.
+     */
+    protected function optionValueNeedle(string $optionName, string $value): string
+    {
+        return json_encode([
+            'name' => ['en' => $optionName],
+            'values' => [['name' => ['en' => $value]]],
+        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
     }
 
     /**
