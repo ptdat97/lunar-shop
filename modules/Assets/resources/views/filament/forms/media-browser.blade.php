@@ -58,7 +58,20 @@
                 {{ __('admin.media.empty') }}
             </div>
         @else
-            <div class="grid max-h-[26rem] grid-cols-2 gap-3 overflow-y-auto p-1 sm:grid-cols-4 lg:grid-cols-6">
+            {{--
+                4 columns, set inline on purpose. The panel ships a PREBUILT
+                Tailwind bundle (public/css/filament + lunarphp) that only
+                contains the utilities Filament/Lunar themselves use — these
+                module views are in no Tailwind content path, so `grid-cols-4`,
+                `sm:grid-cols-*` and arbitrary values like `max-h-[26rem]`
+                generate no CSS at all. `grid-cols-2` happened to exist (Lunar
+                uses it), which is the only reason the grid rendered 2-up.
+                Inline styles keep the layout independent of that bundle.
+            --}}
+            <div
+                class="grid gap-3 overflow-y-auto p-1"
+                style="grid-template-columns: repeat(4, minmax(0, 1fr)); max-height: 26rem;"
+            >
                 @foreach ($files as $asset)
                     @php
                         $preview = $previewFor($asset);
@@ -78,7 +91,7 @@
                             'border-primary-500 ring-2 ring-primary-500' => $isSelected,
                         ])
                     >
-                        <div class="flex aspect-square items-center justify-center bg-gray-50 dark:bg-gray-800">
+                        <div class="flex items-center justify-center bg-gray-50 dark:bg-gray-800" style="aspect-ratio: 1 / 1;">
                             @if ($preview['type'] === 'image')
                                 <img
                                     src="{{ $preview['thumb'] }}"
