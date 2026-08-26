@@ -14,6 +14,7 @@ làm commerce core, admin Filament 3, storefront Blade SSR.
 | Sửa giao diện storefront | [architecture/theme.md](architecture/theme.md) |
 | Chạy lệnh artisan thường dùng | [guides/commands.md](guides/commands.md) |
 | Deploy & vận hành production | [guides/deployment.md](guides/deployment.md) |
+| Nâng Lunar 1.3 → 1.5 (kéo theo Filament v4) | [guides/upgrade-lunar-1.5.md](guides/upgrade-lunar-1.5.md) |
 | Xem việc còn tồn đọng | [roadmap.md](roadmap.md) |
 
 > **Nguồn sự thật về hiện trạng là [architecture/overview.md](architecture/overview.md).**
@@ -165,7 +166,8 @@ docs/
 ├── guides/
 │   ├── coding-standards.md          # quy tắc viết code
 │   ├── commands.md                  # lệnh artisan thường dùng
-│   └── deployment.md                # deploy & vận hành
+│   ├── deployment.md                # deploy & vận hành
+│   └── upgrade-lunar-1.5.md         # runbook nâng Lunar 1.3 → 1.5
 └── history/
     └── 2026-07-platform-audit.md    # biên bản audit (lịch sử, không phải hiện trạng)
 ```
