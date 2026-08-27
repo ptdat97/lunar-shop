@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "77e19835f6fa093afe9b3e19da378b29",
+    "content-hash": "ce23d071b70438a9037c84f272b87133",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -5320,9 +5320,14 @@
         {
             "name": "nwidart/laravel-modules",
             "version": "v13.0.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/nWidart/laravel-modules.git",
+                "reference": "6aa5461e57ac89d0dc8377cdda074c10487f92f9"
+            },
             "dist": {
                 "type": "zip",
-                "url": "https://mirrors.tencent.com/repository/composer/nwidart/laravel-modules/v13.0.0/nwidart-laravel-modules-v13.0.0.zip",
+                "url": "https://api.github.com/repos/nWidart/laravel-modules/zipball/6aa5461e57ac89d0dc8377cdda074c10487f92f9",
                 "reference": "6aa5461e57ac89d0dc8377cdda074c10487f92f9",
                 "shasum": ""
             },
@@ -5365,6 +5370,7 @@
                     "Nwidart\\Modules\\": "src"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -5388,6 +5394,16 @@
                 "issues": "https://github.com/nWidart/laravel-modules/issues",
                 "source": "https://github.com/nWidart/laravel-modules/tree/v13.0.0"
             },
+            "funding": [
+                {
+                    "url": "https://github.com/dcblogdev",
+                    "type": "github"
+                },
+                {
+                    "url": "https://github.com/nwidart",
+                    "type": "github"
+                }
+            ],
             "time": "2026-03-19T19:16:52+00:00"
         },
         {
@@ -11498,9 +11514,14 @@
         {
             "name": "wikimedia/composer-merge-plugin",
             "version": "v2.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/wikimedia/composer-merge-plugin.git",
+                "reference": "a03d426c8e9fb2c9c569d9deeb31a083292788bc"
+            },
             "dist": {
                 "type": "zip",
-                "url": "https://mirrors.tencent.com/repository/composer/wikimedia/composer-merge-plugin/v2.1.0/wikimedia-composer-merge-plugin-v2.1.0.zip",
+                "url": "https://api.github.com/repos/wikimedia/composer-merge-plugin/zipball/a03d426c8e9fb2c9c569d9deeb31a083292788bc",
                 "reference": "a03d426c8e9fb2c9c569d9deeb31a083292788bc",
                 "shasum": ""
             },
@@ -11529,6 +11550,7 @@
                     "Wikimedia\\Composer\\Merge\\V2\\": "src/"
                 }
             },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -14198,7 +14220,7 @@
     "prefer-stable": true,
     "prefer-lowest": false,
     "platform": {
-        "php": "^8.2",
+        "php": "^8.3",
         "ext-bcmath": "*",
         "ext-curl": "*",
         "ext-exif": "*",
