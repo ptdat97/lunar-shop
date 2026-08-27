@@ -2,9 +2,18 @@
 
 namespace Modules\Catalog\Filament\Pages;
 
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\Action;
+use Filament\Forms\Components\ColorPicker;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
 use Filament\Support\Facades\FilamentIcon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
@@ -47,26 +56,26 @@ class ManageProductVariants extends BaseEditRecord
         return __('admin.variants.title');
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
         $locale = app()->getLocale();
 
-        return $form->schema([
-            Forms\Components\Section::make(__('admin.variants.definition_section'))
+        return $schema->components([
+            Section::make(__('admin.variants.definition_section'))
                 ->description(__('admin.variants.definition_desc'))
                 ->icon('heroicon-o-adjustments-horizontal')
                 ->schema([
-                    Forms\Components\Repeater::make('variables')
+                    Repeater::make('variables')
                         ->hiddenLabel()
                         ->schema([
-                            Forms\Components\TextInput::make("name.{$locale}")
+                            TextInput::make("name.{$locale}")
                                 ->label(__('admin.variants.axis_name'))
                                 ->placeholder('e.g. Colour, Size')
                                 ->required()
                                 ->columnSpan(2),
                             // How this axis's values are picked on the storefront:
                             // plain text buttons, colour swatches, or image swatches.
-                            Forms\Components\Select::make('display_type')
+                            Select::make('display_type')
                                 ->label(__('admin.variants.display_type'))
                                 ->options([
                                     'text' => __('admin.variants.display_text'),
@@ -76,22 +85,22 @@ class ManageProductVariants extends BaseEditRecord
                                 ->default('text')
                                 ->native(false)
                                 ->live(),
-                            Forms\Components\Repeater::make('values')
+                            Repeater::make('values')
                                 ->hiddenLabel()
                                 ->schema([
-                                    Forms\Components\TextInput::make("name.{$locale}")
+                                    TextInput::make("name.{$locale}")
                                         ->label(__('admin.variants.value_label'))
                                         ->placeholder('e.g. Black, M')
                                         ->required(),
                                     // Colour swatch: a hex the storefront paints the chip with.
-                                    Forms\Components\ColorPicker::make('color')
+                                    ColorPicker::make('color')
                                         ->label(__('admin.variants.value_color'))
-                                        ->visible(fn (Forms\Get $get) => $get('../../display_type') === 'color'),
+                                        ->visible(fn (Get $get) => $get('../../display_type') === 'color'),
                                     // Image swatch: picked from the shared Media Library
                                     // (modules/Assets) — an Asset id, never a direct upload.
                                     MediaPicker::make('image', type: 'image')
                                         ->label(__('admin.variants.value_image'))
-                                        ->visible(fn (Forms\Get $get) => $get('../../display_type') === 'image'),
+                                        ->visible(fn (Get $get) => $get('../../display_type') === 'image'),
                                 ])
                                 ->addActionLabel(__('admin.variants.add_value'))
                                 ->minItems(1)
@@ -104,33 +113,33 @@ class ManageProductVariants extends BaseEditRecord
                         ->collapsible()
                         ->itemLabel(fn (array $state) => $state['name'][$locale] ?? __('admin.variants.new_axis')),
 
-                    Forms\Components\Actions::make([
-                        Forms\Components\Actions\Action::make('generate')
+                    Actions::make([
+                        Action::make('generate')
                             ->label(__('admin.variants.generate'))
                             ->icon('heroicon-o-squares-plus')
                             ->action('generateCombinations'),
                     ]),
                 ]),
 
-            Forms\Components\Section::make(__('admin.variants.skus_section'))
+            Section::make(__('admin.variants.skus_section'))
                 ->description(__('admin.variants.skus_desc'))
                 ->icon('heroicon-o-rectangle-stack')
                 ->schema([
-                    Forms\Components\Repeater::make('skus')
+                    Repeater::make('skus')
                         ->hiddenLabel()
                         ->schema([
-                            Forms\Components\Hidden::make('variants'),
-                            Forms\Components\Placeholder::make('combo_label')
+                            Hidden::make('variants'),
+                            Placeholder::make('combo_label')
                                 ->label(__('admin.variants.combination'))
-                                ->content(fn (Forms\Get $get) => $this->comboLabel($get('variants') ?? [])),
-                            Forms\Components\TextInput::make('sku')
+                                ->content(fn (Get $get) => $this->comboLabel($get('variants') ?? [])),
+                            TextInput::make('sku')
                                 ->label(__('admin.variants.sku_code'))->required(),
-                            Forms\Components\TextInput::make('price')
+                            TextInput::make('price')
                                 ->label(__('admin.variants.price'))->numeric()->minValue(1)->required()
                                 ->helperText(__('admin.variants.price_help')),
-                            Forms\Components\TextInput::make('quantity')
+                            TextInput::make('quantity')
                                 ->label(__('admin.variants.quantity'))->numeric()->default(0),
-                            Forms\Components\Select::make('status')
+                            Select::make('status')
                                 ->label(__('admin.variants.status'))
                                 ->options(['published' => __('admin.variants.published'), 'disabled' => __('admin.variants.disabled')])
                                 ->default('published')->native(false),

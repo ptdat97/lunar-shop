@@ -2,14 +2,14 @@
 
 namespace Modules\Shipping\Filament\Pages;
 
-use Modules\Core\Support\Settings;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Modules\Core\Support\Settings;
 
 /**
  * Admin page for the default flat shipping rate + free-shipping threshold used
@@ -20,11 +20,11 @@ class ShippingSettingsPage extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-truck';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-truck';
 
     protected static ?string $slug = 'settings/shipping';
 
-    protected static string $view = 'shipping-admin::filament.shipping-settings';
+    protected string $view = 'shipping-admin::filament.shipping-settings';
 
     public static function getNavigationLabel(): string
     {
@@ -54,11 +54,11 @@ class ShippingSettingsPage extends Page implements HasForms
         ]);
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->statePath('data')
-            ->schema([
+            ->components([
                 Section::make(__('admin.shipping_settings.section'))
                     ->description(__('admin.shipping_settings.section_desc'))
                     ->columns(2)

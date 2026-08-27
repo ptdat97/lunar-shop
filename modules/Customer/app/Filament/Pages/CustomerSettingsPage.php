@@ -2,13 +2,13 @@
 
 namespace Modules\Customer\Filament\Pages;
 
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Modules\Core\Support\Settings;
 use Modules\Customer\Services\TokenIssuer;
 
@@ -23,11 +23,11 @@ class CustomerSettingsPage extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-user-circle';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-user-circle';
 
     protected static ?string $slug = 'settings/customers';
 
-    protected static string $view = 'customer::filament.pages.customer-settings';
+    protected string $view = 'customer::filament.pages.customer-settings';
 
     public static function getNavigationLabel(): string
     {
@@ -54,11 +54,11 @@ class CustomerSettingsPage extends Page implements HasForms
         ]);
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->statePath('data')
-            ->schema([
+            ->components([
                 Section::make(__('admin.customer_settings.section'))
                     ->schema([
                         TextInput::make('ttl_days')

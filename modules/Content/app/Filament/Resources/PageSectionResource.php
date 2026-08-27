@@ -2,25 +2,25 @@
 
 namespace Modules\Content\Filament\Resources;
 
+use Filament\Actions\DeleteAction;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Section as FormSection;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
 use Filament\Resources\Resource;
-use Filament\Tables\Actions\DeleteAction;
-use Filament\Tables\Actions\EditAction;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
 use Lunar\Models\Collection as LunarCollection;
 use Lunar\Models\Product;
 use Modules\Assets\Filament\Forms\MediaPicker;
-use Modules\Content\Filament\Resources\PageSectionResource\Pages;
+use Modules\Content\Filament\Resources\PageSectionResource\Pages\ManagePageSections;
 use Modules\Content\Models\PageSection;
 use Modules\Content\Support\SectionSchemas;
 use Modules\Promotion\Services\PromotionService;
@@ -29,7 +29,7 @@ class PageSectionResource extends Resource
 {
     protected static ?string $model = PageSection::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-rectangle-stack';
 
     public static function getNavigationLabel(): string
     {
@@ -51,10 +51,10 @@ class PageSectionResource extends Resource
         return __('admin.section.plural');
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            FormSection::make()->columns(3)->schema([
+        return $schema->components([
+            Section::make()->columns(3)->schema([
                 TextInput::make('page_handle')
                     ->label(__('admin.section.page_handle'))
                     ->default('home')
@@ -78,7 +78,7 @@ class PageSectionResource extends Resource
 
             // --- Per-type settings (only the relevant block shows) ---
 
-            FormSection::make(__('admin.section.hero_slides'))
+            Section::make(__('admin.section.hero_slides'))
                 ->visible(fn (Get $get) => $get('type') === 'hero-slider')
                 ->schema([
                     Repeater::make('settings.slides')
@@ -94,7 +94,7 @@ class PageSectionResource extends Resource
                         ->collapsible()->reorderable()->itemLabel(fn (array $state) => $state['title'] ?? __('admin.section.slide')),
                 ]),
 
-            FormSection::make(__('admin.section.iconboxes'))
+            Section::make(__('admin.section.iconboxes'))
                 ->visible(fn (Get $get) => $get('type') === 'iconbox')
                 ->schema([
                     Repeater::make('settings.items')
@@ -108,7 +108,7 @@ class PageSectionResource extends Resource
                         ->columns(3)->collapsible()->reorderable()->itemLabel(fn (array $state) => $state['heading'] ?? __('admin.section.item')),
                 ]),
 
-            FormSection::make(__('admin.section.lookbook_slides'))
+            Section::make(__('admin.section.lookbook_slides'))
                 ->visible(fn (Get $get) => $get('type') === 'lookbook')
                 ->schema([
                     Repeater::make('settings.slides')
@@ -126,7 +126,7 @@ class PageSectionResource extends Resource
 
             // Collection grid: admin curates which collections show and can
             // override each tile's image (blank → the collection's thumbnail).
-            FormSection::make(__('admin.section.collection_grid'))
+            Section::make(__('admin.section.collection_grid'))
                 ->visible(fn (Get $get) => $get('type') === 'collection-grid')
                 ->schema([
                     TextInput::make('settings.kicker')->label(__('admin.section.kicker')),
@@ -158,7 +158,7 @@ class PageSectionResource extends Resource
             // Product tabs: each tab has an editable name and its own hand-picked
             // product list. Fewer DB round-trips at render if the same product
             // appears across tabs — the provider de-dupes the load.
-            FormSection::make(__('admin.section.product_tabs'))
+            Section::make(__('admin.section.product_tabs'))
                 ->visible(fn (Get $get) => $get('type') === 'product-tabs')
                 ->schema([
                     TextInput::make('settings.kicker')->label(__('admin.section.kicker')),
@@ -184,7 +184,7 @@ class PageSectionResource extends Resource
                         ->addActionLabel(__('admin.section.add_tab')),
                 ]),
 
-            FormSection::make(__('admin.section.flash_sale'))
+            Section::make(__('admin.section.flash_sale'))
                 ->description(__('admin.section.flash_sale_help'))
                 ->visible(fn (Get $get) => $get('type') === 'flash-sale')
                 ->columns(2)
@@ -196,7 +196,7 @@ class PageSectionResource extends Resource
                         ->helperText(__('admin.section.promotion_count_help')),
                 ]),
 
-            FormSection::make(__('admin.section.promotion_section'))
+            Section::make(__('admin.section.promotion_section'))
                 ->visible(fn (Get $get) => $get('type') === 'promotion-slider')
                 ->columns(2)
                 ->schema([
@@ -231,7 +231,7 @@ class PageSectionResource extends Resource
                 ToggleColumn::make('enabled')->label(__('admin.common.enabled')),
                 TextColumn::make('updated_at')->since()->label(__('admin.section.updated'))->toggleable(),
             ])
-            ->actions([
+            ->recordActions([
                 // Edit opens in a slide-over modal — no separate page.
                 EditAction::make()->slideOver(),
                 DeleteAction::make(),
@@ -242,7 +242,7 @@ class PageSectionResource extends Resource
     {
         // Single page: table + modal create/edit, all in one screen.
         return [
-            'index' => Pages\ManagePageSections::route('/'),
+            'index' => ManagePageSections::route('/'),
         ];
     }
 }

@@ -2,14 +2,14 @@
 
 namespace Modules\Checkout\Filament\Pages;
 
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Modules\Core\Support\Settings;
 
 /**
@@ -22,11 +22,11 @@ class PaymentSettingsPage extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-credit-card';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-credit-card';
 
     protected static ?string $slug = 'settings/payment';
 
-    protected static string $view = 'checkout-admin::filament.payment-settings';
+    protected string $view = 'checkout-admin::filament.payment-settings';
 
     public static function getNavigationLabel(): string
     {
@@ -69,11 +69,11 @@ class PaymentSettingsPage extends Page implements HasForms
         ]);
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->statePath('data')
-            ->schema([
+            ->components([
                 Section::make(__('admin.payment.general'))
                     ->schema([
                         Select::make('default')

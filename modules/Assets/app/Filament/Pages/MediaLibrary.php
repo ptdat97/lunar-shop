@@ -6,9 +6,9 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Schema;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Livewire\WithFileUploads;
@@ -26,7 +26,7 @@ class MediaLibrary extends Page implements HasForms
     use InteractsWithForms;
     use WithFileUploads;
 
-    protected static ?string $navigationIcon = 'heroicon-o-photo';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-photo';
 
     public static function getNavigationLabel(): string
     {
@@ -47,7 +47,7 @@ class MediaLibrary extends Page implements HasForms
 
     protected static ?string $slug = 'media-library';
 
-    protected static string $view = 'assets::filament.pages.media-library';
+    protected string $view = 'assets::filament.pages.media-library';
 
     /** @var array<string, mixed> */
     public array $uploadData = [];
@@ -93,10 +93,10 @@ class MediaLibrary extends Page implements HasForms
     /**
      * Upload form shown at the top of the page.
      */
-    public function uploadForm(Form $form): Form
+    public function uploadForm(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 FileUpload::make('files')
                     ->label(__('admin.media.upload'))
                     ->multiple()

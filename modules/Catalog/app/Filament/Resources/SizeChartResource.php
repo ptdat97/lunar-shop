@@ -2,10 +2,20 @@
 
 namespace Modules\Catalog\Filament\Resources;
 
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Modules\Catalog\Filament\Resources\SizeChartResource\Pages\CreateSizeChart;
 use Modules\Catalog\Filament\Resources\SizeChartResource\Pages\EditSizeChart;
@@ -21,7 +31,7 @@ class SizeChartResource extends Resource
 {
     protected static ?string $model = SizeChart::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-table-cells';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-table-cells';
 
     public static function getNavigationLabel(): string
     {
@@ -45,17 +55,17 @@ class SizeChartResource extends Resource
 
     protected static ?int $navigationSort = 20;
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make(__('admin.size_chart.section'))
+        return $schema->components([
+            Section::make(__('admin.size_chart.section'))
                 ->schema([
-                    Forms\Components\TextInput::make('name')
+                    TextInput::make('name')
                         ->label(__('admin.common.name'))
                         ->placeholder("e.g. Women's Tops")
                         ->required()
                         ->maxLength(255),
-                    Forms\Components\Select::make('category')
+                    Select::make('category')
                         ->label(__('admin.size_chart.category'))
                         ->options([
                             'tops' => __('admin.size_chart.cat_tops'),
@@ -65,18 +75,18 @@ class SizeChartResource extends Resource
                             'accessories' => __('admin.size_chart.cat_accessories'),
                         ])
                         ->native(false),
-                    Forms\Components\Toggle::make('active')->label(__('admin.common.active'))->default(true),
+                    Toggle::make('active')->label(__('admin.common.active'))->default(true),
                 ])
                 ->columns(3),
 
-            Forms\Components\Section::make(__('admin.size_chart.sizes'))
+            Section::make(__('admin.size_chart.sizes'))
                 ->description(__('admin.size_chart.sizes_desc'))
                 ->schema([
-                    Forms\Components\Repeater::make('rows')
+                    Repeater::make('rows')
                         ->relationship()
                         ->schema([
-                            Forms\Components\TextInput::make('size')->label(__('admin.size_chart.size'))->required()->placeholder('S')->columnSpan(1),
-                            Forms\Components\Select::make('fit')
+                            TextInput::make('size')->label(__('admin.size_chart.size'))->required()->placeholder('S')->columnSpan(1),
+                            Select::make('fit')
                                 ->label(__('admin.size_chart.fit'))
                                 ->options([
                                     'slim' => __('admin.size_chart.fit_slim'),
@@ -85,12 +95,12 @@ class SizeChartResource extends Resource
                                     'oversized' => __('admin.size_chart.fit_oversized'),
                                 ])
                                 ->native(false)->columnSpan(1),
-                            Forms\Components\TextInput::make('bust')->label(__('admin.size_chart.bust'))->columnSpan(1),
-                            Forms\Components\TextInput::make('waist')->label(__('admin.size_chart.waist'))->columnSpan(1),
-                            Forms\Components\TextInput::make('hip')->label(__('admin.size_chart.hip'))->columnSpan(1),
-                            Forms\Components\TextInput::make('shoulder')->label(__('admin.size_chart.shoulder'))->columnSpan(1),
-                            Forms\Components\TextInput::make('length')->label(__('admin.size_chart.length'))->columnSpan(1),
-                            Forms\Components\TextInput::make('inseam')->label(__('admin.size_chart.inseam'))->columnSpan(1),
+                            TextInput::make('bust')->label(__('admin.size_chart.bust'))->columnSpan(1),
+                            TextInput::make('waist')->label(__('admin.size_chart.waist'))->columnSpan(1),
+                            TextInput::make('hip')->label(__('admin.size_chart.hip'))->columnSpan(1),
+                            TextInput::make('shoulder')->label(__('admin.size_chart.shoulder'))->columnSpan(1),
+                            TextInput::make('length')->label(__('admin.size_chart.length'))->columnSpan(1),
+                            TextInput::make('inseam')->label(__('admin.size_chart.inseam'))->columnSpan(1),
                         ])
                         ->columns(4)
                         ->orderColumn('sort')
@@ -106,22 +116,22 @@ class SizeChartResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')->label(__('admin.common.name'))->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('category')->label(__('admin.size_chart.category'))->badge()->placeholder('—'),
-                Tables\Columns\TextColumn::make('rows_count')->counts('rows')->label(__('admin.size_chart.count')),
-                Tables\Columns\IconColumn::make('active')->label(__('admin.common.active'))->boolean(),
-                Tables\Columns\TextColumn::make('updated_at')->label(__('admin.common.updated_at'))->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('name')->label(__('admin.common.name'))->searchable()->sortable(),
+                TextColumn::make('category')->label(__('admin.size_chart.category'))->badge()->placeholder('—'),
+                TextColumn::make('rows_count')->counts('rows')->label(__('admin.size_chart.count')),
+                IconColumn::make('active')->label(__('admin.common.active'))->boolean(),
+                TextColumn::make('updated_at')->label(__('admin.common.updated_at'))->dateTime()->sortable()->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\TernaryFilter::make('active'),
+                TernaryFilter::make('active'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

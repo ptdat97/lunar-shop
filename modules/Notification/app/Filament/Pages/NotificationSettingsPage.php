@@ -2,18 +2,19 @@
 
 namespace Modules\Notification\Filament\Pages;
 
+use Filament\Facades\Filament;
 use Filament\Forms\Components\CheckboxList;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
-use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
 use Illuminate\Support\Facades\Mail;
 use Modules\Core\Support\Settings;
 use Modules\Notification\Contracts\SmsSender;
@@ -22,6 +23,7 @@ use Modules\Notification\Support\MailSettings;
 use Modules\Notification\Support\PushSettings;
 use Modules\Notification\Support\SmsSettings;
 use Modules\Order\Support\OrderStatus;
+use Throwable;
 
 /**
  * How the shop reaches its customers: email (SMTP), SMS, and push.
@@ -36,11 +38,11 @@ class NotificationSettingsPage extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-bell';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-bell';
 
     protected static ?string $slug = 'settings/notifications';
 
-    protected static string $view = 'notification::filament.pages.notification-settings';
+    protected string $view = 'notification::filament.pages.notification-settings';
 
     public static function getNavigationLabel(): string
     {
@@ -98,15 +100,15 @@ class NotificationSettingsPage extends Page implements HasForms
         ]);
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->statePath('data')
-            ->schema([
+            ->components([
                 Section::make(__('admin.notification_settings.mail_section'))
                     ->description(__('admin.notification_settings.mail_desc'))
                     ->schema([
-                        \Filament\Forms\Components\Toggle::make('mail_override')
+                        Toggle::make('mail_override')
                             ->label(__('admin.notification_settings.mail_override'))
                             ->helperText(__('admin.notification_settings.mail_override_help'))
                             ->live(),
@@ -154,7 +156,7 @@ class NotificationSettingsPage extends Page implements HasForms
                 Section::make(__('admin.notification_settings.sms_section'))
                     ->description(__('admin.notification_settings.sms_desc'))
                     ->schema([
-                        \Filament\Forms\Components\Toggle::make('sms_enabled')
+                        Toggle::make('sms_enabled')
                             ->label(__('admin.notification_settings.sms_enabled'))
                             ->helperText(__('admin.notification_settings.sms_enabled_help'))
                             ->live(),
@@ -238,7 +240,7 @@ class NotificationSettingsPage extends Page implements HasForms
 
                 Section::make(__('admin.notification_settings.section'))
                     ->schema([
-                        \Filament\Forms\Components\Toggle::make('push_enabled')
+                        Toggle::make('push_enabled')
                             ->label(__('admin.notification_settings.push_enabled'))
                             ->helperText(__('admin.notification_settings.push_enabled_help')),
                     ]),
@@ -360,7 +362,7 @@ class NotificationSettingsPage extends Page implements HasForms
             Mail::raw(__('admin.notification_settings.test_mail_body'), function ($message) use ($recipient) {
                 $message->to($recipient)->subject(__('admin.notification_settings.test_mail_subject'));
             });
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             Notification::make()
                 ->title(__('admin.notification_settings.test_failed'))
                 ->body($e->getMessage())

@@ -2,10 +2,10 @@
 
 namespace Modules\Assets\Filament\Forms;
 
-use Filament\Forms\Components\Actions\Action;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Modules\Assets\Services\MediaLibraryService;
 
 /**
@@ -72,7 +72,7 @@ class MediaPicker
                 $set('browser.folder', null);
                 $set('browser.page', 1);
             })
-            ->form(fn () => [
+            ->schema(fn () => [
                 MediaBrowser::make('browser')
                     ->libraryType($type)
                     ->multiple($multiple),

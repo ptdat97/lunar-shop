@@ -2,10 +2,22 @@
 
 namespace Modules\Content\Filament\Resources;
 
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
 use Lunar\Models\Product;
@@ -19,7 +31,7 @@ class LookbookResource extends Resource
 {
     protected static ?string $model = Lookbook::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-book-open';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-book-open';
 
     protected static ?int $navigationSort = 3;
 
@@ -38,52 +50,52 @@ class LookbookResource extends Resource
         return __('admin.lookbook.plural');
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make(__('admin.lookbook.section_details'))
+        return $schema
+            ->components([
+                Section::make(__('admin.lookbook.section_details'))
                     ->schema([
-                        Forms\Components\TextInput::make('title')
+                        TextInput::make('title')
                             ->label(__('admin.common.title'))
                             ->required()
                             ->maxLength(255)
                             ->live(onBlur: true)
-                            ->afterStateUpdated(fn ($state, Forms\Set $set) => $set('slug', Str::slug($state))
+                            ->afterStateUpdated(fn ($state, Set $set) => $set('slug', Str::slug($state))
                             ),
-                        Forms\Components\TextInput::make('slug')
+                        TextInput::make('slug')
                             ->label(__('admin.common.slug'))
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->maxLength(255),
-                        Forms\Components\Toggle::make('published')
+                        Toggle::make('published')
                             ->label(__('admin.common.published'))
                             ->default(false),
-                        Forms\Components\Textarea::make('description')
+                        Textarea::make('description')
                             ->label(__('admin.common.description')),
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make(__('admin.lookbook.section_cover'))
+                Section::make(__('admin.lookbook.section_cover'))
                     ->description(__('admin.lookbook.cover_pick'))
                     ->schema([
                         MediaPicker::make('cover_image', type: 'image')
                             ->label(__('admin.lookbook.cover')),
                     ]),
 
-                Forms\Components\Section::make(__('admin.lookbook.section_gallery'))
+                Section::make(__('admin.lookbook.section_gallery'))
                     ->description(__('admin.lookbook.gallery_desc'))
                     ->schema([
-                        Forms\Components\Repeater::make('images')
+                        Repeater::make('images')
                             ->relationship()
                             ->schema([
                                 MediaPicker::make('image', type: 'image')
                                     ->label(__('admin.common.image'))
                                     ->required(),
-                                Forms\Components\TextInput::make('caption')
+                                TextInput::make('caption')
                                     ->label(__('admin.lookbook.caption'))
                                     ->maxLength(255),
-                                Forms\Components\TextInput::make('sort')
+                                TextInput::make('sort')
                                     ->label(__('admin.common.sort'))
                                     ->numeric()
                                     ->default(0),
@@ -93,41 +105,41 @@ class LookbookResource extends Resource
                             ->defaultItems(0),
                     ]),
 
-                Forms\Components\Section::make(__('admin.lookbook.section_products'))
+                Section::make(__('admin.lookbook.section_products'))
                     ->description(__('admin.lookbook.products_desc'))
                     ->schema([
-                        Forms\Components\Repeater::make('items')
+                        Repeater::make('items')
                             ->relationship()
                             ->schema([
-                                Forms\Components\Select::make('product_id')
+                                Select::make('product_id')
                                     ->label(__('admin.lookbook.product'))
                                     ->options(fn () => Product::all()
                                         ->mapWithKeys(fn ($product) => [$product->id => $product->translateAttribute('name')]))
                                     ->getOptionLabelUsing(fn ($value): ?string => Product::find($value)?->translateAttribute('name'))
                                     ->searchable()
                                     ->required(),
-                                Forms\Components\TextInput::make('caption')
+                                TextInput::make('caption')
                                     ->label(__('admin.lookbook.caption'))
                                     ->maxLength(255),
-                                Forms\Components\TextInput::make('sort')
+                                TextInput::make('sort')
                                     ->label(__('admin.common.sort'))
                                     ->numeric()
                                     ->default(0),
                                 // Optional hotspot placement: pin the product on a
                                 // photo at (x%, y%). Leave blank for "shop the set"
                                 // only (no pin rendered).
-                                Forms\Components\Select::make('image_id')
+                                Select::make('image_id')
                                     ->label(__('admin.lookbook.pin_image'))
                                     ->relationship('image', 'caption')
                                     ->getOptionLabelFromRecordUsing(fn ($record) => $record->caption ?: ('#'.$record->id))
                                     ->helperText(__('admin.lookbook.pin_image_help'))
                                     ->placeholder(__('admin.lookbook.pin_cover'))
                                     ->nullable(),
-                                Forms\Components\TextInput::make('pos_x')
+                                TextInput::make('pos_x')
                                     ->label(__('admin.lookbook.pos_x'))
                                     ->numeric()->minValue(0)->maxValue(100)->suffix('%')
                                     ->nullable(),
-                                Forms\Components\TextInput::make('pos_y')
+                                TextInput::make('pos_y')
                                     ->label(__('admin.lookbook.pos_y'))
                                     ->numeric()->minValue(0)->maxValue(100)->suffix('%')
                                     ->nullable(),
@@ -142,35 +154,35 @@ class LookbookResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('title')
+                TextColumn::make('title')
                     ->label(__('admin.common.title'))
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('slug')
+                TextColumn::make('slug')
                     ->label(__('admin.common.slug'))
                     ->searchable(),
-                Tables\Columns\IconColumn::make('published')
+                IconColumn::make('published')
                     ->label(__('admin.common.published'))
                     ->boolean(),
-                Tables\Columns\TextColumn::make('items_count')
+                TextColumn::make('items_count')
                     ->counts('items')
                     ->label(__('admin.lookbook.product')),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label(__('admin.common.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\TernaryFilter::make('published'),
+                TernaryFilter::make('published'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

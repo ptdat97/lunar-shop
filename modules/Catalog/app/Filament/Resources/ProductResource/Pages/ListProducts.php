@@ -2,10 +2,11 @@
 
 namespace Modules\Catalog\Filament\Resources\ProductResource\Pages;
 
-use Filament\Actions;
-use Filament\Forms;
-use Filament\Forms\Components\Grid;
-use Filament\Support\Enums\MaxWidth;
+use Filament\Actions\CreateAction;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Schemas\Components\Grid;
+use Filament\Support\Enums\Width;
 use Illuminate\Database\Eloquent\Model;
 use Lunar\Admin\Filament\Resources\ProductResource\Pages\ListProducts as LunarListProducts;
 use Lunar\Facades\DB;
@@ -36,14 +37,14 @@ class ListProducts extends LunarListProducts
     protected function getDefaultHeaderActions(): array
     {
         return [
-            Actions\CreateAction::make()
+            CreateAction::make()
                 ->label(__('admin.create.label'))
                 ->modalHeading(__('admin.create.heading'))
                 ->modalDescription(__('admin.create.description'))
-                ->modalWidth(MaxWidth::TwoExtraLarge)
+                ->modalWidth(Width::TwoExtraLarge)
                 ->modalSubmitActionLabel(__('admin.create.submit'))
                 ->createAnother(false)
-                ->form(static::createActionFormInputs())
+                ->schema(static::createActionFormInputs())
                 ->using(fn (array $data, string $model) => static::createRecord($data, $model))
                 ->successRedirectUrl(fn (Model $record): string => ProductResource::getUrl('edit', [
                     'record' => $record,
@@ -65,21 +66,21 @@ class ListProducts extends LunarListProducts
                     ->label(__('admin.create.type'))
                     ->required(),
 
-                Forms\Components\TextInput::make('sku')
+                TextInput::make('sku')
                     ->label(__('admin.create.sku'))
                     ->required()
                     ->unique(table: (new ProductSku)->getTable(), column: 'sku'),
 
                 // Price optional here — the editor / variants matrix is the
                 // canonical place to set it; blank stores a 0 base price.
-                Forms\Components\TextInput::make('base_price')
+                TextInput::make('base_price')
                     ->label(__('admin.create.price'))
                     ->helperText(__('admin.create.price_hint'))
                     ->numeric()
                     ->prefix($currency->code)
                     ->rules(["decimal:0,{$currency->decimal_places}"]),
 
-                Forms\Components\Toggle::make('publish')
+                Toggle::make('publish')
                     ->label(__('admin.create.status'))
                     ->helperText(__('admin.create.status_hint'))
                     ->default(false)

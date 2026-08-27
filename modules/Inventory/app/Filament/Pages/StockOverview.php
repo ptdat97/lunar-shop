@@ -2,14 +2,14 @@
 
 namespace Modules\Inventory\Filament\Pages;
 
+use Filament\Actions\Action;
+use Filament\Actions\BulkAction;
+use Filament\Actions\BulkActionGroup;
 use Filament\Facades\Filament;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
-use Filament\Tables\Actions\Action;
-use Filament\Tables\Actions\BulkAction;
-use Filament\Tables\Actions\BulkActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -38,7 +38,7 @@ class StockOverview extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static ?string $navigationIcon = 'heroicon-o-exclamation-triangle';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-exclamation-triangle';
 
     public static function getNavigationLabel(): string
     {
@@ -57,7 +57,7 @@ class StockOverview extends Page implements HasTable
 
     protected static ?string $slug = 'stock-levels';
 
-    protected static string $view = 'inventory::filament.pages.stock-overview';
+    protected string $view = 'inventory::filament.pages.stock-overview';
 
     /**
      * Orders holding stock long after payment.
@@ -211,11 +211,11 @@ class StockOverview extends Page implements HasTable
                         default => $q,
                     }),
             ])
-            ->actions([
+            ->recordActions([
                 $this->adjustAction(),
                 $this->historyAction(),
             ])
-            ->bulkActions([
+            ->toolbarActions([
                 BulkActionGroup::make([
                     $this->bulkAdjustAction(),
                 ]),
@@ -232,7 +232,7 @@ class StockOverview extends Page implements HasTable
             ->label(__('admin.inventory.adjust'))
             ->icon('heroicon-m-pencil-square')
             ->modalWidth('md')
-            ->form([
+            ->schema([
                 Select::make('mode')
                     ->label(__('admin.inventory.adjust_mode'))
                     ->options([

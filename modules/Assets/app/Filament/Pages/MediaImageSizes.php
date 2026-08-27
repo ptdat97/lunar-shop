@@ -2,16 +2,18 @@
 
 namespace Modules\Assets\Filament\Pages;
 
-use Filament\Forms\Components\Component;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Modules\Assets\Services\MediaRegenerator;
 use Modules\Assets\Services\MediaSettings;
+use Modules\Core\Support\Settings;
 
 /**
  * Admin page to configure image conversion sizes (small/medium/large/zoom).
@@ -26,7 +28,7 @@ class MediaImageSizes extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-photo';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-photo';
 
     public static function getNavigationLabel(): string
     {
@@ -45,7 +47,7 @@ class MediaImageSizes extends Page implements HasForms
 
     protected static ?string $slug = 'settings/image-sizes';
 
-    protected static string $view = 'assets::filament.pages.media-image-sizes';
+    protected string $view = 'assets::filament.pages.media-image-sizes';
 
     /** Bounds for a configurable dimension (px). */
     protected const MIN_DIMENSION = 16;
@@ -68,23 +70,23 @@ class MediaImageSizes extends Page implements HasForms
     {
         $this->form->fill(array_merge(
             app(MediaSettings::class)->sizes(),
-            ['on_demand_sync' => (bool) app(\Modules\Core\Support\Settings::class)
+            ['on_demand_sync' => (bool) app(Settings::class)
                 ->get('media.on_demand_sync', config('lunar.media.on_demand.sync', false))],
         ));
         $this->refreshBatch();
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
+        return $schema
+            ->components([
                 Section::make(__('admin.media.conversion_sizes'))
                     ->description(__('admin.media.sizes_desc'))
                     ->schema($this->sizeFields()),
 
                 Section::make(__('admin.media.on_demand'))
                     ->schema([
-                        \Filament\Forms\Components\Toggle::make('on_demand_sync')
+                        Toggle::make('on_demand_sync')
                             ->label(__('admin.media.on_demand_sync'))
                             ->helperText(__('admin.media.on_demand_sync_help')),
                     ]),
@@ -133,7 +135,7 @@ class MediaImageSizes extends Page implements HasForms
         $settings->save($after); // MediaSettings::save ignores non-size keys.
 
         // On-demand generation mode (sync inline vs async on the media queue).
-        app(\Modules\Core\Support\Settings::class)->put('media', [
+        app(Settings::class)->put('media', [
             'on_demand_sync' => (bool) ($after['on_demand_sync'] ?? false),
         ]);
 

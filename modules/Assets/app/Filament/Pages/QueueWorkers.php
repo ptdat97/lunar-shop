@@ -2,13 +2,16 @@
 
 namespace Modules\Assets\Filament\Pages;
 
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Laravel\Horizon\Contracts\JobRepository;
+use Laravel\Horizon\Contracts\WorkloadRepository;
+use Laravel\Horizon\Horizon;
 use Modules\Assets\Services\HorizonSettings;
 use Modules\Assets\Services\MediaRegenerator;
 use Throwable;
@@ -28,11 +31,11 @@ class QueueWorkers extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-cpu-chip';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-cpu-chip';
 
     protected static ?string $slug = 'settings/queue-workers';
 
-    protected static string $view = 'assets::filament.pages.queue-workers';
+    protected string $view = 'assets::filament.pages.queue-workers';
 
     public static function getNavigationLabel(): string
     {
@@ -76,10 +79,10 @@ class QueueWorkers extends Page implements HasForms
         $this->refreshStatus();
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
-            ->schema($this->supervisorSections())
+        return $schema
+            ->components($this->supervisorSections())
             ->statePath('data');
     }
 
@@ -145,7 +148,7 @@ class QueueWorkers extends Page implements HasForms
      */
     public function refreshStatus(): void
     {
-        $this->horizonInstalled = class_exists(\Laravel\Horizon\Horizon::class);
+        $this->horizonInstalled = class_exists(Horizon::class);
         $this->workerAvailable = app(MediaRegenerator::class)->workerAvailable();
 
         if (! $this->horizonInstalled) {
@@ -153,7 +156,7 @@ class QueueWorkers extends Page implements HasForms
         }
 
         try {
-            $this->queues = app(\Laravel\Horizon\Contracts\WorkloadRepository::class)
+            $this->queues = app(WorkloadRepository::class)
                 ->get()
                 ->map(fn ($q) => [
                     'name' => (string) ($q['name'] ?? ''),
@@ -168,7 +171,7 @@ class QueueWorkers extends Page implements HasForms
         }
 
         try {
-            $jobs = app(\Laravel\Horizon\Contracts\JobRepository::class);
+            $jobs = app(JobRepository::class);
             $this->recentJobs = (int) $jobs->countRecent();
             $this->failedJobs = (int) $jobs->countFailed();
         } catch (Throwable $e) {

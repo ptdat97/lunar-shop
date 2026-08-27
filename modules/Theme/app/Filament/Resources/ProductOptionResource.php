@@ -2,13 +2,15 @@
 
 namespace Modules\Theme\Filament\Resources;
 
-use Filament\Forms;
-use Filament\Forms\Components\Component;
-use Filament\Tables;
+use Filament\Forms\Components\Select;
+use Filament\Schemas\Components\Component;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Lunar\Admin\Filament\Resources\ProductOptionResource as BaseProductOptionResource;
 use Modules\Catalog\Models\ProductOption;
-use Modules\Theme\Filament\Resources\ProductOptionResource\Pages;
+use Modules\Theme\Filament\Resources\ProductOptionResource\Pages\CreateProductOption;
+use Modules\Theme\Filament\Resources\ProductOptionResource\Pages\EditProductOption;
+use Modules\Theme\Filament\Resources\ProductOptionResource\Pages\ListProductOptions;
 
 /**
  * Product Options belong with the catalog (sizes, colours…), not Settings.
@@ -33,9 +35,9 @@ class ProductOptionResource extends BaseProductOptionResource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ListProductOptions::route('/'),
-            'create' => Pages\CreateProductOption::route('/create'),
-            'edit' => Pages\EditProductOption::route('/{record}/edit'),
+            'index' => ListProductOptions::route('/'),
+            'create' => CreateProductOption::route('/create'),
+            'edit' => EditProductOption::route('/{record}/edit'),
         ];
     }
 
@@ -64,7 +66,7 @@ class ProductOptionResource extends BaseProductOptionResource
 
     protected static function getDisplayTypeFormComponent(): Component
     {
-        return Forms\Components\Select::make('display_type')
+        return Select::make('display_type')
             ->label(__('admin.options.display_type'))
             ->options(static::displayTypeOptions())
             ->default('text')
@@ -80,7 +82,7 @@ class ProductOptionResource extends BaseProductOptionResource
     public static function getDefaultTable(Table $table): Table
     {
         return parent::getDefaultTable($table)->pushColumns([
-            Tables\Columns\TextColumn::make('display_type')
+            TextColumn::make('display_type')
                 ->label(__('admin.options.display_type'))
                 ->badge()
                 ->formatStateUsing(fn (string $state) => static::displayTypeOptions()[$state] ?? $state),

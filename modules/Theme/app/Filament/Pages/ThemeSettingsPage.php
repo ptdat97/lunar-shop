@@ -5,16 +5,16 @@ namespace Modules\Theme\Filament\Pages;
 use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\ColorPicker;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
 use Modules\Assets\Filament\Forms\MediaPicker;
 use Modules\Theme\Services\ThemeSettings;
 
@@ -27,7 +27,7 @@ class ThemeSettingsPage extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-paint-brush';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-paint-brush';
 
     public static function getNavigationLabel(): string
     {
@@ -46,7 +46,7 @@ class ThemeSettingsPage extends Page implements HasForms
 
     protected static ?string $slug = 'settings/theme';
 
-    protected static string $view = 'theme-admin::filament.theme-settings';
+    protected string $view = 'theme-admin::filament.theme-settings';
 
     /** @var array<string, mixed> */
     public array $data = [];
@@ -56,11 +56,11 @@ class ThemeSettingsPage extends Page implements HasForms
         $this->form->fill(app(ThemeSettings::class)->all());
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->statePath('data')
-            ->schema([
+            ->components([
                 Section::make(__('admin.theme.general'))->columns(2)->schema([
                     MediaPicker::make('general.logo', type: 'image')->label(__('admin.theme.logo')),
                     MediaPicker::make('general.logo_footer', type: 'image')->label(__('admin.theme.logo_footer')),

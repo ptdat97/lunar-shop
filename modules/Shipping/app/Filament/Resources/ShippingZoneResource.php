@@ -2,10 +2,18 @@
 
 namespace Modules\Shipping\Filament\Resources;
 
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TagsInput;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Lunar\Models\Country;
 use Modules\Shipping\Filament\Resources\ShippingZoneResource\Pages\CreateShippingZone;
@@ -22,7 +30,7 @@ class ShippingZoneResource extends Resource
 {
     protected static ?string $model = ShippingZone::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-truck';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-truck';
 
     public static function getNavigationLabel(): string
     {
@@ -44,18 +52,18 @@ class ShippingZoneResource extends Resource
         return __('lunarpanel::global.sections.settings');
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make(__('admin.shipping.section_zone'))
+        return $schema->components([
+            Section::make(__('admin.shipping.section_zone'))
                 ->columns(2)
                 ->schema([
-                    Forms\Components\TextInput::make('name')
+                    TextInput::make('name')
                         ->label(__('admin.common.name'))
                         ->required()
                         ->maxLength(255)
                         ->helperText(__('admin.shipping.name_help')),
-                    Forms\Components\Select::make('country_code')
+                    Select::make('country_code')
                         ->label(__('admin.shipping.country'))
                         ->required()
                         ->searchable()
@@ -63,35 +71,35 @@ class ShippingZoneResource extends Resource
                             ->whereNotNull('iso2')
                             ->orderBy('name')
                             ->pluck('name', 'iso2')),
-                    Forms\Components\TagsInput::make('states')
+                    TagsInput::make('states')
                         ->label(__('admin.shipping.states'))
                         ->placeholder(__('admin.shipping.states_placeholder'))
                         ->helperText(__('admin.shipping.states_help'))
                         ->columnSpanFull(),
                 ]),
 
-            Forms\Components\Section::make(__('admin.shipping.section_rate'))
+            Section::make(__('admin.shipping.section_rate'))
                 ->columns(2)
                 ->schema([
-                    Forms\Components\TextInput::make('rate')
+                    TextInput::make('rate')
                         ->label(__('admin.shipping.rate'))
                         ->numeric()
                         ->minValue(0)
                         ->required()
                         ->default(3000)
                         ->helperText(__('admin.shipping.rate_help')),
-                    Forms\Components\TextInput::make('free_threshold')
+                    TextInput::make('free_threshold')
                         ->label(__('admin.shipping.free_threshold'))
                         ->numeric()
                         ->minValue(0)
                         ->default(0)
                         ->helperText(__('admin.shipping.free_threshold_help')),
-                    Forms\Components\TextInput::make('priority')
+                    TextInput::make('priority')
                         ->label(__('admin.shipping.priority'))
                         ->numeric()
                         ->default(0)
                         ->helperText(__('admin.shipping.priority_help')),
-                    Forms\Components\Toggle::make('enabled')
+                    Toggle::make('enabled')
                         ->label(__('admin.common.enabled'))
                         ->default(true),
                 ]),
@@ -102,24 +110,24 @@ class ShippingZoneResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')->label(__('admin.common.name'))->searchable()->sortable(),
-                Tables\Columns\TextColumn::make('country_code')->label(__('admin.shipping.country'))->sortable(),
-                Tables\Columns\TextColumn::make('states')
+                TextColumn::make('name')->label(__('admin.common.name'))->searchable()->sortable(),
+                TextColumn::make('country_code')->label(__('admin.shipping.country'))->sortable(),
+                TextColumn::make('states')
                     ->label(__('admin.shipping.states'))
                     ->badge()
                     ->placeholder(__('admin.shipping.whole_country')),
-                Tables\Columns\TextColumn::make('rate')->label(__('admin.shipping.rate'))->numeric()->sortable(),
-                Tables\Columns\TextColumn::make('free_threshold')->label(__('admin.shipping.free_over'))->numeric()->sortable(),
-                Tables\Columns\IconColumn::make('enabled')->label(__('admin.common.enabled'))->boolean(),
-                Tables\Columns\TextColumn::make('priority')->label(__('admin.shipping.priority'))->numeric()->sortable()->toggleable(),
+                TextColumn::make('rate')->label(__('admin.shipping.rate'))->numeric()->sortable(),
+                TextColumn::make('free_threshold')->label(__('admin.shipping.free_over'))->numeric()->sortable(),
+                IconColumn::make('enabled')->label(__('admin.common.enabled'))->boolean(),
+                TextColumn::make('priority')->label(__('admin.shipping.priority'))->numeric()->sortable()->toggleable(),
             ])
             ->defaultSort('country_code')
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                DeleteBulkAction::make(),
             ]);
     }
 

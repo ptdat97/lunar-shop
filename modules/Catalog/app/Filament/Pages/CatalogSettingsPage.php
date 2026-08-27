@@ -2,14 +2,14 @@
 
 namespace Modules\Catalog\Filament\Pages;
 
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Modules\Core\Support\Settings;
 
 /**
@@ -22,11 +22,11 @@ class CatalogSettingsPage extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-sparkles';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-sparkles';
 
     protected static ?string $slug = 'settings/catalog';
 
-    protected static string $view = 'catalog-admin::filament.catalog-settings';
+    protected string $view = 'catalog-admin::filament.catalog-settings';
 
     public static function getNavigationLabel(): string
     {
@@ -67,11 +67,11 @@ class CatalogSettingsPage extends Page implements HasForms
         ]);
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->statePath('data')
-            ->schema([
+            ->components([
                 Section::make(__('admin.recommend.title'))
                     ->columns(3)
                     ->schema([

@@ -2,8 +2,11 @@
 
 namespace Modules\Catalog\Filament\Pages;
 
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Filament\Support\Facades\FilamentIcon;
 use Illuminate\Database\Eloquent\Model;
 use Lunar\Admin\Support\Pages\BaseEditRecord;
@@ -37,14 +40,14 @@ class ManageProductSizing extends BaseEditRecord
         return __('admin.sizing.title');
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form->schema([
-            Forms\Components\Section::make(__('admin.sizing.chart_section'))
+        return $schema->components([
+            Section::make(__('admin.sizing.chart_section'))
                 ->description(__('admin.sizing.chart_desc'))
                 ->icon('heroicon-o-table-cells')
                 ->schema([
-                    Forms\Components\Select::make('size_chart_id')
+                    Select::make('size_chart_id')
                         ->label(__('admin.sizing.assigned_chart'))
                         ->options(fn () => SizeChart::where('active', true)->orderBy('name')->pluck('name', 'id'))
                         ->searchable()
@@ -54,26 +57,26 @@ class ManageProductSizing extends BaseEditRecord
                         ->helperText(__('admin.sizing.chart_help')),
                 ]),
 
-            Forms\Components\Section::make(__('admin.sizing.material_section'))
+            Section::make(__('admin.sizing.material_section'))
                 ->description(__('admin.sizing.material_desc'))
                 ->icon('heroicon-o-sparkles')
                 ->schema([
-                    Forms\Components\TextInput::make('material.material')
+                    TextInput::make('material.material')
                         ->label(__('admin.sizing.main_material'))->placeholder('e.g. Cotton, Linen, Wool')->maxLength(255),
-                    Forms\Components\TextInput::make('material.composition')
+                    TextInput::make('material.composition')
                         ->label(__('admin.sizing.composition'))->placeholder('e.g. 95% Cotton, 5% Elastane')->maxLength(255),
-                    Forms\Components\Select::make('material.stretch')
+                    Select::make('material.stretch')
                         ->label(__('admin.sizing.stretch'))
                         ->options(['none' => __('admin.sizing.stretch_none'), 'slight' => __('admin.sizing.stretch_slight'), 'stretchy' => __('admin.sizing.stretch_stretchy')])->native(false),
-                    Forms\Components\Select::make('material.transparency')
+                    Select::make('material.transparency')
                         ->label(__('admin.sizing.transparency'))
                         ->options(['opaque' => __('admin.sizing.trans_opaque'), 'semi' => __('admin.sizing.trans_semi'), 'sheer' => __('admin.sizing.trans_sheer')])->native(false),
-                    Forms\Components\TextInput::make('material.fabric_weight')
+                    TextInput::make('material.fabric_weight')
                         ->label(__('admin.sizing.fabric_weight'))->placeholder('e.g. 220 gsm')->maxLength(255),
-                    Forms\Components\Select::make('material.lining')
+                    Select::make('material.lining')
                         ->label(__('admin.sizing.lining'))
                         ->options(['none' => __('admin.sizing.lining_none'), 'partial' => __('admin.sizing.lining_partial'), 'full' => __('admin.sizing.lining_full')])->native(false),
-                    Forms\Components\Textarea::make('material.care_instruction')
+                    Textarea::make('material.care_instruction')
                         ->label(__('admin.sizing.care'))
                         ->placeholder('e.g. Machine wash cold, do not bleach, iron low')
                         ->columnSpanFull(),

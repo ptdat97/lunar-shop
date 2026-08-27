@@ -17,7 +17,7 @@ use Modules\Analytics\Services\AnalyticsService;
  */
 class AnalyticsDashboard extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-chart-bar';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-chart-bar';
 
     protected static ?int $navigationSort = -10;
 
@@ -38,7 +38,7 @@ class AnalyticsDashboard extends Page
 
     protected static ?string $slug = 'sales-dashboard';
 
-    protected static string $view = 'analytics::filament.pages.dashboard';
+    protected string $view = 'analytics::filament.pages.dashboard';
 
     /** @var array<string, mixed> */
     public array $stats = [];

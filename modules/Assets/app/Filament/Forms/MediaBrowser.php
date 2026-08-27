@@ -2,7 +2,7 @@
 
 namespace Modules\Assets\Filament\Forms;
 
-use Filament\Forms\Components\Actions\Action;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\TextInput;
@@ -95,7 +95,7 @@ class MediaBrowser extends Field
             ->color('gray')
             ->modalHeading(__('admin.media.upload'))
             ->modalSubmitActionLabel(__('admin.media.upload'))
-            ->form([
+            ->schema([
                 FileUpload::make('files')
                     ->label(__('admin.media.upload'))
                     ->multiple($this->isMultiple())

@@ -3,14 +3,14 @@
 namespace Modules\Promotion\Filament\Pages;
 
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
-use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
 use Modules\Core\Support\Settings;
 
 /**
@@ -22,11 +22,11 @@ class MembershipSettingsPage extends Page implements HasForms
 {
     use InteractsWithForms;
 
-    protected static ?string $navigationIcon = 'heroicon-o-star';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-star';
 
     protected static ?string $slug = 'settings/membership';
 
-    protected static string $view = 'promotion-admin::filament.membership-settings';
+    protected string $view = 'promotion-admin::filament.membership-settings';
 
     public static function getNavigationLabel(): string
     {
@@ -56,11 +56,11 @@ class MembershipSettingsPage extends Page implements HasForms
         ]);
     }
 
-    public function form(Form $form): Form
+    public function form(Schema $schema): Schema
     {
-        return $form
+        return $schema
             ->statePath('data')
-            ->schema([
+            ->components([
                 Section::make(__('admin.membership.title'))->schema([
                     Toggle::make('enabled')
                         ->label(__('admin.membership.enabled'))

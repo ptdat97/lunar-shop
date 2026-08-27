@@ -2,27 +2,27 @@
 
 namespace Modules\Content\Filament\Resources;
 
-use Filament\Forms\Components\Component;
+use Filament\Actions\EditAction;
 use Filament\Forms\Components\Repeater;
-use Filament\Forms\Components\Section as FormSection;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
-use Filament\Forms\Get;
 use Filament\Resources\Resource;
-use Filament\Tables\Actions\EditAction;
+use Filament\Schemas\Components\Component;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Lunar\Models\Collection as LunarCollection;
 use Modules\Assets\Filament\Forms\MediaPicker;
-use Modules\Content\Filament\Resources\MenuResource\Pages;
+use Modules\Content\Filament\Resources\MenuResource\Pages\ManageMenus;
 use Modules\Content\Models\Menu;
 
 class MenuResource extends Resource
 {
     protected static ?string $model = Menu::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-bars-3';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-bars-3';
 
     public static function getNavigationLabel(): string
     {
@@ -44,10 +44,10 @@ class MenuResource extends Resource
         return __('admin.menu.plural');
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form->schema([
-            FormSection::make()->columns(2)->schema([
+        return $schema->components([
+            Section::make()->columns(2)->schema([
                 TextInput::make('name')->label(__('admin.common.name'))->required(),
                 TextInput::make('handle')->label(__('admin.menu.handle'))->required()->helperText(__('admin.menu.handle_help')),
             ]),
@@ -72,7 +72,7 @@ class MenuResource extends Resource
     protected static function itemSchema(): array
     {
         return [
-            FormSection::make()->columns(3)->schema([
+            Section::make()->columns(3)->schema([
                 Select::make('type')
                     ->label(__('admin.menu.type'))
                     ->options([
@@ -87,7 +87,7 @@ class MenuResource extends Resource
             ]),
 
             // Destination (shared by link/dropdown/mega top-level)
-            FormSection::make()->columns(2)->schema([
+            Section::make()->columns(2)->schema([
                 TextInput::make('url')->label(__('admin.menu.url'))->placeholder('/search or https://…'),
                 Select::make('collection_id')->label(__('admin.menu.link_collection'))
                     ->options(fn () => static::collectionOptions())->searchable(),
@@ -159,7 +159,7 @@ class MenuResource extends Resource
             TextColumn::make('name')->label(__('admin.common.name')),
             TextColumn::make('handle')->label(__('admin.menu.handle'))->badge(),
             TextColumn::make('items_count')->counts('items')->label(__('admin.menu.items_count')),
-        ])->actions([
+        ])->recordActions([
             EditAction::make(),
         ]);
     }
@@ -167,7 +167,7 @@ class MenuResource extends Resource
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ManageMenus::route('/'),
+            'index' => ManageMenus::route('/'),
         ];
     }
 }

@@ -2,8 +2,10 @@
 
 namespace Modules\Inventory\Filament\Pages;
 
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
 use Filament\Pages\Page;
-use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -24,11 +26,11 @@ class StockNotificationsPage extends Page implements HasTable
 {
     use InteractsWithTable;
 
-    protected static ?string $navigationIcon = 'heroicon-o-envelope';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-envelope';
 
     protected static ?string $slug = 'stock-notifications';
 
-    protected static string $view = 'inventory::filament.pages.stock-notifications';
+    protected string $view = 'inventory::filament.pages.stock-notifications';
 
     /** Sits just after Stock Levels in the Sales group. */
     protected static ?int $navigationSort = 2;
@@ -120,13 +122,13 @@ class StockNotificationsPage extends Page implements HasTable
                         default => $q,
                     }),
             ])
-            ->actions([
-                Tables\Actions\DeleteAction::make()
+            ->recordActions([
+                DeleteAction::make()
                     ->label(__('admin.stock_notifications.unsubscribe')),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->emptyStateIcon('heroicon-o-inbox')

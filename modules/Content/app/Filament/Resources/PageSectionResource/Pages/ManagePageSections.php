@@ -40,7 +40,7 @@ class ManagePageSections extends ManageRecords
         return [
             CreateAction::make()
                 ->slideOver()
-                ->mutateFormDataUsing(function (array $data): array {
+                ->mutateDataUsing(function (array $data): array {
                     // Append new sections to the end of their page.
                     $data['sort'] ??= (int) PageSection::where('page_handle', $data['page_handle'] ?? 'home')->max('sort') + 1;
 

@@ -2,10 +2,20 @@
 
 namespace Modules\Content\Filament\Resources;
 
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Modules\Content\Filament\Resources\RedirectResource\Pages\CreateRedirect;
 use Modules\Content\Filament\Resources\RedirectResource\Pages\EditRedirect;
@@ -16,7 +26,7 @@ class RedirectResource extends Resource
 {
     protected static ?string $model = Redirect::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-arrow-right-end-on-rectangle';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-arrow-right-end-on-rectangle';
 
     protected static ?int $navigationSort = 5;
 
@@ -35,23 +45,23 @@ class RedirectResource extends Resource
         return __('admin.redirect.plural');
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make(__('admin.redirect.section'))
+        return $schema
+            ->components([
+                Section::make(__('admin.redirect.section'))
                     ->schema([
-                        Forms\Components\TextInput::make('old_url')
+                        TextInput::make('old_url')
                             ->label(__('admin.redirect.from'))
                             ->required()
                             ->unique(ignoreRecord: true)
                             ->placeholder('/old-page')
                             ->helperText(__('admin.redirect.from_help')),
-                        Forms\Components\TextInput::make('new_url')
+                        TextInput::make('new_url')
                             ->label(__('admin.redirect.to'))
                             ->placeholder('/new-page')
                             ->helperText(__('admin.redirect.to_help')),
-                        Forms\Components\Select::make('status_code')
+                        Select::make('status_code')
                             ->label(__('admin.redirect.status_code'))
                             ->options([
                                 301 => __('admin.redirect.code_301'),
@@ -59,7 +69,7 @@ class RedirectResource extends Resource
                                 410 => __('admin.redirect.code_410'),
                             ])
                             ->default(301),
-                        Forms\Components\Toggle::make('active')
+                        Toggle::make('active')
                             ->label(__('admin.common.active'))
                             ->default(true),
                     ])
@@ -71,41 +81,41 @@ class RedirectResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('old_url')
+                TextColumn::make('old_url')
                     ->label(__('admin.redirect.from'))
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('new_url')
+                TextColumn::make('new_url')
                     ->label(__('admin.redirect.to'))
                     ->searchable()
                     ->placeholder(__('admin.redirect.gone')),
-                Tables\Columns\TextColumn::make('status_code')
+                TextColumn::make('status_code')
                     ->label(__('admin.redirect.status_code')),
-                Tables\Columns\IconColumn::make('active')
+                IconColumn::make('active')
                     ->label(__('admin.common.active'))
                     ->boolean(),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label(__('admin.common.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\TernaryFilter::make('active'),
-                Tables\Filters\SelectFilter::make('status_code')
+                TernaryFilter::make('active'),
+                SelectFilter::make('status_code')
                     ->options([
                         301 => '301',
                         302 => '302',
                         410 => '410',
                     ]),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }

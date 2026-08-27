@@ -2,10 +2,19 @@
 
 namespace Modules\Content\Filament\Resources;
 
-use Filament\Forms;
-use Filament\Forms\Form;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteAction;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Resources\Resource;
-use Filament\Tables;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Schema;
+use Filament\Tables\Columns\IconColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Modules\Assets\Filament\Forms\MediaPicker;
 use Modules\Content\Filament\Resources\BannerResource\Pages\CreateBanner;
@@ -17,7 +26,7 @@ class BannerResource extends Resource
 {
     protected static ?string $model = Banner::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-photo';
+    protected static string|\BackedEnum|null $navigationIcon = 'heroicon-o-photo';
 
     protected static ?int $navigationSort = 2;
 
@@ -36,26 +45,26 @@ class BannerResource extends Resource
         return __('admin.banner.plural');
     }
 
-    public static function form(Form $form): Form
+    public static function form(Schema $schema): Schema
     {
-        return $form
-            ->schema([
-                Forms\Components\Section::make(__('admin.banner.section_details'))
+        return $schema
+            ->components([
+                Section::make(__('admin.banner.section_details'))
                     ->schema([
-                        Forms\Components\TextInput::make('title')
+                        TextInput::make('title')
                             ->label(__('admin.common.title'))
                             ->required()
                             ->maxLength(255),
-                        Forms\Components\TextInput::make('subtitle')
+                        TextInput::make('subtitle')
                             ->label(__('admin.banner.subtitle'))
                             ->maxLength(255),
-                        Forms\Components\TextInput::make('button_text')
+                        TextInput::make('button_text')
                             ->label(__('admin.banner.button_text'))
                             ->maxLength(255),
-                        Forms\Components\TextInput::make('button_url')
+                        TextInput::make('button_url')
                             ->label(__('admin.banner.button_url'))
                             ->maxLength(255),
-                        Forms\Components\Select::make('position')
+                        Select::make('position')
                             ->label(__('admin.banner.position'))
                             ->options([
                                 'center' => __('admin.banner.pos_center'),
@@ -63,17 +72,17 @@ class BannerResource extends Resource
                                 'right' => __('admin.banner.pos_right'),
                             ])
                             ->default('center'),
-                        Forms\Components\Toggle::make('active')
+                        Toggle::make('active')
                             ->label(__('admin.common.active'))
                             ->default(true),
-                        Forms\Components\TextInput::make('sort')
+                        TextInput::make('sort')
                             ->label(__('admin.common.sort'))
                             ->numeric()
                             ->default(0),
                     ])
                     ->columns(2),
 
-                Forms\Components\Section::make(__('admin.banner.section_images'))
+                Section::make(__('admin.banner.section_images'))
                     ->description(__('admin.banner.images_pick'))
                     ->schema([
                         MediaPicker::make('image', type: 'image')
@@ -88,38 +97,38 @@ class BannerResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('title')
+                TextColumn::make('title')
                     ->label(__('admin.common.title'))
                     ->searchable()
                     ->sortable(),
-                Tables\Columns\TextColumn::make('subtitle')
+                TextColumn::make('subtitle')
                     ->label(__('admin.banner.subtitle'))
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
-                Tables\Columns\IconColumn::make('active')
+                IconColumn::make('active')
                     ->label(__('admin.common.active'))
                     ->boolean(),
-                Tables\Columns\TextColumn::make('position')
+                TextColumn::make('position')
                     ->label(__('admin.banner.position')),
-                Tables\Columns\TextColumn::make('sort')
+                TextColumn::make('sort')
                     ->label(__('admin.common.sort'))
                     ->sortable(),
-                Tables\Columns\TextColumn::make('created_at')
+                TextColumn::make('created_at')
                     ->label(__('admin.common.created_at'))
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Tables\Filters\TernaryFilter::make('active'),
+                TernaryFilter::make('active'),
             ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ->recordActions([
+                EditAction::make(),
+                DeleteAction::make(),
             ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->reorderable('sort')

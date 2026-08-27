@@ -3,8 +3,8 @@
 namespace Modules\Content\Filament\Resources\MenuResource\Pages;
 
 use Filament\Actions\CreateAction;
+use Filament\Actions\EditAction;
 use Filament\Resources\Pages\ManageRecords;
-use Filament\Tables\Actions\EditAction;
 use Filament\Tables\Table;
 use Modules\Content\Filament\Resources\MenuResource;
 use Modules\Content\Models\Menu;
@@ -36,7 +36,7 @@ class ManageMenus extends ManageRecords
 
     public function table(Table $table): Table
     {
-        return parent::table($table)->actions([
+        return parent::table($table)->recordActions([
             EditAction::make()
                 ->slideOver()
                 // Load the existing tree into the form.
