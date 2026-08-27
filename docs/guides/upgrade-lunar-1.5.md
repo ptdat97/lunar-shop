@@ -741,7 +741,7 @@ không lặp lại được ở lần nâng Filament sau.
 | Trang storefront công khai | Quét 11 route GET tĩnh qua HTTP | ✅ toàn 200 |
 | Khuyến mãi trên giỏ thật | 5 file test sẵn có (`PromotionTest`, `PromotionAdvancedTest`, `CartTest`…) | ✅ |
 | Đăng nhập MFA bằng secret cũ | `StaffTwoFactorReencryptionTest` (7 test) | ✅ sau khi có migration §15 |
-| `composer test` so baseline | 528 passed (baseline trước nâng cấp: 506) | ✅ |
+| `composer test` so baseline | 531 passed (baseline trước nâng cấp: 506) | ✅ |
 
 Hai phát hiện nhờ smoke test, đều **không phải lỗi**, ghi lại để lần sau không mất
 công đào lại:
@@ -756,3 +756,47 @@ công đào lại:
 
 - Thanh toán thật qua VNPay/MoMo sandbox — test chỉ dùng gateway giả.
 - Đo thời gian migration trên bản copy dữ liệu production.
+
+---
+
+## 17. Asset trình duyệt — cái test PHP không bao giờ thấy
+
+> Triệu chứng: mở `/lunar/products`, trang hiện ra nhưng **không bấm được gì**.
+> Console đầy `filamentTable is not defined`, `filamentSchema is not defined`,
+> `filamentDropdown is not defined`, và 404 cho `actions.js`, `tables.js`,
+> `schemas.js`.
+
+Filament copy asset đã biên dịch vào `public/` **lúc cài**, và chúng chỉ được làm
+mới khi có ai đó chạy lại. Hook lo việc đó là `@php artisan filament:upgrade`
+trong `post-autoload-dump` — **dự án không có nó**. Nên `public/js/` vẫn nguyên
+bản v3 từ 2026-07-23, trong khi v4 tách lại gói (`actions/` và `schemas/` là mới,
+tên file cũng đổi).
+
+```bash
+php artisan filament:assets
+```
+
+Và thêm vào `composer.json` để không tái diễn:
+
+```diff
+  "post-autoload-dump": [
+      "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
+-     "@php artisan package:discover --ansi"
++     "@php artisan package:discover --ansi",
++     "@php artisan filament:upgrade"
+  ],
+```
+
+### Vì sao 528 test vẫn xanh trong lúc admin không dùng được
+
+Đây là bài học đắt nhất của cả đợt nâng cấp. `AdminPagesSmokeTest` mount được mọi
+trang vì **phía PHP hoàn toàn lành** — Livewire component render ra HTML đúng.
+Cái vỡ nằm ở tầng asset trình duyệt, nơi PHPUnit không bao giờ nhìn tới.
+
+`FilamentAssetsPublishedTest` bịt đúng khoảng mù đó: đối chiếu mọi asset panel
+**đăng ký** (`FilamentAsset::getScripts()` + `getStyles()`) với file thật trong
+`public/`, chốt riêng 5 gói JS của v4, và canh luôn sự tồn tại của hook composer.
+Đã mutation-check bằng cách giấu `tables.js` đi — test đỏ và gọi đúng tên file.
+
+> **Quy tắc rút ra:** nâng Filament major thì đừng tin test PHP một mình. Mở trình
+> duyệt, xem tab Console. Hoặc để bài học đó thành test như trên.
