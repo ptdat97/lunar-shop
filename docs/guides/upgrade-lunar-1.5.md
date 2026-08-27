@@ -800,3 +800,63 @@ Cái vỡ nằm ở tầng asset trình duyệt, nơi PHPUnit không bao giờ n
 
 > **Quy tắc rút ra:** nâng Filament major thì đừng tin test PHP một mình. Mở trình
 > duyệt, xem tab Console. Hoặc để bài học đó thành test như trên.
+
+### 17.1 Lớp thứ hai: file cũ còn nằm trong cache trình duyệt
+
+Sau khi publish asset, `/lunar/products/18/variants` vẫn nổ — nhưng lỗi khác hẳn:
+
+```
+Uncaught TypeError: Expected one of the following types text|select-one|select-multiple
+    at new g (select.js?v=4.12.6.0)
+Alpine Expression Error: Cannot read properties of null (reading 'destroy')
+```
+
+Lần này **server hoàn toàn sạch**: bytes `public/js/filament/forms/components/select.js`
+khớp md5 với `vendor/filament/forms/dist/components/select.js`, và file v4 đó
+**không hề chứa chữ "Choices"** lẫn chuỗi lỗi trên. Tức code đang chạy trong
+trình duyệt không phải file trên đĩa.
+
+Vì sao chỉ mỗi `select.js` dính, còn `actions.js`/`tables.js`/`schemas.js` thì tự
+khỏi sau khi publish:
+
+| | v3 có file? | Trước khi publish, request `?v=4.12.6.0` trả về |
+|---|---|---|
+| `actions.js`, `schemas.js`, `tables.js` | không (mới ở v4) | **404** → không cache được |
+| `select.js` | **có** | **200 kèm bytes v3** → trình duyệt cache lại |
+
+Chuỗi `?v=` lấy từ **phiên bản package đã cài**, không phải từ nội dung file. Nên
+ngay khi composer nâng lên 4.12.6, URL đã đổi sang `?v=4.12.6.0` trong khi file
+trên đĩa vẫn là v3 — cache-buster tự bắn vào chân mình.
+
+**Cách xử lý:** xoá cache trình duyệt cho site đó. Reload thường không đủ, vì
+`x-load-src` nạp bằng fetch chứ không phải thẻ `<script>`:
+
+- Chrome/Edge: mở DevTools → tab Network → tick **Disable cache** → reload. Hoặc
+  giữ chuột phải vào nút reload → **Empty Cache and Hard Reload**.
+- Safari: Develop → Empty Caches.
+
+Chỉ cần làm một lần. Từ nay hook `filament:upgrade` cập nhật file **cùng lúc**
+chuỗi `?v=` đổi, nên URL mới luôn đi kèm nội dung mới.
+
+### 17.2 Test canh tính tươi — và khoảng mù trong chính nó
+
+`FilamentAssetsPublishedTest` nay đối chiếu **md5** giữa nguồn trong `vendor/` và
+bản đã publish, chứ không chỉ kiểm tồn tại: *file thiếu thì ồn ào, file cũ thì im
+lặng.*
+
+Bản đầu của test này bỏ sót nguyên một nhóm. Filament chia asset làm **ba**
+collection, và `getScripts()` + `getStyles()` không bao gồm nhóm thứ ba:
+
+```php
+FilamentAsset::getScripts(withCore: true)   //  6
+FilamentAsset::getStyles()                  //  2
+FilamentAsset::getAlpineComponents()        // 22  ← select.js nằm ở đây
+```
+
+Nhóm `getAlpineComponents()` chính là các file nạp qua `x-load-src` — nơi chứa
+`select.js`. Nghĩa là test có đúng khoảng mù như bug nó định canh: mutation check
+(ghi đè `select.js` bằng rác) vẫn xanh. Sau khi gộp đủ ba collection, số asset
+được canh đi từ 8 lên **30**, và mutation check sập đúng chỗ.
+
+> **Bài học:** khi viết test cho một sự cố, luôn mutation-check nó. Test xanh
+> không chứng minh nó canh được gì.
