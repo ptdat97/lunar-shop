@@ -32,6 +32,11 @@ class FilamentAssetsPublishedTest extends TestCase
         $assets = [
             ...FilamentAsset::getScripts(withCore: true),
             ...FilamentAsset::getStyles(),
+            // Alpine components are a SEPARATE collection — these are the files
+            // fetched lazily via x-load-src, and they include select.js, the one
+            // that actually broke. Leaving them out is how the first version of
+            // this test passed while the admin was still throwing.
+            ...FilamentAsset::getAlpineComponents(),
         ];
 
         return array_filter(
@@ -62,6 +67,48 @@ class FilamentAssetsPublishedTest extends TestCase
                 fn (string $path, string $id) => "  - {$id} → {$path}",
                 $missing,
                 array_keys($missing),
+            ),
+            '',
+            'Run: php artisan filament:assets',
+        ]));
+    }
+
+    /**
+     * Existing is not enough — the copy has to be the CURRENT one.
+     *
+     * This is the sharper version of the bug above, and the one that actually
+     * cost a second round trip. `select.js` shipped in v3 as well, so after the
+     * upgrade the file was present but held v3 code, while the URL Filament
+     * generated already carried `?v=4.12.6.0`. The browser cached v3 bytes under
+     * a v4 URL, and Choices.js — which v4 no longer even uses — threw
+     * "Expected one of the following types text|select-one|select-multiple" on
+     * markup v4 renders as a plain <div>.
+     *
+     * A missing file is loud. A stale one is silent.
+     */
+    public function test_every_published_asset_matches_the_package_it_came_from(): void
+    {
+        $stale = [];
+
+        foreach ($this->registeredAssets() as $asset) {
+            $source = $asset->getPath();
+            $published = $asset->getPublicPath();
+
+            if (! is_file($source) || ! is_file($published)) {
+                continue; // absence is the other test's job
+            }
+
+            if (md5_file($source) !== md5_file($published)) {
+                $stale[$asset->getId()] = $asset->getRelativePublicPath();
+            }
+        }
+
+        $this->assertSame([], $stale, implode("\n", [
+            'These published assets no longer match the version in vendor/:',
+            ...array_map(
+                fn (string $path, string $id) => "  - {$id} → {$path}",
+                $stale,
+                array_keys($stale),
             ),
             '',
             'Run: php artisan filament:assets',
