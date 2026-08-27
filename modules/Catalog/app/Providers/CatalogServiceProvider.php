@@ -6,15 +6,21 @@ use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Facades\ModelManifest;
+use Lunar\Models\Contracts\Attribute as AttributeContract;
+use Lunar\Models\Contracts\AttributeGroup as AttributeGroupContract;
 use Lunar\Models\Contracts\ProductOption as ProductOptionContract;
+use Lunar\Models\Contracts\ProductOptionValue as ProductOptionValueContract;
 use Lunar\Models\Product;
 use Modules\Catalog\Console\Commands\MigrateVariantsToSkus;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Drivers\DatabaseSearchEngine;
 use Modules\Catalog\Filament\Pages\CatalogSettingsPage;
 use Modules\Catalog\Filament\Resources\SizeChartResource;
+use Modules\Catalog\Models\Attribute;
+use Modules\Catalog\Models\AttributeGroup;
 use Modules\Catalog\Models\ProductMaterial;
 use Modules\Catalog\Models\ProductOption;
+use Modules\Catalog\Models\ProductOptionValue;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Catalog\Models\SizeChart;
 use Modules\Catalog\Services\PricingService;
@@ -40,6 +46,20 @@ class CatalogServiceProvider extends ServiceProvider
         // the admin variant builder. Must run in register(), before anything
         // resolves ProductOption::modelClass().
         ModelManifest::replace(ProductOptionContract::class, ProductOption::class);
+
+        // These three carry nothing of our own — they exist only to apply
+        // SkipsEmptyTranslations, which stops `translate()` handing back an empty
+        // string when the current locale's key is present but blank. That fix used
+        // to be a composer patch on lunarphp/core; doing it here keeps us on the
+        // documented extension ladder and off the bottom rung (docs/README.md §1).
+        //
+        // These four are the whole surface: they are the only models whose `name`
+        // is a translatable JSON column. Everything else keeps its names in
+        // `attribute_data` and reads them via `translateAttribute()`, which already
+        // skips blank values upstream.
+        ModelManifest::replace(ProductOptionValueContract::class, ProductOptionValue::class);
+        ModelManifest::replace(AttributeContract::class, Attribute::class);
+        ModelManifest::replace(AttributeGroupContract::class, AttributeGroup::class);
 
         // Scoped (per request, Octane-safe): holds per-request memos of matched
         // prices and the currency map used to prime price->currency.

@@ -3,6 +3,7 @@
 namespace Modules\Catalog\Models;
 
 use Lunar\Models\ProductOption as BaseProductOption;
+use Modules\Core\Support\Concerns\SkipsEmptyTranslations;
 
 /**
  * Adds a per-option `display_type` to Lunar's ProductOption without forking
@@ -17,6 +18,8 @@ use Lunar\Models\ProductOption as BaseProductOption;
  */
 class ProductOption extends BaseProductOption
 {
+    use SkipsEmptyTranslations;
+
     /**
      * How an option renders in the storefront picker and the admin variant
      * builder: plain text chips, a hex colour swatch (per-value colour picker

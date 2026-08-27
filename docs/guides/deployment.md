@@ -70,9 +70,9 @@ SESSION_DOMAIN=your-domain.com
 # 1. Code + dependencies
 git pull --ff-only
 composer install --no-dev --prefer-dist --optimize-autoloader
-                                   # kéo lunarphp/lunar về vendor/, áp patches/ qua
-                                   # cweagans/composer-patches, và dựng lại autoload
-                                   # PSR-4 cho 13 module (wikimedia/composer-merge-plugin)
+                                   # kéo lunarphp/lunar về vendor/ và dựng lại autoload
+                                   # PSR-4 cho 13 module (wikimedia/composer-merge-plugin);
+                                   # post-autoload-dump publish lại asset Filament
 npm ci && npm run build            # hoặc build ở CI, rsync public/build
 
 # 2. Maintenance window (trang 503 branded đã có)
@@ -255,11 +255,9 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
   test suite trước khi lên.
   Lunar là composer package (`lunarphp/lunar`) nên **nằm trong `composer outdated`
   bình thường** và nhận security patch như mọi dependency khác.
-  ⚠️ Ngoại lệ duy nhất: thư mục `patches/` (áp qua `cweagans/composer-patches`).
-  Một bản nâng cấp Lunar có thể làm patch không áp được — khi đó `composer update`
-  sẽ **fail rõ ràng**, không im lặng. Xử lý: kiểm tra fix đã được upstream nhận
-  chưa, nếu rồi thì gỡ patch; nếu chưa thì rebase patch theo source mới.
-  Xem [../architecture/overview.md](../architecture/overview.md).
+  Dự án **không còn composer patch nào** (2026-08-27): bản vá cuối cùng đã chuyển
+  sang `ModelManifest::replace()`, nên `composer update` không còn điểm fail cứng
+  vì vendor bị sửa. Xem [../upstream/README.md](../upstream/README.md).
   ⚠️ **Nâng minor Lunar không phải việc thường lệ.** Bản 1.5 kéo theo Filament v4
   và sửa cấu trúc DB — có runbook riêng: [upgrade-lunar-1.5.md](upgrade-lunar-1.5.md).
 

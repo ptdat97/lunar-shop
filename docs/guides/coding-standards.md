@@ -143,7 +143,8 @@ gọi service, không tự `Cache::remember`.
 > cũ (`modules/Lunar` + `modules/LunarAdmin`) đã được gỡ — đừng sửa `vendor/`.
 > Muốn đổi hành vi thì dùng điểm mở rộng chính chủ (`ModelManifest::replace`,
 > subclass, `resolveRelationUsing`, event, Filament Extension); chỉ khi không còn
-> cách nào khác mới dùng composer patch trong `patches/`.
+> cách nào khác mới dùng composer patch. Hiện **không còn patch nào** — bản vá cuối
+> cùng đã chuyển sang `ModelManifest::replace()` (xem docs/upstream/README.md).
 > Xem [../architecture/overview.md](../architecture/overview.md).
 
 Trước khi viết một dòng code cho tính năng mới, **phải** kiểm tra Lunar đã có chưa.

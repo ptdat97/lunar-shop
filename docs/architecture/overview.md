@@ -71,9 +71,9 @@ Ecommerce fashion cho SME single-store:
 1. **Không dựng lại tính năng Lunar đã có — chỉ kế thừa và mở rộng.** Cách mở rộng
    theo thứ tự ưu tiên: cấu hình `config/lunar/*` → điểm mở rộng chính chủ của Lunar
    (bind model, pipelines cart/checkout, custom field/attribute, Filament hook,
-   events) → wrap bằng service trong module → **cuối cùng** mới là composer patch
-   trong `patches/`. Lunar nằm trong `vendor/` nên **không sửa trực tiếp** — mỗi patch
-   là một thứ có thể vỡ khi nâng cấp, phải tự bảo trì (xem § dưới).
+   events) → wrap bằng service trong module → **cuối cùng** mới là composer patch.
+   Lunar nằm trong `vendor/` nên **không sửa trực tiếp** — mỗi patch là một thứ có
+   thể vỡ khi nâng cấp, phải tự bảo trì. Hiện **không còn patch nào** (xem § dưới).
 2. **Lunar là source of truth** cho catalog, cart, pricing, order, customer. Bọc qua
    service/API, không nhân bản dữ liệu/logic.
 3. **Một service là nguồn logic duy nhất**, cả Storefront controller lẫn API
@@ -102,17 +102,22 @@ qua package auto-discovery.
 | Admin panel (`Lunar\Admin\`) | `vendor/lunarphp/admin` — subclass + `$swaps` trong `ModulesServiceProvider` |
 | Thêm quan hệ vào model core | `Model::resolveRelationUsing()` |
 | Thay hẳn model core | `ModelManifest::replace()` — ví dụ `ProductOption` (thêm `display_type`) |
-| Sửa thứ không có extension point | **composer patch** trong `patches/` — bậc cuối |
+| Thay hẳn model core chỉ để đổi một method của trait | `ModelManifest::replace()` + trait của mình — ví dụ `SkipsEmptyTranslations` |
+| Sửa thứ không có extension point | **composer patch** — bậc cuối, hiện không dùng |
 
 **Hệ quả cần nhớ:**
 
 * **`composer update` nâng cấp Lunar bình thường**, security patch tự về.
-* **Không sửa `vendor/`.** Muốn đổi hành vi thì leo thang mở rộng dưới đây; hết cách
-  mới viết patch vào `patches/` (`cweagans/composer-patches`). Hiện có đúng **1 patch**:
-  fix locale fallback trong `HasTranslations` — một trait, nên không swap được bằng
-  `ModelManifest`. Patch nào cũng nên kèm PR ngược lên upstream để sớm bỏ được.
-* **Patch có thể vỡ khi nâng cấp** — khi đó `composer update` **fail rõ ràng**, không
-  im lặng. Kiểm tra upstream đã nhận fix chưa: rồi thì gỡ patch, chưa thì rebase.
+* **Không sửa `vendor/`.** Muốn đổi hành vi thì leo thang mở rộng dưới đây. Hiện
+  **không còn patch nào** — `cweagans/composer-patches` đã gỡ khỏi `composer.json`
+  (2026-08-27).
+* **Trait của core cũng swap được.** Patch cuối cùng (fix locale fallback trong
+  `HasTranslations`) từng được biện minh bằng "nó là trait nên `ModelManifest` không
+  swap được". Sai ở chỗ: không swap được *trait*, nhưng swap được *model dùng trait*.
+  Nay là `SkipsEmptyTranslations` gắn lên 4 model qua `ModelManifest::replace()` —
+  xem [../upstream/README.md](../upstream/README.md).
+* **Trước khi viết patch, hỏi lại câu đó.** Patch làm `composer update` fail cứng mỗi
+  khi upstream đụng vào method; một subclass thì không.
 * **Config có hai bản:** default trong package (`mergeConfigFrom`) và `config/lunar/*.php`
   (bản đã publish — **bản này thắng**, vì `mergeConfigFrom` chỉ điền khoá còn thiếu).
   Đổi hành vi thì sửa `config/lunar/*` hoặc dùng `LunarConfigOverride`.
@@ -139,8 +144,9 @@ Cần PHẢN ỨNG khi có sự kiện?             → (5) Event::listen(LunarE
 Cần đổi ADMIN (Filament)?                → (6) ResourceExtension / *PageExtension
                                            (hoặc reuse action native của Lunar)
 
-Không cách nào ở trên chạm tới được?     → (7) composer patch trong patches/ — BẬC CUỐI:
-                                           kèm PR ngược lên upstream, ghi rõ lý do
+Không cách nào ở trên chạm tới được?     → (7) composer patch — BẬC CUỐI, hiện KHÔNG dùng:
+                                           trước khi tới đây, kiểm tra lại xem model
+                                           mang trait đó có swap được không
 ```
 
 ## (1) Config / pipeline override — nhẹ nhất, không cần code
@@ -311,7 +317,6 @@ app/
 
 config/modules.php                           # cấu hình nwidart (paths.modules → base_path('modules'))
 modules_statuses.json                        # bật/tắt module — PHẢI commit
-patches/                                     # composer patch cho vendor (hiện 1 file)
 routes/{web,api}.php                         # gom routes từ các module
 modules/                                     # 13 module (12 feature + Core hạ tầng)
 themes/fashion/                              # theme active (view + JS + CSS)
@@ -907,6 +912,7 @@ sau quyết định bằng dữ kiện chứ không bằng cảm tính.
 | 23 | 2026-07-24 | **Tách tồn thực khỏi hàng đã giữ** (học `ordered_inventories` của Bagisto, rút về 1 cột cho shop một kho). Đặt hàng nay **giữ** chứ không trừ: `quantity` = hàng trong kho (kiểm kê khớp), `committed` = đã bán chưa giao, `sellable = quantity - committed`. Hàng rời kho ở `dispatched` (`dispatched_at` chống trừ hai lần). Huỷ **trước** giao chỉ nhả giữ chỗ — cộng lại `quantity` sẽ **đẻ ra hàng không có thật**. Cảnh báo đơn đã thanh toán >3 ngày chưa giao | 450 test; mutation-check: bỏ trừ `committed` → 3 test đỏ, gồm cả guard oversell |
 | 22 | 2026-07-23 | **Đồng bộ tài liệu với code** — gom `.md` vào `docs/` rồi rà lại từng khẳng định. Sửa những chỗ tài liệu **mô tả sai hệ thống**: layout module còn là bản tiền-v13, `ModulesServiceProvider` vẫn được mô tả là nơi nạp module, tầng SKU linh hoạt (purchasable thật) **hoàn toàn vắng mặt**, sổ cái tồn kho không được nhắc, và `theme.md` vẫn là *kế hoạch dựng theme* mô tả 3 Vue island chưa từng tồn tại + Tailwind trong khi theme chạy Bootstrap 5 + SCSS với 25 enhancer vanilla | Không đổi code; 432 test nguyên trạng |
 | 23 | 2026-08-05 | **MediaPicker thành picker ảnh thật** — trước đó chọn ảnh là một `Select` chỉ hiện *tên file* (admin phải nhớ tên mới biết mình chọn đúng ảnh chưa), và nút "mở thư viện" `->url(..., newTab: true)` **ném admin sang tab khác**, rời khỏi form đang sửa dở. Nay: thumbnail thật + nút bỏ chọn/đổi thứ tự ngay trên field, và thư viện mở **trong modal** (lưới ảnh + tìm theo tên + lọc thư mục + phân trang + upload tại chỗ, upload xong tự chọn). Tách `MediaPickerField` (hiển thị) + `MediaBrowser` (lưới modal), `MediaPicker` giữ nguyên chữ ký factory nên **0 callsite phải sửa** (14 chỗ ở Content/Catalog/Theme). Query lưới + folder gom về `MediaLibraryService::browse()/folders()/preview()` — trang Media Library dùng chung, hết copy query | +15 test (506 tổng); mutation-check 2 guard: bỏ reset-page khi đổi filter → đỏ, bỏ lọc `type` → đỏ. **State không đổi** (vẫn là Asset id) nên VariantSwatch/VariantGallery/MigrateLegacyImages xanh nguyên trạng |
+| 24 | 2026-08-27 | **Nâng Lunar 1.3 → 1.5 + Filament v3 → v4**, rồi dọn nợ đi kèm. Hai lỗi tìm ra là của upstream: migration đổi tên cột 2FA không chuyển mã giá trị (**khoá mọi staff bật 2FA ra khỏi admin**, mà khoá bằng cách 500 chứ không báo mã sai), và `translate()` trả chuỗi rỗng khi key locale tồn tại nhưng blank. **Gỡ được composer patch cuối cùng**: lý do cũ ("`HasTranslations` là trait nên `ModelManifest` không swap được") sai — không swap được *trait*, nhưng swap được *model dùng trait*. Nay là `SkipsEmptyTranslations` trên đúng 4 model có cột `name` JSON. `composer.json` bỏ 12 gói mà `lunarphp/lunar` tự kéo, giữ lại 5 gói code mình import trực tiếp | 544 test (baseline trước nâng cấp 506); `patches/` biến mất, `composer audit` 0 advisory |
 
 > **Quy tắc cho mọi refactor:** giải thích *why* trước khi viết code · composer patch
 > là **bậc cuối** (thử hết extension point trước; nếu patch thì kèm PR upstream)

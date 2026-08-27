@@ -15,7 +15,7 @@ làm commerce core, admin Filament 4, storefront Blade SSR.
 | Chạy lệnh artisan thường dùng | [guides/commands.md](guides/commands.md) |
 | Deploy & vận hành production | [guides/deployment.md](guides/deployment.md) |
 | Hiểu đợt nâng Lunar 1.5 / Filament v4 đã làm gì | [guides/upgrade-lunar-1.5.md](guides/upgrade-lunar-1.5.md) |
-| Gửi bản vá ngược lên Lunar | [upstream/README.md](upstream/README.md) |
+| Hai lỗi của Lunar và cách sống chung | [upstream/README.md](upstream/README.md) |
 | Xem việc còn tồn đọng | [roadmap.md](roadmap.md) |
 
 > **Nguồn sự thật về hiện trạng là [architecture/overview.md](architecture/overview.md).**
@@ -87,7 +87,8 @@ flowchart LR
 ```
 
 Càng sang phải càng tốn chi phí bảo trì. `composer patch` là **lựa chọn cuối** —
-hiện chỉ dùng đúng 1 lần (fix locale fallback trong `HasTranslations`).
+hiện **không còn dùng lần nào**: bản vá locale fallback cuối cùng đã chuyển sang
+`ModelManifest::replace()` (2026-08-27, xem [upstream/README.md](upstream/README.md)).
 
 Chi tiết: [architecture/overview.md](architecture/overview.md) §Điểm mở rộng.
 
@@ -148,7 +149,7 @@ modules/<Name>/
 | File PHP trong `modules/` | 420 |
 | Route `api/v1` | 63 |
 | Route storefront | 21 |
-| Test | 532 |
+| Test | 544 |
 
 > Số liệu là snapshot lúc viết. Chạy `php artisan test` và
 > `php artisan route:list` để lấy con số hiện thời.
@@ -169,7 +170,7 @@ docs/
 │   ├── commands.md                  # lệnh artisan thường dùng
 │   ├── deployment.md                # deploy & vận hành
 │   └── upgrade-lunar-1.5.md         # runbook + nhật ký nâng Lunar 1.3 → 1.5
-├── upstream/                        # bản vá chờ gửi lên lunarphp/lunar
+├── upstream/                        # 2 lỗi upstream + bản vá làm bằng chứng
 │   ├── README.md
 │   └── *.patch
 └── history/
