@@ -1,7 +1,7 @@
 # SME Fashion Ecommerce — Laravel 12 + LunarPHP
 
 > Tài liệu này mô tả **hiện trạng thực tế** của dự án: một storefront fashion cho
-> SME (single-store) trên Laravel 12 (PHP 8.4) + LunarPHP 1.0, admin Filament 3
+> SME (single-store) trên Laravel 12 (PHP 8.4) + LunarPHP 1.5, admin Filament 4
 > (native của Lunar), storefront **100% Blade SSR + vanilla JS** (không Vue).
 > Chỉ ghi những gì đã có trong code.
 >
@@ -61,7 +61,7 @@ Ecommerce fashion cho SME single-store:
   business logic. Nền tảng sẵn sàng cho app/headless dùng lại backend.
 - Storefront render **Blade SSR** cho mọi nội dung công khai (SEO), vanilla JS chỉ
   *enhance* markup đã có.
-- Admin dùng **Filament 3** của Lunar — kế thừa & mở rộng, không build lại.
+- Admin dùng **Filament 4** của Lunar — kế thừa & mở rộng, không build lại.
 
 ## Nguyên tắc kiến trúc cốt lõi
 
@@ -282,13 +282,14 @@ Lunar cho phép mở rộng resource/page admin qua `Support/Extending/*` mà kh
 |---|---|
 | Backend | Laravel 12 (PHP 8.4) |
 | Kiến trúc | Modular monolith (`modules/`) |
-| Commerce core | LunarPHP 1.0 |
-| Admin | Filament 3 (qua Lunar) |
+| Commerce core | LunarPHP 1.5 |
+| Admin | Filament 4 (qua Lunar) |
 | Storefront render | Blade (SSR) |
 | Storefront JS | Vanilla JS + Bootstrap 5 — **không Vue, không jQuery** |
 | Build | Vite 7 + Laravel Vite Plugin |
 | HTTP client (JS) | Axios |
-| CSS | Bootstrap 5 + SCSS (`themes/fashion/css`, entry `app.scss`) — **không Tailwind** |
+| CSS (storefront) | Bootstrap 5 + SCSS (`themes/fashion/css`, entry `app.scss`) — **không Tailwind** |
+| CSS (admin) | Tailwind 4, chỉ cho panel Filament (`resources/css/filament/lunar/theme.css`) — **tách hẳn khỏi storefront** |
 | API auth | Laravel Sanctum (token PAT + cookie SPA) |
 | DB | MySQL 8 |
 | Search | Driver `database` (MySQL) sau interface `SearchEngine` |
@@ -791,7 +792,7 @@ thanh toán quá `STALE_COMMITMENT_DAYS` (3) mà chưa `dispatched` sẽ giữ h
 
 ---
 
-# Admin (Filament 3 — native Lunar)
+# Admin (Filament 4 — native Lunar)
 
 Panel Lunar đã có sẵn resource cho Catalog (Products/Brands/Collections/Options/Types/
 Variants/Tags/AttributeGroups), Sales (Orders/Discounts), Customers (+Groups), Settings

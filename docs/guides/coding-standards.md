@@ -1,6 +1,6 @@
 # SME Fashion Ecommerce — Coding Standards
 
-> Chuẩn code cho repo **Laravel 12 + LunarPHP 1.0 + Filament 3 + theme `fashion` (SSR)**.
+> Chuẩn code cho repo **Laravel 12 + LunarPHP 1.5 + Filament 4 + theme `fashion` (SSR)**.
 > Đọc kèm [../architecture/overview.md](../architecture/overview.md) (kiến trúc
 > tổng thể) và [../architecture/theme.md](../architecture/theme.md)
 > (chi tiết theme).

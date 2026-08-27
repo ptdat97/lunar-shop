@@ -7,6 +7,11 @@
 > + [Filament v4 upgrade guide](https://filamentphp.com/docs/4.x/upgrade-guide).
 > Soạn: **2026-08-26**, đối chiếu code tại commit `a4f619b`.
 
+> **TRẠNG THÁI: đã thực thi xong Fase 0–5 ngày 2026-08-27.** Lunar 1.5.0 +
+> Filament v4.12.6 đang chạy trên `main`, 511 test xanh. Phần dưới giữ nguyên
+> dạng runbook; mục [§13 Nhật ký thực thi](#13-nhật-ký-thực-thi) ghi lại những
+> gì lệch so với dự kiến — đọc mục đó trước nếu phải làm lại trên môi trường khác.
+
 ---
 
 ## 0. Đọc cái này trước
@@ -498,3 +503,90 @@ php artisan optimize:clear
 
 Vì vậy dump ở Fase 0 là **bắt buộc**, và production chỉ đụng vào sau khi toàn bộ
 lộ trình đã chạy trọn một lần trên staging với bản copy dữ liệu thật.
+
+---
+
+## 13. Nhật ký thực thi
+
+Thực hiện **2026-08-27**, từ `4cb1f13` → `ad4d17f`. Kết quả: Lunar 1.5.0 +
+Filament v4.12.6, **511 test passed** (baseline trước nâng cấp: 506 — chênh 5 là
+`AdminPanelWiringTest` mới thêm).
+
+### 13.1 Những chỗ lệch so với runbook
+
+| # | Dự kiến | Thực tế |
+|---|---|---|
+| 1 | `vendor/bin/filament-v4` chạy codemod | **Script không chạy được.** Xem §13.2 |
+| 2 | Rector chỉ đụng file Filament | Nó đụng thêm 18 file không liên quan do `importNames()` — đã hoàn nguyên để giữ diff đúng phạm vi |
+| 3 | Chạy codemod trên `app` + `modules` | **Thiếu `tests/`** — 15 test đỏ vì `Filament\Forms\ComponentContainer` (v4: `Filament\Schemas\Schema`). Phải chạy cả ba |
+| 4 | Breaking change đúng như guide liệt kê | Guide **thiếu một mục**: `Lunar\Base\Purchasable` thêm `isPurchasable(): bool`. Xem §13.3 |
+| 5 | Section/Grid mất full-width → phải sửa 31 chỗ | **No-op.** Không schema gốc nào gọi `->columns(>1)`, nên Section vẫn chiếm trọn 1 cột |
+| 6 | `unique()` đổi mặc định `ignoreRecord` | **No-op.** 3/4 chỗ đã truyền `ignoreRecord: true` sẵn; chỗ thứ tư nằm trong form *create*, không có record để bỏ qua |
+| 7 | File trên disk non-local thành private | **Không áp dụng.** `MEDIA_DISK=public`, driver local. *Sẽ* áp dụng nếu production đổi sang S3 |
+| 8 | Migration nặng (`switch_to_jsonb`, index) | Cả hai **đã chạy từ trước** ở 1.3. 7 migration còn lại chạy hết trong ~110ms trên DB dev |
+
+### 13.2 `filament/upgrade` không tương thích rector đang cài
+
+`filament/upgrade` v4.12.6 khai `rector/rector: ^2.0`, composer giải ra 2.6.3.
+Config của nó dùng `Rector\Transform\Rector\Class_\AddInterfaceByTraitRector`,
+rule đã bị rector gỡ và nay **throw** — kết quả `0/425 file` được xử lý, và vì
+script gọi rector qua `exec()` nên output bị nuốt, nhìn như nó chạy xong bình thường.
+
+Cách đã dùng: copy `vendor/filament/upgrade/src/rector.php` ra ngoài, xoá đúng
+block rule đó, rồi gọi rector trực tiếp để nhìn được diff:
+
+```bash
+vendor/bin/rector process app modules tests \
+  --config <config-đã-sửa> --clear-cache --dry-run
+```
+
+Rule bị bỏ thêm `implements HasActions` cho class dùng `InteractsWithForms` /
+`InteractsWithTable` / `InteractsWithInfolists`. Với **Filament Page** thì vô
+nghĩa — `Filament\Pages\BasePage` của v4 đã `implements HasActions` sẵn. Nhưng
+với **Livewire component thuần** thì vẫn cần: `MediaPickerTestHost` trong
+`tests/Feature/MediaPickerTest.php` phải thêm tay.
+
+### 13.3 Breaking change không có trong upgrade guide
+
+`Lunar\Base\Purchasable` ở 1.5 thêm `isPurchasable(): bool`. Mọi model tự
+implement contract này (ở đây là `Modules\Catalog\Models\ProductSku`) sẽ chết
+ngay ở `package:discover` với *"contains 1 abstract method and must therefore be
+declared abstract"*. Lunar mô tả nó là hàng rào cuối cùng lúc tạo đơn: kiểm tra
+trạng thái nằm trên chính purchasable (product cha bị xoá mềm / gỡ xuất bản),
+**không** kiểm tra channel hay customer group.
+
+### 13.4 Kết cục 4 rủi ro riêng ở §10
+
+| # | Rủi ro | Kết cục |
+|---|---|---|
+| 1 | Reflection hoán đổi Resource | **Đã vỡ thật** — nhưng qua `clusteredComponents`, không phải `modelResources`. Lunar 1.5 thêm cluster `Taxes`, và cluster đó vẫn giữ 3 resource **bản gốc** của Lunar. Không lỗi nào bắn ra. Đã sửa + bọc `hasCachedComponents()` (xem §13.5) + thêm `AdminPanelWiringTest` làm dây bẫy |
+| 2 | Reflection reset nhóm điều hướng | **Vẫn chạy đúng.** `navigationManager` chưa được set lúc closure chạy, nên gán thẳng property vẫn ăn. Cả 4 nhóm ra đúng nhãn tiếng Việt, đúng thứ tự |
+| 3 | Patch `cweagans` lên `lunarphp/core` | **Áp sạch.** `HasTranslations::translate()` ở 1.5.0 y hệt 1.3.0. Bug vẫn còn upstream — vẫn nên gửi PR |
+| 4 | Chuyển 2FA sang MFA v4 | Migration đổi tên cột chạy trơn. **Chưa nghiệm thu được bằng tài khoản thật**: `lunar_staff` local có 0 dòng. Trên production phải đăng nhập bằng staff đã bật 2FA để xác nhận mã TOTP cũ còn dùng được |
+
+### 13.5 Cái bẫy `hasCachedComponents()`
+
+Bản sửa rủi ro #1 gần như phá production. `Panel::id()` gọi
+`restoreCachedComponents()` — tức là khi có `filament:cache-components`
+([deployment.md §3](deployment.md) chạy nó mỗi lần deploy), panel **đã** nạp đủ
+mảng component từ cache **trước** closure của `ModulesServiceProvider`, và mọi
+lệnh đăng ký sau đó cố ý là no-op. Nếu closure vô tư xoá rồi gọi lại
+`$panel->resources()`, thì ở mỗi web request production panel sẽ **rỗng**.
+
+Vì `hasCachedComponents()` = `(! runningInConsole()) && file_exists(...)`, lúc
+build cache (chạy trong console) nó là `false` → swap chạy → cache ghi ra đã
+đúng. Nên bản sửa chỉ cần bọc toàn bộ khối swap trong
+`if (! $panel->hasCachedComponents())`. Đã kiểm chứng cả hai nhánh.
+
+**Quy tắc rút ra:** bất cứ thứ gì đụng vào nội bộ `Panel` đều phải hỏi
+`hasCachedComponents()` trước.
+
+### 13.6 Còn lại — chưa làm
+
+- **Bộ lọc bảng giờ deferred** (8 bảng có `->filters()`): người dùng phải bấm
+  "Apply" thì lọc mới chạy. Đây là mặc định mới của v4, đã cố ý giữ. Muốn trả về
+  cảm giác cũ thì thêm `->deferFilters(false)` vào từng bảng.
+- **Nghiệm thu tay Fase 6** — 6 luồng ở §9, đặc biệt đăng nhập MFA bằng staff
+  thật và đặt một đơn hàng thật xuyên storefront.
+- **Rollout production**: chạy trọn lộ trình trên staging với bản copy dữ liệu
+  thật trước. Đo thời gian migration ở đó, đừng lấy con số ~110ms của DB dev.

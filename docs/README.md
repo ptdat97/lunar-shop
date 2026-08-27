@@ -1,7 +1,7 @@
 # Lunar Shop — Tài liệu kỹ thuật
 
 Ecommerce fashion cho SME single-store. Laravel 12 + [Lunar](https://lunarphp.io/)
-làm commerce core, admin Filament 3, storefront Blade SSR.
+làm commerce core, admin Filament 4, storefront Blade SSR.
 
 ---
 
@@ -14,7 +14,7 @@ làm commerce core, admin Filament 3, storefront Blade SSR.
 | Sửa giao diện storefront | [architecture/theme.md](architecture/theme.md) |
 | Chạy lệnh artisan thường dùng | [guides/commands.md](guides/commands.md) |
 | Deploy & vận hành production | [guides/deployment.md](guides/deployment.md) |
-| Nâng Lunar 1.3 → 1.5 (kéo theo Filament v4) | [guides/upgrade-lunar-1.5.md](guides/upgrade-lunar-1.5.md) |
+| Hiểu đợt nâng Lunar 1.5 / Filament v4 đã làm gì | [guides/upgrade-lunar-1.5.md](guides/upgrade-lunar-1.5.md) |
 | Xem việc còn tồn đọng | [roadmap.md](roadmap.md) |
 
 > **Nguồn sự thật về hiện trạng là [architecture/overview.md](architecture/overview.md).**
@@ -147,7 +147,7 @@ modules/<Name>/
 | File PHP trong `modules/` | 420 |
 | Route `api/v1` | 63 |
 | Route storefront | 21 |
-| Test | 506 |
+| Test | 511 |
 
 > Số liệu là snapshot lúc viết. Chạy `php artisan test` và
 > `php artisan route:list` để lấy con số hiện thời.
@@ -167,7 +167,7 @@ docs/
 │   ├── coding-standards.md          # quy tắc viết code
 │   ├── commands.md                  # lệnh artisan thường dùng
 │   ├── deployment.md                # deploy & vận hành
-│   └── upgrade-lunar-1.5.md         # runbook nâng Lunar 1.3 → 1.5
+│   └── upgrade-lunar-1.5.md         # runbook + nhật ký nâng Lunar 1.3 → 1.5
 └── history/
     └── 2026-07-platform-audit.md    # biên bản audit (lịch sử, không phải hiện trạng)
 ```
