@@ -62,17 +62,46 @@ class ModulesServiceProvider extends ServiceProvider
         ];
 
         LunarPanel::panel(function ($panel) use ($pages, $extraResources, $swaps) {
-            // Filament Panel::resources() merges, so we use reflection to reset the array.
-            $replacement = collect(LunarPanelManager::getResources())
-                ->reject(fn ($r) => isset($swaps[$r]))
-                ->merge(array_values($swaps))
-                ->merge($extraResources)
-                ->values()
-                ->toArray();
+            // With `filament:cache-components` the panel already restored the
+            // cached component arrays back in Panel::id(), and every registration
+            // call below is deliberately a no-op. That cache was built by a
+            // console run — where hasCachedComponents() is false — so it already
+            // holds the swapped list. Touching the arrays here would wipe it on
+            // every web request.
+            if (! $panel->hasCachedComponents()) {
+                $replacement = collect(LunarPanelManager::getResources())
+                    ->reject(fn ($r) => isset($swaps[$r]))
+                    ->merge(array_values($swaps))
+                    ->merge($extraResources)
+                    ->values()
+                    ->toArray();
 
-            (function () use ($replacement) {
-                $this->resources = $replacement;
-            })->call($panel);
+                // Panel::resources() MERGES, so the resources we swap out have to
+                // be cleared first. Under Filament v4 that is no longer one array:
+                // resources() also feeds $resourceConfigurations and, via
+                // registerToCluster(), $clusteredComponents. Resetting only
+                // $resources leaves those pointing at the classes we just
+                // replaced — Lunar 1.5's new Taxes cluster hit exactly that and
+                // kept serving the vendor TaxClass/TaxZone/TaxRate resources.
+                //
+                // So clear what is purely resource-derived, prune only OUR swapped
+                // classes out of the cluster map (it holds clustered *pages* too,
+                // which must survive), then register through the public API and
+                // let v4 rebuild its own bookkeeping: resources() resets
+                // $modelResources itself and re-runs registerToCluster().
+                (function () use ($swaps) {
+                    $this->resources = [];
+                    $this->resourceConfigurations = [];
+
+                    foreach ($this->clusteredComponents as $cluster => $components) {
+                        $this->clusteredComponents[$cluster] = array_values(
+                            array_filter($components, fn ($c) => ! isset($swaps[$c]))
+                        );
+                    }
+                })->call($panel);
+
+                $panel->resources($replacement);
+            }
 
             // Lunar's defaultPanel() already registered its group order with
             // hardcoded English labels ('Catalog', 'Sales', NavigationGroup
