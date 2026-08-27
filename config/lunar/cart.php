@@ -66,9 +66,6 @@ return [
         'cart' => [
             CalculateLines::class,
             ApplyShipping::class,
-            // Lunar 1.5: tổng hợp shippingBreakdown thành $cart->shippingSubTotal.
-            // Phải nằm ngay sau ApplyShipping để pipeline chèn vào giữa vẫn được
-            // tính lại sub total.
             CalculateShippingSubTotal::class,
             ApplyDiscounts::class,
             CalculateTax::class,
@@ -116,20 +113,12 @@ return [
         'add_to_cart' => [
             CartLineQuantity::class,
             CartLineStock::class,
-            // Lunar 1.5. Hàng rào CUỐI ở tầng Lunar, phủ mọi đường vào giỏ —
-            // kể cả draft order trong admin và code gọi thẳng $cart->add().
-            // Storefront vẫn chặn sớm hơn ở CartService::guardStatus để khách
-            // nhận 422 có thông điệp, thay vì CartException → 500.
             CartLineAvailability::class,
         ],
 
         'update_cart_line' => [
             CartLineQuantity::class,
             CartLineStock::class,
-            // Lunar 1.5. Hàng rào CUỐI ở tầng Lunar, phủ mọi đường vào giỏ —
-            // kể cả draft order trong admin và code gọi thẳng $cart->add().
-            // Storefront vẫn chặn sớm hơn ở CartService::guardStatus để khách
-            // nhận 422 có thông điệp, thay vì CartException → 500.
             CartLineAvailability::class,
         ],
 
