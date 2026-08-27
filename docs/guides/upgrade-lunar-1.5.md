@@ -912,5 +912,7 @@ suýt vỡ — trong đợt này:
 - Thanh toán thật qua VNPay/MoMo sandbox (test chỉ dùng gateway giả).
 - Đo thời gian migration trên bản copy dữ liệu production trước khi chốt
   maintenance window — con số ~110ms ở đây là DB dev 5MB.
-- Cân nhắc gửi ngược lên upstream: bug khoá staff ở §15 và fix locale fallback
-  trong `HasTranslations` (patch `cweagans` vẫn đang phải giữ).
+- **Gửi ngược lên upstream — đã chuẩn bị xong, chờ bấm gửi.** Hai patch sẵn sàng
+  `git am` ở [`docs/upstream/`](../upstream/README.md): bug khoá staff (§15) và
+  fix locale fallback trong `HasTranslations`. Cả hai đã kèm test, chạy sạch trên
+  suite của chính Lunar (core 598, admin 229) và áp sạch lên clone `1.x` mới.

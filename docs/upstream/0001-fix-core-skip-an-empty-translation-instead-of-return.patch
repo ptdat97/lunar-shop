@@ -1,0 +1,123 @@
+From b623b092de902aad3b48f858f52fe323de2853bd Mon Sep 17 00:00:00 2001
+From: ptdat97 <ptdats2@gmail.com>
+Date: Thu, 27 Aug 2026 14:12:12 +0700
+Subject: [PATCH] fix(core): skip an empty translation instead of returning it
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+`translate()` resolves a locale with `Arr::get($values, $locale, $default)`. When
+the key exists but holds an empty value, `Arr::get()` returns that empty value
+rather than the default, so the fallback never runs.
+
+In practice: a record named only in English but carrying a blank `fr` key
+translates to `''` under a French locale, and the caller renders an empty label.
+The existing "can fallback to existing translation when current is missing" test
+does not catch it because it only passes an explicit locale while the app locale
+is still `en` — the second lookup then happens to land on a filled value. The bug
+shows up once the empty locale IS the app locale.
+
+Resolve the preferred locales in order and skip anything empty, then fall back to
+the first non-empty value of any locale. This also makes `translate()` behave the
+same as `translateAttribute()`, which already skips blank field values.
+
+While here, convert object-shaped values up front. Previously only the first
+lookup went through `get_object_vars()`, leaving the fallback to call `Arr::get()`
+on a `stdClass`.
+---
+ .../core/src/Base/Traits/HasTranslations.php  | 23 ++++++----
+ .../Unit/Base/Traits/HasTranslationsTest.php  | 44 +++++++++++++++++++
+ 2 files changed, 59 insertions(+), 8 deletions(-)
+
+diff --git a/packages/core/src/Base/Traits/HasTranslations.php b/packages/core/src/Base/Traits/HasTranslations.php
+index 822fb52..357ec74 100644
+--- a/packages/core/src/Base/Traits/HasTranslations.php
++++ b/packages/core/src/Base/Traits/HasTranslations.php
+@@ -26,17 +26,24 @@ public function translate($attribute, $locale = null)
+             return null;
+         }
+ 
++        $values = Arr::accessible($values) ? $values : get_object_vars($values);
++
+         $locale = $locale ?: app()->getLocale();
+ 
+-        $value = Arr::accessible($values) ?
+-            Arr::get($values, $locale) :
+-            get_object_vars($values)[$locale] ?? null;
++        // A locale key that exists but holds an empty value must not win. Arr::get()
++        // returns that empty value rather than the default, so a product named only
++        // in English but carrying a blank 'fr' key used to translate to '' under a
++        // French locale. Skipping empties here also makes translate() behave like
++        // translateAttribute(), which already falls back past blank field values.
++        foreach ([$locale, app()->getLocale()] as $preferred) {
++            $value = Arr::get($values, $preferred);
++
++            if (filled($value)) {
++                return $value;
++            }
++        }
+ 
+-        return $value ?: Arr::get(
+-            $values,
+-            app()->getLocale(),
+-            Arr::first($values)
+-        );
++        return Arr::first($values, fn ($value) => filled($value));
+     }
+ 
+     /**
+diff --git a/tests/core/Unit/Base/Traits/HasTranslationsTest.php b/tests/core/Unit/Base/Traits/HasTranslationsTest.php
+index 3d545a5..6d4e741 100644
+--- a/tests/core/Unit/Base/Traits/HasTranslationsTest.php
++++ b/tests/core/Unit/Base/Traits/HasTranslationsTest.php
+@@ -320,3 +320,47 @@
+     expect($product->attr('description'))->toEqual('English Description');
+     expect($product->attr('description', 'fr'))->toEqual('French Description');
+ });
++
++test('will skip an empty translation for the current locale', function () {
++    $attributeGroup = AttributeGroup::factory()->create([
++        'name' => [
++            'en' => 'English',
++            'fr' => '',
++        ],
++    ]);
++
++    $productOption = ProductOption::factory()->create([
++        'name' => [
++            'en' => 'English Option',
++            'fr' => '',
++        ],
++    ]);
++
++    // The requested locale and the app locale are both `fr`, whose key exists but
++    // is empty. Arr::get() hands back that empty string instead of the default, so
++    // without skipping empties the caller gets '' rather than a usable name.
++    app()->setLocale('fr');
++
++    expect($attributeGroup->translate('name'))->toEqual('English');
++    expect($attributeGroup->translate('name', 'fr'))->toEqual('English');
++
++    expect($productOption->translate('name'))->toEqual('English Option');
++    expect($productOption->translate('name', 'fr'))->toEqual('English Option');
++});
++
++test('will skip an empty translation when values are an object', function () {
++    $attributeGroup = AttributeGroup::factory()->create([
++        'name' => [
++            'en' => 'English',
++            'fr' => '',
++        ],
++    ]);
++
++    // The object branch previously only converted for the first lookup, leaving the
++    // fallback to call Arr::get() on a stdClass.
++    $attributeGroup->name = (object) ['en' => 'English', 'fr' => ''];
++
++    app()->setLocale('fr');
++
++    expect($attributeGroup->translate('name'))->toEqual('English');
++});
+-- 
+2.50.1 (Apple Git-155)
+
