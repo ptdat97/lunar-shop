@@ -183,19 +183,26 @@ class CartService
     }
 
     /**
-     * Refuse a SKU the admin has disabled. This is the enforcement point — the
-     * storefront hides disabled SKUs, but hiding a button is not a guard
+     * Refuse a SKU that can no longer be bought. This is the enforcement point —
+     * the storefront hides such SKUs, but hiding a button is not a guard
      * (§17.4): a direct API call must still be rejected here.
+     *
+     * Delegates to ProductSku::isPurchasable(), the contract method Lunar 1.5
+     * added to Purchasable, so this guard and Lunar's own CartLineAvailability
+     * validator can never disagree. It also widens what used to be checked: the
+     * old inline test only read the SKU's own `status`, so a SKU whose parent
+     * product had been unpublished or soft-deleted still went into the cart.
      *
      * @throws ValidationException
      */
     protected function guardStatus(ProductSku $sku): void
     {
-        // Read the status fresh: on updateLine the SKU comes off the cached
-        // cart line, which can be stale if the admin disabled it meanwhile.
-        $status = ProductSku::whereKey($sku->getKey())->value('status');
+        // Re-read fresh: on updateLine the SKU comes off the cached cart line,
+        // which can be stale if the admin disabled it — or retired its product —
+        // meanwhile. A soft-deleted SKU resolves to null here and is refused too.
+        $fresh = ProductSku::with('product')->find($sku->getKey());
 
-        if ($status === 'disabled') {
+        if (! $fresh || ! $fresh->isPurchasable()) {
             throw ValidationException::withMessages([
                 'variant' => 'Sorry, this variant is no longer available.',
             ]);

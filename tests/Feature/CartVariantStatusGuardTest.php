@@ -2,14 +2,21 @@
 
 namespace Tests\Feature;
 
+use Lunar\Exceptions\Carts\CartException;
+use Lunar\Facades\CartSession;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
 /**
- * A variant the admin marked `status = disabled` must not enter the cart, no
- * matter how the request arrives. The storefront hides disabled variants, but
- * hiding a button is not a guard (coding standards §17.4) — CartService is the
- * enforcement point, so a direct API call must be refused too.
+ * A variant that can no longer be bought must not enter the cart, no matter how
+ * the request arrives. The storefront hides such variants, but hiding a button
+ * is not a guard (coding standards §17.4) — CartService is the enforcement
+ * point, so a direct API call must be refused too.
+ *
+ * "Can no longer be bought" widened with Lunar 1.5: guardStatus now delegates to
+ * ProductSku::isPurchasable(), so a retired PARENT PRODUCT counts as well. The
+ * old inline check only read the SKU's own `status`, which let a variant of an
+ * unpublished or soft-deleted product straight into the cart.
  *
  * Mutation check: delete `guardStatus()` (or its two call sites) in
  * CartService and these tests go red — that is what proves the guard runs.
@@ -69,5 +76,76 @@ class CartVariantStatusGuardTest extends TestCase
         $this->patchJson("/api/v1/cart/lines/{$line}", ['quantity' => 2])
             ->assertStatus(422)
             ->assertJsonValidationErrorFor('variant');
+    }
+
+    public function test_adding_a_variant_of_an_unpublished_product_is_refused(): void
+    {
+        $this->seedBaseData();
+        $product = $this->createProduct(['stock' => 100]);
+        $variant = $product->skus->first();
+
+        // The SKU itself stays published — the only reason to reject is that its
+        // product went back to draft.
+        $product->update(['status' => 'draft']);
+
+        $this->addLine($variant->id)
+            ->assertStatus(422)
+            ->assertJsonValidationErrorFor('variant');
+
+        $this->getJson('/api/v1/cart')->assertJsonPath('data.lines_count', 0);
+    }
+
+    public function test_adding_a_variant_of_a_soft_deleted_product_is_refused(): void
+    {
+        $this->seedBaseData();
+        $product = $this->createProduct(['stock' => 100]);
+        $variant = $product->skus->first();
+
+        $product->delete();
+
+        $this->addLine($variant->id)
+            ->assertStatus(422)
+            ->assertJsonValidationErrorFor('variant');
+    }
+
+    public function test_updating_a_line_after_its_product_is_unpublished_is_refused(): void
+    {
+        $this->seedBaseData();
+        $product = $this->createProduct(['stock' => 100]);
+        $variant = $product->skus->first();
+
+        $line = $this->addLine($variant->id)
+            ->assertSuccessful()
+            ->json('data.lines.0.id');
+
+        $product->update(['status' => 'draft']);
+
+        $this->patchJson("/api/v1/cart/lines/{$line}", ['quantity' => 2])
+            ->assertStatus(422)
+            ->assertJsonValidationErrorFor('variant');
+    }
+
+    /**
+     * CartService gives the shopper a friendly 422, but it is not the only way
+     * into a cart — admin draft orders and any future code calling $cart->add()
+     * bypass it entirely. Lunar 1.5's CartLineAvailability validator, wired up in
+     * config/lunar/cart.php, is the last-line defence there; it reads the very
+     * same isPurchasable().
+     *
+     * Mutation check: remove CartLineAvailability from the `add_to_cart`
+     * validators and this test goes red.
+     */
+    public function test_lunar_refuses_the_line_when_cart_service_is_bypassed(): void
+    {
+        $this->seedBaseData();
+        $product = $this->createProduct(['stock' => 100]);
+        $variant = $product->skus->first();
+        $product->update(['status' => 'draft']);
+
+        $cart = CartSession::current();
+
+        $this->expectException(CartException::class);
+
+        $cart->add($variant->fresh(), 1);
     }
 }

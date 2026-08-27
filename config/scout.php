@@ -84,7 +84,11 @@ return [
     |
     */
 
-    'soft_delete' => false,
+    // Lunar yêu cầu bật: Product, Collection, Customer và Order đều dùng
+    // SoftDeletes, và khi tắt thì bản ghi đã xoá mềm vẫn nằm lại trong index.
+    // Hôm nay chưa lộ vì SCOUT_DRIVER=collection truy vấn thẳng Eloquent nên
+    // scope soft-delete tự áp; nó sẽ cắn ngay khi đổi sang Meilisearch/Algolia.
+    'soft_delete' => true,
 
     /*
     |--------------------------------------------------------------------------
