@@ -2,9 +2,11 @@
 
 namespace Tests\Feature;
 
-use Filament\Forms\ComponentContainer;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Schemas\Schema;
 use Illuminate\Http\UploadedFile;
 use Livewire\Component;
 use Lunar\Models\Asset;
@@ -19,8 +21,9 @@ use Tests\TestCase;
  * a Filament field reads and writes its state through the container, so it
  * cannot be exercised standalone.
  */
-class MediaPickerTestHost extends Component implements HasForms
+class MediaPickerTestHost extends Component implements HasActions, HasForms
 {
+    use InteractsWithActions;
     use InteractsWithForms;
 
     /** @var array<string, mixed> */
@@ -57,7 +60,7 @@ class MediaPickerTest extends TestCase
      * Mount a component into a real form container (bound to a Livewire host),
      * which is what gives a Filament field somewhere to read/write state.
      *
-     * @template T of \Filament\Forms\Components\Component
+     * @template T of \Filament\Schemas\Components\Component
      *
      * @param  T  $component
      * @return T
@@ -66,7 +69,7 @@ class MediaPickerTest extends TestCase
     {
         // getComponents() is what actually binds each child to the container
         // (components() only stores the schema), so call it to mount the field.
-        ComponentContainer::make(new MediaPickerTestHost)
+        Schema::make(new MediaPickerTestHost)
             ->statePath('data')
             ->components([$component])
             ->getComponents();

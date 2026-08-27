@@ -24,9 +24,9 @@ class ManagePageSections extends ManageRecords
      *
      * @param  array<int|string>  $order
      */
-    public function reorderTable(array $order): void
+    public function reorderTable(array $order, string|int|null $draggedRecordKey = null): void
     {
-        parent::reorderTable($order);
+        parent::reorderTable($order, $draggedRecordKey);
 
         PageSection::query()
             ->whereIn((new PageSection)->getKeyName(), array_values($order))

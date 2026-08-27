@@ -272,6 +272,26 @@ class ProductSku extends Model implements Purchasable
     }
 
     /**
+     * Last-line defence run at order creation (Lunar 1.5 added this to the
+     * Purchasable contract).
+     *
+     * By then the cart may have been sitting for hours, so re-check the state
+     * that lives on the SKU and its parent: the same `status === 'disabled'`
+     * rule CartService::guardStatus enforces when the line is added, plus a
+     * soft-deleted or unpublished parent product. Channel and customer-group
+     * availability are NOT checked here — Lunar's CartLineAvailability owns
+     * those.
+     */
+    public function isPurchasable(): bool
+    {
+        return $this->status !== 'disabled'
+            && ! $this->trashed()
+            && $this->product
+            && ! $this->product->trashed()
+            && $this->product->status === 'published';
+    }
+
+    /**
      * Units a shopper can still buy.
      *
      * `quantity` is what is physically in the stockroom and `committed` is the
