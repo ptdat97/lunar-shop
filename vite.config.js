@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
+import tailwindcss from '@tailwindcss/vite';
 import fs from 'node:fs';
 
 const theme = process.env.THEME ?? 'fashion';
@@ -10,12 +11,20 @@ if (fs.existsSync(`themes/${theme}/css/app.scss`)) {
     input.unshift(`themes/${theme}/css/app.scss`);
 }
 
+// Filament v4 admin theme. Separate from the storefront pipeline on purpose:
+// the storefront is Bootstrap + SCSS and must never see Tailwind, while the
+// admin needs a custom theme so the utility classes in our own Blade views get
+// compiled at all. Only this entry contains Tailwind directives, so the plugin
+// below is inert for the SCSS above.
+input.push('resources/css/filament/lunar/theme.css');
+
 export default defineConfig({
     plugins: [
         laravel({
             input,
             refresh: [`themes/${theme}/**`],
         }),
+        tailwindcss(),
     ],
     css: {
         preprocessorOptions: {

@@ -136,6 +136,13 @@ class ModulesServiceProvider extends ServiceProvider
                 $panel->pages($pages);
             }
 
+            // Filament v4 stopped shipping a build that contains every Tailwind
+            // class, so the utility classes in our own admin Blade views are only
+            // compiled if a custom theme lists them as @source. Without this the
+            // module settings pages render unstyled. Lunar's own panel CSS is a
+            // separate, pre-compiled asset and is unaffected.
+            $panel->viteTheme('resources/css/filament/lunar/theme.css');
+
             return $panel;
         })->register();
     }

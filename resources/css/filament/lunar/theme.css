@@ -1,0 +1,14 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+/*
+ * Filament v4 no longer ships every Tailwind class — only the ones it finds in
+ * the sources listed here get compiled. Without this file the 16 admin Blade
+ * views that use utility classes lose their styling entirely.
+ *
+ * The default `make:filament-theme` output points at app/Filament and
+ * resources/views/filament; this project keeps all admin code inside nwidart
+ * modules instead, so both globs are re-pointed there. Lunar's own panel views
+ * are not listed: the package ships them pre-compiled as lunar-panel.css.
+ */
+@source '../../../../modules/*/app/Filament/**/*';
+@source '../../../../modules/*/resources/views/filament/**/*';
