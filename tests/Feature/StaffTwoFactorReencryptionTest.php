@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Lunar\Admin\Models\Staff;
+use PragmaRX\Google2FA\Exceptions\InvalidCharactersException;
+use PragmaRX\Google2FAQRCode\Google2FA;
 use Tests\TestCase;
 
 /**
@@ -120,5 +123,42 @@ class StaffTwoFactorReencryptionTest extends TestCase
             $garbage,
             DB::table($this->table())->where('id', $staff->id)->value('app_authentication_secret'),
         );
+    }
+
+    /**
+     * The decisive one: reading the right string back is not the same as being
+     * able to log in. Drive Filament's own verifier with a code generated from
+     * the secret the staff member's authenticator app still holds.
+     */
+    public function test_a_code_from_the_original_secret_validates_after_the_migration(): void
+    {
+        $staff = $this->staffWithLegacySecret();
+
+        $this->runMigration();
+
+        // The code the authenticator app on the staff member's phone shows.
+        $code = app(Google2FA::class)->getCurrentOtp(self::SECRET);
+
+        $this->assertTrue(
+            AppAuthentication::make()->verifyCode($code, $staff->fresh()->getAppAuthenticationSecret()),
+            'After the migration the existing authenticator app must work again.',
+        );
+    }
+
+    /**
+     * And what the staff member hits without the migration: the serialized
+     * wrapper is not valid base32, so Google2FA throws instead of returning
+     * false. AppAuthentication::verifyCode() does not catch it — so the MFA
+     * challenge 500s rather than politely saying the code is wrong.
+     */
+    public function test_without_the_migration_the_mfa_challenge_errors_out(): void
+    {
+        $staff = $this->staffWithLegacySecret();
+
+        $code = app(Google2FA::class)->getCurrentOtp(self::SECRET);
+
+        $this->expectException(InvalidCharactersException::class);
+
+        AppAuthentication::make()->verifyCode($code, $staff->getAppAuthenticationSecret());
     }
 }

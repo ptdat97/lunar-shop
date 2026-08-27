@@ -562,7 +562,7 @@ trạng thái nằm trên chính purchasable (product cha bị xoá mềm / gỡ
 | 1 | Reflection hoán đổi Resource | **Đã vỡ thật** — nhưng qua `clusteredComponents`, không phải `modelResources`. Lunar 1.5 thêm cluster `Taxes`, và cluster đó vẫn giữ 3 resource **bản gốc** của Lunar. Không lỗi nào bắn ra. Đã sửa + bọc `hasCachedComponents()` (xem §13.5) + thêm `AdminPanelWiringTest` làm dây bẫy |
 | 2 | Reflection reset nhóm điều hướng | **Vẫn chạy đúng.** `navigationManager` chưa được set lúc closure chạy, nên gán thẳng property vẫn ăn. Cả 4 nhóm ra đúng nhãn tiếng Việt, đúng thứ tự |
 | 3 | Patch `cweagans` lên `lunarphp/core` | **Áp sạch.** `HasTranslations::translate()` ở 1.5.0 y hệt 1.3.0. Bug vẫn còn upstream — vẫn nên gửi PR |
-| 4 | Chuyển 2FA sang MFA v4 | Migration đổi tên cột chạy trơn. **Chưa nghiệm thu được bằng tài khoản thật**: `lunar_staff` local có 0 dòng. Trên production phải đăng nhập bằng staff đã bật 2FA để xác nhận mã TOTP cũ còn dùng được |
+| 4 | Chuyển 2FA sang MFA v4 | **Vỡ nặng — đã sửa.** Migration của Lunar chỉ đổi tên cột, còn giá trị thì hai bên lưu khác định dạng, nên mọi staff đã bật 2FA bị khoá ngoài admin. Xem [§15](#15-bug-khoá-staff-ngoài-admin-không-có-trong-upgrade-guide) |
 
 ### 13.5 Cái bẫy `hasCachedComponents()`
 
@@ -586,8 +586,7 @@ build cache (chạy trong console) nó là `false` → swap chạy → cache ghi
 - **Bộ lọc bảng giờ deferred** (8 bảng có `->filters()`): người dùng phải bấm
   "Apply" thì lọc mới chạy. Đây là mặc định mới của v4, đã cố ý giữ. Muốn trả về
   cảm giác cũ thì thêm `->deferFilters(false)` vào từng bảng.
-- **Nghiệm thu tay Fase 6** — 6 luồng ở §9, đặc biệt đăng nhập MFA bằng staff
-  thật và đặt một đơn hàng thật xuyên storefront.
+- **Nghiệm thu tay Fase 6** — phần lớn đã tự động hoá, xem [§16](#16-fase-6-đã-nghiệm-thu-tới-đâu). Còn lại là bấm tay trên staging.
 - **Rollout production**: chạy trọn lộ trình trên staging với bản copy dữ liệu
   thật trước. Đo thời gian migration ở đó, đừng lấy con số ~110ms của DB dev.
 
@@ -667,3 +666,74 @@ claude mcp add lunar-docs --transport http https://docs.lunarphp.com/mcp
   `Modules\Order\Services\InvoiceService` tự dựng bằng dompdf, không dùng của Lunar.
 - **`shipping:manage`, min/max weight, `ShippingDiscount`**: add-on Table Rate
   Shipping không cài.
+
+---
+
+## 15. Bug khoá staff ngoài admin (không có trong upgrade guide)
+
+> **Nếu production có staff đã bật 2FA, đây là thứ phải đọc trước khi deploy.**
+
+Lunar 1.5 bỏ `lunarphp/filament3-2fa`, chuyển sang MFA sẵn có của Filament v4, và
+ship migration **chỉ đổi tên cột**. Giá trị giữ nguyên — trong khi hai bên lưu
+khác định dạng:
+
+| | Ghi | Đọc |
+|---|---|---|
+| `lunarphp/filament3-2fa` | `encrypt($secret)` — payload **có** serialize | `decrypt($v)` |
+| Filament v4 | cast `'encrypted'` | `decrypt($v, false)` — **không** serialize |
+
+Kết quả: Filament đọc secret cũ ra đúng chuỗi `s:16:"JBSWY3DPEHPK3PXP";` thay vì
+`JBSWY3DPEHPK3PXP`. Recovery codes hỏng y hệt — cũ lưu `encrypt(json_encode(...))`
+còn cast mới là `'encrypted:array'`, nên `json_decode` rơi vào lớp bọc serialize
+và trả `null`.
+
+Tệ hơn "mã sai": chuỗi bọc đó **không phải base32 hợp lệ**, Google2FA ném
+`InvalidCharactersException`, và `AppAuthentication::verifyCode()` không bắt —
+nên màn hình MFA **500** chứ không báo mã sai.
+
+**Bản sửa:** `database/migrations/2026_08_27_120000_reencrypt_staff_app_authentication_columns.php`
+giải mã rồi mã hoá lại đúng định dạng. Nhận diện theo **nội dung** chứ không theo
+cờ — chỉ ghi lại giá trị nào giải mã ra một chuỗi PHP-serialized — nên chạy lại
+được nhiều lần và an toàn trên bảng lẫn lộn cũ/mới (secret base32 hay mảng JSON
+không thể trông giống payload serialize). Giá trị không giải mã nổi bằng `APP_KEY`
+hiện tại thì để nguyên.
+
+`StaffTwoFactorReencryptionTest` phủ 7 ca, trong đó có ca sinh mã TOTP thật từ
+secret gốc và chạy qua chính verifier của Filament — chứng minh app authenticator
+trên máy staff vẫn dùng được sau migration, và **không** dùng được nếu thiếu nó.
+
+> ⚠️ Đây là bug của đường nâng cấp, không phải của dự án. Bất kỳ ai đi từ Lunar
+> ≤1.4 (có `lunarphp/filament3-2fa`) lên 1.5 đều dính. Đáng gửi ngược lên upstream.
+
+---
+
+## 16. Fase 6 — đã nghiệm thu tới đâu
+
+Phần lớn checklist ở §9 đã chuyển thành test tự động, vì "mở từng trang bấm thử"
+không lặp lại được ở lần nâng Filament sau.
+
+| Hạng mục §9 | Cách nghiệm thu | Kết quả |
+|---|---|---|
+| Sidebar: 4 nhóm, đúng thứ tự, nhãn tiếng Việt, không trùng | `AdminPanelWiringTest` (5 test) | ✅ |
+| Mọi trang admin render | `AdminPagesSmokeTest` — mount 14 page + 29 resource list page | ✅ |
+| Sửa sản phẩm: biến thể, Size & Dáng, media picker | `ProductAdminPagesTest`, `MediaPickerTest` | ✅ |
+| Storefront: giỏ → checkout → đơn → mail → invoice PDF | `OrderShippingLineTest` (4 test) đặt đơn COD thật qua endpoint thật, rồi render PDF + mail | ✅ |
+| Trang storefront công khai | Quét 11 route GET tĩnh qua HTTP | ✅ toàn 200 |
+| Khuyến mãi trên giỏ thật | 5 file test sẵn có (`PromotionTest`, `PromotionAdvancedTest`, `CartTest`…) | ✅ |
+| Đăng nhập MFA bằng secret cũ | `StaffTwoFactorReencryptionTest` (7 test) | ✅ sau khi có migration §15 |
+| `composer test` so baseline | 528 passed (baseline trước nâng cấp: 506) | ✅ |
+
+Hai phát hiện nhờ smoke test, đều **không phải lỗi**, ghi lại để lần sau không mất
+công đào lại:
+
+- `ListProducts` fail khi không có currency mặc định — lỗi fixture, không phải
+  wiring. `AdminPagesSmokeTest` nay seed dữ liệu nền trước.
+- `CollectionResource` index trả 404: `Lunar\Admin\...\ListCollections::mount()`
+  **cố ý** `abort(404)` — collection duyệt qua collection group, không có trang
+  index phẳng. Đã khai báo tường minh trong test thay vì nuốt mọi 404.
+
+**Còn lại phải bấm tay trên staging** (không tự động hoá được, hoặc không nên):
+
+- Thanh toán thật qua VNPay/MoMo sandbox — test chỉ dùng gateway giả.
+- Đặt lại `deferFilters` nếu không thích mặc định mới của v4 (xem §13.6).
+- Đo thời gian migration trên bản copy dữ liệu production.

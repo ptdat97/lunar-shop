@@ -17,9 +17,11 @@ use Illuminate\Support\Facades\DB;
  *   new  cast 'encrypted'  → decrypt($v, false) → Laravel payload WITHOUT serialize
  *
  * So Filament reads a legacy secret back as the literal string
- * `s:16:"JBSWY3DPEHPK3PXP";` instead of `JBSWY3DPEHPK3PXP`. The TOTP codes then
- * never match and every staff member who had 2FA enabled is locked out of the
- * admin panel. Recovery codes break the same way: the old package stored
+ * `s:16:"JBSWY3DPEHPK3PXP";` instead of `JBSWY3DPEHPK3PXP`, and every staff
+ * member who had 2FA enabled is locked out of the admin panel. It does not even
+ * fail politely: that wrapper is not valid base32, Google2FA throws
+ * InvalidCharactersException, and AppAuthentication::verifyCode() does not catch
+ * it — so the MFA challenge 500s instead of saying the code is wrong. Recovery codes break the same way: the old package stored
  * encrypt(json_encode([...])) while the new cast is 'encrypted:array', so
  * json_decode() lands on the serialized wrapper and yields null.
  *
