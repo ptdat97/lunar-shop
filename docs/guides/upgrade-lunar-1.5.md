@@ -69,12 +69,14 @@ không có chỗ nào tham chiếu trực tiếp. Chỉ cần bump version, khô
 ## 3. Fase 0 — Chuẩn bị & chốt baseline
 
 ```bash
-# 1. Nhánh riêng
-git checkout -b upgrade/lunar-1.5
+# 1. Ghi lại mốc quay lui (dự án làm thẳng trên main, không dùng feature branch)
+git log --oneline -1        # ghi hash này lại — §12 Rollback cần nó
 
-# 2. Backup DB (BẮT BUỘC — xem §11 Rollback)
-mysqldump -h127.0.0.1 -uroot lunar > ../backup-pre-lunar-1.5.sql
-ls -lh ../backup-pre-lunar-1.5.sql    # xác nhận file không rỗng
+# 2. Backup DB (BẮT BUỘC — đây là thứ thay thế vai trò của branch, xem §12)
+mysqldump -h127.0.0.1 -uroot --single-transaction --routines --triggers lunar \
+  > ../backup-pre-lunar-1.5.sql
+ls -lh ../backup-pre-lunar-1.5.sql            # xác nhận file không rỗng
+grep -c 'CREATE TABLE' ../backup-pre-lunar-1.5.sql   # phải ra 104
 ```
 
 > ⚠️ **Sửa `.env` trước khi làm gì khác.** `DB_DATABASE=lunarshop` nhưng database
@@ -91,9 +93,14 @@ composer test 2>&1 | tee ../baseline-tests.txt
 tail -5 ../baseline-tests.txt
 ```
 
+> ⚠️ **Nếu test đỏ hàng loạt với `SQLSTATE[HY000] [2002] Connection refused`:**
+> đó là mysqld chết giữa chừng (DBngin), **không phải lỗi code**. Kiểm chứng:
+> `mysql -h127.0.0.1 -uroot -e "SHOW STATUS LIKE 'Uptime'"` — uptime nhỏ hơn thời
+> gian chạy test nghĩa là server vừa restart. Chạy lại, đừng đi sửa test.
+
 **Checklist ra khỏi Fase 0**
 
-- [ ] Nhánh `upgrade/lunar-1.5` tạo từ `main` sạch
+- [ ] Tree sạch, đã ghi lại hash commit làm mốc quay lui
 - [ ] Dump DB nằm **ngoài** repo, dung lượng hợp lý
 - [ ] `.env` trỏ đúng DB `lunar`
 - [ ] Baseline test đã lưu file, biết chính xác bao nhiêu test xanh/đỏ
@@ -475,14 +482,19 @@ Migration của 1.5 **sửa cấu trúc** — đổi tên cột, bỏ cột `two
 `json` → `jsonb`. `migrate:rollback` không khôi phục được dữ liệu đã mất, và
 `git revert` một mình thì để lại DB ở schema 1.5 mà code 1.3 không đọc được.
 
-Đường lui thực tế là **cả hai cùng lúc**:
+Dự án làm thẳng trên `main` nên không có branch để bỏ đi — đường lui là **reset
+code về mốc đã ghi ở Fase 0, cộng restore DB**, làm cả hai cùng lúc:
 
 ```bash
-git checkout main
+git reset --hard <hash ghi ở Fase 0>    # mốc trước khi bắt đầu: 4cb1f13
 composer install
 mysql -h127.0.0.1 -uroot lunar < ../backup-pre-lunar-1.5.sql
 php artisan optimize:clear
 ```
+
+> ⚠️ Nếu đã `git push` các commit của đợt nâng cấp thì `reset --hard` phải kèm
+> `git push --force-with-lease`. Vì vậy **commit từng fase một** và chỉ push khi
+> fase đó đã qua gate — đừng push code ở giữa cửa sổ app chết.
 
 Vì vậy dump ở Fase 0 là **bắt buộc**, và production chỉ đụng vào sau khi toàn bộ
 lộ trình đã chạy trọn một lần trên staging với bản copy dữ liệu thật.
