@@ -2,7 +2,8 @@
 
 > Quy trình đưa **Laravel 12 + LunarPHP** lên production và vận hành. Đọc kèm
 > [../architecture/overview.md](../architecture/overview.md).
-> Cập nhật lần cuối: **2026-07-08**.
+> Cập nhật lần cuối: **2026-08-27** (sửa §3: Lunar là composer package, bản fork
+> trong repo đã gỡ từ 2026-07-20).
 
 ---
 
@@ -67,10 +68,11 @@ SESSION_DOMAIN=your-domain.com
 
 ```bash
 # 1. Code + dependencies
-git pull --ff-only                 # kéo cả Lunar: modules/Lunar + modules/LunarAdmin
-                                   # (fork trong repo, không còn tải qua composer)
+git pull --ff-only
 composer install --no-dev --prefer-dist --optimize-autoloader
-                                   # vẫn bắt buộc: dựng lại autoload PSR-4 trỏ vào modules/Lunar
+                                   # kéo lunarphp/lunar về vendor/, áp patches/ qua
+                                   # cweagans/composer-patches, và dựng lại autoload
+                                   # PSR-4 cho 13 module (wikimedia/composer-merge-plugin)
 npm ci && npm run build            # hoặc build ở CI, rsync public/build
 
 # 2. Maintenance window (trang 503 branded đã có)
@@ -258,6 +260,8 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
   sẽ **fail rõ ràng**, không im lặng. Xử lý: kiểm tra fix đã được upstream nhận
   chưa, nếu rồi thì gỡ patch; nếu chưa thì rebase patch theo source mới.
   Xem [../architecture/overview.md](../architecture/overview.md).
+  ⚠️ **Nâng minor Lunar không phải việc thường lệ.** Bản 1.5 kéo theo Filament v4
+  và sửa cấu trúc DB — có runbook riêng: [upgrade-lunar-1.5.md](upgrade-lunar-1.5.md).
 
 ## 9. Chưa làm (chấp nhận được ở quy mô SME, làm khi cần)
 
