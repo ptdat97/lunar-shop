@@ -7,8 +7,9 @@
 > + [Filament v4 upgrade guide](https://filamentphp.com/docs/4.x/upgrade-guide).
 > Soạn: **2026-08-26**, đối chiếu code tại commit `a4f619b`.
 
-> **TRẠNG THÁI: đã thực thi xong Fase 0–5 ngày 2026-08-27.** Lunar 1.5.0 +
-> Filament v4.12.6 đang chạy trên `main`, 511 test xanh. Phần dưới giữ nguyên
+> **TRẠNG THÁI: ĐÃ ĐÓNG — 2026-08-27.** Lunar 1.5.0 + Filament v4.12.6 chạy trên
+> `main`, **532 test xanh** (baseline trước nâng cấp: 506). Nghiệm thu cuối ở
+> [§18](#18-nghiệm-thu-cuối). Phần dưới giữ nguyên
 > dạng runbook; mục [§13 Nhật ký thực thi](#13-nhật-ký-thực-thi) ghi lại những
 > gì lệch so với dự kiến — đọc mục đó trước nếu phải làm lại trên môi trường khác.
 
@@ -741,7 +742,7 @@ không lặp lại được ở lần nâng Filament sau.
 | Trang storefront công khai | Quét 11 route GET tĩnh qua HTTP | ✅ toàn 200 |
 | Khuyến mãi trên giỏ thật | 5 file test sẵn có (`PromotionTest`, `PromotionAdvancedTest`, `CartTest`…) | ✅ |
 | Đăng nhập MFA bằng secret cũ | `StaffTwoFactorReencryptionTest` (7 test) | ✅ sau khi có migration §15 |
-| `composer test` so baseline | 531 passed (baseline trước nâng cấp: 506) | ✅ |
+| `composer test` so baseline | 532 passed (baseline trước nâng cấp: 506) | ✅ |
 
 Hai phát hiện nhờ smoke test, đều **không phải lỗi**, ghi lại để lần sau không mất
 công đào lại:
@@ -860,3 +861,56 @@ Nhóm `getAlpineComponents()` chính là các file nạp qua `x-load-src` — n�
 
 > **Bài học:** khi viết test cho một sự cố, luôn mutation-check nó. Test xanh
 > không chứng minh nó canh được gì.
+
+---
+
+## 18. Nghiệm thu cuối
+
+Chạy lại từ trạng thái cache sạch, 2026-08-27. Phạm vi đợt nâng cấp:
+`4cb1f13..HEAD` — **17 commit, 96 file, +5108 / −3182**.
+
+| Kiểm | Kết quả |
+|---|---|
+| `lunarphp/core` · `lunarphp/lunar` | 1.5.0 |
+| `lunarphp/nestedset` | 1.0.0 |
+| `filament/filament` | v4.12.6 |
+| `livewire/livewire` · `laravel/framework` | v3.8.6 · v12.68.0 |
+| `kalnoy/nestedset` · `lunarphp/filament3-2fa` | đã gỡ khỏi lock |
+| `composer validate` | valid |
+| `composer audit` | **0 advisory** (trước nâng cấp: 14) |
+| `migrate:status` | 0 migration đang chờ |
+| PHP runtime vs constraint | 8.4.23 vs `^8.3` |
+| `npm run build` | tất định — hash không đổi khi build lại |
+| `filament:assets` chạy lại | không sinh drift trong `public/js`, `public/css` |
+| Pint trên 44 file PHP đã đụng | đạt chuẩn |
+| Sót API v3 (`Forms\Form`, `Tables\Actions`, `Forms\Get`, `Forms\Components\Section`, `Kalnoy`, `ComponentContainer`) | 0 file |
+| Storefront | 11/11 route → 200 |
+| Asset admin v4 qua HTTP | 7/7 → 200; `select.js` phục vụ đúng bản v4 |
+| `composer test` | **532 passed** (2165 assertions) |
+| Git | tree sạch, `main` đồng bộ `origin/main` |
+
+DB sau migration: `lunar_staff` chỉ còn `app_authentication_*` (không còn
+`two_factor_*`), `lunar_order_lines.purchasable_type|_id` đã nullable, cây
+nested set của collection nguyên vẹn.
+
+### 29 test đợt nâng cấp để lại
+
+Không phải để đạt con số, mà vì mỗi cái tương ứng một thứ đã thật sự vỡ — hoặc
+suýt vỡ — trong đợt này:
+
+| Test | Canh cái gì |
+|---|---|
+| `CartVariantStatusGuardTest` (7) | Guard `isPurchasable()` + `CartLineAvailability`, gồm ca đi vòng qua `CartService` |
+| `StaffTwoFactorReencryptionTest` (7) | Secret 2FA đọc được và mã TOTP thật xác thực được sau migration §15 |
+| `AdminPanelWiringTest` (5) | Hoán đổi Resource, cluster `Taxes`, 4 nhóm điều hướng dịch được |
+| `FilamentAssetsPublishedTest` (4) | Asset publish **tồn tại và tươi**, cả 30 asset gồm nhóm Alpine component |
+| `OrderShippingLineTest` (4) | Morph nullable của dòng shipping, xuyên tới PDF và mail |
+| `AdminPagesSmokeTest` (2) | 14 page + 29 resource list page render được |
+
+### Còn lại — không thuộc đợt nâng cấp
+
+- Thanh toán thật qua VNPay/MoMo sandbox (test chỉ dùng gateway giả).
+- Đo thời gian migration trên bản copy dữ liệu production trước khi chốt
+  maintenance window — con số ~110ms ở đây là DB dev 5MB.
+- Cân nhắc gửi ngược lên upstream: bug khoá staff ở §15 và fix locale fallback
+  trong `HasTranslations` (patch `cweagans` vẫn đang phải giữ).
