@@ -272,8 +272,9 @@ Chú ý:
 
 Đây là nhóm nguy hiểm nhất vì test có thể vẫn xanh.
 
-- [ ] **Bộ lọc bảng giờ deferred mặc định** — người dùng phải bấm "Apply". Muốn
-      giữ như cũ: `->deferFilters(false)`.
+- [x] **Bộ lọc bảng giờ deferred mặc định** — người dùng phải bấm "Apply".
+      **Đã quyết: giữ mặc định v4** (2026-08-27), không gọi `->deferFilters(false)`
+      ở đâu cả. Xem [§13.6](#136-quyết-định-đã-chốt).
 - [ ] **`Section`/`Grid`/`Fieldset` không còn full-width** — thêm
       `->columnSpanFull()`. Nguồn "layout bỗng dưng vỡ" phổ biến nhất, ảnh hưởng
       **31 chỗ** dùng `Section`.
@@ -581,11 +582,30 @@ build cache (chạy trong console) nó là `false` → swap chạy → cache ghi
 **Quy tắc rút ra:** bất cứ thứ gì đụng vào nội bộ `Panel` đều phải hỏi
 `hasCachedComponents()` trước.
 
-### 13.6 Còn lại — chưa làm
+### 13.6 Quyết định đã chốt
 
-- **Bộ lọc bảng giờ deferred** (8 bảng có `->filters()`): người dùng phải bấm
-  "Apply" thì lọc mới chạy. Đây là mặc định mới của v4, đã cố ý giữ. Muốn trả về
-  cảm giác cũ thì thêm `->deferFilters(false)` vào từng bảng.
+**Bộ lọc bảng: giữ mặc định deferred của v4** (2026-08-27).
+
+Ở v3 mỗi lần đổi filter là một round-trip; v4 gom lại sau nút "Apply". Ảnh hưởng
+8 bảng có `->filters()`:
+
+```
+modules/Catalog/app/Filament/Resources/SizeChartResource.php
+modules/Content/app/Filament/Resources/BannerResource.php
+modules/Content/app/Filament/Resources/LookbookResource.php
+modules/Content/app/Filament/Resources/PageResource.php
+modules/Content/app/Filament/Resources/RedirectResource.php
+modules/Inventory/app/Filament/Pages/StockNotificationsPage.php
+modules/Inventory/app/Filament/Pages/StockOverview.php
+modules/Order/app/Filament/Resources/ReturnRequestResource.php
+```
+
+Không có `->deferFilters()` ở bất kỳ đâu trong `modules/`, `app/` hay `config/` —
+tức đang chạy đúng mặc định upstream, không phải quên. Nếu về sau muốn đảo lại,
+đặt `->deferFilters(false)` trên từng `Table`; đừng sửa vendor.
+
+### 13.7 Còn lại — chưa làm
+
 - **Nghiệm thu tay Fase 6** — phần lớn đã tự động hoá, xem [§16](#16-fase-6-đã-nghiệm-thu-tới-đâu). Còn lại là bấm tay trên staging.
 - **Rollout production**: chạy trọn lộ trình trên staging với bản copy dữ liệu
   thật trước. Đo thời gian migration ở đó, đừng lấy con số ~110ms của DB dev.
@@ -735,5 +755,4 @@ công đào lại:
 **Còn lại phải bấm tay trên staging** (không tự động hoá được, hoặc không nên):
 
 - Thanh toán thật qua VNPay/MoMo sandbox — test chỉ dùng gateway giả.
-- Đặt lại `deferFilters` nếu không thích mặc định mới của v4 (xem §13.6).
 - Đo thời gian migration trên bản copy dữ liệu production.
