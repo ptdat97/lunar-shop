@@ -590,3 +590,80 @@ build cache (chạy trong console) nó là `false` → swap chạy → cache ghi
   thật và đặt một đơn hàng thật xuyên storefront.
 - **Rollout production**: chạy trọn lộ trình trên staging với bản copy dữ liệu
   thật trước. Đo thời gian migration ở đó, đừng lấy con số ~110ms của DB dev.
+
+---
+
+## 14. Đã khai thác được gì từ 1.5
+
+> Đặt kỳ vọng đúng: **1.5 là bản sửa lỗi, không phải bản tính năng.** Changelog
+> ~35 PR thì gần như toàn bộ là fix. Phần lớn cái tốt của 1.5 tự đến khi nâng
+> phiên bản (memo hoá discount, tax zone scope theo quốc gia, thứ tự quan hệ tất
+> định, indexer nhẹ hơn). Danh sách dưới là những thứ **phải chủ động bật**.
+
+### 14.1 Config đã publish bị đóng băng — nguồn bỏ sót lớn nhất
+
+Config publish ra `config/` không tự cập nhật khi nâng package, nên tính năng mới
+thêm vào config mặc định sẽ **âm thầm không có**. Cách soát:
+
+```bash
+for f in config/lunar/*.php; do
+  b=$(basename "$f"); v="vendor/lunarphp/core/config/$b"
+  [ -f "$v" ] || v="vendor/lunarphp/lunar/config/$b"
+  [ -f "$v" ] && { echo "### $b"; diff "$f" "$v"; }
+done
+```
+
+Đối chiếu cả 14 config: **chỉ `cart.php` lệch về chức năng**, phần còn lại chỉ
+khác kiểu import / typo trong comment. Hai thứ đã bật:
+
+| Thêm vào | Việc nó làm |
+|---|---|
+| `CartLineAvailability` (validator `add_to_cart` + `update_cart_line`) | Hàng rào cuối ở tầng Lunar. Gọi `isPurchasable()` với purchasable không phải ProductVariant, và kiểm channel + pivot `purchasable` của customer group với ProductVariant |
+| `CalculateShippingSubTotal` (pipeline, ngay sau `ApplyShipping`) | Tổng hợp `shippingBreakdown` thành `$cart->shippingSubTotal` |
+
+### 14.2 Lỗ hổng thật đã bịt nhờ `isPurchasable()`
+
+`CartService::guardStatus` trước đây chỉ đọc `status` của **chính SKU**, nên một
+SKU có product cha **đã gỡ xuất bản hoặc xoá mềm vẫn vào giỏ được**. Nay nó uỷ
+quyền cho `ProductSku::isPurchasable()` — cùng hàm mà `CartLineAvailability` gọi,
+nên guard của storefront và validator của Lunar không thể bất đồng.
+
+Vì sao vẫn cần cả hai: `CartService` cho khách 422 có thông điệp; validator của
+Lunar ném `CartException` → 500, nhưng nó phủ những đường `CartService` không
+đứng chắn (draft order trong admin, code gọi thẳng `$cart->add()`).
+
+### 14.3 Skill agent chính chủ
+
+1.5 bắt đầu ship `vendor/lunarphp/core/resources/boost/skills/lunar/SKILL.md`
+(PR 2491) — 83 dòng cô đọng về giá là số nguyên, type hint contract thay vì
+model, morph key, `attribute_data`, memo hoá discount… Đã sao nguyên văn vào
+`.claude/skills/lunar/`. **Mỗi lần nâng Lunar nhớ copy lại từ vendor.**
+
+Skill cũng chỉ ra MCP docs server, đáng thêm nếu làm Lunar thường xuyên:
+
+```bash
+claude mcp add lunar-docs --transport http https://docs.lunarphp.com/mcp
+```
+
+### 14.4 Soát theo cảnh báo trong skill
+
+| Cảnh báo | Kết quả trên dự án |
+|---|---|
+| Scout cần `soft_delete => true` | **Đang `false` → đã sửa.** Chưa lộ vì `SCOUT_DRIVER=collection` truy vấn thẳng Eloquent nên scope soft-delete tự áp; sẽ cắn khi đổi sang Meilisearch/Algolia |
+| Gọi `Discounts::resetDiscounts()` sau khi đổi coupon | **Không cần.** PR 2623 của 1.5 đưa `coupon_code` vào cache key của discount, nên đổi coupon tự invalidate memo |
+| Chống trôi giỏ bằng `fingerprint()` trước khi capture | **Đã có cách khác.** `CheckoutService::doPlaceOrder` re-đọc giỏ *trong* cache lock rồi `calculate()` lại, nên đơn luôn mang tổng tươi. Xem §14.5 |
+
+### 14.5 Cân nhắc, chưa làm
+
+- **`fingerprint()` / `checkFingerprint()`.** Lock + recalculate hiện tại đảm bảo
+  khách bị tính đúng tổng **tại thời điểm đặt**, nhưng không phát hiện được
+  trường hợp tổng đã đổi giữa lúc khách *nhìn* trang checkout và lúc bấm đặt
+  (giá đổi, khuyến mãi hết hạn). Đây là câu chuyện *đồng thuận của khách*, không
+  phải lỗi tính toán — và nó đụng luồng thanh toán, nên để lại thành quyết định
+  riêng.
+- **`ProductVariantInventoryUpdated`** (PR 2606): không áp dụng. Event này bắn cho
+  `Lunar\Models\ProductVariant`, còn tồn kho ở đây nằm trên `ProductSku` của dự án.
+- **Digital line trong PDF hoá đơn** (PR 2599): không áp dụng — hoá đơn do
+  `Modules\Order\Services\InvoiceService` tự dựng bằng dompdf, không dùng của Lunar.
+- **`shipping:manage`, min/max weight, `ShippingDiscount`**: add-on Table Rate
+  Shipping không cài.
