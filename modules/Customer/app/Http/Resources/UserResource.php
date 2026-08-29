@@ -2,6 +2,7 @@
 
 namespace Modules\Customer\Http\Resources;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -9,7 +10,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * Stable JSON contract for the authenticated user. Shared by auth + account
  * endpoints so every client sees the same shape.
  *
- * @mixin \App\Models\User
+ * @mixin User
  */
 class UserResource extends JsonResource
 {

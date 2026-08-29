@@ -25,6 +25,6 @@ class CoreServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // The shared app_settings table lives with the Core infrastructure.
-        $this->loadMigrationsFrom(__DIR__ . '/../../database/migrations');
+        $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
     }
 }

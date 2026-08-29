@@ -5,8 +5,8 @@ namespace Modules\Customer\Http\Controllers\Api\V1;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Modules\Customer\Services\WishlistService;
 use Modules\Catalog\Http\Resources\ProductResource;
+use Modules\Customer\Services\WishlistService;
 
 class WishlistController extends Controller
 {

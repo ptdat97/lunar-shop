@@ -19,7 +19,7 @@ class VnLocationSeeder extends Seeder
             return;
         }
 
-        $data = require __DIR__ . '/../data/vn-locations.php';
+        $data = require __DIR__.'/../data/vn-locations.php';
         $now = now();
 
         DB::transaction(function () use ($data, $now) {

@@ -2,18 +2,19 @@
 
 namespace Modules\Assets\Jobs;
 
-use Modules\Core\Support\Queues;
 use Illuminate\Bus\Batchable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Config;
 use Modules\Assets\Services\ConversionGenerator;
+use Modules\Assets\Services\MediaRegenerator;
+use Modules\Core\Support\Queues;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * Regenerates conversions for a chunk of media items. Dispatched in a batch by
- * {@see \Modules\Assets\Services\MediaRegenerator} so a large library is rebuilt
+ * {@see MediaRegenerator} so a large library is rebuilt
  * across many small queued jobs (progress is tracked by the batch) instead of
  * one giant synchronous request that would time out / run out of memory.
  *

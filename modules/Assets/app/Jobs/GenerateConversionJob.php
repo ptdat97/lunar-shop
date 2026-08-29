@@ -2,10 +2,10 @@
 
 namespace Modules\Assets\Jobs;
 
-use Modules\Core\Support\Queues;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Modules\Assets\Services\ConversionGenerator;
+use Modules\Core\Support\Queues;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**

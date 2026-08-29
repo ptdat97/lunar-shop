@@ -16,6 +16,7 @@ use Modules\Notification\Drivers\HttpSmsSender;
 use Modules\Notification\Filament\Pages\NotificationSettingsPage;
 use Modules\Notification\Services\OrderSmsNotifier;
 use Modules\Notification\Support\MailSettings;
+use Modules\Notification\Support\PushSettings;
 use Modules\Notification\Support\SmsSettings;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
@@ -363,7 +364,7 @@ class NotificationChannelSettingsTest extends TestCase
             ]])
             ->call('save');
 
-        $this->assertTrue(\Modules\Notification\Support\PushSettings::enabled());
+        $this->assertTrue(PushSettings::enabled());
     }
 }
 

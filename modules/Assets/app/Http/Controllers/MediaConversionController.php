@@ -2,6 +2,7 @@
 
 namespace Modules\Assets\Http\Controllers;
 
+use Illuminate\Filesystem\FilesystemAdapter;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
@@ -49,7 +50,7 @@ class MediaConversionController extends Controller
             return redirect($media->getUrl());
         }
 
-        /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+        /** @var FilesystemAdapter $disk */
         $disk = Storage::disk($media->conversions_disk);
 
         // Far-future caching: after this one dynamic hit the file exists, so

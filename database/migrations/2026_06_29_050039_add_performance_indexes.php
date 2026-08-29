@@ -37,7 +37,7 @@ return new class extends Migration
         // lunar_product_variants: composite for variant lookups by product
         // Already has product_id index, but add (product_id, id) for joins
         $tableName = 'lunar_product_variants';
-        if (!Schema::hasIndex($tableName, 'lunar_product_variants_product_id_id_index')) {
+        if (! Schema::hasIndex($tableName, 'lunar_product_variants_product_id_id_index')) {
             Schema::table($tableName, function (Blueprint $table) {
                 $table->index(['product_id', 'id'], 'lunar_product_variants_product_id_id_index');
             });

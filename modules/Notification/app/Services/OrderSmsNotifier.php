@@ -7,6 +7,7 @@ use Lunar\Models\Order;
 use Modules\Notification\Contracts\SmsSender;
 use Modules\Notification\Data\SmsMessage;
 use Modules\Notification\Support\SmsSettings;
+use Modules\Order\Services\OrderMailer;
 use Modules\Order\Support\OrderStatus;
 use Modules\Theme\Services\LocaleService;
 
@@ -15,7 +16,7 @@ use Modules\Theme\Services\LocaleService;
  *
  * Reaches guests, which is the point: {@see OrderNotifier} needs a `User` row,
  * so a guest checkout gets nothing from it. The phone number comes off the
- * order's address, exactly the way {@see \Modules\Order\Services\OrderMailer}
+ * order's address, exactly the way {@see OrderMailer}
  * resolves the email.
  *
  * Every message costs the shop money, so sending is opt-in per status rather

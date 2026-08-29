@@ -1,5 +1,9 @@
 <?php
 
+use Modules\Catalog\Strategies\AssociationStrategy;
+use Modules\Catalog\Strategies\CollectionStrategy;
+use Modules\Catalog\Strategies\CoPurchaseStrategy;
+
 return [
     /*
     | Strategy priority order (first = highest). The service runs them in this
@@ -9,9 +13,9 @@ return [
     'strategies' => [
         // Curated (hand-picked) first, then automatic co-purchase history, then
         // the collection-similarity fallback fills any remaining slots.
-        \Modules\Catalog\Strategies\AssociationStrategy::class,
-        \Modules\Catalog\Strategies\CoPurchaseStrategy::class,
-        \Modules\Catalog\Strategies\CollectionStrategy::class,
+        AssociationStrategy::class,
+        CoPurchaseStrategy::class,
+        CollectionStrategy::class,
     ],
 
     // Cache TTL (seconds) for product-page recommendations. Cart is never cached.

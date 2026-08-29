@@ -4,11 +4,12 @@ namespace Modules\Customer\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Lunar\Models\Address;
 
 /**
  * Stable JSON contract for a saved customer address.
  *
- * @mixin \Lunar\Models\Address
+ * @mixin Address
  */
 class AddressResource extends JsonResource
 {

@@ -13,9 +13,7 @@ use Modules\Theme\Services\LocaleService;
  */
 class LocaleController extends Controller
 {
-    public function __construct(protected LocaleService $locales)
-    {
-    }
+    public function __construct(protected LocaleService $locales) {}
 
     public function switch(Request $request, string $locale): RedirectResponse
     {

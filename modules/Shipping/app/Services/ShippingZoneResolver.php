@@ -4,6 +4,7 @@ namespace Modules\Shipping\Services;
 
 use Lunar\Models\Cart;
 use Lunar\Models\Country;
+use Modules\Core\Support\Settings;
 use Modules\Shipping\Models\ShippingZone;
 
 /**
@@ -27,7 +28,7 @@ class ShippingZoneResolver
         }
 
         // Fallback: admin-configurable flat rate + threshold (Settings → config).
-        $settings = app(\Modules\Core\Support\Settings::class);
+        $settings = app(Settings::class);
         $threshold = (int) $settings->get('shipping.free_threshold', 0);
 
         return ($threshold > 0 && $subTotal >= $threshold)

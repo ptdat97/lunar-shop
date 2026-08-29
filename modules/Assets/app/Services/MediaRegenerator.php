@@ -2,11 +2,12 @@
 
 namespace Modules\Assets\Services;
 
-use Modules\Core\Support\Queues;
 use Illuminate\Bus\Batch;
 use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
+use Laravel\Horizon\Contracts\MasterSupervisorRepository;
 use Modules\Assets\Jobs\RegenerateConversionsJob;
+use Modules\Core\Support\Queues;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Throwable;
 
@@ -29,7 +30,7 @@ class MediaRegenerator
      * Queue a batch that regenerates conversions for all media.
      *
      * @param  bool  $onlyMissing  only (re)generate conversions whose file is missing
-     * @return string|null  the batch id, or null when there's no media to process
+     * @return string|null the batch id, or null when there's no media to process
      */
     public function dispatch(bool $onlyMissing = false): ?string
     {
@@ -50,13 +51,13 @@ class MediaRegenerator
             ->allowFailures()
             ->finally(function ($batch) {
                 Cache::forget(self::CURRENT_BATCH_KEY);
-                Cache::forget(self::BATCH_STARTED_KEY . $batch->id);
+                Cache::forget(self::BATCH_STARTED_KEY.$batch->id);
             })
             ->dispatch();
 
         Cache::put(self::CURRENT_BATCH_KEY, $batch->id, now()->addDay());
         // Start time for throughput/ETA (jobs process CHUNK images each).
-        Cache::put(self::BATCH_STARTED_KEY . $batch->id, now()->getTimestamp(), now()->addDay());
+        Cache::put(self::BATCH_STARTED_KEY.$batch->id, now()->getTimestamp(), now()->addDay());
 
         return $batch->id;
     }
@@ -91,7 +92,7 @@ class MediaRegenerator
         // Throughput/ETA from the batch's start time (jobs = CHUNK images each).
         $perMin = null;
         $etaSeconds = null;
-        $startedAt = Cache::get(self::BATCH_STARTED_KEY . $batch->id);
+        $startedAt = Cache::get(self::BATCH_STARTED_KEY.$batch->id);
         $processed = $batch->processedJobs();
 
         if ($startedAt && $processed > 0) {
@@ -130,7 +131,7 @@ class MediaRegenerator
         Cache::forget(self::CURRENT_BATCH_KEY);
 
         if ($batchId) {
-            Cache::forget(self::BATCH_STARTED_KEY . $batchId);
+            Cache::forget(self::BATCH_STARTED_KEY.$batchId);
         }
     }
 
@@ -168,12 +169,12 @@ class MediaRegenerator
      */
     public function workerAvailable(): bool
     {
-        if (! interface_exists(\Laravel\Horizon\Contracts\MasterSupervisorRepository::class)) {
+        if (! interface_exists(MasterSupervisorRepository::class)) {
             return true; // no Horizon → can't tell; don't cry wolf.
         }
 
         try {
-            $masters = app(\Laravel\Horizon\Contracts\MasterSupervisorRepository::class)->all();
+            $masters = app(MasterSupervisorRepository::class)->all();
 
             foreach ($masters as $master) {
                 // A running master reports 'running'/'paused'; anything present

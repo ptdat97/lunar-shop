@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\DB;
 class MediaSettings
 {
     protected const KEY = 'image_sizes';
+
     protected const CACHE_KEY = 'media.image_sizes';
 
     /**
