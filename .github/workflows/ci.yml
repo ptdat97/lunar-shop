@@ -1,0 +1,128 @@
+name: CI
+
+# 544 test trước đây chạy bằng tay — quên một lần là bug lên production
+# (roadmap P0 §2). Chạy trên mọi push và PR vào main.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  # Push liên tiếp lên cùng nhánh: huỷ lượt cũ, chỉ giữ lượt mới nhất.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: PHPUnit
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      mysql:
+        # Test chạy trên MySQL thật, KHÔNG phải SQLite: app dùng JSON function
+        # (JSON_EXTRACT/JSON_UNQUOTE) cho attribute + facet, SQLite không giả lập
+        # được. Xem phpunit.xml.
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: lunar_testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cài PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          # Khớp khối require trong composer.json.
+          extensions: bcmath, curl, exif, fileinfo, iconv, intl, json, openssl, pdo_mysql, simplexml, zip
+          coverage: none
+
+      - name: Lấy đường dẫn cache của composer
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+      - name: Cache dependency
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Dựng .env
+        # PHẢI đứng trước composer install: post-autoload-dump gọi artisan
+        # (package:discover, filament:upgrade) nên app phải boot được.
+        run: cp .env.example .env
+
+      - name: composer install
+        # post-autoload-dump chạy filament:upgrade, tức publish lại asset Filament.
+        # FilamentAssetsPublishedTest đối chiếu bản publish với vendor nên bước này
+        # phải xong trước khi chạy test.
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Sinh APP_KEY
+        run: php artisan key:generate
+
+      - name: Cài Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Build asset storefront
+        # BẮT BUỘC, không phải tuỳ chọn: public/build nằm trong .gitignore nên
+        # bản checkout không có Vite manifest. Thiếu nó, mọi trang Blade dùng
+        # @vite trả 500 — đã đo: 9 test đỏ (product page, checkout, promotions).
+        run: |
+          npm ci
+          npm run build
+
+      - name: Chờ MySQL sẵn sàng
+        run: |
+          for i in $(seq 1 30); do
+            mysqladmin ping -h 127.0.0.1 -P 3306 -u root --silent && exit 0
+            sleep 2
+          done
+          echo "MySQL không lên sau 60s" >&2
+          exit 1
+
+      - name: Chạy test
+        # phpunit.xml đã ghim DB_CONNECTION=mysql và DB_DATABASE=lunar_testing;
+        # ở đây chỉ cần trỏ host/user cho service container.
+        env:
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+        run: php artisan test
+
+  lint:
+    name: Pint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cài PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: composer install
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: pint --test
+        # Bật được vì repo đã format một lượt trong commit riêng (284f098).
+        # Đỏ ở đây nghĩa là có file mới chưa chạy `vendor/bin/pint --dirty`.
+        run: vendor/bin/pint --test
