@@ -3,7 +3,7 @@
 > **Chỉ ghi việc CHƯA làm.** Hiện trạng ở
 > [architecture/overview.md](architecture/overview.md); lịch sử bug đã sửa ở
 > [history/2026-07-platform-audit.md](history/2026-07-platform-audit.md).
-> Xếp theo ROI giảm dần. Cập nhật: **2026-07-23**.
+> Xếp theo ROI giảm dần. Cập nhật: **2026-08-27** (thêm §Rà soát đối thủ — Storify 2.0).
 >
 > **Thứ tự ưu tiên đã đảo lại (2026-07-13).** Trước đây danh sách này mở đầu bằng
 > tính năng chuyển đổi (quick-view, size intelligence, search engine). Rà lại code cho
@@ -179,6 +179,98 @@ dùng thật, không phải "phòng xa".
 ### 12. Omnichannel / POS ⏸ và AI ⏸
 Đã khảo sát rồi **cố ý dừng** — lý do + số liệu đo được ở
 [platform_audit.md § Phần 4](history/2026-07-platform-audit.md#phần-4--việc-đã-khảo-sát-rồi-cố-ý-dừng).
+
+---
+
+## Rà soát đối thủ — Storify 2.0 (đọc changelog 2026-08-27)
+
+Đối chiếu ~300 tính năng Storify công bố (1.0 → 2.0 Beta) với hiện trạng repo.
+**Bỏ qua theo yêu cầu:** POS, Multivendor Marketplace, Digital Products, AI Sales Agent.
+
+**Kết luận đáng mừng: phần storefront gần như đã ngang.** Đã có sẵn và *đừng đề xuất
+lại* — breadcrumb + JSON-LD (`Product`/`Offer`/`Brand`/`ItemList`/`BreadcrumbList`/
+`WebPage`), sitemap, canonical + hreflang, wishlist, hạng thành viên, size guide,
+notify-me hết hàng, review, lookbook, push, giỏ bỏ quên, sổ địa chỉ, infinite scroll,
+**thanh tiến trình free-ship**, **giá vốn + biên lợi nhuận**, timeline đơn, khoá tài
+khoản sau nhiều lần sai mật khẩu, GA + Facebook pixel.
+
+Còn lại **năm** thứ thật sự thiếu, xếp theo ROI:
+
+### 13. Nhận tại cửa hàng — *Shipping* · gỡ thế bí của [P0.5](#p05--vận-chuyển--chờ-hợp-đồng-2026-07-13)
+
+> Storify 1.4 — *Local Pickup Checkout*.
+
+**Đây là năng lực giao hàng DUY NHẤT không cần hợp đồng hãng vận chuyển.** P0.5 đang
+đứng chờ GHN/GHTK, trong khi phần lớn giá trị của nó — khách chọn "nhận tại shop", không
+tốn phí ship, không cần vận đơn, không cần tracking — **không phụ thuộc hãng nào cả**.
+
+- ⬜ Một `ShippingOption` phí 0 bên cạnh `standard` trong `FlatRateShippingModifier`, kèm
+  địa chỉ + giờ mở cửa + hướng dẫn nhận hàng lấy từ Settings (đã có sẵn cơ chế admin).
+- ⬜ Ẩn bước địa chỉ giao khi khách chọn nhận tại shop; đơn vẫn đi qua đúng luồng
+  `OrderStatus` hiện có.
+
+Rẻ, không bị chặn bởi bên thứ ba, và cắt phí ship cho khách nội thành — đòn bẩy chuyển
+đổi rõ ràng hơn mọi thứ còn lại trong danh sách này.
+
+### 14. Dây bảo hiểm cho cron — *Core* · P1 vận hành
+
+> Storify 2.0 — *Background Job Monitoring*: ghi lại mọi lần chạy, báo admin khi job
+> **không chạy** hoặc im lặng bất thường.
+
+[deployment.md §4](guides/deployment.md) đã ghi bằng chữ: `orders:expire-abandoned`
+ngừng chạy thì **tồn kho bị khoá vĩnh viễn**. Nhưng **không có gì phát hiện** việc nó
+ngừng — im lặng trông y hệt "không có đơn nào quá hạn".
+
+- ⬜ Bảng `job_runs` (command, started_at, finished_at, ok) + ghi lại ở `Schedule::…->after()`.
+- ⬜ Cảnh báo khi một command **quá hạn cửa sổ mong đợi** (dead-man's switch), gửi qua
+  kênh Notification đã có.
+
+Vài chục dòng, canh đúng một rủi ro đã tự nhận diện trong tài liệu. **ROI cao nhất trên
+mỗi dòng code** trong cả roadmap này.
+
+### 15. PWA — *Theme* · P2
+
+> Storify 1.0 (*PWA Support*) + 1.4 (*Dedicated App Icon* — tách khỏi favicon; họ từng
+> lỗi "app không bao giờ được mời cài vì manifest trả favicon thay vì app icon").
+
+Hiện **không có** `manifest.json`, không service worker, không app icon. Thị trường VN
+mua sắm gần như thuần mobile — cài được lên màn hình chính là kênh quay lại rẻ nhất,
+không tốn phí quảng cáo.
+
+- ⬜ `manifest.json` + app icon **riêng**, không dùng lại favicon (đúng cái bẫy Storify vá).
+- ⬜ Service worker tối thiểu: offline shell + cache asset đã hash. **Không** cache
+  cart/checkout/account (Storify 1.4 phải vá đúng lỗi này).
+
+### 16. Điều hướng đáy + bộ lọc bottom-sheet trên mobile — *Theme* · P2
+
+> Storify 1.4 — *Mobile Bottom Navigation* (đếm giỏ/wishlist trực tiếp), *Bottom-Sheet
+> Filters*.
+
+Theme chạy Bootstrap 5, đã có sẵn offcanvas — chi phí gần như chỉ là markup + SCSS.
+Hiện bộ lọc trên mobile vẫn là sidebar desktop thu nhỏ.
+
+### 17. Báo cáo nội dung thiếu bản dịch — *Core* · P3
+
+> Storify 2.0 — *Translation Backfill*: 650 khoá qua 17 locale, **chỉ thêm** để không đè
+> bản dịch người viết.
+
+Bổ sung cho [§8](#8-admin-nhập-nội-dung-đa-ngôn-ngữ) — §8 nói đây là *hướng dẫn vận hành*,
+nhưng phần **đo được** thì phải là code: một command/trang admin liệt kê bản ghi có locale
+để trống. Đợt nâng Lunar 1.5 vừa rồi cho thấy locale rỗng **không hề ồn ào** — nó render
+ra nhãn trắng, không ném lỗi (xem [upstream/README.md](upstream/README.md)).
+
+---
+
+### Cố ý KHÔNG lấy
+
+| Của Storify | Vì sao không |
+|---|---|
+| Theme Engine + Visual Block Builder (đầu tàu của 2.0) | Đúng thứ [Nguyên tắc phạm vi](#nguyên-tắc-phạm-vi-nhắc-lại) đã loại: *visual drag-drop editor*. Một shop, một theme — chi phí bảo trì không đổi lấy được gì |
+| Sổ cái kế toán kép, đóng sổ cuối tháng, hoá đơn hoa hồng | Quy mô doanh nghiệp nhiều gian hàng. Repo đã có giá vốn + biên lợi nhuận trên từng dòng đơn — đủ trả lời "lãi bao nhiêu" |
+| Location-Aware Discovery, sắp xếp theo khoảng cách | Địa lý của marketplace: chỉ có nghĩa khi nhiều người bán ở nhiều nơi. Một cửa hàng thì phần dùng được đúng là mục **13** ở trên |
+| So sánh sản phẩm (2.0) | Mạnh với đồ điện tử nhiều thông số; với thời trang khách so sánh bằng **ảnh và size**, mà cả hai đã có ở gallery + size guide |
+| Omnichannel Inbox (1.3.0) | Đã khảo sát rồi cố ý dừng — xem [§12](#12-omnichannel--pos--và-ai-) |
+| Boosting sản phẩm, đăng ký gói người bán, hoa hồng | Chỉ tồn tại khi có nhiều người bán |
 
 ---
 
