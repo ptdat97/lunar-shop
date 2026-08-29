@@ -194,7 +194,7 @@ notify-me hết hàng, review, lookbook, push, giỏ bỏ quên, sổ địa ch�
 **thanh tiến trình free-ship**, **giá vốn + biên lợi nhuận**, timeline đơn, khoá tài
 khoản sau nhiều lần sai mật khẩu, GA + Facebook pixel.
 
-Còn lại **năm** thứ thật sự thiếu, xếp theo ROI:
+Còn lại **bốn** thứ thật sự thiếu, xếp theo ROI:
 
 ### 13. Nhận tại cửa hàng — *Shipping* · gỡ thế bí của [P0.5](#p05--vận-chuyển--chờ-hợp-đồng-2026-07-13)
 
@@ -231,20 +231,7 @@ ngừng — im lặng trông y hệt "không có đơn nào quá hạn".
 **Còn lại:** nếu *cả* scheduler chết thì heartbeat cũng chết — cần một uptime check bên
 ngoài gọi lệnh này (xem [deployment.md §4.1](guides/deployment.md)).
 
-### 15. PWA — *Theme* · P2
-
-> Storify 1.0 (*PWA Support*) + 1.4 (*Dedicated App Icon* — tách khỏi favicon; họ từng
-> lỗi "app không bao giờ được mời cài vì manifest trả favicon thay vì app icon").
-
-Hiện **không có** `manifest.json`, không service worker, không app icon. Thị trường VN
-mua sắm gần như thuần mobile — cài được lên màn hình chính là kênh quay lại rẻ nhất,
-không tốn phí quảng cáo.
-
-- ⬜ `manifest.json` + app icon **riêng**, không dùng lại favicon (đúng cái bẫy Storify vá).
-- ⬜ Service worker tối thiểu: offline shell + cache asset đã hash. **Không** cache
-  cart/checkout/account (Storify 1.4 phải vá đúng lỗi này).
-
-### 16. Điều hướng đáy + bộ lọc bottom-sheet trên mobile — *Theme* · P2
+### 15. Điều hướng đáy + bộ lọc bottom-sheet trên mobile — *Theme* · P2
 
 > Storify 1.4 — *Mobile Bottom Navigation* (đếm giỏ/wishlist trực tiếp), *Bottom-Sheet
 > Filters*.
@@ -252,7 +239,7 @@ không tốn phí quảng cáo.
 Theme chạy Bootstrap 5, đã có sẵn offcanvas — chi phí gần như chỉ là markup + SCSS.
 Hiện bộ lọc trên mobile vẫn là sidebar desktop thu nhỏ.
 
-### 17. Báo cáo nội dung thiếu bản dịch — *Core* · P3
+### 16. Báo cáo nội dung thiếu bản dịch — *Core* · P3
 
 > Storify 2.0 — *Translation Backfill*: 650 khoá qua 17 locale, **chỉ thêm** để không đè
 > bản dịch người viết.
