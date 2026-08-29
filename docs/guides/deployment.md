@@ -161,6 +161,27 @@ sanctum:prune-expired daily / queue:prune-failed weekly /
 >
 > Chạy thử trước khi bật: `php artisan orders:expire-abandoned --dry-run`.
 
+### 4.1 Dây bảo hiểm cho scheduler
+
+Cron ngừng chạy thì **im lặng**, mà im lặng trông y hệt "không có gì để làm" — đó
+chính là lý do cảnh báo ở trên nguy hiểm. Nay mỗi lần scheduled task chạy đều được
+ghi vào bảng `scheduled_runs`, và:
+
+```bash
+php artisan schedule:heartbeat      # exit 0 = mọi task đúng hạn, exit 1 = có task lặng
+```
+
+Ngưỡng đọc từ **chính cron expression của từng task** (quá hạn = lỡ hai lượt liên
+tiếp), nên thêm command mới vào `routes/console.php` là tự được canh — không có
+danh sách ngưỡng nào để trôi khỏi thực tế.
+
+Lệnh này tự chạy mỗi giờ và ghi `Log::error` khi phát hiện task lặng.
+
+> ⚠️ **Giới hạn phải biết:** nếu **cả** scheduler chết thì lệnh này cũng không chạy.
+> Nó chỉ bắt được trường hợp một task lặng trong khi cron vẫn sống. Muốn phủ nốt
+> trường hợp còn lại, cho uptime check bên ngoài (cron riêng, Healthchecks.io,
+> UptimeRobot…) gọi `php artisan schedule:heartbeat` và cảnh báo theo **exit code**.
+
 ## 5. nginx (điểm chính)
 
 ```nginx

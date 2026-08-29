@@ -32,3 +32,15 @@ Schedule::command('queue:prune-failed --hours=168')->weekly();
 Schedule::command('orders:expire-abandoned')
     ->everyTenMinutes()
     ->withoutOverlapping();
+
+// Dây bảo hiểm: báo động khi một scheduled task ngừng chạy hoặc liên tục lỗi.
+// Ngưỡng lấy từ chính cron expression của từng task nên thêm command mới là tự
+// được canh, không phải sửa gì ở đây.
+//
+// Lưu ý giới hạn: nếu CẢ scheduler chết thì lệnh này cũng không chạy, nên nó chỉ
+// bắt được trường hợp một task lặng đi trong khi cron vẫn sống. Muốn phủ nốt
+// trường hợp còn lại thì cần một uptime check bên ngoài gọi
+// `php artisan schedule:heartbeat` và cảnh báo theo exit code (xem deployment.md §4).
+Schedule::command('schedule:heartbeat --quiet-ok')
+    ->hourly()
+    ->withoutOverlapping();

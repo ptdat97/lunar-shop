@@ -221,12 +221,15 @@ Rẻ, không bị chặn bởi bên thứ ba, và cắt phí ship cho khách n�
 ngừng chạy thì **tồn kho bị khoá vĩnh viễn**. Nhưng **không có gì phát hiện** việc nó
 ngừng — im lặng trông y hệt "không có đơn nào quá hạn".
 
-- ⬜ Bảng `job_runs` (command, started_at, finished_at, ok) + ghi lại ở `Schedule::…->after()`.
-- ⬜ Cảnh báo khi một command **quá hạn cửa sổ mong đợi** (dead-man's switch), gửi qua
-  kênh Notification đã có.
+- ✅ Bảng `scheduled_runs` + listener gắn vào **event scheduler của Laravel**
+  (`ScheduledTaskStarting/Finished/Failed`) thay vì `->after()` từng task — thêm command
+  mới là tự được canh.
+- ✅ `php artisan schedule:heartbeat` — quá hạn = lỡ **hai lượt liên tiếp**, ngưỡng đọc từ
+  chính cron expression nên không có danh sách nào để trôi. Chạy mỗi giờ + `Log::error`,
+  exit code 1 để uptime check bên ngoài dùng được.
 
-Vài chục dòng, canh đúng một rủi ro đã tự nhận diện trong tài liệu. **ROI cao nhất trên
-mỗi dòng code** trong cả roadmap này.
+**Còn lại:** nếu *cả* scheduler chết thì heartbeat cũng chết — cần một uptime check bên
+ngoài gọi lệnh này (xem [deployment.md §4.1](guides/deployment.md)).
 
 ### 15. PWA — *Theme* · P2
 
