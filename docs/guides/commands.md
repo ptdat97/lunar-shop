@@ -204,3 +204,28 @@ composer update --ignore-platform-req=ext-pcntl --ignore-platform-req=ext-posix
 | `git stash list` / `git stash drop` | Xem / xóa stash |
 | `git tag v1.0.0` | Tạo tag |
 | `git push origin --tags` | Đẩy tất cả tag lên remote |
+
+---
+
+## E2E (Laravel Dusk)
+
+Một số lỗi chỉ tồn tại trong trình duyệt thật — entangle của Livewire, thứ tự
+khởi tạo Alpine, `x-load` bất đồng bộ. `php artisan test` không thấy được chúng.
+
+```bash
+php artisan dusk                       # cần Chrome + site chạy ở APP_URL
+php artisan dusk --filter=<TestName>
+```
+
+**Không chạy trong CI** (`phpunit.xml` chỉ nạp `tests/Feature`, và runner không có
+trình duyệt) — đây là công cụ chẩn đoán chạy tay khi nghi lỗi phía client.
+
+Chạy trên **APP_URL + database dev**, tức đúng dữ liệu bạn nhìn thấy trong admin.
+Test hiện có chỉ đọc và mở modal; nếu viết test có ghi dữ liệu thì trỏ sang DB
+riêng trước.
+
+> ChromeDriver: `php artisan dusk:chrome-driver --detect`. Bản Dusk hiện tại giải
+> nén sai cấu trúc zip mới của Chrome for Testing (tạo ra thư mục thay vì file
+> `vendor/laravel/dusk/bin/chromedriver-mac-arm64`) — nếu gặp
+> `Could not connect to localhost:9515`, tải binary từ
+> `chrome-for-testing-public` rồi chép tay vào đúng đường dẫn đó.

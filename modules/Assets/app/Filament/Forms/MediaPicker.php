@@ -4,8 +4,6 @@ namespace Modules\Assets\Filament\Forms;
 
 use Filament\Actions\Action;
 use Filament\Forms\Components\Field;
-use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Modules\Assets\Services\MediaLibraryService;
 
 /**
@@ -64,23 +62,47 @@ class MediaPicker
             ->modalHeading(__('admin.media.library'))
             ->modalSubmitActionLabel(__('admin.media.choose'))
             ->modalWidth('5xl')
-            ->mountUsing(function (Set $set, Get $get) use ($multiple) {
-                // Seed the modal with what the field already holds so the
-                // current selection shows as selected in the grid.
-                $set('browser.selected', static::idsOf($get('.'), $multiple));
-                $set('browser.search', null);
-                $set('browser.folder', null);
-                $set('browser.page', 1);
-            })
-            ->schema(fn () => [
+            // Seeded through the browser's OWN default, not mountUsing().
+            //
+            // Two separate traps here, both found by driving a real browser:
+            //
+            // 1. An action registered on a field is mounted against that field's
+            //    PARENT container, so a relative '.' resolves one level too high.
+            //    Inside a repeater the parent is the whole row, so $get('.')
+            //    returned {variants, sku, price, quantity, status, images} and
+            //    idsOf() kept `price` and `quantity` for being numeric. Reading
+            //    through $component sidesteps it.
+            //
+            // 2. MediaBrowser::setUp() declares a default of its own, and it is
+            //    applied AFTER mountUsing — so anything seeded there was wiped and
+            //    the grid opened with nothing selected. Confirming then replaced
+            //    the row's pictures instead of adding to them. Putting the seed in
+            //    the default removes the ordering race instead of racing it.
+            ->schema(fn (MediaPickerField $component) => [
                 MediaBrowser::make('browser')
                     ->libraryType($type)
-                    ->multiple($multiple),
+                    ->multiple($multiple)
+                    ->default([
+                        'selected' => static::idsOf($component->getState(), $multiple),
+                        'search' => null,
+                        'folder' => null,
+                        'page' => 1,
+                    ]),
             ])
-            ->action(function (array $data, Set $set) use ($multiple) {
+            ->action(function (array $data, MediaPickerField $component) use ($multiple) {
                 $ids = array_values(array_filter((array) ($data['browser']['selected'] ?? [])));
 
-                $set('.', $multiple ? $ids : ($ids[0] ?? null));
+                // Write through the component for the same reason. $set('.', …)
+                // replaced the entire repeater ROW with the id list, so the row
+                // lost `sku`, `price`, `status` and the rest. That is what made
+                // the picker look inert — and what produced
+                //
+                //   Livewire Entangle Error: Livewire property
+                //   ['data.skus.<uuid>.status'] cannot be found on component
+                //
+                // since the Select's own state had just been deleted underneath
+                // it. removeAction()/moveAction() below already did it this way.
+                $component->state($multiple ? $ids : ($ids[0] ?? null));
             });
     }
 

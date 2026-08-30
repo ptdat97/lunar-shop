@@ -29,3 +29,5 @@ Thumbs.db
 /storage/media-library/temp/
 /.env
 !.claude/settings.local.json
+# Laravel Dusk: bản .env riêng cho E2E, không commit
+.env.dusk.*

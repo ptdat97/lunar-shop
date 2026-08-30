@@ -33,6 +33,7 @@
         "fakerphp/faker": "^1.23",
         "filament/upgrade": "^4.0",
         "fruitcake/laravel-debugbar": "^4.3",
+        "laravel/dusk": "^8.6",
         "laravel/pail": "^1.2.2",
         "laravel/pint": "^1.24",
         "laravel/sail": "^1.41",
