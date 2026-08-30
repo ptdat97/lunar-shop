@@ -40,7 +40,23 @@
         {{-- Facet sidebar — real GET form so filtering works without JS. --}}
         
         <aside class="col-12 col-lg-3 mb-4">
-            <h6 class="text-uppercase mb-4">{{ __('storefront.search.facet_size') }}</h6>
+            {{-- Bootstrap's RESPONSIVE offcanvas: a bottom sheet on phones, a plain
+                 static sidebar from lg up. No custom JS, and the markup is
+                 identical at both sizes so the no-JS GET form keeps working —
+                 without it the shopper scrolled past every facet before reaching
+                 the first product. --}}
+            <div class="offcanvas-lg offcanvas-bottom shop-filters" tabindex="-1"
+                 id="shopFilters" aria-labelledby="shopFiltersLabel">
+                <div class="offcanvas-header">
+                    <h6 class="offcanvas-title text-uppercase mb-0" id="shopFiltersLabel">
+                        {{ __('storefront.static.apply_filters') }}
+                    </h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas"
+                            data-bs-target="#shopFilters"
+                            aria-label="{{ __('storefront.common.cancel') }}"></button>
+                </div>
+                <div class="offcanvas-body flex-column">
+            <h6 class="text-uppercase mb-4 d-none d-lg-block">{{ __('storefront.search.facet_size') }}</h6>
             <form method="GET" data-facet-form>
                 @if($shopType === 'search' && request('q'))
                     <input type="hidden" name="q" value="{{ request('q') }}">
@@ -106,11 +122,27 @@
                 </div>
                 <noscript><button class="btn btn-dark btn-sm w-100">{{ __('storefront.static.apply_filters') }}</button></noscript>
             </form>
+                    {{-- Phones: close the sheet to see the results the facets just
+                         narrowed. The enhancer already re-queries on change, so
+                         this only dismisses. --}}
+                    <button type="button" class="btn btn-dark w-100 mt-2 d-lg-none"
+                            data-bs-dismiss="offcanvas" data-bs-target="#shopFilters">
+                        {{ __('storefront.static.view_results', ['count' => $total]) }}
+                    </button>
+                </div>
+            </div>
         </aside>
 
         <div class="col-12 col-lg-9">
             {{-- Toolbar --}}
-            <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
+                <button class="btn btn-outline-dark btn-sm d-lg-none flex-shrink-0" type="button"
+                        data-bs-toggle="offcanvas" data-bs-target="#shopFilters"
+                        aria-controls="shopFilters">
+                    <i class="bi bi-sliders" aria-hidden="true"></i>
+                    {{ __('storefront.static.apply_filters') }}
+                    <span class="badge rounded-pill bg-dark ms-1" data-active-facet-count hidden>0</span>
+                </button>
                 <span class="text-muted small"><span data-result-count>{{ $total }}</span> {{ __('storefront.product.no_products') }}</span>
                 <form method="GET" class="d-flex align-items-center gap-2">
                     @if($shopType === 'search' && request('q'))

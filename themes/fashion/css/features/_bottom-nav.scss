@@ -1,0 +1,108 @@
+// Thumb-reachable bottom navigation, phones only (roadmap §15).
+//
+// Fixed to the viewport bottom, so `main` needs matching bottom padding or the
+// last row of content sits underneath it — see the body rule at the end.
+
+.bottom-nav {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 1030; // above content, below Bootstrap's offcanvas backdrop (1040)
+
+    display: flex;
+    align-items: stretch;
+
+    background: #fff;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    // Keeps the bar clear of the iOS home indicator.
+    padding-bottom: env(safe-area-inset-bottom, 0);
+
+    &__item {
+        flex: 1 1 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.15rem;
+
+        // 56px of vertical target: comfortably past the 44px minimum, and the
+        // label stays legible rather than being dropped for space.
+        min-height: 3.5rem;
+        padding: 0.35rem 0.25rem;
+
+        color: #6c757d;
+        text-decoration: none;
+        font-size: 0.6875rem;
+        line-height: 1.1;
+        text-align: center;
+
+        &:hover,
+        &:focus-visible {
+            color: #111;
+        }
+
+        &.is-active {
+            color: #111;
+            font-weight: 600;
+        }
+    }
+
+    &__icon {
+        position: relative;
+        display: inline-flex;
+        font-size: 1.25rem;
+        line-height: 1;
+    }
+
+    &__badge {
+        position: absolute;
+        top: -0.35rem;
+        left: 100%;
+        transform: translateX(-55%);
+
+        min-width: 1.05rem;
+        padding: 0 0.25rem;
+
+        background: #111;
+        color: #fff;
+        border-radius: 999px;
+        font-size: 0.625rem;
+        font-weight: 600;
+        line-height: 1.05rem;
+        text-align: center;
+    }
+
+    &__label {
+        display: block;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
+// The bar is fixed, so reserve its height at the end of the page. Scoped to the
+// same breakpoint that shows it (Bootstrap `lg` = 992px) — on desktop there is
+// no bar and no reason for the gap.
+@media (max-width: 991.98px) {
+    body:has(.bottom-nav) {
+        padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+    }
+}
+
+// Facet sheet on phones (roadmap §15). Bootstrap's responsive offcanvas already
+// handles show/hide; these only size it and keep it clear of the bottom nav.
+@media (max-width: 991.98px) {
+    .shop-filters.offcanvas-bottom {
+        // Tall enough to show several facet groups, short enough that the
+        // results behind stay visible — it should read as a sheet over the page,
+        // not a new page.
+        height: 80vh;
+
+        .offcanvas-body {
+            // The bar is fixed above everything, so the last facet would sit
+            // under it without this.
+            padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+            overflow-y: auto;
+        }
+    }
+}

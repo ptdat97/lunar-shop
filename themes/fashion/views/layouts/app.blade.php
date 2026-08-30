@@ -75,6 +75,10 @@
 
     @include('theme::partials.cart-drawer')
 
+    {{-- Phones only. Deliberately absent from the checkout layout: nothing
+         should tempt a shopper away mid-payment. --}}
+    @include('theme::partials.bottom-nav')
+
     {{-- Vendor JS (public/vendor). Bootstrap is bundled by Vite via app.js. --}}
     <script src="{{ asset('vendor/jquery/jquery-3.7.1.min.js') }}"></script>
     <script src="{{ asset('vendor/swiper/swiper-bundle.min.js') }}"></script>

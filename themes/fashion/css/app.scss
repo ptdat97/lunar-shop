@@ -56,6 +56,7 @@
 @use 'features/shop' as feat-shop;
 @use 'features/wishlist-button' as feat-wishlist-button;
 @use 'features/reviews' as feat-reviews;
+@use 'features/bottom-nav' as feat-bottom-nav;
 
 // Expose tokens as runtime CSS custom properties (keeps the old
 // --fashion-* contract the rest of the theme/JS relies on).

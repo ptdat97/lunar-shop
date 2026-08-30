@@ -245,6 +245,7 @@ return [
     ],
 
     'static' => [
+        'view_results' => 'Xem :count kết quả',
         'home_breadcrumb' => 'Trang chủ',
         'no_image' => 'Không có hình ảnh',
         'loading' => 'Đang tải…',

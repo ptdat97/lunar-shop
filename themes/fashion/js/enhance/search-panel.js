@@ -16,8 +16,10 @@ function escapeHtml(s) {
 
 export default function (root = document) {
     const panel = root.querySelector('[data-search-panel]');
-    const toggle = root.querySelector('[data-search-toggle]');
-    if (!panel || !toggle || panel.dataset.searchInit) return;
+    // All of them: the header carries one and the mobile bottom nav another,
+    // and only one of the two is visible at any breakpoint.
+    const toggles = [...root.querySelectorAll('[data-search-toggle]')];
+    if (!panel || !toggles.length || panel.dataset.searchInit) return;
     panel.dataset.searchInit = '1';
 
     const input = panel.querySelector('[data-search-input]');
@@ -30,14 +32,14 @@ export default function (root = document) {
 
     function open() {
         panel.hidden = false;
-        toggle.setAttribute('aria-expanded', 'true');
+        toggles.forEach((t) => t.setAttribute('aria-expanded', 'true'));
         // Focus after the panel paints so the caret lands correctly.
         requestAnimationFrame(() => input?.focus());
     }
 
     function close() {
         panel.hidden = true;
-        toggle.setAttribute('aria-expanded', 'false');
+        toggles.forEach((t) => t.setAttribute('aria-expanded', 'false'));
         hideList();
     }
 
@@ -74,10 +76,10 @@ export default function (root = document) {
     }
 
     // Toggle open instead of navigating (icon stays a real link for no-JS).
-    toggle.addEventListener('click', (e) => {
+    toggles.forEach((toggle) => toggle.addEventListener('click', (e) => {
         e.preventDefault();
         panel.hidden ? open() : close();
-    });
+    }));
 
     closeBtn?.addEventListener('click', close);
 
@@ -95,6 +97,6 @@ export default function (root = document) {
     });
     document.addEventListener('click', (e) => {
         if (panel.hidden) return;
-        if (!panel.contains(e.target) && !toggle.contains(e.target)) close();
+        if (!panel.contains(e.target) && !toggles.some((t) => t.contains(e.target))) close();
     });
 }

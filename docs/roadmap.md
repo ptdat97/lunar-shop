@@ -194,7 +194,7 @@ notify-me hết hàng, review, lookbook, push, giỏ bỏ quên, sổ địa ch�
 **thanh tiến trình free-ship**, **giá vốn + biên lợi nhuận**, timeline đơn, khoá tài
 khoản sau nhiều lần sai mật khẩu, GA + Facebook pixel.
 
-Còn lại bốn thứ thật sự thiếu, xếp theo ROI — **§13 và §14 đã làm xong**:
+Còn lại bốn thứ thật sự thiếu, xếp theo ROI — **§13, §14 và §15 đã làm xong**:
 
 ### 13. ✅ Nhận tại cửa hàng — *Shipping* · **đã làm 2026-08-30**
 
@@ -244,13 +244,31 @@ ngừng — im lặng trông y hệt "không có đơn nào quá hạn".
 **Còn lại:** nếu *cả* scheduler chết thì heartbeat cũng chết — cần một uptime check bên
 ngoài gọi lệnh này (xem [deployment.md §4.1](guides/deployment.md)).
 
-### 15. Điều hướng đáy + bộ lọc bottom-sheet trên mobile — *Theme* · P2
+### 15. ✅ Điều hướng đáy + bộ lọc bottom-sheet trên mobile — *Theme* · **đã làm 2026-08-30**
 
 > Storify 1.4 — *Mobile Bottom Navigation* (đếm giỏ/wishlist trực tiếp), *Bottom-Sheet
 > Filters*.
 
-Theme chạy Bootstrap 5, đã có sẵn offcanvas — chi phí gần như chỉ là markup + SCSS.
-Hiện bộ lọc trên mobile vẫn là sidebar desktop thu nhỏ.
+- ✅ `partials/bottom-nav.blade.php` — 5 mục (Trang chủ · Tìm · Yêu thích · Giỏ · Tài
+  khoản), badge dùng lại đúng hook `data-cart-count` / `data-wishlist-count` nên đếm
+  sống sẵn, không phải sửa JS. Chỉ có ở `layouts/app`, **cố ý vắng mặt ở layout
+  checkout**: không nên có gì kéo khách đi giữa lúc thanh toán.
+- ✅ Bộ lọc thành bottom sheet bằng **responsive offcanvas** của Bootstrap
+  (`.offcanvas-lg`): sheet dưới `lg`, sidebar tĩnh từ `lg` trở lên. Không viết JS
+  riêng, và markup y hệt ở hai kích thước nên form GET không-JS vẫn chạy.
+- ✅ `shop-filter-count.js` đếm số bộ lọc đang bật lên nút mở sheet — không có nó,
+  khách thấy ít kết quả và tưởng shop hết hàng.
+
+**Không phải thêm nav, mà là DỜI nav.** Header mobile trước đây nhồi 6 điểm chạm
+(hamburger, ngôn ngữ, tìm, yêu thích, tài khoản, giỏ) trong một thanh rộng bằng màn hình
+điện thoại, còn drawer *lặp lại* tài khoản + yêu thích lần nữa ở footer. Nay: nhóm action
+của header thành `d-none d-lg-flex`, drawer bỏ hẳn footer action, header mobile còn đúng
+hamburger + logo.
+
+Bất biến chống trùng lặp **không phải** "mỗi đích đến chỉ một link" — SSR phải render cả
+hai bộ vì desktop cần icon của nó. Bất biến đúng là **ghép cặp breakpoint**: nhóm header
+là desktop-only, bottom nav là mobile-only, nên đúng một cái hiện. `MobileNavigationTest`
+canh chính cặp đó.
 
 ### 16. Báo cáo nội dung thiếu bản dịch — *Core* · P3
 

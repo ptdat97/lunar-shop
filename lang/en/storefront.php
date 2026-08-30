@@ -245,6 +245,7 @@ return [
     ],
 
     'static' => [
+        'view_results' => 'View :count results',
         'home_breadcrumb' => 'Home',
         'no_image' => 'No image',
         'loading' => 'Loading…',

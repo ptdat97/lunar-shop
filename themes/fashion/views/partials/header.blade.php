@@ -29,7 +29,11 @@
                 {!! $menus->render('header') !!}
             </ul>
 
-            <div class="d-flex align-items-center gap-3">
+            {{-- Desktop only. On phones these four (search / wishlist / account /
+                 cart) live in the bottom nav, and the language switcher in the
+                 menu drawer — the header used to carry six tap targets in one
+                 phone-width bar. --}}
+            <div class="d-none d-lg-flex align-items-center gap-3">
                 @include('theme::partials.language-switcher')
                 {{-- Search: a real link with no JS; the enhancer upgrades it to open
                      the search panel (autocomplete) instead of navigating. --}}
@@ -79,20 +83,10 @@
         </nav>
     </div>
 
-    {{-- Pinned footer: account actions stay reachable without scrolling past
-         the whole category tree. --}}
+    {{-- Account and wishlist used to sit here too; they are one thumb-reach away
+         in the bottom nav now, so the drawer is the category tree and nothing
+         else. The language switcher stays: it has no bottom-nav slot. --}}
     <div class="mobile-menu__footer">
-        <div class="mobile-menu__actions">
-            <a href="{{ route('storefront.account') }}" class="mobile-menu__action">
-                <i class="bi bi-person" aria-hidden="true"></i>
-                <span>{{ __('storefront.nav.account') }}</span>
-            </a>
-            <a href="{{ route('storefront.wishlist') }}" class="mobile-menu__action">
-                <i class="bi bi-heart" aria-hidden="true"></i>
-                <span>{{ __('storefront.nav.wishlist') }}</span>
-                <span class="mobile-menu__badge" data-wishlist-count hidden>0</span>
-            </a>
-        </div>
         @include('theme::partials.language-switcher')
     </div>
 </div>
