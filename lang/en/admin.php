@@ -161,6 +161,16 @@ return [
     ],
 
     'shipping_settings' => [
+        'pickup_section' => 'Collect at store',
+        'pickup_section_desc' => 'Offers a zero-cost \'collect at our store\' option at checkout. Needs no carrier contract. Hidden until an address is filled in.',
+        'pickup_enabled' => 'Offer collection at the store',
+        'pickup_enabled_help' => 'Off by default. The option only appears once street and ward are filled in.',
+        'pickup_name' => 'Counter name',
+        'pickup_line_one' => 'Street address',
+        'pickup_city' => 'Ward',
+        'pickup_state' => 'Province / City',
+        'pickup_hours' => 'Opening hours',
+        'pickup_instructions' => 'Collection instructions',
         'title' => 'Shipping Settings',
         'save' => 'Save',
         'saved' => 'Shipping settings saved.',

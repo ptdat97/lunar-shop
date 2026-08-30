@@ -8,6 +8,7 @@ use Modules\Core\Support\AdminPages;
 use Modules\Shipping\Filament\Pages\ShippingSettingsPage;
 use Modules\Shipping\Filament\Resources\ShippingZoneResource;
 use Modules\Shipping\Modifiers\FlatRateShippingModifier;
+use Modules\Shipping\Modifiers\PickupShippingModifier;
 
 class ShippingServiceProvider extends ServiceProvider
 {
@@ -33,7 +34,11 @@ class ShippingServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
         $this->loadRoutesFrom(__DIR__.'/../../routes/api.php');
 
-        $this->app->make(ShippingModifiers::class)
-            ->add(FlatRateShippingModifier::class);
+        // add() returns void, so these are two statements — not a chain.
+        $modifiers = $this->app->make(ShippingModifiers::class);
+        $modifiers->add(FlatRateShippingModifier::class);
+        // Adds itself only when the shop has configured a counter, so an
+        // unconfigured install sees exactly the options it saw before.
+        $modifiers->add(PickupShippingModifier::class);
     }
 }

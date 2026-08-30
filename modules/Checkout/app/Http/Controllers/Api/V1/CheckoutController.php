@@ -28,6 +28,28 @@ class CheckoutController extends Controller
     }
 
     /**
+     * POST /api/v1/checkout/pickup
+     *
+     * The collect-at-counter counterpart of `addresses`: contact details only,
+     * because the destination is the shop. Picks the pickup shipping option in
+     * the same call so the two cannot disagree.
+     */
+    public function pickup(Request $request): CartResource
+    {
+        $contact = $request->validate([
+            'first_name' => ['required', 'string', 'max:255'],
+            'last_name' => ['required', 'string', 'max:255'],
+            'country_id' => ['required', 'integer'],
+            'contact_email' => ['nullable', 'email'],
+            // Not nullable like the delivery form: with no address to go on, the
+            // phone is the only way the counter can reach whoever is collecting.
+            'contact_phone' => ['required', 'string', 'max:32'],
+        ]);
+
+        return new CartResource($this->checkout->setPickup($contact));
+    }
+
+    /**
      * POST /api/v1/checkout/addresses
      */
     public function addresses(Request $request): CartResource

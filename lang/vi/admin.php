@@ -163,6 +163,16 @@ return [
     ],
 
     'shipping_settings' => [
+        'pickup_section' => 'Nhận tại cửa hàng',
+        'pickup_section_desc' => 'Thêm lựa chọn \'nhận tại cửa hàng\' phí 0 ở bước thanh toán. Không cần hợp đồng hãng vận chuyển. Chưa điền địa chỉ thì lựa chọn này không hiện.',
+        'pickup_enabled' => 'Cho phép nhận tại cửa hàng',
+        'pickup_enabled_help' => 'Mặc định tắt. Lựa chọn chỉ hiện khi đã điền địa chỉ và phường/xã.',
+        'pickup_name' => 'Tên quầy',
+        'pickup_line_one' => 'Địa chỉ',
+        'pickup_city' => 'Phường/Xã',
+        'pickup_state' => 'Tỉnh/Thành',
+        'pickup_hours' => 'Giờ mở cửa',
+        'pickup_instructions' => 'Hướng dẫn nhận hàng',
         'title' => 'Cấu hình vận chuyển',
         'save' => 'Lưu',
         'saved' => 'Đã lưu cấu hình vận chuyển.',

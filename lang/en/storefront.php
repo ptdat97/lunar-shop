@@ -165,6 +165,11 @@ return [
     ],
 
     'checkout' => [
+        'pickup_unavailable' => 'Collection at the store is not available.',
+        'pickup_name' => 'Collect at our store',
+        'pickup_hours' => 'Opening hours',
+        'pickup_instructions' => 'How to collect',
+        'pickup_no_delivery' => 'No delivery address needed — you collect this order at our counter.',
         'shipping_address' => 'Shipping address',
         'shipping_method' => 'Shipping method',
         'no_shipping_options' => 'No shipping options available.',

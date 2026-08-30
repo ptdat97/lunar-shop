@@ -49,7 +49,7 @@
             </section>
 
             {{-- Delivery / address --}}
-            <section class="checkout-block">
+            <section class="checkout-block" data-delivery-block>
                 <h2 class="checkout-block__title">{{ __('storefront.checkout.delivery') }}</h2>
                 <div class="row g-3">
                     <div class="col-6">
@@ -129,6 +129,21 @@
                             <span class="checkout-option__label">{{ $opt->name }}</span>
                             <span class="checkout-option__price">{{ $opt->price->formatted() }}</span>
                         </label>
+                        @if($opt->getIdentifier() === 'pickup' && $pickup)
+                            {{-- Shown only while collection is the chosen option; the
+                                 enhancer toggles it. Server-rendered so it is right
+                                 even before JS loads. --}}
+                            <div class="checkout-pickup small text-muted" data-pickup-details @unless($checked) hidden @endunless>
+                                <div><strong>{{ $pickup['name'] }}</strong></div>
+                                <div>{{ $pickup['address'] }}</div>
+                                @if($pickup['hours'])
+                                    <div>{{ __('storefront.checkout.pickup_hours') }}: {{ $pickup['hours'] }}</div>
+                                @endif
+                                @if($pickup['instructions'])
+                                    <div>{{ $pickup['instructions'] }}</div>
+                                @endif
+                            </div>
+                        @endif
                     @empty
                         <div class="text-muted small">{{ __('storefront.checkout.no_shipping_options') }}</div>
                     @endforelse

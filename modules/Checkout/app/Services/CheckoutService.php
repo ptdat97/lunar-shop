@@ -5,12 +5,14 @@ namespace Modules\Checkout\Services;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Validation\ValidationException;
 use Lunar\Facades\Payments;
 use Lunar\Facades\ShippingManifest;
 use Lunar\Models\Cart;
 use Lunar\Models\Order;
 use Modules\Core\Support\Settings;
 use Modules\Customer\Services\CustomerResolver;
+use Modules\Shipping\Services\PickupLocation;
 
 /**
  * Orchestrates checkout over Lunar's engine (addresses → shipping → payment →
@@ -22,6 +24,7 @@ class CheckoutService
         protected CartService $carts,
         protected CustomerResolver $customers,
         protected Settings $settings,
+        protected PickupLocation $pickup,
     ) {}
 
     /** Payment method identifiers built into the app. */
@@ -53,7 +56,11 @@ class CheckoutService
      * method — single source for the SSR form, so controllers/Blade never read
      * Settings themselves (standards §3/§7).
      *
-     * @return array{vnpayEnabled: bool, momoEnabled: bool, defaultPayment: string}
+     * `pickup` is null when the shop offers no counter collection — one thing for
+     * the storefront to check before it decides whether to show the choice and
+     * hide the delivery-address step.
+     *
+     * @return array{vnpayEnabled: bool, momoEnabled: bool, defaultPayment: string, pickup: array<string, string>|null}
      */
     public function paymentContext(): array
     {
@@ -61,6 +68,7 @@ class CheckoutService
             'vnpayEnabled' => filled($this->settings->get('payment.vnpay.tmn_code')),
             'momoEnabled' => filled($this->settings->get('payment.momo.partner_code')),
             'defaultPayment' => (string) $this->settings->get('payment.default', 'cod'),
+            'pickup' => $this->pickup->toArray(),
         ];
     }
 
@@ -121,6 +129,38 @@ class CheckoutService
         }
 
         return $cart;
+    }
+
+    /**
+     * Collect at the counter: the customer gives contact details only.
+     *
+     * Lunar writes a shipping address row on every order, so this cannot simply
+     * skip the address — it fills the destination with the shop's own while
+     * keeping the customer's name and phone, so the counter knows who is coming.
+     * The order then travels the ordinary OrderStatus flow, shipping line and
+     * all, priced at zero.
+     *
+     * Selecting the option is part of the same call on purpose: an order that
+     * carries the store's address but a courier shipping option would quietly
+     * ship to the shop itself.
+     *
+     * @param  array<string, mixed>  $contact
+     *
+     * @throws ValidationException
+     */
+    public function setPickup(array $contact): Cart
+    {
+        if (! $this->pickup->isAvailable()) {
+            throw ValidationException::withMessages([
+                'shipping' => __('storefront.checkout.pickup_unavailable'),
+            ]);
+        }
+
+        $cart = $this->setAddresses($this->pickup->asShippingAddress($contact));
+
+        // setAddresses re-applies whatever option was chosen before; force the
+        // pickup one so the two can never disagree.
+        return $this->setShipping(PickupLocation::IDENTIFIER);
     }
 
     /**

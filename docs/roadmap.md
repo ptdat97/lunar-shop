@@ -194,9 +194,9 @@ notify-me hết hàng, review, lookbook, push, giỏ bỏ quên, sổ địa ch�
 **thanh tiến trình free-ship**, **giá vốn + biên lợi nhuận**, timeline đơn, khoá tài
 khoản sau nhiều lần sai mật khẩu, GA + Facebook pixel.
 
-Còn lại **bốn** thứ thật sự thiếu, xếp theo ROI:
+Còn lại bốn thứ thật sự thiếu, xếp theo ROI — **§13 và §14 đã làm xong**:
 
-### 13. Nhận tại cửa hàng — *Shipping* · gỡ thế bí của [P0.5](#p05--vận-chuyển--chờ-hợp-đồng-2026-07-13)
+### 13. ✅ Nhận tại cửa hàng — *Shipping* · **đã làm 2026-08-30**
 
 > Storify 1.4 — *Local Pickup Checkout*.
 
@@ -204,10 +204,23 @@ Còn lại **bốn** thứ thật sự thiếu, xếp theo ROI:
 đứng chờ GHN/GHTK, trong khi phần lớn giá trị của nó — khách chọn "nhận tại shop", không
 tốn phí ship, không cần vận đơn, không cần tracking — **không phụ thuộc hãng nào cả**.
 
-- ⬜ Một `ShippingOption` phí 0 bên cạnh `standard` trong `FlatRateShippingModifier`, kèm
-  địa chỉ + giờ mở cửa + hướng dẫn nhận hàng lấy từ Settings (đã có sẵn cơ chế admin).
-- ⬜ Ẩn bước địa chỉ giao khi khách chọn nhận tại shop; đơn vẫn đi qua đúng luồng
-  `OrderStatus` hiện có.
+- ✅ `PickupShippingModifier` thêm `ShippingOption` phí 0 bên cạnh `standard`. Tách
+  riêng khỏi `FlatRateShippingModifier`: cái kia luôn chào một lựa chọn, cái này
+  **không chào gì cả** nếu shop chưa cấu hình quầy.
+- ✅ Địa chỉ + giờ mở cửa + hướng dẫn nhận hàng ở **Cấu hình → Vận chuyển**
+  (`PickupLocation::KEYS`, nhóm `shipping`).
+- ✅ Ẩn bước địa chỉ giao: `POST /api/v1/checkout/pickup` chỉ nhận thông tin liên hệ;
+  form SSR bỏ khối giao hàng qua `checkout-pickup.js`.
+
+**Một chỗ roadmap viết chưa đúng, nay đã sửa:** *"ẩn bước địa chỉ"* không làm được đúng
+nghĩa đen — **Lunar bắt buộc phải có địa chỉ giao để tạo đơn**. Cách đã chọn: điền địa
+chỉ *của cửa hàng* vào đơn nhưng giữ tên + số điện thoại của khách, để quầy biết ai tới
+lấy. Số điện thoại vì thế là **bắt buộc** ở luồng này (khác luồng giao hàng, nơi nó
+nullable): không có địa chỉ thì đó là đường liên lạc duy nhất.
+
+Hai lớp guard, vì ẩn field không phải là guard (standards §17.4): `PlaceOrderRequest` chỉ
+bỏ ba rule địa chỉ khi shop **thật sự** đang bật nhận tại quầy, và `setPickup()` từ chối
+lần nữa ở tầng service. Có test cho đúng ca gửi địa chỉ rỗng trong lúc tính năng đang tắt.
 
 Rẻ, không bị chặn bởi bên thứ ba, và cắt phí ship cho khách nội thành — đòn bẩy chuyển
 đổi rõ ràng hơn mọi thứ còn lại trong danh sách này.
@@ -267,7 +280,8 @@ ra nhãn trắng, không ném lỗi (xem [upstream/README.md](upstream/README.md
 ## Cấu hình: cái gì ra admin, cái gì ở lại config
 
 **Đã ra Filament** (đọc qua `Modules\Core\Support\Settings`, DB → fallback config/env): payment keys
-(VNPay/MoMo) + default method · shipping flat-rate + free-threshold · membership tiers ·
+(VNPay/MoMo) + default method · shipping flat-rate + free-threshold · **nhận tại cửa hàng**
+(bật/tắt + địa chỉ + giờ mở cửa + hướng dẫn) · membership tiers ·
 recommendations (limit/TTL) · review auto-approve · media on-demand mode · low-stock threshold ·
 **thời gian giữ hàng đơn chưa trả** (`inventory.hold_minutes`) · **bật/tắt push**
 (`notification.push_enabled`) · **TTL đăng nhập app** (`customer.ttl_days`).

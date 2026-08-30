@@ -22,6 +22,7 @@ Route::prefix('api/v1')->middleware('storefront')->group(function (): void {
     // Checkout
     Route::get('checkout/shipping-options', [CheckoutController::class, 'shippingOptions'])->name('api.v1.checkout.shipping-options');
     Route::post('checkout/addresses', [CheckoutController::class, 'addresses'])->name('api.v1.checkout.addresses');
+    Route::post('checkout/pickup', [CheckoutController::class, 'pickup'])->name('api.v1.checkout.pickup');
     Route::post('checkout/shipping', [CheckoutController::class, 'shipping'])->name('api.v1.checkout.shipping');
     Route::post('checkout', [CheckoutController::class, 'place'])->name('api.v1.checkout.place');
 });

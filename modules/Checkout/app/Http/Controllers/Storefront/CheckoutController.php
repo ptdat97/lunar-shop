@@ -78,8 +78,14 @@ class CheckoutController extends Controller
         }
 
         try {
-            $this->checkout->setAddresses($request->addressData());
-            $this->checkout->setShipping($data['shipping_option']);
+            if ($request->isCollecting()) {
+                // Fills the destination with the shop's own and selects the
+                // pickup option in one go; refuses if collection is not offered.
+                $this->checkout->setPickup($request->addressData());
+            } else {
+                $this->checkout->setAddresses($request->addressData());
+                $this->checkout->setShipping($data['shipping_option']);
+            }
             $order = $this->checkout->placeOrder($data['payment_type']);
         } catch (ValidationException $e) {
             throw $e;

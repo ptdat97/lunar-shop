@@ -165,6 +165,11 @@ return [
     ],
 
     'checkout' => [
+        'pickup_unavailable' => 'Cửa hàng hiện không nhận hình thức tới lấy tại quầy.',
+        'pickup_name' => 'Nhận tại cửa hàng',
+        'pickup_hours' => 'Giờ mở cửa',
+        'pickup_instructions' => 'Cách nhận hàng',
+        'pickup_no_delivery' => 'Không cần địa chỉ giao — bạn tới quầy nhận đơn này.',
         'shipping_address' => 'Địa chỉ giao hàng',
         'shipping_method' => 'Phương thức vận chuyển',
         'no_shipping_options' => 'Không có phương thức vận chuyển.',
