@@ -1,7 +1,7 @@
 # Test E2E — khi PHPUnit không nhìn thấy lỗi
 
 > Laravel Dusk lái Chrome thật. Đây là công cụ **chẩn đoán**, không phải tầng test
-> chính — 588 test PHPUnit vẫn là lưới an toàn hằng ngày.
+> chính — 591 test PHPUnit vẫn là lưới an toàn hằng ngày.
 > Dựng ra sau đợt truy một bug mất nhiều vòng vì thiếu đúng công cụ này.
 > Cập nhật: **2026-08-30**.
 
@@ -45,7 +45,7 @@ php artisan dusk --filter=<TestName>
 
 Chạy trên **APP_URL + database dev** — đúng dữ liệu bạn nhìn thấy trong admin, đó
 là điểm mạnh: tái hiện được đúng bản ghi đang lỗi. Đổi lại, **test có ghi dữ liệu
-thì phải trỏ sang DB riêng trước**; các test hiện có chỉ đọc và mở modal.
+phải tự khôi phục** — xem §3.4.
 
 **Không chạy trong CI**: `phpunit.xml` chỉ nạp `tests/Feature`, và runner không có
 trình duyệt. Đây là việc chạy tay khi nghi lỗi client.
@@ -73,7 +73,7 @@ xattr -d com.apple.quarantine vendor/laravel/dusk/bin/chromedriver-mac-arm64 2>/
 
 ---
 
-## 3. Bốn cái bẫy, cả bốn đều đã sập ít nhất một lần
+## 3. Năm cái bẫy, cả năm đều đã sập ít nhất một lần
 
 ### 3.1 Debugbar chặn click
 

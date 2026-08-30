@@ -150,7 +150,7 @@ modules/<Name>/
 | File PHP trong `modules/` | 420 |
 | Route `api/v1` | 63 |
 | Route storefront | 21 |
-| Test | 588 (+ 4 E2E Dusk) |
+| Test | 591 (+ 4 E2E Dusk) |
 
 > Số liệu là snapshot lúc viết. Chạy `php artisan test` và
 > `php artisan route:list` để lấy con số hiện thời.
