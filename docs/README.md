@@ -13,6 +13,7 @@ làm commerce core, admin Filament 4, storefront Blade SSR.
 | Viết code theo đúng quy tắc dự án | [guides/coding-standards.md](guides/coding-standards.md) |
 | Sửa giao diện storefront | [architecture/theme.md](architecture/theme.md) |
 | Chạy lệnh artisan thường dùng | [guides/commands.md](guides/commands.md) |
+| Lỗi chỉ xảy ra trong trình duyệt | [guides/e2e-testing.md](guides/e2e-testing.md) |
 | Deploy & vận hành production | [guides/deployment.md](guides/deployment.md) |
 | Hiểu đợt nâng Lunar 1.5 / Filament v4 đã làm gì | [guides/upgrade-lunar-1.5.md](guides/upgrade-lunar-1.5.md) |
 | Hai lỗi của Lunar và cách sống chung | [upstream/README.md](upstream/README.md) |
@@ -149,7 +150,7 @@ modules/<Name>/
 | File PHP trong `modules/` | 420 |
 | Route `api/v1` | 63 |
 | Route storefront | 21 |
-| Test | 544 |
+| Test | 588 (+ 4 E2E Dusk) |
 
 > Số liệu là snapshot lúc viết. Chạy `php artisan test` và
 > `php artisan route:list` để lấy con số hiện thời.
@@ -169,6 +170,7 @@ docs/
 │   ├── coding-standards.md          # quy tắc viết code
 │   ├── commands.md                  # lệnh artisan thường dùng
 │   ├── deployment.md                # deploy & vận hành
+│   ├── e2e-testing.md               # Dusk — lỗi phía trình duyệt
 │   └── upgrade-lunar-1.5.md         # runbook + nhật ký nâng Lunar 1.3 → 1.5
 ├── upstream/                        # 2 lỗi upstream + bản vá làm bằng chứng
 │   ├── README.md

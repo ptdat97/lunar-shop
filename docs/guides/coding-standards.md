@@ -379,6 +379,19 @@ qua `Discounts::addType(...)` để hiện trong panel + chạy trong cart pipel
   Search, Auth, Order.
 * Chạy `php artisan test` sau mỗi bước refactor; **không merge nếu chưa xanh**.
 * Shape API mới = superset tương thích ngược (test xác nhận shape cũ không đổi).
+* **Assert vào thứ NHÌN THẤY được, đừng assert vào state nội bộ.** Một assert đọc
+  cấu trúc bên trong (snapshot Livewire, mảng state) sẽ *xanh* khi bạn đoán sai
+  đường dẫn — nó so một chuỗi lỗi với `null` rồi kết luận "khác nhau, đạt". Đã đo
+  được đúng ca đó. Assert vào output người dùng thấy: HTML render ra, giá trị đã
+  lưu, response trả về.
+* **Test đi qua service không thay cho test đi qua UI.** `VariantSwatchTest` gọi
+  thẳng `SkuBuilderService` nên xanh suốt trong khi media picker trên màn hình
+  đang **xoá trắng** cả dòng repeater. Với thứ có form/modal, ít nhất một test
+  phải đi đúng đường người dùng đi.
+* **Lỗi chỉ có ở trình duyệt** (entangle Livewire, thứ tự init Alpine, `x-load`)
+  thì PHPUnit không thấy được — dùng Dusk, xem
+  [e2e-testing.md](e2e-testing.md). Nhưng chỉ khi đã chắc `Livewire::test()`
+  không tái hiện nổi: Dusk chậm hơn hai bậc.
 
 ---
 
