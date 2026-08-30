@@ -16,6 +16,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Support\Facades\FilamentIcon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Lunar\Admin\Support\Pages\BaseEditRecord;
 use Modules\Assets\Filament\Forms\MediaPicker;
@@ -174,25 +175,45 @@ class ManageProductVariants extends BaseEditRecord
             return;
         }
 
-        // Index existing rows (from form state) by their combination so edits in
-        // progress survive a regenerate, then merge fresh combos over them.
+        // Index existing rows by their combination — keeping the repeater key each
+        // one already has — so edits in progress survive a regenerate.
         $existing = collect($this->data['skus'] ?? [])
-            ->keyBy(fn ($row) => implode('-', $row['variants'] ?? []));
+            ->mapWithKeys(fn ($row, $key) => [
+                implode('-', $row['variants'] ?? []) => ['key' => $key, 'row' => $row],
+            ]);
 
         $product = $this->getRecord();
 
-        $this->data['skus'] = collect($combinations)->map(function (array $combo, int $i) use ($existing, $product) {
-            $key = implode('-', $combo);
-            $prior = $existing->get($key);
+        $this->data['skus'] = collect($combinations)->mapWithKeys(function (array $combo) use ($existing, $product) {
+            $match = $existing->get(implode('-', $combo));
+            $prior = $match['row'] ?? [];
 
-            return [
+            // Repeater items are keyed by UUID, and the browser binds to those
+            // keys — `data.skus.<uuid>.images`, `.status`, and so on. Writing a
+            // plain list here renumbered every row to 0, 1, 2… and left the
+            // Alpine bindings pointing at paths that no longer existed:
+            //
+            //   Livewire Entangle Error: Livewire property
+            //   ['data.skus.<uuid>.status'] cannot be found on component
+            //
+            // The visible casualty was the media picker — choosing an image
+            // wrote to a dead path, so it looked like it simply did nothing.
+            //
+            // Reusing the key an existing row already has is not just about
+            // shape: it keeps that row's bindings alive across a regenerate
+            // instead of tearing down and rebuilding every one of them.
+            $key = $this->isRepeaterKey($match['key'] ?? null)
+                ? $match['key']
+                : $this->newRepeaterKey();
+
+            return [$key => [
                 'variants' => $combo,
                 'sku' => $prior['sku'] ?? $this->suggestSku($product, $combo),
                 'price' => $prior['price'] ?? 0,
                 'quantity' => $prior['quantity'] ?? 0,
                 'status' => $prior['status'] ?? 'published',
                 'images' => $prior['images'] ?? [],
-            ];
+            ]];
         })->all();
 
         Notification::make()->success()->title(__('admin.variants.generated', ['count' => count($combinations)]))->send();
@@ -256,6 +277,27 @@ class ManageProductVariants extends BaseEditRecord
      *
      * @param  array<int, int>  $combo
      */
+    /**
+     * A key minted the way the SKU repeater mints its own, so state written here
+     * is indistinguishable from state Filament produced. Asking the component
+     * rather than hardcoding Str::uuid() means a future ->generateUuidUsing()
+     * on that repeater is honoured for free.
+     */
+    protected function newRepeaterKey(): string
+    {
+        $repeater = $this->getSchemaComponent('form.skus');
+
+        $key = $repeater instanceof Repeater ? $repeater->generateUuid() : null;
+
+        return $key ?? (string) Str::uuid();
+    }
+
+    /** Is this an existing repeater key, rather than a stale list index? */
+    protected function isRepeaterKey(mixed $key): bool
+    {
+        return is_string($key) && ! ctype_digit($key);
+    }
+
     protected function comboLabel(array $combo): string
     {
         $locale = app()->getLocale();
