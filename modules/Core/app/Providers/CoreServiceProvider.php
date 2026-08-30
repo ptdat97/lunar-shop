@@ -7,6 +7,7 @@ use Illuminate\Console\Events\ScheduledTaskFinished;
 use Illuminate\Console\Events\ScheduledTaskStarting;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Console\ReportUntranslatedContent;
 use Modules\Core\Console\ScheduleHeartbeat;
 use Modules\Core\Listeners\RecordScheduledRun;
 use Modules\Core\Support\Settings;
@@ -38,7 +39,7 @@ class CoreServiceProvider extends ServiceProvider
         // infrastructure.
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
 
-        $this->commands([ScheduleHeartbeat::class]);
+        $this->commands([ScheduleHeartbeat::class, ReportUntranslatedContent::class]);
 
         // One listener instance across all three events so a task's start row can
         // be matched to its finish. Hooking the scheduler's own events (rather
