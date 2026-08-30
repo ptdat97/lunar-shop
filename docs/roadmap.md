@@ -3,7 +3,7 @@
 > **Chỉ ghi việc CHƯA làm.** Hiện trạng ở
 > [architecture/overview.md](architecture/overview.md); lịch sử bug đã sửa ở
 > [history/2026-07-platform-audit.md](history/2026-07-platform-audit.md).
-> Xếp theo ROI giảm dần. Cập nhật: **2026-08-27** (thêm §Rà soát đối thủ — Storify 2.0).
+> Xếp theo ROI giảm dần. Cập nhật: **2026-08-30**.
 >
 > **Thứ tự ưu tiên đã đảo lại (2026-07-13).** Trước đây danh sách này mở đầu bằng
 > tính năng chuyển đổi (quick-view, size intelligence, search engine). Rà lại code cho
@@ -182,116 +182,41 @@ dùng thật, không phải "phòng xa".
 
 ---
 
-## Rà soát đối thủ — Storify 2.0 (đọc changelog 2026-08-27)
+## Rà soát năng lực nền tảng (2026-08-27)
 
-Đối chiếu ~300 tính năng Storify công bố (1.0 → 2.0 Beta) với hiện trạng repo.
-**Bỏ qua theo yêu cầu:** POS, Multivendor Marketplace, Digital Products, AI Sales Agent.
+Đối chiếu một lượt năng lực mà nền tảng thương mại điện tử thường có với hiện trạng repo,
+để biết còn thiếu gì đáng làm. **Bốn mục tìm ra đã làm xong** (§13–16 cũ) — chi tiết ở
+[architecture/overview.md § Nhật ký](architecture/overview.md): nhận tại cửa hàng, dây bảo
+hiểm cho cron, điều hướng đáy + bộ lọc bottom-sheet mobile, báo cáo nội dung thiếu bản dịch.
 
-**Kết luận đáng mừng: phần storefront gần như đã ngang.** Đã có sẵn và *đừng đề xuất
-lại* — breadcrumb + JSON-LD (`Product`/`Offer`/`Brand`/`ItemList`/`BreadcrumbList`/
-`WebPage`), sitemap, canonical + hreflang, wishlist, hạng thành viên, size guide,
-notify-me hết hàng, review, lookbook, push, giỏ bỏ quên, sổ địa chỉ, infinite scroll,
-**thanh tiến trình free-ship**, **giá vốn + biên lợi nhuận**, timeline đơn, khoá tài
-khoản sau nhiều lần sai mật khẩu, GA + Facebook pixel.
+### Đã có sẵn — *đừng đề xuất lại*
 
-Còn lại bốn thứ thật sự thiếu, xếp theo ROI — **§13, §14 và §15 đã làm xong**:
+Rà thấy phần storefront gần như đã đủ. Những thứ sau **đã chạy**, kiểm bằng grep chứ không
+phải phỏng đoán:
 
-### 13. ✅ Nhận tại cửa hàng — *Shipping* · **đã làm 2026-08-30**
+breadcrumb + JSON-LD (`Product`/`Offer`/`Brand`/`ItemList`/`BreadcrumbList`/`WebPage`) ·
+sitemap · canonical + hreflang · wishlist · hạng thành viên · size guide · notify-me hết
+hàng · review · lookbook · push · giỏ bỏ quên · sổ địa chỉ · infinite scroll · thanh tiến
+trình free-ship · giá vốn + biên lợi nhuận · timeline đơn · khoá tài khoản sau nhiều lần
+sai mật khẩu · GA + Facebook pixel.
 
-> Storify 1.4 — *Local Pickup Checkout*.
+### Còn treo
 
-**Đây là năng lực giao hàng DUY NHẤT không cần hợp đồng hãng vận chuyển.** P0.5 đang
-đứng chờ GHN/GHTK, trong khi phần lớn giá trị của nó — khách chọn "nhận tại shop", không
-tốn phí ship, không cần vận đơn, không cần tracking — **không phụ thuộc hãng nào cả**.
+- ⬜ **Uptime check bên ngoài.** Dây bảo hiểm cho cron chỉ báo khi *một job* lặng đi; nếu
+  **cả scheduler** chết thì heartbeat chết theo. Cần một dịch vụ ngoài gọi lệnh kiểm tra
+  (xem [deployment.md §4.1](guides/deployment.md)). Đây là mảnh cuối, và nó nằm ngoài code.
 
-- ✅ `PickupShippingModifier` thêm `ShippingOption` phí 0 bên cạnh `standard`. Tách
-  riêng khỏi `FlatRateShippingModifier`: cái kia luôn chào một lựa chọn, cái này
-  **không chào gì cả** nếu shop chưa cấu hình quầy.
-- ✅ Địa chỉ + giờ mở cửa + hướng dẫn nhận hàng ở **Cấu hình → Vận chuyển**
-  (`PickupLocation::KEYS`, nhóm `shipping`).
-- ✅ Ẩn bước địa chỉ giao: `POST /api/v1/checkout/pickup` chỉ nhận thông tin liên hệ;
-  form SSR bỏ khối giao hàng qua `checkout-pickup.js`.
+### Cố ý KHÔNG làm
 
-**Một chỗ roadmap viết chưa đúng, nay đã sửa:** *"ẩn bước địa chỉ"* không làm được đúng
-nghĩa đen — **Lunar bắt buộc phải có địa chỉ giao để tạo đơn**. Cách đã chọn: điền địa
-chỉ *của cửa hàng* vào đơn nhưng giữ tên + số điện thoại của khách, để quầy biết ai tới
-lấy. Số điện thoại vì thế là **bắt buộc** ở luồng này (khác luồng giao hàng, nơi nó
-nullable): không có địa chỉ thì đó là đường liên lạc duy nhất.
-
-Hai lớp guard, vì ẩn field không phải là guard (standards §17.4): `PlaceOrderRequest` chỉ
-bỏ ba rule địa chỉ khi shop **thật sự** đang bật nhận tại quầy, và `setPickup()` từ chối
-lần nữa ở tầng service. Có test cho đúng ca gửi địa chỉ rỗng trong lúc tính năng đang tắt.
-
-Rẻ, không bị chặn bởi bên thứ ba, và cắt phí ship cho khách nội thành — đòn bẩy chuyển
-đổi rõ ràng hơn mọi thứ còn lại trong danh sách này.
-
-### 14. Dây bảo hiểm cho cron — *Core* · P1 vận hành
-
-> Storify 2.0 — *Background Job Monitoring*: ghi lại mọi lần chạy, báo admin khi job
-> **không chạy** hoặc im lặng bất thường.
-
-[deployment.md §4](guides/deployment.md) đã ghi bằng chữ: `orders:expire-abandoned`
-ngừng chạy thì **tồn kho bị khoá vĩnh viễn**. Nhưng **không có gì phát hiện** việc nó
-ngừng — im lặng trông y hệt "không có đơn nào quá hạn".
-
-- ✅ Bảng `scheduled_runs` + listener gắn vào **event scheduler của Laravel**
-  (`ScheduledTaskStarting/Finished/Failed`) thay vì `->after()` từng task — thêm command
-  mới là tự được canh.
-- ✅ `php artisan schedule:heartbeat` — quá hạn = lỡ **hai lượt liên tiếp**, ngưỡng đọc từ
-  chính cron expression nên không có danh sách nào để trôi. Chạy mỗi giờ + `Log::error`,
-  exit code 1 để uptime check bên ngoài dùng được.
-
-**Còn lại:** nếu *cả* scheduler chết thì heartbeat cũng chết — cần một uptime check bên
-ngoài gọi lệnh này (xem [deployment.md §4.1](guides/deployment.md)).
-
-### 15. ✅ Điều hướng đáy + bộ lọc bottom-sheet trên mobile — *Theme* · **đã làm 2026-08-30**
-
-> Storify 1.4 — *Mobile Bottom Navigation* (đếm giỏ/wishlist trực tiếp), *Bottom-Sheet
-> Filters*.
-
-- ✅ `partials/bottom-nav.blade.php` — 5 mục (Trang chủ · Tìm · Yêu thích · Giỏ · Tài
-  khoản), badge dùng lại đúng hook `data-cart-count` / `data-wishlist-count` nên đếm
-  sống sẵn, không phải sửa JS. Chỉ có ở `layouts/app`, **cố ý vắng mặt ở layout
-  checkout**: không nên có gì kéo khách đi giữa lúc thanh toán.
-- ✅ Bộ lọc thành bottom sheet bằng **responsive offcanvas** của Bootstrap
-  (`.offcanvas-lg`): sheet dưới `lg`, sidebar tĩnh từ `lg` trở lên. Không viết JS
-  riêng, và markup y hệt ở hai kích thước nên form GET không-JS vẫn chạy.
-- ✅ `shop-filter-count.js` đếm số bộ lọc đang bật lên nút mở sheet — không có nó,
-  khách thấy ít kết quả và tưởng shop hết hàng.
-
-**Không phải thêm nav, mà là DỜI nav.** Header mobile trước đây nhồi 6 điểm chạm
-(hamburger, ngôn ngữ, tìm, yêu thích, tài khoản, giỏ) trong một thanh rộng bằng màn hình
-điện thoại, còn drawer *lặp lại* tài khoản + yêu thích lần nữa ở footer. Nay: nhóm action
-của header thành `d-none d-lg-flex`, drawer bỏ hẳn footer action, header mobile còn đúng
-hamburger + logo.
-
-Bất biến chống trùng lặp **không phải** "mỗi đích đến chỉ một link" — SSR phải render cả
-hai bộ vì desktop cần icon của nó. Bất biến đúng là **ghép cặp breakpoint**: nhóm header
-là desktop-only, bottom nav là mobile-only, nên đúng một cái hiện. `MobileNavigationTest`
-canh chính cặp đó.
-
-### 16. Báo cáo nội dung thiếu bản dịch — *Core* · P3
-
-> Storify 2.0 — *Translation Backfill*: 650 khoá qua 17 locale, **chỉ thêm** để không đè
-> bản dịch người viết.
-
-Bổ sung cho [§8](#8-admin-nhập-nội-dung-đa-ngôn-ngữ) — §8 nói đây là *hướng dẫn vận hành*,
-nhưng phần **đo được** thì phải là code: một command/trang admin liệt kê bản ghi có locale
-để trống. Đợt nâng Lunar 1.5 vừa rồi cho thấy locale rỗng **không hề ồn ào** — nó render
-ra nhãn trắng, không ném lỗi (xem [upstream/README.md](upstream/README.md)).
-
----
-
-### Cố ý KHÔNG lấy
-
-| Của Storify | Vì sao không |
+| Năng lực | Vì sao không |
 |---|---|
-| Theme Engine + Visual Block Builder (đầu tàu của 2.0) | Đúng thứ [Nguyên tắc phạm vi](#nguyên-tắc-phạm-vi-nhắc-lại) đã loại: *visual drag-drop editor*. Một shop, một theme — chi phí bảo trì không đổi lấy được gì |
+| Theme engine + trình dựng khối kéo-thả | Đúng thứ [Nguyên tắc phạm vi](#nguyên-tắc-phạm-vi-nhắc-lại) đã loại: *visual drag-drop editor*. Một shop, một theme — chi phí bảo trì không đổi lấy được gì |
 | Sổ cái kế toán kép, đóng sổ cuối tháng, hoá đơn hoa hồng | Quy mô doanh nghiệp nhiều gian hàng. Repo đã có giá vốn + biên lợi nhuận trên từng dòng đơn — đủ trả lời "lãi bao nhiêu" |
-| Location-Aware Discovery, sắp xếp theo khoảng cách | Địa lý của marketplace: chỉ có nghĩa khi nhiều người bán ở nhiều nơi. Một cửa hàng thì phần dùng được đúng là mục **13** ở trên |
-| So sánh sản phẩm (2.0) | Mạnh với đồ điện tử nhiều thông số; với thời trang khách so sánh bằng **ảnh và size**, mà cả hai đã có ở gallery + size guide |
-| Omnichannel Inbox (1.3.0) | Đã khảo sát rồi cố ý dừng — xem [§12](#12-omnichannel--pos--và-ai-) |
-| Boosting sản phẩm, đăng ký gói người bán, hoa hồng | Chỉ tồn tại khi có nhiều người bán |
+| Khám phá theo vị trí, sắp xếp theo khoảng cách | Địa lý của marketplace: chỉ có nghĩa khi nhiều người bán ở nhiều nơi. Một cửa hàng thì phần dùng được là **nhận tại cửa hàng**, đã làm |
+| So sánh sản phẩm | Mạnh với đồ điện tử nhiều thông số; với thời trang khách so sánh bằng **ảnh và size**, mà cả hai đã có ở gallery + size guide |
+| Hộp thư hợp kênh | Đã khảo sát rồi cố ý dừng — xem [§12](#12-omnichannel--pos--và-ai-) |
+| Boosting sản phẩm, gói đăng ký người bán, hoa hồng | Chỉ tồn tại khi có nhiều người bán |
+| POS, marketplace nhiều gian hàng, sản phẩm số, trợ lý bán hàng AI | Ngoài phạm vi SME một cửa hàng |
 
 ---
 
