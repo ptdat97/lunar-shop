@@ -214,8 +214,22 @@ class AssetsServiceProvider extends ServiceProvider
                 ->map(fn ($id) => (int) $id);
 
             if ($skuImageIds->isNotEmpty()) {
-                $byId = $media->keyBy('id');
-                $scoped = $skuImageIds->map(fn (int $id) => $byId->get($id))->filter();
+                // Resolve through the ASSET ids, exactly as
+                // ProductSkuResource::galleryImages() does for the hydration
+                // payload. Looking them up in $product->media instead — which is
+                // what this used to do — only found pictures that also happened to
+                // hang off the product, so a photo picked from the library for one
+                // SKU alone was silently dropped here while the payload still had
+                // it. The visible effect: the new picture appeared only after
+                // clicking to another variant and back, because that is when the
+                // JS re-rendered the gallery from the payload.
+                //
+                // Two resolution paths for one thing is the bug; this leaves one.
+                $assetMedia = app(MediaUrl::class)->assetMedia($skuImageIds->all());
+
+                $scoped = $skuImageIds
+                    ->map(fn (int $id) => $assetMedia[$id] ?? null)
+                    ->filter();
 
                 if ($scoped->isNotEmpty()) {
                     $media = $scoped->values();

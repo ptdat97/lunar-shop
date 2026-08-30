@@ -5,6 +5,7 @@ namespace Tests\Browser;
 use Facebook\WebDriver\WebDriverBy;
 use Laravel\Dusk\Browser;
 use Lunar\Admin\Models\Staff;
+use Modules\Catalog\Models\ProductSku;
 use Tests\DuskTestCase;
 
 /**
@@ -27,8 +28,10 @@ use Tests\DuskTestCase;
  * browser console stay clean while the modal was inserted".
  *
  * Runs against the real site (APP_URL) and the development database — the same
- * product, the same 12 SKUs that reproduce it by hand. It only reads and opens
- * a modal; nothing is saved.
+ * product, the same 12 SKUs that reproduce it by hand. Three of the four only
+ * read; the last one writes a picture onto a row and puts the row back in a
+ * `finally`, because otherwise the following run starts from the state it left
+ * and measures a removal instead of an addition.
  */
 class VariantMediaPickerTest extends DuskTestCase
 {
@@ -199,6 +202,24 @@ class VariantMediaPickerTest extends DuskTestCase
      */
     public function test_choosing_an_image_attaches_it_to_the_row(): void
     {
+        // Runs against the development database, so put the row back afterwards.
+        // Without this the next run starts from the state this one left and ends
+        // up measuring a removal instead of an addition.
+        $original = ProductSku::query()
+            ->where('product_id', self::PRODUCT_ID)
+            ->pluck('images', 'id');
+
+        try {
+            $this->pickAnUnselectedPicture();
+        } finally {
+            foreach ($original as $id => $images) {
+                ProductSku::query()->whereKey($id)->update(['images' => json_encode($images)]);
+            }
+        }
+    }
+
+    private function pickAnUnselectedPicture(): void
+    {
         $this->browse(function (Browser $browser) {
             $browser->loginAs(Staff::findOrFail(1), 'staff')
                 ->visit('/lunar/products/'.self::PRODUCT_ID.'/variants')
@@ -240,7 +261,16 @@ class VariantMediaPickerTest extends DuskTestCase
 
             fwrite(STDERR, "\n    ô được chọn khi vừa mở modal: ".$countSelected().' / '.count($tiles)."\n");
 
-            $browser->driver->executeScript('arguments[0].click();', [$tiles[0]]);
+            // Pick one that is NOT already selected. Clicking blind toggles
+            // whatever happens to be there, so on a row that already has pictures
+            // this would measure a removal instead of an addition.
+            $target = collect($tiles)->first(
+                fn ($tile) => ! str_contains((string) $tile->getAttribute('class'), 'ring-2')
+            );
+
+            $this->assertNotNull($target, 'Every picture in the library is already on this row.');
+
+            $browser->driver->executeScript('arguments[0].click();', [$target]);
             $browser->pause(1200);
 
             fwrite(STDERR, '    ô được chọn sau khi bấm 1 ô : '.$countSelected()."\n");

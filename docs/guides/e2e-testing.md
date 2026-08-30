@@ -123,7 +123,30 @@ $keys = $browser->driver->executeScript(<<<'JS'
 JS, [$rowKey]);
 ```
 
-### 3.4 Console rỗng không tự nhiên có
+### 3.4 Test chạy trên DB dev thì phải tự dọn
+
+Test lần đầu bấm `$tiles[0]` — ô đó tình cờ **đang được chọn**, nên nó *bỏ chọn*
+chứ không thêm. Lần chạy sau lại bắt đầu từ trạng thái lần trước để lại, và kết
+quả đảo chiều.
+
+Hai việc phải làm cùng lúc:
+
+```php
+// 1. Chọn ô CHƯA được chọn, đừng bấm mù
+$target = collect($tiles)->first(
+    fn ($tile) => ! str_contains((string) $tile->getAttribute('class'), 'ring-2')
+);
+
+// 2. Trả dữ liệu về như cũ
+$original = ProductSku::query()->where('product_id', 1)->pluck('images', 'id');
+try { /* … */ } finally {
+    foreach ($original as $id => $images) {
+        ProductSku::query()->whereKey($id)->update(['images' => json_encode($images)]);
+    }
+}
+```
+
+### 3.5 Console rỗng không tự nhiên có
 
 Phải chủ động đọc và **lọc nhiễu**, nếu không mọi assert đều đỏ vì favicon hay
 cảnh báo preload:
@@ -186,4 +209,4 @@ trả về cả dòng SKU chứ không phải field. Nhớ gỡ ra sau khi xong.
 | trang tải không lỗi console | Không có entangle/Alpine error lúc tải |
 | mở picker giữ console sạch | Lỗi từng nổ đúng lúc modal được chèn vào DOM |
 | modal mở được | Không hỏng lặng lẽ |
-| chọn ảnh thì gắn vào dòng | **Thêm** ảnh, không **thay** — bug thật đã tìm ra |
+| chọn ảnh thì gắn vào dòng | **Thêm** ảnh, không **thay** — bug thật đã tìm ra. Ghi vào DB dev rồi khôi phục trong `finally` |
