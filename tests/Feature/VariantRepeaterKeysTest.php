@@ -179,4 +179,39 @@ class VariantRepeaterKeysTest extends TestCase
             'The image written at data.skus.<uuid>.images never reached the SKU.',
         );
     }
+
+    /**
+     * No lazily-loaded JS select on this page.
+     *
+     * `->native(false)` swaps in Filament's own select: an Alpine component
+     * fetched through `x-load` and entangled to `data.skus.<uuid>.status`, one
+     * per row. On a 12-SKU product that is a dozen async components whose
+     * initialisation races the media modal being inserted, and a failed init
+     * aborts the whole `initTree` pass — taking the picker down with it:
+     *
+     *   Livewire Entangle Error: Livewire property
+     *   ['data.skus.<uuid>.status'] cannot be found on component
+     *
+     * Both selects here are small enums (2 and 3 options) that never needed a
+     * searchable dropdown. The colour pickers stay: those genuinely need JS.
+     */
+    public function test_the_page_loads_no_lazy_select_components(): void
+    {
+        $this->seedBaseData();
+        $this->actingAsAdmin();
+
+        $product = $this->createProduct();
+
+        $html = Livewire::test(ManageProductVariants::class, ['record' => $product->getRouteKey()])
+            ->set('data.variables', $this->variables())
+            ->call('generateCombinations')
+            ->html();
+
+        $this->assertStringNotContainsString(
+            'components/select.js',
+            $html,
+            'A ->native(false) select is back: every row gains an async Alpine component '
+            .'entangled to data.skus.<uuid>.*, which is what broke the media picker.',
+        );
+    }
 }

@@ -84,7 +84,8 @@ class ManageProductVariants extends BaseEditRecord
                                     'image' => __('admin.variants.display_image'),
                                 ])
                                 ->default('text')
-                                ->native(false)
+                                // Native for the same reason as `status` below —
+                                // three options, no need for a JS dropdown.
                                 ->live(),
                             Repeater::make('values')
                                 ->hiddenLabel()
@@ -143,7 +144,20 @@ class ManageProductVariants extends BaseEditRecord
                             Select::make('status')
                                 ->label(__('admin.variants.status'))
                                 ->options(['published' => __('admin.variants.published'), 'disabled' => __('admin.variants.disabled')])
-                                ->default('published')->native(false),
+                                // Native on purpose. ->native(false) swaps in Filament's
+                                // JS select, which is an Alpine component loaded
+                                // lazily through x-load and entangled to
+                                // data.skus.<uuid>.status — one per row. On a
+                                // 12-SKU product that is 12 async components whose
+                                // init races the modal opening, and a failed init
+                                // aborts the whole subtree pass, taking the media
+                                // picker down with it:
+                                //
+                                //   Livewire Entangle Error: Livewire property
+                                //   ['data.skus.<uuid>.status'] cannot be found
+                                //
+                                // Two options do not need a searchable dropdown.
+                                ->default('published'),
                             // Per-SKU photos: picked from the shared Media Library
                             // (modules/Assets) — a list of Asset ids, never a direct upload.
                             MediaPicker::make('images', type: 'image', multiple: true)
