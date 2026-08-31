@@ -3,12 +3,14 @@
 namespace Modules\Catalog\Http\Controllers\Storefront;
 
 use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Http\Resources\SearchResultResource;
 use Modules\Catalog\Services\CollectionService;
+use Symfony\Component\HttpFoundation\Response;
 
 class CollectionController extends Controller
 {
@@ -27,11 +29,25 @@ class CollectionController extends Controller
      *   - $state     → the JSON Resource payload ({ data, facets, meta }) embedded
      *                  for the Vue island to hydrate from — no fetch on mount.
      */
-    public function show(Request $request, string $slug): View
+    public function show(Request $request, string $slug): View|RedirectResponse
     {
         $collection = $this->collections->findBySlug($slug);
 
-        abort_if($collection === null, 404);
+        // Legacy/alias slug → 301 to the canonical collection URL, keeping any
+        // facet/sort query so old links keep working.
+        if ($collection === null) {
+            $canonical = $this->collections->canonicalSlugFor($slug);
+
+            if ($canonical !== null) {
+                return redirect()->route(
+                    'storefront.collection',
+                    ['slug' => $canonical] + $request->query->all(),
+                    Response::HTTP_MOVED_PERMANENTLY,
+                );
+            }
+
+            abort(404);
+        }
 
         // Force the engine scope to this collection regardless of request input.
         $request->merge(['scope' => $collection->defaultUrl?->slug]);

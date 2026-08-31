@@ -60,6 +60,36 @@ class ProductService
     }
 
     /**
+     * Resolve a legacy/alias URL slug to its canonical product slug.
+     *
+     * Lunar keeps every old slug in `lunar_urls` (default = 0) so past links
+     * keep working after a rename — they must 301 to the canonical URL, not
+     * 404. Only published products resolve, mirroring findBySlug().
+     *
+     * Returns null when the slug does not belong to a published product, or
+     * when it is already the canonical slug.
+     */
+    public function canonicalSlugFor(string $slug): ?string
+    {
+        $product = Product::query()
+            ->select('lunar_products.*')
+            ->where('lunar_products.status', 'published')
+            ->join('lunar_urls', function ($join) {
+                $join->on('lunar_urls.element_id', '=', 'lunar_products.id')
+                    ->where('lunar_urls.element_type', '=', 'product');
+            })
+            ->where('lunar_urls.slug', $slug)
+            ->with('defaultUrl')
+            ->first();
+
+        if ($product === null || $product->defaultUrl?->slug === $slug) {
+            return null;
+        }
+
+        return $product->defaultUrl->slug;
+    }
+
+    /**
      * Option groups derived straight from the product's flexible `variables`
      * definition, in definition order, for the SSR option buttons. Keys are the
      * localised variable names; each group carries the per-value swatch data

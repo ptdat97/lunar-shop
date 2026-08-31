@@ -33,6 +33,35 @@ class CollectionService
     }
 
     /**
+     * Resolve a legacy/alias URL slug to its canonical collection slug.
+     *
+     * Lunar keeps every old slug in `lunar_urls` (default = 0) so past links
+     * keep working after a rename — they must 301 to the canonical URL, not
+     * 404. Collections have no status flag, mirroring findBySlug().
+     *
+     * Returns null when the slug belongs to no collection, or when it is
+     * already the canonical slug.
+     */
+    public function canonicalSlugFor(string $slug): ?string
+    {
+        $collection = Collection::query()
+            ->select('lunar_collections.*')
+            ->join('lunar_urls', function ($join) {
+                $join->on('lunar_urls.element_id', '=', 'lunar_collections.id')
+                    ->where('lunar_urls.element_type', '=', 'collection');
+            })
+            ->where('lunar_urls.slug', $slug)
+            ->with('defaultUrl')
+            ->first();
+
+        if ($collection === null || $collection->defaultUrl?->slug === $slug) {
+            return null;
+        }
+
+        return $collection->defaultUrl->slug;
+    }
+
+    /**
      * Published products in a collection, paginated + sorted.
      */
     public function products(Collection $collection, int $page = 1, int $perPage = 24, ?string $sort = null)

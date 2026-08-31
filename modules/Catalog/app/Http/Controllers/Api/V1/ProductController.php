@@ -2,6 +2,7 @@
 
 namespace Modules\Catalog\Http\Controllers\Api\V1;
 
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
@@ -11,6 +12,7 @@ use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Services\RecommendationService;
 use Modules\Catalog\Services\SizeChartService;
 use Modules\Core\Support\ApiPagination;
+use Symfony\Component\HttpFoundation\Response;
 
 class ProductController extends Controller
 {
@@ -57,11 +59,25 @@ class ProductController extends Controller
      * product page renders (R3 — web↔API parity for headless clients). Without
      * `include` the shape is unchanged.
      */
-    public function show(Request $request, string $slug): ProductResource
+    public function show(Request $request, string $slug): ProductResource|RedirectResponse
     {
         $product = $this->products->findBySlug($slug);
 
-        abort_if($product === null, 404);
+        // Same alias handling as the storefront page: a legacy slug 301s to the
+        // canonical URL instead of 404ing old links.
+        if ($product === null) {
+            $canonical = $this->products->canonicalSlugFor($slug);
+
+            if ($canonical !== null) {
+                return redirect()->route(
+                    'api.v1.products.show',
+                    ['slug' => $canonical] + $request->query->all(),
+                    Response::HTTP_MOVED_PERMANENTLY,
+                );
+            }
+
+            abort(404);
+        }
 
         $include = array_filter(array_map(
             'trim',
