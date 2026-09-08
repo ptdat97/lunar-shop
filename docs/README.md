@@ -16,6 +16,7 @@ làm commerce core, admin Filament 4, storefront Blade SSR.
 | Lỗi chỉ xảy ra trong trình duyệt | [guides/e2e-testing.md](guides/e2e-testing.md) |
 | Deploy & vận hành production | [guides/deployment.md](guides/deployment.md) |
 | Hiểu đợt nâng Lunar 1.5 / Filament v4 đã làm gì | [guides/upgrade-lunar-1.5.md](guides/upgrade-lunar-1.5.md) |
+| Kế hoạch lên Lunar 2.0 + panel Inertia/Vue | [guides/upgrade-lunar-2.0.md](guides/upgrade-lunar-2.0.md) |
 | Hai lỗi của Lunar và cách sống chung | [upstream/README.md](upstream/README.md) |
 | Xem việc còn tồn đọng | [roadmap.md](roadmap.md) |
 
@@ -171,7 +172,8 @@ docs/
 │   ├── commands.md                  # lệnh artisan thường dùng
 │   ├── deployment.md                # deploy & vận hành
 │   ├── e2e-testing.md               # Dusk — lỗi phía trình duyệt
-│   └── upgrade-lunar-1.5.md         # runbook + nhật ký nâng Lunar 1.3 → 1.5
+│   ├── upgrade-lunar-1.5.md         # runbook + nhật ký nâng Lunar 1.3 → 1.5
+│   └── upgrade-lunar-2.0.md         # kế hoạch 2.0 + đổi admin sang panel Vue
 ├── upstream/                        # 2 lỗi upstream + bản vá làm bằng chứng
 │   ├── README.md
 │   └── *.patch

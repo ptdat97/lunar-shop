@@ -202,6 +202,13 @@ sai mật khẩu · GA + Facebook pixel.
 
 ### Còn treo
 
+- ⬜ **Lunar 2.0 + panel Inertia/Vue** — đã khảo sát và lên kế hoạch:
+  [guides/upgrade-lunar-2.0.md](guides/upgrade-lunar-2.0.md). **Chưa bắt đầu**, và
+  không nên bắt đầu trước khi P0 xong: 2.0 mới ở mức `alpha.6`, API đổi theo tuần
+  (alpha.5 → alpha.6 cách nhau 3 ngày và alpha.5 là bản đổ bộ toàn bộ panel).
+  Đổi lại, nó gỡ được món nợ reflection trong `ModulesServiceProvider` và thoát
+  vòng lặp migrate Filament major (2.0 yêu cầu Filament v5 nếu ở lại đường cũ).
+
 - ⬜ **Uptime check bên ngoài.** Dây bảo hiểm cho cron chỉ báo khi *một job* lặng đi; nếu
   **cả scheduler** chết thì heartbeat chết theo. Cần một dịch vụ ngoài gọi lệnh kiểm tra
   (xem [deployment.md §4.1](guides/deployment.md)). Đây là mảnh cuối, và nó nằm ngoài code.
