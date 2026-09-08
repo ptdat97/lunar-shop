@@ -4,7 +4,7 @@ namespace Modules\Order\Http\Controllers\Storefront;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Customer\Services\CustomerResolver;
 use Modules\Order\Services\InvoiceService;
 use Symfony\Component\HttpFoundation\Response;

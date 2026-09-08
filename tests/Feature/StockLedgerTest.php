@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Testing\TestResponse;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Enums\StockMovementType;
 use Modules\Inventory\Exceptions\InvalidStockAdjustmentException;

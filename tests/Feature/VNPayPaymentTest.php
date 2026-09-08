@@ -3,9 +3,9 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Mail;
-use Lunar\Facades\CartSession;
-use Lunar\Facades\ShippingManifest;
-use Lunar\Models\Order;
+use Lunar\Core\Facades\CartSession;
+use Lunar\Core\Facades\ShippingManifest;
+use Lunar\Core\Models\Order;
 use Modules\Checkout\Services\CheckoutService;
 use Modules\Checkout\Services\VNPayGateway;
 use Modules\Checkout\Services\VNPayPaymentProcessor;

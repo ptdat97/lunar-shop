@@ -4,11 +4,13 @@ namespace Modules\Promotion\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Number;
-use Lunar\DataTypes\Price;
-use Lunar\Models\Cart;
-use Lunar\Models\Currency;
-use Lunar\Models\Discount;
-use Lunar\Models\Product;
+use Lunar\Core\DataTypes\Price;
+use Lunar\Core\DiscountTypes\FixedAmountOff;
+use Lunar\Core\DiscountTypes\PercentageOff;
+use Lunar\Core\Models\Cart;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Discount;
+use Lunar\Core\Models\Product;
 use Modules\Catalog\Services\PricingService;
 use Modules\Promotion\DiscountTypes\ComboPercentageOff;
 use Modules\Promotion\DiscountTypes\QuantityPercentageOff;
@@ -160,7 +162,7 @@ class SaleBadgeService
             return "Combo -{$pct}%";
         }
 
-        if (! empty($data['percentage']) && empty($data['fixed_value'])) {
+        if ($discount->type === PercentageOff::class && ! empty($data['percentage'])) {
             return '-'.$this->trimPercentage($data['percentage']).'%';
         }
 
@@ -195,14 +197,16 @@ class SaleBadgeService
         }
 
         // Percentage off.
-        if (! empty($data['percentage']) && empty($data['fixed_value'])) {
+        if ($discount->type === PercentageOff::class && ! empty($data['percentage'])) {
             return $this->trimPercentage($data['percentage']).'% off';
         }
 
-        // Fixed amount off — value is per-currency in `fixed_values`.
-        if (! empty($data['fixed_value']) && ! empty($data['fixed_values'])) {
+        // Fixed amount off — value is per-currency. v2 renamed the key
+        // data.fixed_values to data.amounts and dropped the fixed_value flag,
+        // because the type now says which kind this is.
+        if ($discount->type === FixedAmountOff::class && ! empty($data['amounts'])) {
             $currency = Currency::getDefault();
-            $minor = (int) ($data['fixed_values'][$currency?->code] ?? 0);
+            $minor = (int) ($data['amounts'][$currency?->code] ?? 0);
 
             if ($minor > 0 && $currency) {
                 $amount = $minor / (10 ** ($currency->decimal_places ?? 2));

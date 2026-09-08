@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Enums\StockMovementType;
 

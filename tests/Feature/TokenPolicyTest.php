@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use Illuminate\Support\Carbon;
 use Laravel\Sanctum\PersonalAccessToken;
 use Livewire\Livewire;
-use Lunar\Admin\Models\Staff;
+use Lunar\Core\Models\Staff;
 use Modules\Core\Support\Settings;
 use Modules\Customer\Filament\Pages\CustomerSettingsPage;
 use Modules\Customer\Services\TokenIssuer;

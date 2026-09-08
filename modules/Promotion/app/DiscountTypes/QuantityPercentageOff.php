@@ -3,23 +3,22 @@
 namespace Modules\Promotion\DiscountTypes;
 
 use Illuminate\Support\Collection;
-use Lunar\Base\ValueObjects\Cart\DiscountBreakdown;
-use Lunar\Base\ValueObjects\Cart\DiscountBreakdownLine;
-use Lunar\DataTypes\Price;
-use Lunar\DiscountTypes\AbstractDiscountType;
-use Lunar\DiscountTypes\AmountOff;
-use Lunar\DiscountTypes\BuyXGetY;
-use Lunar\Models\CartLine;
-use Lunar\Models\Collection as LunarCollection;
-use Lunar\Models\Contracts\Cart as CartContract;
-use Lunar\Models\Product;
+use Lunar\Core\DataTypes\Price;
+use Lunar\Core\DiscountTypes\AbstractDiscountType;
+use Lunar\Core\DiscountTypes\BuyXGetY;
+use Lunar\Core\DiscountTypes\PercentageOff;
+use Lunar\Core\Models\CartLine;
+use Lunar\Core\Models\Contracts\Cart;
+use Lunar\Core\Models\Product;
+use Lunar\Core\ValueObjects\Cart\DiscountBreakdown;
+use Lunar\Core\ValueObjects\Cart\DiscountBreakdownLine;
 use Modules\Catalog\Models\ProductSku;
 
 /**
  * "Buy N or more, get X% off" — an AUTOMATIC quantity-threshold percentage
  * discount (no coupon). Models offers like "Buy 2 get 10% off".
  *
- * Lunar ships BuyXGetY (which discounts the *reward* lines fully) and AmountOff
+ * Lunar ships BuyXGetY (which discounts the *reward* lines fully) and PercentageOff
  * (percentage off, but with no minimum-quantity gate). Neither expresses
  * "once the eligible quantity reaches N, take X% off all eligible lines", so
  * this type fills that gap. It reuses Lunar's eligibility model:
@@ -28,7 +27,7 @@ use Modules\Catalog\Models\ProductSku;
  * Eligibility is scoped via the discount's `discountableConditions` (products,
  * variants or collections). With no conditions, every line is eligible.
  *
- * @see AmountOff  for the percentage-application pattern
+ * @see PercentageOff  for the percentage-application pattern
  * @see BuyXGetY   for the conditions matching pattern
  */
 class QuantityPercentageOff extends AbstractDiscountType
@@ -38,7 +37,7 @@ class QuantityPercentageOff extends AbstractDiscountType
         return 'Quantity Discount (Buy N get X% off)';
     }
 
-    public function apply(CartContract $cart): CartContract
+    public function apply(Cart $cart): Cart
     {
         // Honour customer-group / coupon / min-spend / usage conditions just
         // like the native types do.
@@ -109,7 +108,7 @@ class QuantityPercentageOff extends AbstractDiscountType
      *
      * @return Collection<int, CartLine>
      */
-    protected function eligibleLines(CartContract $cart): Collection
+    protected function eligibleLines(Cart $cart): Collection
     {
         $conditions = $this->discount->discountableConditions;
 
@@ -135,7 +134,7 @@ class QuantityPercentageOff extends AbstractDiscountType
                 return true;
             }
 
-            if ($item->discountable_type == LunarCollection::morphName()
+            if ($item->discountable_type == \Lunar\Core\Models\Collection::morphName()
                 && $line->purchasable->product->collections->pluck('id')->contains($item->discountable_id)) {
                 return true;
             }

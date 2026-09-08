@@ -3,10 +3,10 @@
 namespace Modules\Promotion\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Lunar\DiscountTypes\AmountOff;
-use Lunar\Models\Channel;
-use Lunar\Models\CustomerGroup;
-use Lunar\Models\Discount;
+use Lunar\Core\DiscountTypes\PercentageOff;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\CustomerGroup;
+use Lunar\Core\Models\Discount;
 
 /**
  * Seeds a demo coupon: SAVE10 → 10% off the cart. Idempotent.
@@ -20,7 +20,7 @@ class DemoCouponSeeder extends Seeder
             [
                 'name' => '10% Off',
                 'handle' => 'save10',
-                'type' => AmountOff::class,
+                'type' => PercentageOff::class,
                 'starts_at' => now()->subDay(),
                 'ends_at' => null,
                 'uses' => 0,
@@ -29,7 +29,6 @@ class DemoCouponSeeder extends Seeder
                 'stop' => false,
                 'data' => [
                     'percentage' => 10,
-                    'fixed_value' => false,
                 ],
             ],
         );

@@ -3,8 +3,9 @@
 namespace Modules\Promotion\Services;
 
 use Illuminate\Support\Collection;
-use Lunar\Models\Discount;
-use Lunar\Models\Product;
+use Lunar\Core\DiscountTypes\PercentageOff;
+use Lunar\Core\Models\Discount;
+use Lunar\Core\Models\Product;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Promotion\DiscountTypes\ComboPercentageOff;
 use Modules\Promotion\DiscountTypes\QuantityPercentageOff;
@@ -155,8 +156,10 @@ class PromotionTargetResolver
             return (float) ($data['percentage'] ?? 0) > 0;
         }
 
-        // Simple percentage AmountOff (flash sale / sale).
-        if (! empty($data['percentage']) && empty($data['fixed_value'])) {
+        // Simple percentage discount (flash sale / sale). v2 split AmountOff into
+        // PercentageOff and FixedAmountOff, so the TYPE is the discriminator now —
+        // the old data.fixed_value flag is gone.
+        if ($discount->type === PercentageOff::class && ! empty($data['percentage'])) {
             return (float) $data['percentage'] > 0;
         }
 
@@ -178,7 +181,7 @@ class PromotionTargetResolver
 
         $data = $discount->data ?? [];
 
-        if (empty($data['percentage']) || ! empty($data['fixed_value'])) {
+        if ($discount->type !== PercentageOff::class || empty($data['percentage'])) {
             return null;
         }
 
@@ -220,7 +223,7 @@ class PromotionTargetResolver
         $collectionIds = $product->collections->pluck('id');
 
         return $discountables->contains(
-            fn ($item) => $item->discountable_type === \Lunar\Models\Collection::morphName()
+            fn ($item) => $item->discountable_type === \Lunar\Core\Models\Collection::morphName()
                 && $collectionIds->contains((int) $item->discountable_id)
         );
     }

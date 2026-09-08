@@ -4,7 +4,7 @@ namespace Modules\Order\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Order\Support\OrderStatus;
 
 /**

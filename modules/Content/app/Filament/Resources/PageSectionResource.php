@@ -17,8 +17,8 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\ToggleColumn;
 use Filament\Tables\Table;
-use Lunar\Models\Collection as LunarCollection;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Collection;
+use Lunar\Core\Models\Product;
 use Modules\Assets\Filament\Forms\MediaPicker;
 use Modules\Content\Filament\Resources\PageSectionResource\Pages\ManagePageSections;
 use Modules\Content\Models\PageSection;
@@ -138,11 +138,11 @@ class PageSectionResource extends Resource
                                 ->label(__('admin.section.collection'))
                                 ->required()
                                 ->searchable()
-                                ->options(fn () => LunarCollection::get()
-                                    ->mapWithKeys(fn ($c) => [$c->id => $c->translateAttribute('name')]))
-                                ->getOptionLabelsUsing(fn (array $values): array => LunarCollection::query()
+                                ->options(fn () => Collection::get()
+                                    ->mapWithKeys(fn ($c) => [$c->id => $c->translate('name')]))
+                                ->getOptionLabelsUsing(fn (array $values): array => Collection::query()
                                     ->whereIn('id', $values)->get()
-                                    ->mapWithKeys(fn ($c) => [$c->id => $c->translateAttribute('name')])
+                                    ->mapWithKeys(fn ($c) => [$c->id => $c->translate('name')])
                                     ->all()),
                             MediaPicker::make('image', type: 'image')
                                 ->label(__('admin.section.collection_image'))
@@ -150,7 +150,7 @@ class PageSectionResource extends Resource
                         ])
                         ->columns(2)->collapsible()->reorderable()
                         ->itemLabel(fn (array $state) => $state['collection_id']
-                            ? (LunarCollection::find($state['collection_id'])?->translateAttribute('name') ?? __('admin.section.collection'))
+                            ? (Collection::find($state['collection_id'])?->translateAttribute('name') ?? __('admin.section.collection'))
                             : __('admin.section.collection'))
                         ->addActionLabel(__('admin.section.add_collection')),
                 ]),
@@ -172,10 +172,10 @@ class PageSectionResource extends Resource
                                 ->multiple()
                                 ->searchable()
                                 ->options(fn () => Product::all()
-                                    ->mapWithKeys(fn ($p) => [$p->id => $p->translateAttribute('name')]))
+                                    ->mapWithKeys(fn ($p) => [$p->id => $p->translate('name')]))
                                 ->getOptionLabelsUsing(fn (array $values): array => Product::query()
                                     ->whereIn('id', $values)->get()
-                                    ->mapWithKeys(fn ($p) => [$p->id => $p->translateAttribute('name')])
+                                    ->mapWithKeys(fn ($p) => [$p->id => $p->translate('name')])
                                     ->all())
                                 ->helperText(__('admin.section.tab_products_help')),
                         ])

@@ -4,7 +4,7 @@ namespace Modules\Order\Http\Resources;
 
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Lunar\Models\Customer;
+use Lunar\Core\Models\Customer;
 use Modules\Core\Support\ApiPagination;
 use Modules\Order\Services\OrderService;
 

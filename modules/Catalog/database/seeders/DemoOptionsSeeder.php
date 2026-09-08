@@ -3,9 +3,9 @@
 namespace Modules\Catalog\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Lunar\Models\ProductOption;
-use Lunar\Models\ProductOptionValue;
-use Lunar\Models\ProductVariant;
+use Lunar\Core\Models\ProductOption;
+use Lunar\Core\Models\ProductOptionValue;
+use Lunar\Core\Models\ProductVariant;
 
 /**
  * Seeds Size + Color options with values and assigns a couple to each existing

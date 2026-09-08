@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use Lunar\FieldTypes\Text;
-use Lunar\Models\Collection;
-use Lunar\Models\CollectionGroup;
-use Lunar\Models\Language;
-use Lunar\Models\Url;
+use Lunar\Core\FieldTypes\Text;
+use Lunar\Core\Models\Collection;
+use Lunar\Core\Models\CollectionGroup;
+use Lunar\Core\Models\Language;
+use Lunar\Core\Models\Url;
 use Modules\Content\Models\Page;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;

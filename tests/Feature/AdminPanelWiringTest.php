@@ -10,8 +10,8 @@ use Lunar\Admin\Filament\Resources\ProductResource;
 use Lunar\Admin\Filament\Resources\TaxClassResource;
 use Lunar\Admin\Filament\Resources\TaxRateResource;
 use Lunar\Admin\Filament\Resources\TaxZoneResource;
-use Lunar\Admin\Models\Staff;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
+use Lunar\Core\Models\Staff;
 use Tests\TestCase;
 
 /**

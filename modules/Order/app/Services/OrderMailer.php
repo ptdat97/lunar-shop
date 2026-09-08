@@ -4,7 +4,7 @@ namespace Modules\Order\Services;
 
 use Illuminate\Mail\Mailable;
 use Illuminate\Support\Facades\Mail;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Theme\Services\LocaleService;
 
 /**

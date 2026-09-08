@@ -2,11 +2,11 @@
 
 namespace Tests\Feature;
 
-use Lunar\Models\Channel;
-use Lunar\Models\Currency;
-use Lunar\Models\Order;
-use Lunar\Models\OrderAddress;
-use Lunar\Models\OrderLine;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Order;
+use Lunar\Core\Models\OrderAddress;
+use Lunar\Core\Models\OrderLine;
 use Modules\Order\Mail\OrderConfirmationMail;
 use Modules\Theme\Services\ThemeSettings;
 use Tests\Concerns\CreatesStorefrontData;

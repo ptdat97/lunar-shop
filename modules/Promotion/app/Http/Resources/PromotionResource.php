@@ -4,7 +4,7 @@ namespace Modules\Promotion\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Lunar\Models\Discount;
+use Lunar\Core\Models\Discount;
 use Modules\Promotion\Services\PromotionService;
 
 /**

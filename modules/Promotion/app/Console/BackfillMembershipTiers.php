@@ -3,7 +3,7 @@
 namespace Modules\Promotion\Console;
 
 use Illuminate\Console\Command;
-use Lunar\Models\Customer;
+use Lunar\Core\Models\Customer;
 use Modules\Promotion\Services\MembershipService;
 
 /**

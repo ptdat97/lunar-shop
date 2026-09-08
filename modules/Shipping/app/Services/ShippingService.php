@@ -2,8 +2,8 @@
 
 namespace Modules\Shipping\Services;
 
-use Lunar\Facades\ShippingManifest;
-use Lunar\Models\Cart;
+use Lunar\Core\Facades\ShippingManifest;
+use Lunar\Core\Models\Cart;
 
 class ShippingService
 {

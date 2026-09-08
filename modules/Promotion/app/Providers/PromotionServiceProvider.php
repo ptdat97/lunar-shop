@@ -5,7 +5,7 @@ namespace Modules\Promotion\Providers;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
-use Lunar\Facades\Discounts;
+use Lunar\Core\Facades\Discounts;
 use Modules\Content\Services\SectionRenderer;
 use Modules\Core\Support\AdminPages;
 use Modules\Order\Events\OrderPaid;

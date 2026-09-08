@@ -4,7 +4,7 @@ namespace Modules\Catalog\Strategies;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 use Modules\Catalog\Contracts\RecommendationStrategy;
 use Modules\Order\Support\OrderStatus;
 

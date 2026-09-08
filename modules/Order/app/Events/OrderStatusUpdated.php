@@ -4,7 +4,7 @@ namespace Modules\Order\Events;
 
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 
 /**
  * An order moved to a new status. Lunar fires no such event, so the Order

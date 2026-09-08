@@ -4,7 +4,7 @@ namespace Modules\Catalog\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 use Modules\Catalog\Contracts\RecommendationStrategy;
 use Modules\Catalog\Support\MediaThumbnails;
 use Modules\Core\Support\Settings;

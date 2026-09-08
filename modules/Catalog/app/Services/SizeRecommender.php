@@ -2,7 +2,7 @@
 
 namespace Modules\Catalog\Services;
 
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 use Modules\Catalog\Models\SizeChartRow;
 
 /**

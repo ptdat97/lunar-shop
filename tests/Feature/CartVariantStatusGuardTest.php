@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use Lunar\Exceptions\Carts\CartException;
-use Lunar\Facades\CartSession;
+use Lunar\Core\Exceptions\Carts\CartException;
+use Lunar\Core\Facades\CartSession;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 

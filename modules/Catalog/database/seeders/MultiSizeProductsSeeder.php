@@ -4,16 +4,16 @@ namespace Modules\Catalog\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
-use Lunar\FieldTypes\Text;
-use Lunar\Models\Collection as LunarCollection;
-use Lunar\Models\Currency;
-use Lunar\Models\Language;
-use Lunar\Models\Price;
-use Lunar\Models\Product;
-use Lunar\Models\ProductOption;
-use Lunar\Models\ProductType;
-use Lunar\Models\TaxClass;
-use Lunar\Models\Url;
+use Lunar\Core\FieldTypes\Text;
+use Lunar\Core\Models\Collection;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Language;
+use Lunar\Core\Models\Price;
+use Lunar\Core\Models\Product;
+use Lunar\Core\Models\ProductOption;
+use Lunar\Core\Models\ProductType;
+use Lunar\Core\Models\TaxClass;
+use Lunar\Core\Models\Url;
 use Modules\Catalog\Models\ProductMaterial;
 
 /**
@@ -154,7 +154,7 @@ class MultiSizeProductsSeeder extends Seeder
         $ids = [];
 
         foreach (['new-arrivals', 'women', 'men'] as $slug) {
-            $ids[$slug] = LunarCollection::whereHas('urls', fn ($q) => $q->where('slug', $slug))->value('id');
+            $ids[$slug] = Collection::whereHas('urls', fn ($q) => $q->where('slug', $slug))->value('id');
         }
 
         return $ids;

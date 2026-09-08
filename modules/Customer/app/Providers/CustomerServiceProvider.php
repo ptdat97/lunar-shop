@@ -3,7 +3,7 @@
 namespace Modules\Customer\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Lunar\Models\Customer;
+use Lunar\Core\Models\Customer;
 use Modules\Core\Support\AdminPages;
 use Modules\Customer\Filament\Pages\CustomerSettingsPage;
 use Modules\Customer\Models\CustomerMeasurement;

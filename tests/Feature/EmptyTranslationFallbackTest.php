@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use Lunar\Models\Attribute;
-use Lunar\Models\AttributeGroup;
-use Lunar\Models\ProductOption;
-use Lunar\Models\ProductOptionValue;
+use Lunar\Core\Models\Attribute;
+use Lunar\Core\Models\AttributeGroup;
+use Lunar\Core\Models\ProductOption;
+use Lunar\Core\Models\ProductOptionValue;
 use Modules\Core\Support\Concerns\SkipsEmptyTranslations;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Tests\TestCase;
@@ -79,7 +79,7 @@ class EmptyTranslationFallbackTest extends TestCase
 
     public function test_a_filled_current_locale_still_wins(): void
     {
-        $option = new (ProductOption::modelClass());
+        $option = new (ProductOption::class);
         $option->setRawAttributes(['name' => json_encode(['en' => 'Size', 'vi' => 'Kích cỡ'])], sync: true);
 
         $this->assertSame('Kích cỡ', $option->translate('name'));
@@ -88,7 +88,7 @@ class EmptyTranslationFallbackTest extends TestCase
 
     public function test_an_all_blank_set_translates_to_null(): void
     {
-        $option = new (ProductOption::modelClass());
+        $option = new (ProductOption::class);
         $option->setRawAttributes(['name' => json_encode(['en' => '', 'vi' => ''])], sync: true);
 
         $this->assertNull($option->translate('name'));
@@ -97,7 +97,7 @@ class EmptyTranslationFallbackTest extends TestCase
     /** A plain string column is returned untouched, as upstream does. */
     public function test_a_non_translatable_value_is_returned_as_is(): void
     {
-        $option = new (ProductOption::modelClass());
+        $option = new (ProductOption::class);
         $option->setRawAttributes(['handle' => 'size'], sync: true);
 
         $this->assertSame('size', $option->translate('handle'));

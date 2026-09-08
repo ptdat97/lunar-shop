@@ -4,8 +4,8 @@ namespace Modules\Content\Providers;
 
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
-use Lunar\Models\Collection as LunarCollection;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Collection;
+use Lunar\Core\Models\Product;
 use Modules\Assets\Services\MediaUrl;
 use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Http\Resources\ProductResource;
@@ -136,7 +136,7 @@ class ContentServiceProvider extends ServiceProvider
 
             $byId = $ids->isEmpty()
                 ? collect()
-                : LunarCollection::query()
+                : Collection::query()
                     ->with(['thumbnail'])
                     ->whereIn('id', $ids)
                     ->get()
@@ -155,7 +155,7 @@ class ContentServiceProvider extends ServiceProvider
                     $override = trim((string) ($item['image'] ?? ''));
 
                     return [
-                        'name' => $collection->translateAttribute('name'),
+                        'name' => $collection->translate('name'),
                         'url' => $collection->defaultUrl?->slug
                             ? route('storefront.collection', $collection->defaultUrl->slug)
                             : '#',

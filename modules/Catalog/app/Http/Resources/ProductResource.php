@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Collection;
-use Lunar\Models\Product;
 use Modules\Assets\Services\MediaUrl;
 use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Services\ReviewService;
@@ -30,7 +29,7 @@ class ProductResource extends JsonResource
     /** @var array<string, mixed>|null */
     protected ?array $sizeChart = null;
 
-    /** @var Collection<int, Product>|null */
+    /** @var Collection<int, \Lunar\Core\Models\Product>|null */
     protected $related = null;
 
     /**
@@ -40,7 +39,7 @@ class ProductResource extends JsonResource
      * (a COUNT + an AVG per product). Batching here — rather than at each of the
      * ~10 call sites — means every caller benefits and no one has to remember.
      *
-     * @param  iterable<int, Product>  $resource
+     * @param  iterable<int, \Lunar\Core\Models\Product>  $resource
      */
     public static function collection($resource): AnonymousResourceCollection
     {
@@ -60,9 +59,9 @@ class ProductResource extends JsonResource
     {
         $data = [
             'id' => $this->id,
-            'name' => $this->translateAttribute('name'),
+            'name' => $this->translate('name'),
             'slug' => $this->defaultUrl?->slug,
-            'description' => $this->translateAttribute('description'),
+            'description' => $this->translate('description'),
             'thumbnail' => $this->imageUrl($this->thumbnail, 'medium'),
             // Second image revealed on card hover — first gallery image that
             // isn't the primary thumbnail. Present only when media is loaded so
@@ -106,7 +105,7 @@ class ProductResource extends JsonResource
     /**
      * Attach related products so they serialise under `related`.
      *
-     * @param  Collection<int, Product>  $related
+     * @param  Collection<int, \Lunar\Core\Models\Product>  $related
      */
     public function withRelated($related): static
     {

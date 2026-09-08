@@ -4,7 +4,7 @@ namespace Modules\Order\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Order\Support\OrderStatus;
 
 /**

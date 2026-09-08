@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use Filament\Auth\MultiFactor\App\AppAuthentication;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
-use Lunar\Admin\Models\Staff;
+use Lunar\Core\Models\Staff;
 use PragmaRX\Google2FA\Exceptions\InvalidCharactersException;
 use PragmaRX\Google2FAQRCode\Google2FA;
 use Tests\TestCase;

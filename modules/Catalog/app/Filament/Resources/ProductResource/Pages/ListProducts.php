@@ -9,11 +9,11 @@ use Filament\Schemas\Components\Grid;
 use Filament\Support\Enums\Width;
 use Illuminate\Database\Eloquent\Model;
 use Lunar\Admin\Filament\Resources\ProductResource\Pages\ListProducts as LunarListProducts;
-use Lunar\Facades\DB;
-use Lunar\FieldTypes\TranslatedText;
-use Lunar\Models\Attribute;
-use Lunar\Models\Currency;
-use Lunar\Models\TaxClass;
+use Lunar\Core\Facades\DB;
+use Lunar\Core\FieldTypes\TranslatedText;
+use Lunar\Core\Models\Attribute;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\TaxClass;
 use Modules\Catalog\Filament\Resources\ProductResource;
 use Modules\Catalog\Models\ProductSku;
 

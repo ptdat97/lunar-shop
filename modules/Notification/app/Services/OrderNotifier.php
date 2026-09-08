@@ -2,7 +2,7 @@
 
 namespace Modules\Notification\Services;
 
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Notification\Notifications\OrderStatusChanged;
 use Modules\Order\Services\OrderMailer;
 use Modules\Theme\Services\LocaleService;

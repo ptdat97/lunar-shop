@@ -5,7 +5,7 @@ namespace Modules\Customer\Services;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 use Modules\Catalog\Services\ProductService;
 use Modules\Customer\Models\RecentlyViewedProduct;
 

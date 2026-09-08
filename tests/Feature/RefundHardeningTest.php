@@ -4,12 +4,12 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
-use Lunar\Models\Channel;
-use Lunar\Models\Currency;
-use Lunar\Models\Order;
-use Lunar\Models\OrderAddress;
-use Lunar\Models\OrderLine;
-use Lunar\Models\Transaction;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Order;
+use Lunar\Core\Models\OrderAddress;
+use Lunar\Core\Models\OrderLine;
+use Lunar\Core\Models\Transaction;
 use Modules\Checkout\Services\RefundService;
 use Modules\Order\Models\ReturnRequest;
 use Modules\Order\Services\ReturnService;

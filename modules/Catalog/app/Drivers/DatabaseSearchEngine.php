@@ -5,7 +5,7 @@ namespace Modules\Catalog\Drivers;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Data\SearchResult;
@@ -90,7 +90,7 @@ class DatabaseSearchEngine implements SearchEngine
         $this->applyTerm($builder, $term);
 
         return $builder->limit($limit)->get()
-            ->map(fn (Product $p) => (string) $p->translateAttribute('name'))
+            ->map(fn (Product $p) => (string) $p->translate('name'))
             ->filter()
             ->values()
             ->all();

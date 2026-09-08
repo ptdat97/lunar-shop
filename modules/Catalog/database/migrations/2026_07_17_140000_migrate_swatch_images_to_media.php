@@ -2,7 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Support\Str;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 use Modules\Assets\Definitions\FashionMediaDefinitions;
 use Modules\Assets\Services\MediaLibraryService;
 

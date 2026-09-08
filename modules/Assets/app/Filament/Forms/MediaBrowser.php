@@ -9,7 +9,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
-use Lunar\Models\Asset;
+use Lunar\Core\Models\Asset;
 use Modules\Assets\Services\MediaLibraryService;
 
 /**

@@ -4,7 +4,7 @@ namespace Modules\Order\Services;
 
 use Barryvdh\DomPDF\Facade\Pdf;
 use Barryvdh\DomPDF\PDF as PdfInstance;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 
 /**
  * Renders an order invoice as a PDF. One place builds the document so the

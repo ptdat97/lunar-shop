@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use Lunar\Models\Cart;
-use Lunar\Models\Channel;
-use Lunar\Models\Currency;
+use Lunar\Core\Models\Cart;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\Currency;
 use Modules\Checkout\Services\TokenAwareCartSession;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;

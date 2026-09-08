@@ -4,8 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Lunar\Models\Asset;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Asset;
 use Modules\Catalog\Http\Resources\ProductSkuResource;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Catalog\Services\ProductService;

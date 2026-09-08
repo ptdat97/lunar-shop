@@ -2,7 +2,7 @@
 
 namespace Modules\Customer\Services;
 
-use Lunar\Models\Customer;
+use Lunar\Core\Models\Customer;
 use Modules\Customer\Models\CustomerMeasurement;
 
 /**

@@ -6,7 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
-use Lunar\Models\Address;
+use Lunar\Core\Models\Address;
 use Modules\Customer\Http\Resources\AddressResource;
 use Modules\Customer\Services\AddressService;
 use Modules\Customer\Services\CustomerResolver;

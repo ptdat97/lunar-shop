@@ -2,7 +2,7 @@
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use Lunar\Base\Migration;
+use Lunar\Core\Database\Migration;
 
 /**
  * The VaniCommerce-style flexible variant model stores the per-product variant

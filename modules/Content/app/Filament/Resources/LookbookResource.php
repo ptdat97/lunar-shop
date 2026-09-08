@@ -20,7 +20,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\TernaryFilter;
 use Filament\Tables\Table;
 use Illuminate\Support\Str;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 use Modules\Assets\Filament\Forms\MediaPicker;
 use Modules\Content\Filament\Resources\LookbookResource\Pages\CreateLookbook;
 use Modules\Content\Filament\Resources\LookbookResource\Pages\EditLookbook;
@@ -114,7 +114,7 @@ class LookbookResource extends Resource
                                 Select::make('product_id')
                                     ->label(__('admin.lookbook.product'))
                                     ->options(fn () => Product::all()
-                                        ->mapWithKeys(fn ($product) => [$product->id => $product->translateAttribute('name')]))
+                                        ->mapWithKeys(fn ($product) => [$product->id => $product->translate('name')]))
                                     ->getOptionLabelUsing(fn ($value): ?string => Product::find($value)?->translateAttribute('name'))
                                     ->searchable()
                                     ->required(),

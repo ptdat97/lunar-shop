@@ -3,17 +3,17 @@
 namespace Modules\Promotion\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Lunar\DiscountTypes\AmountOff;
-use Lunar\FieldTypes\Text;
-use Lunar\Models\Channel;
-use Lunar\Models\Collection as LunarCollection;
-use Lunar\Models\CollectionGroup;
-use Lunar\Models\CustomerGroup;
-use Lunar\Models\Discount;
-use Lunar\Models\Discountable;
-use Lunar\Models\Language;
-use Lunar\Models\Product;
-use Lunar\Models\Url;
+use Lunar\Core\DiscountTypes\PercentageOff;
+use Lunar\Core\FieldTypes\Text;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\Collection;
+use Lunar\Core\Models\CollectionGroup;
+use Lunar\Core\Models\CustomerGroup;
+use Lunar\Core\Models\Discount;
+use Lunar\Core\Models\Discountable;
+use Lunar\Core\Models\Language;
+use Lunar\Core\Models\Product;
+use Lunar\Core\Models\Url;
 use Modules\Promotion\DiscountTypes\ComboPercentageOff;
 use Modules\Promotion\DiscountTypes\QuantityPercentageOff;
 use Modules\Promotion\Services\MembershipService;
@@ -66,7 +66,7 @@ class PromotionShowcaseSeeder extends Seeder
             ['handle' => 'showcase-flash-sale'],
             [
                 'name' => 'Flash Sale — 25% Off',
-                'type' => AmountOff::class,
+                'type' => PercentageOff::class,
                 'coupon' => null,
                 'starts_at' => now()->subHour(),
                 'ends_at' => now()->addDays(2),
@@ -76,7 +76,6 @@ class PromotionShowcaseSeeder extends Seeder
                 'stop' => false,
                 'data' => [
                     'percentage' => 25,
-                    'fixed_value' => false,
                     'flash_sale' => true,
                 ],
             ],
@@ -157,7 +156,7 @@ class PromotionShowcaseSeeder extends Seeder
                 ['handle' => 'showcase-membership-'.$tier['handle']],
                 [
                     'name' => $tier['name'].' — '.$tier['discount_percentage'].'% Off',
-                    'type' => AmountOff::class,
+                    'type' => PercentageOff::class,
                     'coupon' => null,
                     'starts_at' => now()->subDay(),
                     'ends_at' => null,
@@ -167,7 +166,6 @@ class PromotionShowcaseSeeder extends Seeder
                     'stop' => false,
                     'data' => [
                         'percentage' => $tier['discount_percentage'],
-                        'fixed_value' => false,
                         'membership' => true,
                     ],
                 ],
@@ -228,9 +226,9 @@ class PromotionShowcaseSeeder extends Seeder
         }
     }
 
-    protected function ensureCollection(string $slug, string $name): LunarCollection
+    protected function ensureCollection(string $slug, string $name): Collection
     {
-        $collection = LunarCollection::whereHas('urls', fn ($q) => $q->where('slug', $slug))->first();
+        $collection = Collection::whereHas('urls', fn ($q) => $q->where('slug', $slug))->first();
 
         if ($collection) {
             return $collection;
@@ -238,7 +236,7 @@ class PromotionShowcaseSeeder extends Seeder
 
         $group = CollectionGroup::first() ?? CollectionGroup::create(['name' => 'Main', 'handle' => 'main']);
 
-        $collection = LunarCollection::create([
+        $collection = Collection::create([
             'collection_group_id' => $group->id,
             'attribute_data' => ['name' => new Text($name)],
         ]);

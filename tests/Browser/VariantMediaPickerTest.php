@@ -4,7 +4,7 @@ namespace Tests\Browser;
 
 use Facebook\WebDriver\WebDriverBy;
 use Laravel\Dusk\Browser;
-use Lunar\Admin\Models\Staff;
+use Lunar\Core\Models\Staff;
 use Modules\Catalog\Models\ProductSku;
 use Tests\DuskTestCase;
 

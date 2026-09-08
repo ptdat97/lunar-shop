@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Http\UploadedFile;
-use Lunar\Models\Asset;
+use Lunar\Core\Models\Asset;
 use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Services\SkuBuilderService;
 use Tests\Concerns\CreatesStorefrontData;

@@ -5,7 +5,7 @@ namespace Modules\Order\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Checkout\Services\RefundService;
 use Modules\Order\Mail\ReturnStatusMail;
 use Modules\Order\Models\ReturnRequest;

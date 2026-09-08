@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Http\UploadedFile;
-use Lunar\Models\Asset;
+use Lunar\Core\Models\Asset;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 

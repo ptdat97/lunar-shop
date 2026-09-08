@@ -4,8 +4,8 @@ namespace Modules\Customer\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Lunar\Models\Address;
-use Lunar\Models\Customer;
+use Lunar\Core\Models\Address;
+use Lunar\Core\Models\Customer;
 
 /**
  * Customer address book — the single write path for addresses (web + API),

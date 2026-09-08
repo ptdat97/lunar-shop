@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
 use Lunar\Admin\Filament\Resources\ProductResource\Pages\EditProduct;
-use Lunar\Admin\Models\Staff;
+use Lunar\Core\Models\Staff;
 use Modules\Catalog\Filament\Pages\ManageProductSizing;
 use Modules\Catalog\Filament\Pages\ManageProductVariants;
 use Tests\Concerns\CreatesStorefrontData;

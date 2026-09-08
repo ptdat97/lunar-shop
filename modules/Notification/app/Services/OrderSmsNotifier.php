@@ -3,7 +3,7 @@
 namespace Modules\Notification\Services;
 
 use Illuminate\Support\Facades\Log;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Notification\Contracts\SmsSender;
 use Modules\Notification\Data\SmsMessage;
 use Modules\Notification\Support\SmsSettings;

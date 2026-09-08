@@ -2,18 +2,18 @@
 
 namespace Tests\Feature;
 
-use Lunar\DiscountTypes\AmountOff;
-use Lunar\DiscountTypes\BuyXGetY;
-use Lunar\FieldTypes\Text;
-use Lunar\Models\Cart;
-use Lunar\Models\Channel;
-use Lunar\Models\Collection;
-use Lunar\Models\CollectionGroup;
-use Lunar\Models\Currency;
-use Lunar\Models\Customer;
-use Lunar\Models\CustomerGroup;
-use Lunar\Models\Discount;
-use Lunar\Models\Order;
+use Lunar\Core\DiscountTypes\BuyXGetY;
+use Lunar\Core\DiscountTypes\PercentageOff;
+use Lunar\Core\FieldTypes\Text;
+use Lunar\Core\Models\Cart;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\Collection;
+use Lunar\Core\Models\CollectionGroup;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Customer;
+use Lunar\Core\Models\CustomerGroup;
+use Lunar\Core\Models\Discount;
+use Lunar\Core\Models\Order;
 use Modules\Checkout\Http\Resources\CartResource;
 use Modules\Promotion\Database\Seeders\DemoPromotionSeeder;
 use Modules\Promotion\DiscountTypes\ComboPercentageOff;
@@ -193,13 +193,13 @@ class PromotionAdvancedTest extends TestCase
         $discount = Discount::create([
             'name' => 'Flash 25',
             'handle' => 'flash-25',
-            'type' => AmountOff::class,
+            'type' => PercentageOff::class,
             'starts_at' => now()->subHour(),
             'ends_at' => now()->addDay(),
             'uses' => 0,
             'priority' => 100,
             'stop' => false,
-            'data' => ['percentage' => 25, 'fixed_value' => false, 'flash_sale' => true],
+            'data' => ['percentage' => 25, 'flash_sale' => true],
         ]);
         $this->enableForAll($discount);
 
@@ -243,13 +243,13 @@ class PromotionAdvancedTest extends TestCase
         $discount = Discount::create([
             'name' => 'Flash Sale — 20% Off',
             'handle' => 'flash-applied',
-            'type' => AmountOff::class,
+            'type' => PercentageOff::class,
             'starts_at' => now()->subHour(),
             'ends_at' => now()->addDay(),
             'uses' => 0,
             'priority' => 100,
             'stop' => false,
-            'data' => ['percentage' => 20, 'fixed_value' => false, 'flash_sale' => true],
+            'data' => ['percentage' => 20, 'flash_sale' => true],
         ]);
         $this->enableForAll($discount);
 

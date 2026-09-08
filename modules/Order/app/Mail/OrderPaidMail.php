@@ -9,7 +9,7 @@ use Illuminate\Mail\Mailables\Attachment;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Core\Support\Queues;
 use Modules\Order\Services\InvoiceService;
 

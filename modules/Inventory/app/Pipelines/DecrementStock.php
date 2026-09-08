@@ -3,10 +3,8 @@
 namespace Modules\Inventory\Pipelines;
 
 use Closure;
-use Lunar\Models\Contracts\Order as OrderContract;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Contracts\Order;
 use Modules\Catalog\Models\ProductSku;
-use Modules\Inventory\Exceptions\InsufficientStockException;
 use Modules\Inventory\Services\StockLedger;
 
 /**
@@ -24,11 +22,11 @@ use Modules\Inventory\Services\StockLedger;
 class DecrementStock
 {
     /**
-     * @param  Closure(OrderContract): mixed  $next
+     * @param  Closure(Order):mixed  $next
      */
-    public function handle(OrderContract $order, Closure $next): mixed
+    public function handle(Order $order, Closure $next): mixed
     {
-        /** @var Order $order */
+        /** @var \Lunar\Core\Models\Order $order */
         $order->loadMissing('lines');
 
         foreach ($order->lines as $line) {

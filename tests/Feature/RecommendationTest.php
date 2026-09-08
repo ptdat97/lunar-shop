@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use Lunar\Models\Channel;
-use Lunar\Models\Currency;
-use Lunar\Models\Order;
-use Lunar\Models\OrderLine;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Order;
+use Lunar\Core\Models\OrderLine;
 use Modules\Catalog\Strategies\CoPurchaseStrategy;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;

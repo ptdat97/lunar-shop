@@ -4,7 +4,7 @@ namespace Modules\Inventory\Services;
 
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Catalog\Models\ProductSku;
 
 /**

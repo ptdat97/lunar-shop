@@ -6,12 +6,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use Lunar\Base\LunarUser as LunarUserInterface;
-use Lunar\Base\Traits\LunarUser;
+use Lunar\Core\Contracts\LunarUser;
+use Lunar\Core\Models\Concerns\IsLunarUser;
 
-class User extends Authenticatable implements LunarUserInterface
+class User extends Authenticatable implements LunarUser
 {
-    use HasApiTokens, HasFactory, LunarUser, Notifiable;
+    use HasApiTokens, HasFactory, IsLunarUser, Notifiable;
 
     protected $fillable = [
         'name',

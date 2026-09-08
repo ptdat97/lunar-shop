@@ -4,9 +4,8 @@ namespace Modules\Checkout\Services;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Lunar\Managers\CartSessionManager;
-use Lunar\Models\Cart;
-use Lunar\Models\Contracts\Cart as CartContract;
+use Lunar\Core\Managers\CartSessionManager;
+use Lunar\Core\Models\Cart;
 
 /**
  * Cart identity for stateless clients (mobile app, POS), layered on Lunar's own
@@ -163,7 +162,7 @@ class TokenAwareCartSession extends CartSessionManager
      * when there is one. The parent's `createNewCart()` reads the wrong guard,
      * so it would leave `user_id` null for a signed-in app.
      */
-    protected function createNewCart(): CartContract
+    protected function createNewCart(): \Lunar\Core\Models\Contracts\Cart
     {
         if (! $this->isStateless()) {
             return parent::createNewCart();
@@ -186,7 +185,7 @@ class TokenAwareCartSession extends CartSessionManager
      * Remember the cart. Writing the session key is pointless (and pollutes the
      * storefront session) for a stateless request.
      */
-    public function use(CartContract $cart): CartContract
+    public function use(\Lunar\Core\Models\Contracts\Cart $cart): \Lunar\Core\Models\Contracts\Cart
     {
         if (! $this->isStateless()) {
             return parent::use($cart);

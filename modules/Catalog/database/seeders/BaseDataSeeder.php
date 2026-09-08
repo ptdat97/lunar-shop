@@ -3,16 +3,16 @@
 namespace Modules\Catalog\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Lunar\Models\Channel;
-use Lunar\Models\Country;
-use Lunar\Models\Currency;
-use Lunar\Models\CustomerGroup;
-use Lunar\Models\Language;
-use Lunar\Models\ProductType;
-use Lunar\Models\TaxClass;
-use Lunar\Models\TaxRate;
-use Lunar\Models\TaxRateAmount;
-use Lunar\Models\TaxZone;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\Country;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\CustomerGroup;
+use Lunar\Core\Models\Language;
+use Lunar\Core\Models\ProductType;
+use Lunar\Core\Models\TaxClass;
+use Lunar\Core\Models\TaxRate;
+use Lunar\Core\Models\TaxRateAmount;
+use Lunar\Core\Models\TaxZone;
 
 /**
  * Lunar essentials for a fresh install (channel, language, currency, customer

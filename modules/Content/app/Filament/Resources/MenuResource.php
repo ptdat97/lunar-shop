@@ -13,7 +13,7 @@ use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Lunar\Models\Collection as LunarCollection;
+use Lunar\Core\Models\Collection;
 use Modules\Assets\Filament\Forms\MediaPicker;
 use Modules\Content\Filament\Resources\MenuResource\Pages\ManageMenus;
 use Modules\Content\Models\Menu;
@@ -148,8 +148,8 @@ class MenuResource extends Resource
      */
     protected static function collectionOptions(): array
     {
-        return LunarCollection::query()->get()
-            ->mapWithKeys(fn ($c) => [$c->id => $c->translateAttribute('name')])
+        return Collection::query()->get()
+            ->mapWithKeys(fn ($c) => [$c->id => $c->translate('name')])
             ->all();
     }
 

@@ -2,7 +2,6 @@
 
 namespace Modules\Catalog\Models;
 
-use Lunar\Models\ProductOption as BaseProductOption;
 use Modules\Core\Support\Concerns\SkipsEmptyTranslations;
 
 /**
@@ -16,7 +15,7 @@ use Modules\Core\Support\Concerns\SkipsEmptyTranslations;
  * The value is stored inside the existing `meta` JSON column, so adopting it
  * needs no migration and nothing breaks if the row predates the feature.
  */
-class ProductOption extends BaseProductOption
+class ProductOption extends \Lunar\Core\Models\ProductOption
 {
     use SkipsEmptyTranslations;
 

@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Carbon;
-use Lunar\Models\Channel;
-use Lunar\Models\Currency;
-use Lunar\Models\Order;
-use Lunar\Models\OrderLine;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Order;
+use Lunar\Core\Models\OrderLine;
 use Modules\Analytics\Services\AnalyticsService;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;

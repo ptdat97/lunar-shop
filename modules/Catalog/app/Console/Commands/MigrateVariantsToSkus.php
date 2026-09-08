@@ -6,9 +6,9 @@ use Illuminate\Console\Command;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Lunar\Models\Price;
-use Lunar\Models\Product;
-use Lunar\Models\ProductVariant;
+use Lunar\Core\Models\Price;
+use Lunar\Core\Models\Product;
+use Lunar\Core\Models\ProductVariant;
 use Modules\Catalog\Models\ProductSku;
 
 /**

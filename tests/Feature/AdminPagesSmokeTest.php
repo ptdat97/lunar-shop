@@ -6,7 +6,7 @@ use Filament\Facades\Filament;
 use Filament\Panel;
 use Filament\Resources\Pages\PageRegistration;
 use Livewire\Livewire;
-use Lunar\Admin\Models\Staff;
+use Lunar\Core\Models\Staff;
 use Modules\Catalog\Filament\Pages\ManageProductSizing;
 use Modules\Catalog\Filament\Pages\ManageProductVariants;
 use Modules\Theme\Filament\Resources\CollectionResource;

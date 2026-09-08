@@ -4,9 +4,9 @@ namespace Modules\Checkout\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Lunar\DataTypes\Price;
-use Lunar\Models\Cart;
-use Lunar\Models\Currency;
+use Lunar\Core\DataTypes\Price;
+use Lunar\Core\Models\Cart;
+use Lunar\Core\Models\Currency;
 use Modules\Assets\Services\MediaUrl;
 use Modules\Checkout\Services\TokenAwareCartSession;
 use Modules\Core\Support\Settings;

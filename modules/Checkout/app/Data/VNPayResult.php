@@ -2,7 +2,7 @@
 
 namespace Modules\Checkout\Data;
 
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 
 /**
  * Outcome of reconciling a VNPay callback.

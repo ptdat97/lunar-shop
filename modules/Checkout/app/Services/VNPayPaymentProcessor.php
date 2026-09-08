@@ -2,7 +2,7 @@
 
 namespace Modules\Checkout\Services;
 
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Checkout\Data\VNPayResult;
 
 /**

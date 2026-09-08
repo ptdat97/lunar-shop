@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\DB;
-use Lunar\Models\Address;
+use Lunar\Core\Models\Address;
 use Modules\Customer\Services\AddressService;
 use Modules\Customer\Services\CustomerResolver;
 use Tests\Concerns\CreatesStorefrontData;

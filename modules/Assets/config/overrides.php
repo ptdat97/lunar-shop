@@ -1,6 +1,6 @@
 <?php
 
-use Lunar\Base\StandardMediaDefinitions;
+use Lunar\Core\Media\StandardDefinitions;
 use Modules\Assets\Definitions\FashionMediaDefinitions;
 
 /**
@@ -39,8 +39,8 @@ return [
         // model basename (see the note below), so only 'product_option' would
         // ever match. If you need to give ProductOption real conversions, add it
         // under the snake_case key; editing this kebab-case line has no effect.
-        'brand' => StandardMediaDefinitions::class,
-        'product-option' => StandardMediaDefinitions::class,
+        'brand' => StandardDefinitions::class,
+        'product-option' => StandardDefinitions::class,
         // Option values carry the variant `swatch` collection (colour/pattern
         // chips), so they need FashionMediaDefinitions' swatch conversions.
         // NB: lookups snake_case the model basename, so this key — not the

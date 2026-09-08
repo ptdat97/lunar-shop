@@ -5,8 +5,8 @@ namespace Modules\Checkout\Services;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Lunar\Models\Order;
-use Lunar\Models\Transaction;
+use Lunar\Core\Models\Order;
+use Lunar\Core\Models\Transaction;
 use Modules\Order\Events\OrderPaid;
 use Modules\Order\Support\OrderStatus;
 
@@ -55,7 +55,7 @@ abstract class GatewayReconciler
      * Reconcile one callback (return URL or IPN).
      *
      * @param  array<string, mixed>  $payload
-     * @return array{verified:bool, paid:bool, order:?Order, alreadyProcessed:bool}
+     * @return array{verified: bool, paid: bool, order: ?Order, alreadyProcessed: bool}
      */
     protected function reconcilePayload(array $payload): array
     {
@@ -174,7 +174,7 @@ abstract class GatewayReconciler
         ]);
     }
 
-    /** @return array{verified:bool, paid:bool, order:?Order, alreadyProcessed:bool} */
+    /** @return array{verified: bool, paid: bool, order: ?Order, alreadyProcessed: bool} */
     private function outcome(bool $verified = false, bool $paid = false, ?Order $order = null, bool $alreadyProcessed = false): array
     {
         return compact('verified', 'paid', 'order', 'alreadyProcessed');

@@ -3,10 +3,10 @@
 namespace Modules\Promotion\Services;
 
 use Illuminate\Support\Collection;
-use Lunar\Models\Currency;
-use Lunar\Models\Customer;
-use Lunar\Models\CustomerGroup;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Customer;
+use Lunar\Core\Models\CustomerGroup;
+use Lunar\Core\Models\Order;
 use Modules\Core\Support\Settings;
 use Modules\Order\Support\OrderStatus;
 

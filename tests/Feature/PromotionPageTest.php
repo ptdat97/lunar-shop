@@ -2,10 +2,10 @@
 
 namespace Tests\Feature;
 
-use Lunar\DiscountTypes\AmountOff;
-use Lunar\Models\Channel;
-use Lunar\Models\CustomerGroup;
-use Lunar\Models\Discount;
+use Lunar\Core\DiscountTypes\PercentageOff;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\CustomerGroup;
+use Lunar\Core\Models\Discount;
 use Modules\Content\Models\PageSection;
 use Modules\Content\Services\SectionRenderer;
 use Tests\Concerns\CreatesStorefrontData;
@@ -28,13 +28,13 @@ class PromotionPageTest extends TestCase
         $discount = Discount::create([
             'name' => 'Flash Sale — 25% Off',
             'handle' => 'flash-sale',
-            'type' => AmountOff::class,
+            'type' => PercentageOff::class,
             'starts_at' => now()->subHour(),
             'ends_at' => now()->addDays(2),
             'uses' => 0,
             'priority' => 100,
             'stop' => false,
-            'data' => ['percentage' => 25, 'fixed_value' => false, 'flash_sale' => true],
+            'data' => ['percentage' => 25, 'flash_sale' => true],
         ]);
 
         foreach (Channel::all() as $channel) {

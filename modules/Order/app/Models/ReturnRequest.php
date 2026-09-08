@@ -5,8 +5,8 @@ namespace Modules\Order\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Lunar\Models\Customer;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Customer;
+use Lunar\Core\Models\Order;
 use Modules\Order\Support\ReturnStatus;
 
 /**

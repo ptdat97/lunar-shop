@@ -79,7 +79,7 @@ class ProductOptionResource extends BaseProductOptionResource
      * Append the display_type badge to Lunar's default columns. pushColumns()
      * appends where columns() would reset the whole layout.
      */
-    public static function getDefaultTable(Table $table): Table
+    public static function table(Table $table): Table
     {
         return parent::getDefaultTable($table)->pushColumns([
             TextColumn::make('display_type')

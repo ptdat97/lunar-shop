@@ -2,7 +2,6 @@
 
 namespace Modules\Catalog\Models;
 
-use Lunar\Models\AttributeGroup as BaseAttributeGroup;
 use Modules\Core\Support\Concerns\SkipsEmptyTranslations;
 
 /**
@@ -13,7 +12,7 @@ use Modules\Core\Support\Concerns\SkipsEmptyTranslations;
  * `translate()` — the method that returns an empty string when the current
  * locale's key exists but is blank.
  */
-class AttributeGroup extends BaseAttributeGroup
+class AttributeGroup extends \Lunar\Core\Models\AttributeGroup
 {
     use SkipsEmptyTranslations;
 }

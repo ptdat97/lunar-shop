@@ -3,7 +3,7 @@
 namespace Modules\Inventory\Console;
 
 use Illuminate\Console\Command;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Inventory\Services\InventoryService;
 use Modules\Order\Support\OrderStatus;
 

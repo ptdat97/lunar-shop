@@ -4,7 +4,7 @@ namespace Modules\Catalog\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 use Modules\Catalog\Services\SkuBuilderService;
 
 /**
@@ -157,7 +157,7 @@ class ProductSkuMatrixSeeder extends Seeder
      */
     protected function rows(Product $product, int $basePrice, int $productIndex): array
     {
-        $prefix = Str::upper(Str::substr(Str::slug($product->translateAttribute('name') ?: 'sku'), 0, 6));
+        $prefix = Str::upper(Str::substr(Str::slug($product->translate('name') ?: 'sku'), 0, 6));
         $imagesByColor = $this->imagesByColor($product);
         $rows = [];
         $position = 0;
@@ -181,7 +181,7 @@ class ProductSkuMatrixSeeder extends Seeder
 
                 $rows[] = [
                     'sku' => sprintf('%s-%s-%s', $prefix.($productIndex + 1), Str::upper(Str::substr($color['en'], 0, 3)), $size['en']),
-                    'model' => $product->translateAttribute('name').' / '.$color['en'].' / '.$size['en'],
+                    'model' => $product->translate('name').' / '.$color['en'].' / '.$size['en'],
                     'price' => $price,
                     'origin_price' => $originPrice,
                     'cost_price' => (int) round($price * 0.55),

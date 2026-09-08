@@ -4,7 +4,7 @@ namespace Modules\Customer\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Lunar\Models\Address;
+use Lunar\Core\Models\Address;
 
 /**
  * Stable JSON contract for a saved customer address.

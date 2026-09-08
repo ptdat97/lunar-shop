@@ -5,7 +5,6 @@ namespace Modules\Content\Services;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\HtmlString;
-use Lunar\Models\Collection as LunarCollection;
 use Modules\Content\Models\Menu;
 use Modules\Content\Models\MenuItem;
 
@@ -33,7 +32,7 @@ class MenuRenderer
      * footer typically link the same few collections; per-menu eager loading
      * fetched them once per menu — this map fetches each id once per request.
      *
-     * @var array<int, LunarCollection|null>
+     * @var array<int, \Lunar\Core\Models\Collection|null>
      */
     protected array $collectionsCache = [];
 
@@ -93,7 +92,7 @@ class MenuRenderer
         $missing = $ids->reject(fn ($id) => array_key_exists((int) $id, $this->collectionsCache));
 
         if ($missing->isNotEmpty()) {
-            $loaded = LunarCollection::query()
+            $loaded = \Lunar\Core\Models\Collection::query()
                 ->with('defaultUrl')
                 ->findMany($missing->all())
                 ->keyBy('id');

@@ -2,8 +2,8 @@
 
 namespace Modules\Order\Listeners;
 
-use Lunar\Events\PaymentAttemptEvent;
-use Lunar\Models\Order;
+use Lunar\Core\Events\PaymentAttemptEvent;
+use Lunar\Core\Models\Order;
 use Modules\Order\Mail\OrderConfirmationMail;
 use Modules\Order\Services\OrderMailer;
 

@@ -3,7 +3,7 @@
 namespace Modules\Catalog\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 use Modules\Catalog\Models\ProductMaterial;
 use Modules\Catalog\Models\SizeChart;
 

@@ -3,17 +3,17 @@
 namespace Modules\Catalog\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Lunar\FieldTypes\Text;
-use Lunar\Models\Collection as LunarCollection;
-use Lunar\Models\CollectionGroup;
-use Lunar\Models\Currency;
-use Lunar\Models\Language;
-use Lunar\Models\Price;
-use Lunar\Models\Product;
-use Lunar\Models\ProductType;
-use Lunar\Models\ProductVariant;
-use Lunar\Models\TaxClass;
-use Lunar\Models\Url;
+use Lunar\Core\FieldTypes\Text;
+use Lunar\Core\Models\Collection;
+use Lunar\Core\Models\CollectionGroup;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Language;
+use Lunar\Core\Models\Price;
+use Lunar\Core\Models\Product;
+use Lunar\Core\Models\ProductType;
+use Lunar\Core\Models\ProductVariant;
+use Lunar\Core\Models\TaxClass;
+use Lunar\Core\Models\Url;
 
 /**
  * Minimal demo data to exercise the Phase 1 API end-to-end.
@@ -77,10 +77,10 @@ class DemoCatalogSeeder extends Seeder
         // A collection with a URL, containing the products.
         $group = CollectionGroup::first() ?? CollectionGroup::create(['name' => 'Main', 'handle' => 'main']);
 
-        $collection = LunarCollection::whereHas('urls', fn ($q) => $q->where('slug', 'new-arrivals'))->first();
+        $collection = Collection::whereHas('urls', fn ($q) => $q->where('slug', 'new-arrivals'))->first();
 
         if (! $collection) {
-            $collection = LunarCollection::create([
+            $collection = Collection::create([
                 'collection_group_id' => $group->id,
                 'attribute_data' => ['name' => new Text('New Arrivals')],
             ]);

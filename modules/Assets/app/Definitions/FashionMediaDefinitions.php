@@ -2,7 +2,7 @@
 
 namespace Modules\Assets\Definitions;
 
-use Lunar\Base\StandardMediaDefinitions;
+use Lunar\Core\Media\StandardDefinitions;
 use Modules\Assets\Services\MediaSettings;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
@@ -17,7 +17,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * closure, so a second call would overwrite the parent's. We therefore register
  * Lunar's standard sizes (zoom/large/medium) AND our extras in one closure.
  */
-class FashionMediaDefinitions extends StandardMediaDefinitions
+class FashionMediaDefinitions extends StandardDefinitions
 {
     /**
      * The admin-facing `small` conversion (parent registers it model-level).

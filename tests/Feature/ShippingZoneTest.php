@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use Lunar\Models\Cart;
-use Lunar\Models\Country;
+use Lunar\Core\Models\Cart;
+use Lunar\Core\Models\Country;
 use Modules\Checkout\Services\CartService;
 use Modules\Shipping\Models\ShippingZone;
 use Modules\Shipping\Services\ShippingZoneResolver;

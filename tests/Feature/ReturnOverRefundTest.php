@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Mail;
 use InvalidArgumentException;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Order\Mail\ReturnStatusMail;
 use Modules\Order\Models\ReturnRequest;
 use Modules\Order\Services\ReturnService;
@@ -208,7 +208,7 @@ class ReturnOverRefundTest extends TestCase
             'reference' => 'RMA-FULL',
             'status' => ReturnRequest::REFUNDED,
             'reason' => 'too-large',
-            'refund_amount' => (int) $order->total->value,
+            'refund_amount' => (int) $order->total,
         ]);
 
         $stale = ReturnRequest::create([

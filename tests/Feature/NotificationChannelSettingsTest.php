@@ -4,11 +4,11 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Http;
 use Livewire\Livewire;
-use Lunar\Admin\Models\Staff;
-use Lunar\Models\Channel;
-use Lunar\Models\Currency;
-use Lunar\Models\Order;
-use Lunar\Models\OrderAddress;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Order;
+use Lunar\Core\Models\OrderAddress;
+use Lunar\Core\Models\Staff;
 use Modules\Core\Support\Settings;
 use Modules\Notification\Contracts\SmsSender;
 use Modules\Notification\Data\SmsMessage;

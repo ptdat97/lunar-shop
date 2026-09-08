@@ -3,16 +3,16 @@
 namespace Tests\Concerns;
 
 use App\Models\User;
-use Lunar\FieldTypes\Text;
-use Lunar\FieldTypes\TranslatedText;
-use Lunar\Models\Country;
-use Lunar\Models\Currency;
-use Lunar\Models\Language;
-use Lunar\Models\Price;
-use Lunar\Models\Product;
-use Lunar\Models\ProductType;
-use Lunar\Models\TaxClass;
-use Lunar\Models\Url;
+use Lunar\Core\FieldTypes\Text;
+use Lunar\Core\FieldTypes\TranslatedText;
+use Lunar\Core\Models\Country;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Language;
+use Lunar\Core\Models\Price;
+use Lunar\Core\Models\Product;
+use Lunar\Core\Models\ProductType;
+use Lunar\Core\Models\TaxClass;
+use Lunar\Core\Models\Url;
 use Modules\Catalog\Database\Seeders\BaseDataSeeder;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Catalog\Models\SizeChart;

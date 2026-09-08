@@ -1,17 +1,17 @@
 <?php
 
-use Lunar\Models\Brand;
-use Lunar\Models\Collection;
-use Lunar\Models\Customer;
-use Lunar\Models\Order;
-use Lunar\Models\Product;
-use Lunar\Models\ProductOption;
-use Lunar\Search\BrandIndexer;
-use Lunar\Search\CollectionIndexer;
-use Lunar\Search\CustomerIndexer;
-use Lunar\Search\OrderIndexer;
-use Lunar\Search\ProductIndexer;
-use Lunar\Search\ProductOptionIndexer;
+use Lunar\Core\Models\Brand;
+use Lunar\Core\Models\Collection;
+use Lunar\Core\Models\Customer;
+use Lunar\Core\Models\Order;
+use Lunar\Core\Models\Product;
+use Lunar\Core\Models\ProductOption;
+use Lunar\Core\Search\BrandIndexer;
+use Lunar\Core\Search\CollectionIndexer;
+use Lunar\Core\Search\CustomerIndexer;
+use Lunar\Core\Search\OrderIndexer;
+use Lunar\Core\Search\ProductIndexer;
+use Lunar\Core\Search\ProductOptionIndexer;
 
 return [
 

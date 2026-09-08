@@ -4,7 +4,7 @@ namespace Modules\Customer\Services;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 use Modules\Customer\Models\WishlistItem;
 
 /**

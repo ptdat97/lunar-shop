@@ -4,7 +4,7 @@ namespace Modules\Order\Events;
 
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 
 /**
  * Fired when an order's payment is confirmed (e.g. VNPay callback). Lunar has

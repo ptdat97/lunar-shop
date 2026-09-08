@@ -2,12 +2,11 @@
 
 namespace Modules\Promotion\DiscountTypes;
 
-use Illuminate\Support\Collection;
-use Lunar\Base\ValueObjects\Cart\DiscountBreakdown;
-use Lunar\Base\ValueObjects\Cart\DiscountBreakdownLine;
-use Lunar\DataTypes\Price;
-use Lunar\DiscountTypes\AbstractDiscountType;
-use Lunar\Models\Contracts\Cart as CartContract;
+use Lunar\Core\DataTypes\Price;
+use Lunar\Core\DiscountTypes\AbstractDiscountType;
+use Lunar\Core\Models\Contracts\Cart;
+use Lunar\Core\ValueObjects\Cart\DiscountBreakdown;
+use Lunar\Core\ValueObjects\Cart\DiscountBreakdownLine;
 
 /**
  * "Buy across these groups together, get X% off" — an AUTOMATIC bundle/combo
@@ -30,7 +29,7 @@ class ComboPercentageOff extends AbstractDiscountType
         return 'Combo Discount (Buy across groups, get X% off)';
     }
 
-    public function apply(CartContract $cart): CartContract
+    public function apply(Cart $cart): Cart
     {
         if (! $this->checkDiscountConditions($cart)) {
             return $cart;

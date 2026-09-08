@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use Filament\Facades\Filament;
 use Livewire\Livewire;
-use Lunar\Admin\Models\Staff;
-use Lunar\Models\ProductOption;
+use Lunar\Core\Models\ProductOption;
+use Lunar\Core\Models\Staff;
 use Modules\Theme\Filament\Resources\ProductOptionResource\Pages\EditProductOption;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;

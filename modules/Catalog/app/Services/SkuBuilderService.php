@@ -5,8 +5,8 @@ namespace Modules\Catalog\Services;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
-use Lunar\Models\Currency;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Product;
 use Modules\Assets\Filament\Forms\MediaPicker;
 use Modules\Catalog\Models\ProductSku;
 

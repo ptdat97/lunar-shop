@@ -4,20 +4,20 @@ namespace Modules\Catalog\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
-use Lunar\FieldTypes\Text;
-use Lunar\FieldTypes\TranslatedText;
-use Lunar\Models\Collection as LunarCollection;
-use Lunar\Models\CollectionGroup;
-use Lunar\Models\Currency;
-use Lunar\Models\Language;
-use Lunar\Models\Price;
-use Lunar\Models\Product;
-use Lunar\Models\ProductOption;
-use Lunar\Models\ProductOptionValue;
-use Lunar\Models\ProductType;
-use Lunar\Models\ProductVariant;
-use Lunar\Models\TaxClass;
-use Lunar\Models\Url;
+use Lunar\Core\FieldTypes\Text;
+use Lunar\Core\FieldTypes\TranslatedText;
+use Lunar\Core\Models\Collection;
+use Lunar\Core\Models\CollectionGroup;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Language;
+use Lunar\Core\Models\Price;
+use Lunar\Core\Models\Product;
+use Lunar\Core\Models\ProductOption;
+use Lunar\Core\Models\ProductOptionValue;
+use Lunar\Core\Models\ProductType;
+use Lunar\Core\Models\ProductVariant;
+use Lunar\Core\Models\TaxClass;
+use Lunar\Core\Models\Url;
 
 /**
  * Seeds 50 demo fashion products with real demo images from
@@ -124,7 +124,7 @@ class Demo50ProductsSeeder extends Seeder
     }
 
     /**
-     * @return array{0: array<int,int>, 1: array<int,int>, 2: ProductOption, 3: ProductOption}
+     * @return array{0: array<int, int>, 1: array<int, int>, 2: ProductOption, 3: ProductOption}
      */
     protected function options(): array
     {
@@ -189,10 +189,10 @@ class Demo50ProductsSeeder extends Seeder
         $ids = [];
 
         foreach ($defs as $slug => $name) {
-            $collection = LunarCollection::whereHas('urls', fn ($q) => $q->where('slug', $slug))->first();
+            $collection = Collection::whereHas('urls', fn ($q) => $q->where('slug', $slug))->first();
 
             if (! $collection) {
-                $collection = LunarCollection::create([
+                $collection = Collection::create([
                     'collection_group_id' => $group->id,
                     'attribute_data' => ['name' => new Text($name)],
                 ]);

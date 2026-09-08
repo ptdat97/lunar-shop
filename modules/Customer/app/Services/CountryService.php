@@ -3,7 +3,7 @@
 namespace Modules\Customer\Services;
 
 use Illuminate\Support\Facades\Cache;
-use Lunar\Models\Country;
+use Lunar\Core\Models\Country;
 
 /**
  * Reference lookups for Lunar's country list. Single source for the address-form

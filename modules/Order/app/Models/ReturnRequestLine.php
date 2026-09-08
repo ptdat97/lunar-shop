@@ -4,7 +4,7 @@ namespace Modules\Order\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Lunar\Models\OrderLine;
+use Lunar\Core\Models\OrderLine;
 
 /**
  * One line of a return request: how many of a given order line are being

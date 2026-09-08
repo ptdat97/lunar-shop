@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\DB;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 use Modules\Catalog\Http\Resources\ProductResource;
 use Modules\Catalog\Models\Review;
 use Modules\Catalog\Services\ReviewService;

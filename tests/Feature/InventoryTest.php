@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Testing\TestResponse;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Mail\BackInStockMail;
 use Modules\Inventory\Models\StockNotification;

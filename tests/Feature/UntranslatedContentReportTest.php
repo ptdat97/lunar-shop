@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\DB;
-use Lunar\FieldTypes\Text;
-use Lunar\FieldTypes\TranslatedText;
-use Lunar\Models\Product;
-use Lunar\Models\ProductOption;
+use Lunar\Core\FieldTypes\Text;
+use Lunar\Core\FieldTypes\TranslatedText;
+use Lunar\Core\Models\Product;
+use Lunar\Core\Models\ProductOption;
 use Modules\Core\Support\UntranslatedContentReport;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;

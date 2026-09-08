@@ -4,12 +4,12 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Mail;
-use Lunar\Models\Channel;
-use Lunar\Models\Currency;
-use Lunar\Models\Customer;
-use Lunar\Models\CustomerGroup;
-use Lunar\Models\Order;
-use Lunar\Models\OrderAddress;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Customer;
+use Lunar\Core\Models\CustomerGroup;
+use Lunar\Core\Models\Order;
+use Lunar\Core\Models\OrderAddress;
 use Modules\Order\Events\OrderPaid;
 use Modules\Order\Mail\OrderPaidMail;
 use Modules\Promotion\Services\MembershipService;

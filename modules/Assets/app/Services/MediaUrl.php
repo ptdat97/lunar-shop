@@ -5,7 +5,7 @@ namespace Modules\Assets\Services;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Lunar\Models\Asset;
+use Lunar\Core\Models\Asset;
 use Modules\Assets\Jobs\GenerateConversionJob;
 use Modules\Core\Support\Settings;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;

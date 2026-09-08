@@ -2,7 +2,7 @@
 
 namespace Modules\Order\Observers;
 
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Order\Events\OrderStatusUpdated;
 use Modules\Order\Mail\OrderStatusUpdatedMail;
 use Modules\Order\Services\OrderMailer;

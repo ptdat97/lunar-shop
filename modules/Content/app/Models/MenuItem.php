@@ -5,7 +5,7 @@ namespace Modules\Content\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Lunar\Models\Collection as LunarCollection;
+use Lunar\Core\Models\Collection;
 
 /**
  * A node in a menu tree. `type` decides how it renders (link/dropdown/mega/...).
@@ -44,7 +44,7 @@ class MenuItem extends Model
 
     public function collection(): BelongsTo
     {
-        return $this->belongsTo(LunarCollection::class, 'collection_id');
+        return $this->belongsTo(Collection::class, 'collection_id');
     }
 
     /**

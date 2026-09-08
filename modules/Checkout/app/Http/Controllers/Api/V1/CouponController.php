@@ -6,7 +6,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Routing\Controller;
-use Lunar\Models\Cart;
+use Lunar\Core\Models\Cart;
 use Modules\Checkout\Http\Resources\CartResource;
 use Modules\Checkout\Services\CartService;
 use Modules\Promotion\Http\Resources\CouponResource;

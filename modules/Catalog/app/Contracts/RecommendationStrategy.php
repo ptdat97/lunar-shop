@@ -3,7 +3,7 @@
 namespace Modules\Catalog\Contracts;
 
 use Illuminate\Support\Collection;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 
 /**
  * A single way of producing product recommendations for a given product.

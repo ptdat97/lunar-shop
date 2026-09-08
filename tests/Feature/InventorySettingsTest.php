@@ -4,10 +4,10 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Artisan;
 use Livewire\Livewire;
-use Lunar\Admin\Models\Staff;
-use Lunar\Facades\CartSession;
-use Lunar\Facades\ShippingManifest;
-use Lunar\Models\Order;
+use Lunar\Core\Facades\CartSession;
+use Lunar\Core\Facades\ShippingManifest;
+use Lunar\Core\Models\Order;
+use Lunar\Core\Models\Staff;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Checkout\Services\CheckoutService;
 use Modules\Core\Support\Settings;

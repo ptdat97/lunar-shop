@@ -9,7 +9,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Schemas\Schema;
 use Illuminate\Http\UploadedFile;
 use Livewire\Component;
-use Lunar\Models\Asset;
+use Lunar\Core\Models\Asset;
 use Modules\Assets\Filament\Forms\MediaBrowser;
 use Modules\Assets\Filament\Forms\MediaPicker;
 use Modules\Assets\Filament\Forms\MediaPickerField;

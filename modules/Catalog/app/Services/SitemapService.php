@@ -3,9 +3,8 @@
 namespace Modules\Catalog\Services;
 
 use Illuminate\Support\Collection;
-use Lunar\Models\Collection as LunarCollection;
-use Lunar\Models\Product;
-use Lunar\Models\Url;
+use Lunar\Core\Models\Product;
+use Lunar\Core\Models\Url;
 use Modules\Content\Services\ContentService;
 
 /**
@@ -42,7 +41,7 @@ class SitemapService
             )));
 
         // Collections.
-        $this->defaultUrlsFor(LunarCollection::class)
+        $this->defaultUrlsFor(\Lunar\Core\Models\Collection::class)
             ->each(fn (Url $url) => $entries->push($this->entry(
                 route('storefront.collection', $url->slug), $url->updated_at?->toAtomString(), 'weekly', '0.7',
             )));

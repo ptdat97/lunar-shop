@@ -3,8 +3,8 @@
 namespace Modules\Content\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Lunar\Models\Asset;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Asset;
+use Lunar\Core\Models\Product;
 use Modules\Content\Models\Banner;
 use Modules\Content\Models\Lookbook;
 use Modules\Content\Models\Page;

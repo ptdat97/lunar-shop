@@ -4,7 +4,7 @@ namespace Modules\Customer\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 
 class WishlistItem extends Model
 {

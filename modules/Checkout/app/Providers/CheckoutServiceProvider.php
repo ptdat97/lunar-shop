@@ -3,9 +3,9 @@
 namespace Modules\Checkout\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Lunar\Base\CartSessionInterface;
-use Lunar\Facades\Payments;
-use Lunar\Managers\CartSessionManager;
+use Lunar\Core\Contracts\CartSession;
+use Lunar\Core\Facades\Payments;
+use Lunar\Core\Managers\CartSessionManager;
 use Modules\Checkout\Filament\Pages\PaymentSettingsPage;
 use Modules\Checkout\PaymentTypes\MoMoPayment;
 use Modules\Checkout\PaymentTypes\VNPayPayment;
@@ -76,7 +76,7 @@ class CheckoutServiceProvider extends ServiceProvider
     protected function registerCartSession(): void
     {
         $this->app->singleton(TokenAwareCartSession::class);
-        $this->app->singleton(CartSessionInterface::class, fn ($app) => $app->make(TokenAwareCartSession::class));
+        $this->app->singleton(CartSession::class, fn ($app) => $app->make(TokenAwareCartSession::class));
         $this->app->singleton(CartSessionManager::class, fn ($app) => $app->make(TokenAwareCartSession::class));
     }
 }

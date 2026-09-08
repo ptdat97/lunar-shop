@@ -3,7 +3,7 @@
 namespace Modules\Catalog\Services;
 
 use Illuminate\Support\Facades\DB;
-use Lunar\Models\Collection;
+use Lunar\Core\Models\Collection;
 use Modules\Catalog\Support\MediaThumbnails;
 
 /**

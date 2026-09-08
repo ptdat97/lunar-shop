@@ -1,11 +1,11 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Lunar\FieldTypes\TranslatedText;
-use Lunar\Models\Attribute;
-use Lunar\Models\AttributeGroup;
-use Lunar\Models\Product;
-use Lunar\Models\ProductType;
+use Lunar\Core\FieldTypes\TranslatedText;
+use Lunar\Core\Models\Attribute;
+use Lunar\Core\Models\AttributeGroup;
+use Lunar\Core\Models\Product;
+use Lunar\Core\Models\ProductType;
 
 /**
  * SEO fields for products (meta title/description) as first-class Lunar
@@ -52,7 +52,7 @@ return new class extends Migration
             ]);
 
             ProductType::query()->each(
-                fn (ProductType $type) => $type->mappedAttributes()->syncWithoutDetaching([$attribute->id])
+                fn (ProductType $type) => $type->attributeMapping()->syncWithoutDetaching([$attribute->id])
             );
         }
     }
@@ -65,7 +65,7 @@ return new class extends Migration
 
         foreach ($attributes as $attribute) {
             ProductType::query()->each(
-                fn (ProductType $type) => $type->mappedAttributes()->detach($attribute->id)
+                fn (ProductType $type) => $type->attributeMapping()->detach($attribute->id)
             );
             $attribute->delete();
         }

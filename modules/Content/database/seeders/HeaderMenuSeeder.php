@@ -3,7 +3,7 @@
 namespace Modules\Content\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Lunar\Models\Collection as LunarCollection;
+use Lunar\Core\Models\Collection;
 use Modules\Content\Models\Menu;
 use Modules\Content\Models\MenuItem;
 
@@ -22,7 +22,7 @@ class HeaderMenuSeeder extends Seeder
         // menu_items.parent_id (error 6575).
         $menu->deleteItems();
 
-        $collections = LunarCollection::query()->get()->keyBy(
+        $collections = Collection::query()->get()->keyBy(
             fn ($c) => $c->defaultUrl?->slug
         );
 

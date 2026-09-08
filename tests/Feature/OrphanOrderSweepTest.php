@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Artisan;
-use Lunar\Facades\CartSession;
-use Lunar\Facades\ShippingManifest;
-use Lunar\Models\Cart;
-use Lunar\Models\Order;
+use Lunar\Core\Facades\CartSession;
+use Lunar\Core\Facades\ShippingManifest;
+use Lunar\Core\Models\Cart;
+use Lunar\Core\Models\Order;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Checkout\Services\CheckoutService;
 use Modules\Order\Support\OrderStatus;

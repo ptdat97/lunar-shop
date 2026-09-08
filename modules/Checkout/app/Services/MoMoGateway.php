@@ -4,7 +4,7 @@ namespace Modules\Checkout\Services;
 
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Core\Support\Settings;
 
 /**
@@ -56,7 +56,7 @@ class MoMoGateway
     {
         $decimals = $order->currency->decimal_places ?? 0;
 
-        return (int) round($order->total->value / (10 ** $decimals));
+        return (int) round($order->total / (10 ** $decimals));
     }
 
     /**

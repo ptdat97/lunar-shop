@@ -4,7 +4,7 @@ namespace Modules\Catalog\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Lunar\Models\Collection;
+use Lunar\Core\Models\Collection;
 
 /**
  * Stable JSON contract for a collection.
@@ -17,9 +17,9 @@ class CollectionResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'name' => $this->translateAttribute('name'),
+            'name' => $this->translate('name'),
             'slug' => $this->defaultUrl?->slug,
-            'description' => $this->translateAttribute('description'),
+            'description' => $this->translate('description'),
         ];
     }
 }

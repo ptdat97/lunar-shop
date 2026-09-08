@@ -4,8 +4,8 @@ namespace Modules\Inventory\Services;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
-use Lunar\Models\Order;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Order;
+use Lunar\Core\Models\Product;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Core\Support\Settings;
 use Modules\Order\Support\OrderStatus;

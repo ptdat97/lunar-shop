@@ -3,7 +3,7 @@
 namespace Modules\Assets\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Lunar\Models\Asset;
+use Lunar\Core\Models\Asset;
 use Modules\Assets\Services\MediaLibraryService;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 

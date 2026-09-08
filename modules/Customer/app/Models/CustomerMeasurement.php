@@ -4,7 +4,7 @@ namespace Modules\Customer\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Lunar\Models\Customer;
+use Lunar\Core\Models\Customer;
 
 /**
  * A customer's saved body-measurement profile (Size Intelligence v2). Columns

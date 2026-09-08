@@ -5,7 +5,7 @@ namespace Modules\Notification\Notifications;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Notification;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Core\Support\Queues;
 use Modules\Notification\Channels\PushChannel;
 use Modules\Notification\Data\PushMessage;

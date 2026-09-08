@@ -2,12 +2,12 @@
 
 namespace Modules\Checkout\PaymentTypes;
 
-use Lunar\Base\DataTransferObjects\PaymentAuthorize;
-use Lunar\Base\DataTransferObjects\PaymentCapture;
-use Lunar\Base\DataTransferObjects\PaymentRefund;
-use Lunar\Events\PaymentAttemptEvent;
-use Lunar\Models\Contracts\Transaction as TransactionContract;
-use Lunar\PaymentTypes\AbstractPayment;
+use Lunar\Core\DataObjects\PaymentAuthorize;
+use Lunar\Core\DataObjects\PaymentCapture;
+use Lunar\Core\DataObjects\PaymentRefund;
+use Lunar\Core\Events\PaymentAttemptEvent;
+use Lunar\Core\Models\Contracts\Transaction;
+use Lunar\Core\PaymentTypes\AbstractPayment;
 use Modules\Checkout\Services\RefundService;
 
 /**
@@ -47,7 +47,7 @@ class MoMoPayment extends AbstractPayment
         return $response;
     }
 
-    public function refund(TransactionContract $transaction, int $amount = 0, $notes = null): PaymentRefund
+    public function refund(Transaction $transaction, int $amount = 0, $notes = null): PaymentRefund
     {
         // Delegate to the shared RefundService: it calls the MoMo refund API,
         // records a `refund` Transaction, and updates the order.
@@ -57,7 +57,7 @@ class MoMoPayment extends AbstractPayment
         return new PaymentRefund($result->success, $result->message);
     }
 
-    public function capture(TransactionContract $transaction, $amount = 0): PaymentCapture
+    public function capture(Transaction $transaction, $amount = 0): PaymentCapture
     {
         return new PaymentCapture(true);
     }

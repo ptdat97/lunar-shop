@@ -2,7 +2,7 @@
 
 namespace Modules\Order\Services;
 
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 
 class OrderService
 {

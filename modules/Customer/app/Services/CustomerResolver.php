@@ -3,7 +3,7 @@
 namespace Modules\Customer\Services;
 
 use App\Models\User;
-use Lunar\Models\Customer;
+use Lunar\Core\Models\Customer;
 
 /**
  * Resolves the Lunar customer record for an authenticated user, creating and

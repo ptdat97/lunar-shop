@@ -3,9 +3,9 @@
 namespace Modules\Promotion\Services;
 
 use Illuminate\Support\Collection;
-use Lunar\Models\Cart;
-use Lunar\Models\Discount;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Cart;
+use Lunar\Core\Models\Discount;
+use Lunar\Core\Models\Product;
 use Modules\Catalog\Support\MediaThumbnails;
 
 /**

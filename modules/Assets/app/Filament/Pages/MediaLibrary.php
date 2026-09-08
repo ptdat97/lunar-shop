@@ -12,7 +12,7 @@ use Filament\Schemas\Schema;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\UploadedFile;
 use Livewire\WithFileUploads;
-use Lunar\Models\Asset;
+use Lunar\Core\Models\Asset;
 use Modules\Assets\Services\MediaLibraryService;
 
 /**

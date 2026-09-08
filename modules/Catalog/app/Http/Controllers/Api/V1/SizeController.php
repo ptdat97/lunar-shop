@@ -5,7 +5,7 @@ namespace Modules\Catalog\Http\Controllers\Api\V1;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 use Modules\Catalog\Http\Requests\SizeRecommendRequest;
 use Modules\Catalog\Services\FitHistoryService;
 use Modules\Catalog\Services\ProductService;

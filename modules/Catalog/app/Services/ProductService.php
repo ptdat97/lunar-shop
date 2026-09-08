@@ -4,7 +4,7 @@ namespace Modules\Catalog\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 use Modules\Assets\Services\MediaLibraryService;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Data\SearchQuery;

@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Catalog\Models\ProductSku;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;

@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\App;
-use Lunar\Models\Language;
+use Lunar\Core\Models\Language;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -32,10 +32,10 @@ class ProductTranslationTest extends TestCase
         ]);
 
         App::setLocale('en');
-        $this->assertSame('Linen Shirt', $product->translateAttribute('name'));
+        $this->assertSame('Linen Shirt', $product->translate('name'));
 
         App::setLocale('vi');
-        $this->assertSame('Áo sơ mi vải lanh', $product->translateAttribute('name'));
+        $this->assertSame('Áo sơ mi vải lanh', $product->translate('name'));
     }
 
     public function test_storefront_product_page_shows_vietnamese_name_when_locale_is_vi(): void

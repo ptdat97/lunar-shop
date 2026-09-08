@@ -6,8 +6,8 @@ use Filament\Pages\Page;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Number;
-use Lunar\Models\Currency;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Order;
 use Modules\Analytics\Services\AnalyticsService;
 
 /**

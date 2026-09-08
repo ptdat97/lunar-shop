@@ -4,11 +4,11 @@ namespace Modules\Checkout\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
-use Lunar\Facades\CartSession;
-use Lunar\Models\Cart;
-use Lunar\Models\CartLine;
-use Lunar\Models\Discount;
-use Lunar\Models\Product;
+use Lunar\Core\Facades\CartSession;
+use Lunar\Core\Models\Cart;
+use Lunar\Core\Models\CartLine;
+use Lunar\Core\Models\Discount;
+use Lunar\Core\Models\Product;
 use Modules\Catalog\Models\ProductSku;
 
 /**

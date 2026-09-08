@@ -4,10 +4,10 @@ namespace Tests\Feature;
 
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Event;
-use Lunar\Facades\CartSession;
-use Lunar\Facades\ShippingManifest;
-use Lunar\Models\Order;
-use Lunar\Models\Transaction;
+use Lunar\Core\Facades\CartSession;
+use Lunar\Core\Facades\ShippingManifest;
+use Lunar\Core\Models\Order;
+use Lunar\Core\Models\Transaction;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Checkout\Services\CheckoutService;
 use Modules\Checkout\Services\GatewayReconciler;
@@ -112,7 +112,7 @@ class PaymentHardeningTest extends TestCase
     public function test_overpaid_callback_still_marks_order_paid(): void
     {
         $order = $this->placeVNPayOrder();
-        $over = (string) (((int) $order->total->value) + 1000);
+        $over = (string) (((int) $order->total) + 1000);
 
         $result = VNPayPaymentProcessor::make()->reconcile(
             $this->signedCallback($order, ['vnp_Amount' => $over])

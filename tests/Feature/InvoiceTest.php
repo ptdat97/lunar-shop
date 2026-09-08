@@ -3,10 +3,10 @@
 namespace Tests\Feature;
 
 use App\Models\User;
-use Lunar\Models\Channel;
-use Lunar\Models\Currency;
-use Lunar\Models\Order;
-use Lunar\Models\OrderLine;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Order;
+use Lunar\Core\Models\OrderLine;
 use Modules\Customer\Services\CustomerResolver;
 use Modules\Order\Services\InvoiceService;
 use Tests\Concerns\CreatesStorefrontData;

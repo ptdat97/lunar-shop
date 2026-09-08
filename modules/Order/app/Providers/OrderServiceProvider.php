@@ -4,8 +4,8 @@ namespace Modules\Order\Providers;
 
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
-use Lunar\Events\PaymentAttemptEvent;
-use Lunar\Models\Order;
+use Lunar\Core\Events\PaymentAttemptEvent;
+use Lunar\Core\Models\Order;
 use Modules\Core\Support\AdminPages;
 use Modules\Order\Events\OrderPaid;
 use Modules\Order\Filament\Resources\ReturnRequestResource;

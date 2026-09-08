@@ -3,7 +3,7 @@
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Lunar\Base\Migration;
+use Lunar\Core\Database\Migration;
 
 /**
  * Per-variant columns for the marketplace-style variant builder (BeikeShop UI):

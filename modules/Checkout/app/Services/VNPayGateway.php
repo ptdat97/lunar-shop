@@ -5,7 +5,7 @@ namespace Modules\Checkout\Services;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Order;
 use Modules\Core\Support\Settings;
 
 /**
@@ -54,7 +54,7 @@ class VNPayGateway
         // VNPay expects amount × 100. Order totals are stored in the currency's
         // minor unit; convert to the major unit first, then apply VNPay's ×100.
         $decimals = $order->currency->decimal_places ?? 0;
-        $major = $order->total->value / (10 ** $decimals);
+        $major = $order->total / (10 ** $decimals);
         $amount = (int) round($major * 100);
 
         $params = [
@@ -138,7 +138,7 @@ class VNPayGateway
         $requestId = (string) Str::uuid();
         $createDate = Carbon::now()->format('YmdHis');
         // Full vs partial refund: 02 = full, 03 = partial.
-        $orderTotalMinor = (int) $order->total->value;
+        $orderTotalMinor = (int) $order->total;
         $transactionType = $amount >= $orderTotalMinor ? '02' : '03';
         $txnDate = (string) ($captureMeta['vnp_PayDate'] ?? $captureMeta['vnp_CreateDate'] ?? $createDate);
         $transactionNo = (string) ($captureMeta['vnp_TransactionNo'] ?? '');

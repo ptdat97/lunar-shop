@@ -4,7 +4,7 @@ namespace Modules\Catalog\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 
 /**
  * Fabric / care information for a product (shown alongside the size chart).

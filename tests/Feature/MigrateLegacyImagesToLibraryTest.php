@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Lunar\Models\Asset;
+use Lunar\Core\Models\Asset;
 use Modules\Content\Models\Banner;
 use Modules\Content\Models\Menu;
 use Modules\Content\Models\MenuItem;

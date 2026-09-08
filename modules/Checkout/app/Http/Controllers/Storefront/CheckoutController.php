@@ -6,7 +6,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Routing\Controller;
 use Illuminate\Validation\ValidationException;
-use Lunar\Facades\CartSession;
+use Lunar\Core\Facades\CartSession;
 use Modules\Checkout\Http\Requests\PlaceOrderRequest;
 use Modules\Checkout\Services\CheckoutService;
 use Modules\Customer\Services\CountryService;

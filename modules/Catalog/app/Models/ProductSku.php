@@ -6,12 +6,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
-use Lunar\Base\Purchasable;
-use Lunar\Base\Traits\HasPrices;
-use Lunar\Models\Asset;
-use Lunar\Models\Contracts\TaxClass as TaxClassContract;
-use Lunar\Models\Product;
-use Lunar\Models\TaxClass;
+use Lunar\Core\Contracts\Purchasable;
+use Lunar\Core\Models\Asset;
+use Lunar\Core\Models\Concerns\HasPrices;
+use Lunar\Core\Models\Product;
+use Lunar\Core\Models\TaxClass;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -74,7 +73,7 @@ class ProductSku extends Model implements Purchasable
 
     public function taxClass(): BelongsTo
     {
-        return $this->belongsTo(TaxClass::modelClass());
+        return $this->belongsTo(TaxClass::class);
     }
 
     // ---------------------------------------------------------------------
@@ -91,7 +90,7 @@ class ProductSku extends Model implements Purchasable
         return 1;
     }
 
-    public function getTaxClass(): TaxClassContract
+    public function getTaxClass(): \Lunar\Core\Models\Contracts\TaxClass
     {
         return $this->taxClass ?? TaxClass::getDefault();
     }
@@ -115,7 +114,7 @@ class ProductSku extends Model implements Purchasable
      */
     public function getDescription(): string
     {
-        return $this->product->translateAttribute('name');
+        return $this->product->translate('name');
     }
 
     /**

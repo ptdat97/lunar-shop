@@ -3,7 +3,7 @@
 namespace Modules\Shipping\Providers;
 
 use Illuminate\Support\ServiceProvider;
-use Lunar\Base\ShippingModifiers;
+use Lunar\Core\Modifiers\ShippingModifiers;
 use Modules\Core\Support\AdminPages;
 use Modules\Shipping\Filament\Pages\ShippingSettingsPage;
 use Modules\Shipping\Filament\Resources\ShippingZoneResource;

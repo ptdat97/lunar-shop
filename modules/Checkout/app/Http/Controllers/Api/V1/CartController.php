@@ -4,7 +4,7 @@ namespace Modules\Checkout\Http\Controllers\Api\V1;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Lunar\Models\Cart;
+use Lunar\Core\Models\Cart;
 use Modules\Checkout\Http\Resources\CartResource;
 use Modules\Checkout\Services\CartService;
 

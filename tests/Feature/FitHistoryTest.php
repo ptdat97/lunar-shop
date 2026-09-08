@@ -2,13 +2,13 @@
 
 namespace Tests\Feature;
 
-use Lunar\Models\Channel;
-use Lunar\Models\Currency;
-use Lunar\Models\Customer;
-use Lunar\Models\Order;
-use Lunar\Models\OrderLine;
-use Lunar\Models\Product;
-use Lunar\Models\TaxClass;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Customer;
+use Lunar\Core\Models\Order;
+use Lunar\Core\Models\OrderLine;
+use Lunar\Core\Models\Product;
+use Lunar\Core\Models\TaxClass;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Catalog\Services\FitHistoryService;
 use Modules\Order\Models\ReturnRequest;

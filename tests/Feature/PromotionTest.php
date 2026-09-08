@@ -3,12 +3,12 @@
 namespace Tests\Feature;
 
 use Illuminate\Validation\ValidationException;
-use Lunar\DiscountTypes\AmountOff;
-use Lunar\Models\Channel;
-use Lunar\Models\Collection;
-use Lunar\Models\Currency;
-use Lunar\Models\CustomerGroup;
-use Lunar\Models\Discount;
+use Lunar\Core\DiscountTypes\FixedAmountOff;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\Collection;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\CustomerGroup;
+use Lunar\Core\Models\Discount;
 use Modules\Checkout\Services\CartService;
 use Modules\Promotion\Database\Seeders\DemoCouponSeeder;
 use Modules\Promotion\Services\PromotionService;
@@ -29,7 +29,7 @@ class PromotionTest extends TestCase
             'name' => 'Fixed off',
             'handle' => strtolower($code),
             'coupon' => $code,
-            'type' => AmountOff::class,
+            'type' => FixedAmountOff::class,
             'starts_at' => now()->subDay(),
             'ends_at' => null,
             'uses' => 0,
@@ -37,8 +37,7 @@ class PromotionTest extends TestCase
             'priority' => 1,
             'stop' => false,
             'data' => [
-                'fixed_value' => true,
-                'fixed_values' => [Currency::getDefault()->code => $minor],
+                'amounts' => [Currency::getDefault()->code => $minor],
             ],
         ]);
 

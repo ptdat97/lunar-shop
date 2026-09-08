@@ -5,12 +5,8 @@ namespace Modules\Catalog\Providers;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
-use Lunar\Facades\ModelManifest;
-use Lunar\Models\Contracts\Attribute as AttributeContract;
-use Lunar\Models\Contracts\AttributeGroup as AttributeGroupContract;
-use Lunar\Models\Contracts\ProductOption as ProductOptionContract;
-use Lunar\Models\Contracts\ProductOptionValue as ProductOptionValueContract;
-use Lunar\Models\Product;
+use Lunar\Core\Facades\ModelManifest;
+use Lunar\Core\Models\Product;
 use Modules\Catalog\Console\Commands\MigrateVariantsToSkus;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Drivers\DatabaseSearchEngine;
@@ -45,7 +41,7 @@ class CatalogServiceProvider extends ServiceProvider
         // accessor (stored in meta) driving the storefront option picker and
         // the admin variant builder. Must run in register(), before anything
         // resolves ProductOption::modelClass().
-        ModelManifest::replace(ProductOptionContract::class, ProductOption::class);
+        ModelManifest::replace(\Lunar\Core\Models\Contracts\ProductOption::class, ProductOption::class);
 
         // These three carry nothing of our own — they exist only to apply
         // SkipsEmptyTranslations, which stops `translate()` handing back an empty
@@ -57,9 +53,9 @@ class CatalogServiceProvider extends ServiceProvider
         // is a translatable JSON column. Everything else keeps its names in
         // `attribute_data` and reads them via `translateAttribute()`, which already
         // skips blank values upstream.
-        ModelManifest::replace(ProductOptionValueContract::class, ProductOptionValue::class);
-        ModelManifest::replace(AttributeContract::class, Attribute::class);
-        ModelManifest::replace(AttributeGroupContract::class, AttributeGroup::class);
+        ModelManifest::replace(\Lunar\Core\Models\Contracts\ProductOptionValue::class, ProductOptionValue::class);
+        ModelManifest::replace(\Lunar\Core\Models\Contracts\Attribute::class, Attribute::class);
+        ModelManifest::replace(\Lunar\Core\Models\Contracts\AttributeGroup::class, AttributeGroup::class);
 
         // Scoped (per request, Octane-safe): holds per-request memos of matched
         // prices and the currency map used to prime price->currency.

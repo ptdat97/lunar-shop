@@ -4,7 +4,7 @@ namespace Modules\Content\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Product;
 
 class LookbookItem extends Model
 {

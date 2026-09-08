@@ -3,8 +3,8 @@
 namespace Modules\Catalog\Services;
 
 use Illuminate\Support\Facades\DB;
-use Lunar\Models\Customer;
-use Lunar\Models\Product;
+use Lunar\Core\Models\Customer;
+use Lunar\Core\Models\Product;
 use Modules\Order\Support\OrderStatus;
 use Modules\Order\Support\ReturnStatus;
 

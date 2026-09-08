@@ -2,8 +2,8 @@
 
 namespace Modules\Shipping\Services;
 
-use Lunar\Models\Cart;
-use Lunar\Models\Country;
+use Lunar\Core\Models\Cart;
+use Lunar\Core\Models\Country;
 use Modules\Core\Support\Settings;
 use Modules\Shipping\Models\ShippingZone;
 

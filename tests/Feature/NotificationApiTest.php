@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use Lunar\Models\Channel;
-use Lunar\Models\Currency;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Order;
 use Modules\Notification\Models\DeviceToken;
 use Modules\Notification\Notifications\OrderStatusChanged;
 use Tests\Concerns\CreatesStorefrontData;

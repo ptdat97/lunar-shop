@@ -2,8 +2,8 @@
 
 namespace Tests\Feature;
 
-use Lunar\Models\Country;
-use Lunar\Models\Order;
+use Lunar\Core\Models\Country;
+use Lunar\Core\Models\Order;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 

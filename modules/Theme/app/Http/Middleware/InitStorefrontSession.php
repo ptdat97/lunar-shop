@@ -4,7 +4,7 @@ namespace Modules\Theme\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
-use Lunar\Facades\StorefrontSession;
+use Lunar\Core\Facades\StorefrontSession;
 
 /**
  * Initialise Lunar's storefront session (channel + customer groups) so pricing,

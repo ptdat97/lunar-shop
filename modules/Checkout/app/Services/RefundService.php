@@ -4,8 +4,8 @@ namespace Modules\Checkout\Services;
 
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
-use Lunar\Models\Order;
-use Lunar\Models\Transaction;
+use Lunar\Core\Models\Order;
+use Lunar\Core\Models\Transaction;
 use Modules\Checkout\Data\RefundResult;
 
 /**
@@ -31,7 +31,7 @@ class RefundService
 
         $driver = $capture->driver; // 'vnpay' | 'momo'
         $alreadyRefunded = $this->refundedTotal($order);
-        $capturedAmount = (int) $capture->amount->value; // Price cast → minor units
+        $capturedAmount = (int) $capture->amount; // Price cast → minor units
         $remaining = max(0, $capturedAmount - $alreadyRefunded);
 
         $amount ??= $remaining;
@@ -115,6 +115,6 @@ class RefundService
     {
         $capture = $this->captureTransaction($order);
 
-        return $capture !== null && $this->refundedTotal($order) < (int) $capture->amount->value;
+        return $capture !== null && $this->refundedTotal($order) < (int) $capture->amount;
     }
 }

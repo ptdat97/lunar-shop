@@ -2,7 +2,6 @@
 
 namespace Modules\Catalog\Models;
 
-use Lunar\Models\ProductOptionValue as BaseProductOptionValue;
 use Modules\Core\Support\Concerns\SkipsEmptyTranslations;
 
 /**
@@ -13,7 +12,7 @@ use Modules\Core\Support\Concerns\SkipsEmptyTranslations;
  * `translate()` — the method that returns an empty string when the current
  * locale's key exists but is blank.
  */
-class ProductOptionValue extends BaseProductOptionValue
+class ProductOptionValue extends \Lunar\Core\Models\ProductOptionValue
 {
     use SkipsEmptyTranslations;
 }
