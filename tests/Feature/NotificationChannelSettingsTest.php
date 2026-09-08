@@ -3,7 +3,6 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Http;
-use Livewire\Livewire;
 use Lunar\Core\Models\Channel;
 use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Order;
@@ -13,10 +12,8 @@ use Modules\Core\Support\Settings;
 use Modules\Notification\Contracts\SmsSender;
 use Modules\Notification\Data\SmsMessage;
 use Modules\Notification\Drivers\HttpSmsSender;
-use Modules\Notification\Filament\Pages\NotificationSettingsPage;
 use Modules\Notification\Services\OrderSmsNotifier;
 use Modules\Notification\Support\MailSettings;
-use Modules\Notification\Support\PushSettings;
 use Modules\Notification\Support\SmsSettings;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
@@ -105,28 +102,6 @@ class NotificationChannelSettingsTest extends TestCase
         MailSettings::apply();
 
         $this->assertSame('env-host.test', config('mail.mailers.smtp.host'));
-    }
-
-    public function test_saving_the_form_blank_keeps_the_stored_password(): void
-    {
-        $this->actingAsAdmin();
-
-        app(Settings::class)->put('notification', [
-            'mail_override' => true,
-            'mail' => ['host' => 'smtp.shop.test', 'password' => 'original-secret'],
-        ]);
-
-        // Re-saving without retyping the password is the common case: the form
-        // renders secrets blank so they never round-trip through the browser.
-        Livewire::test(NotificationSettingsPage::class)
-            ->fillForm([
-                'mail_override' => true,
-                'mail' => ['host' => 'smtp.shop.test', 'password' => ''],
-            ])
-            ->call('save')
-            ->assertHasNoFormErrors();
-
-        $this->assertSame('original-secret', app(Settings::class)->get('notification.mail.password'));
     }
 
     // ── SMS ─────────────────────────────────────────────────────────────────
@@ -330,42 +305,6 @@ class NotificationChannelSettingsTest extends TestCase
 
     // ── The admin page ──────────────────────────────────────────────────────
 
-    public function test_the_admin_page_saves_the_sms_gateway(): void
-    {
-        $this->actingAsAdmin();
-
-        Livewire::test(NotificationSettingsPage::class)
-            ->fillForm([
-                'sms_enabled' => true,
-                'sms_events' => ['dispatched', 'completed'],
-                'sms' => [
-                    'endpoint' => 'https://gw.test/send',
-                    'api_key' => 'key-123',
-                    'auth' => 'body',
-                ],
-            ])
-            ->call('save')
-            ->assertHasNoFormErrors();
-
-        $this->assertTrue(SmsSettings::enabled());
-        $this->assertSame(['dispatched', 'completed'], SmsSettings::events());
-        $this->assertSame('key-123', SmsSettings::gateway()['api_key']);
-    }
-
-    public function test_saving_the_notification_page_leaves_push_untouched(): void
-    {
-        $this->actingAsAdmin();
-
-        // One Settings group holds push, mail and SMS, and put() replaces the
-        // whole group — a page that forgot a key would silently reset it.
-        Livewire::test(NotificationSettingsPage::class)
-            ->fillForm(['push_enabled' => true, 'sms_enabled' => true, 'sms' => [
-                'endpoint' => 'https://gw.test/send', 'api_key' => 'k',
-            ]])
-            ->call('save');
-
-        $this->assertTrue(PushSettings::enabled());
-    }
 }
 
 /**

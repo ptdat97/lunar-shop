@@ -7,10 +7,8 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Core\Facades\Discounts;
 use Modules\Content\Services\SectionRenderer;
-use Modules\Core\Support\AdminPages;
 use Modules\Order\Events\OrderPaid;
 use Modules\Promotion\Console\BackfillMembershipTiers;
-use Modules\Promotion\Filament\Pages\MembershipSettingsPage;
 use Modules\Promotion\Http\Resources\PromotionResource;
 use Modules\Promotion\Services\MembershipService;
 use Modules\Promotion\Services\PromotionService;
@@ -28,9 +26,6 @@ class PromotionServiceProvider extends ServiceProvider
         // discounts + their eager-loaded relations) is shared across the many
         // saleFor() calls product cards trigger on a listing page.
         $this->app->singleton(PromotionService::class);
-
-        // Admin page to configure spend-based membership tiers.
-        AdminPages::add(MembershipSettingsPage::class);
     }
 
     /**
@@ -143,7 +138,7 @@ class PromotionServiceProvider extends ServiceProvider
 
     /**
      * Register fashion-specific discount types with Lunar's DiscountManager so
-     * they show up in the Filament admin and run in the cart pipeline alongside
+     * they show up in the admin and run in the cart pipeline alongside
      * the native AmountOff / BuyXGetY types.
      */
     protected function registerDiscountTypes(): void

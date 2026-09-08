@@ -6,14 +6,12 @@ use Illuminate\Support\ServiceProvider;
 use Lunar\Core\Contracts\CartSession;
 use Lunar\Core\Facades\Payments;
 use Lunar\Core\Managers\CartSessionManager;
-use Modules\Checkout\Filament\Pages\PaymentSettingsPage;
 use Modules\Checkout\PaymentTypes\MoMoPayment;
 use Modules\Checkout\PaymentTypes\VNPayPayment;
 use Modules\Checkout\Services\CartService;
 use Modules\Checkout\Services\MoMoGateway;
 use Modules\Checkout\Services\TokenAwareCartSession;
 use Modules\Checkout\Services\VNPayGateway;
-use Modules\Core\Support\AdminPages;
 use Modules\Core\Support\LunarConfigOverride;
 
 class CheckoutServiceProvider extends ServiceProvider
@@ -29,9 +27,6 @@ class CheckoutServiceProvider extends ServiceProvider
         // Resolve the VNPay + MoMo gateways from config so controllers can inject them.
         $this->app->bind(VNPayGateway::class, fn () => VNPayGateway::fromConfig());
         $this->app->bind(MoMoGateway::class, fn () => MoMoGateway::fromConfig());
-
-        // Admin page to configure gateway keys (VNPay + MoMo) without editing .env.
-        AdminPages::add(PaymentSettingsPage::class);
     }
 
     /**

@@ -6,7 +6,7 @@ use Closure;
 use Lunar\Core\DataTypes\Price;
 use Lunar\Core\DataTypes\ShippingOption;
 use Lunar\Core\Facades\ShippingManifest;
-use Lunar\Core\Models\Contracts\Cart;
+use Lunar\Core\Models\Cart;
 use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\TaxClass;
 use Lunar\Core\Modifiers\ShippingModifier;

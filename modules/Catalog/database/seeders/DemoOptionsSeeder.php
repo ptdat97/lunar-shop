@@ -3,6 +3,7 @@
 namespace Modules\Catalog\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Lunar\Core\Enums\ProductOptionType;
 use Lunar\Core\Models\ProductOption;
 use Lunar\Core\Models\ProductOptionValue;
 use Lunar\Core\Models\ProductVariant;
@@ -16,7 +17,7 @@ class DemoOptionsSeeder extends Seeder
     public function run(): void
     {
         $size = $this->option('Size', ['S', 'M', 'L', 'XL']);
-        $color = $this->option('Color', ['Black', 'White', 'Beige', 'Gray'], displayType: 'color');
+        $color = $this->option('Color', ['Black', 'White', 'Beige', 'Gray'], type: ProductOptionType::Colour);
 
         $sizeValues = $size->values()->get()->values();
         $colorValues = $color->values()->get()->values();
@@ -37,7 +38,7 @@ class DemoOptionsSeeder extends Seeder
      *
      * @param  array<int, string>  $values
      */
-    protected function option(string $name, array $values, string $displayType = 'text'): ProductOption
+    protected function option(string $name, array $values, ProductOptionType $type = ProductOptionType::Text): ProductOption
     {
         $option = ProductOption::query()
             ->whereJsonContains('name->en', $name)
@@ -47,12 +48,12 @@ class DemoOptionsSeeder extends Seeder
                 'label' => ['en' => $name],
                 'handle' => strtolower($name),
                 'shared' => true,
-                'display_type' => $displayType,
+                'type' => $type->value,
             ]);
 
-        if (! $option->shared || $option->display_type !== $displayType) {
+        if (! $option->shared || $option->type !== $type->value) {
             $option->shared = true;
-            $option->display_type = $displayType;
+            $option->type = $type->value;
             $option->save();
         }
 

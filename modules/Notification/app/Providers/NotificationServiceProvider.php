@@ -4,12 +4,10 @@ namespace Modules\Notification\Providers;
 
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
-use Modules\Core\Support\AdminPages;
 use Modules\Notification\Contracts\PushSender;
 use Modules\Notification\Contracts\SmsSender;
 use Modules\Notification\Drivers\NullPushSender;
 use Modules\Notification\Drivers\NullSmsSender;
-use Modules\Notification\Filament\Pages\NotificationSettingsPage;
 use Modules\Notification\Listeners\SendOrderStatusNotification;
 use Modules\Notification\Listeners\SendOrderStatusSms;
 use Modules\Notification\Support\MailSettings;
@@ -34,8 +32,6 @@ class NotificationServiceProvider extends ServiceProvider
 
             return $app->make(config("notification.sms.drivers.{$driver}", NullSmsSender::class));
         });
-
-        AdminPages::add(NotificationSettingsPage::class);
     }
 
     public function boot(): void

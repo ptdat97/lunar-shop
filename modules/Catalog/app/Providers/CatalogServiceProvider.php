@@ -5,25 +5,22 @@ namespace Modules\Catalog\Providers;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
-use Lunar\Core\Facades\ModelManifest;
+use Lunar\Core\Models\Brand;
+use Lunar\Core\Models\Collection as LunarCollection;
 use Lunar\Core\Models\Product;
+use Lunar\Core\Models\ProductOption;
+use Lunar\Core\Models\ProductOptionValue;
 use Modules\Catalog\Console\Commands\MigrateVariantsToSkus;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Drivers\DatabaseSearchEngine;
-use Modules\Catalog\Filament\Pages\CatalogSettingsPage;
-use Modules\Catalog\Filament\Resources\SizeChartResource;
-use Modules\Catalog\Models\Attribute;
-use Modules\Catalog\Models\AttributeGroup;
 use Modules\Catalog\Models\ProductMaterial;
-use Modules\Catalog\Models\ProductOption;
-use Modules\Catalog\Models\ProductOptionValue;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Catalog\Models\SizeChart;
 use Modules\Catalog\Services\PricingService;
 use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Services\RecommendationService;
 use Modules\Catalog\Services\ReviewService;
-use Modules\Core\Support\AdminPages;
+use Modules\Core\Casts\FilledTranslations;
 use Modules\Core\Support\LunarConfigOverride;
 use Modules\Core\Support\Settings;
 
@@ -37,25 +34,7 @@ class CatalogServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(base_path('config/review.php'), 'review');
         $this->mergeConfigFrom(base_path('config/recommend.php'), 'recommend');
 
-        // Swap Lunar's ProductOption for ours, which adds the `display_type`
-        // accessor (stored in meta) driving the storefront option picker and
-        // the admin variant builder. Must run in register(), before anything
-        // resolves ProductOption::modelClass().
-        ModelManifest::replace(\Lunar\Core\Models\Contracts\ProductOption::class, ProductOption::class);
-
-        // These three carry nothing of our own — they exist only to apply
-        // SkipsEmptyTranslations, which stops `translate()` handing back an empty
-        // string when the current locale's key is present but blank. That fix used
-        // to be a composer patch on lunarphp/core; doing it here keeps us on the
-        // documented extension ladder and off the bottom rung (docs/README.md §1).
-        //
-        // These four are the whole surface: they are the only models whose `name`
-        // is a translatable JSON column. Everything else keeps its names in
-        // `attribute_data` and reads them via `translateAttribute()`, which already
-        // skips blank values upstream.
-        ModelManifest::replace(\Lunar\Core\Models\Contracts\ProductOptionValue::class, ProductOptionValue::class);
-        ModelManifest::replace(\Lunar\Core\Models\Contracts\Attribute::class, Attribute::class);
-        ModelManifest::replace(\Lunar\Core\Models\Contracts\AttributeGroup::class, AttributeGroup::class);
+        $this->guardEmptyTranslations();
 
         // Scoped (per request, Octane-safe): holds per-request memos of matched
         // prices and the currency map used to prime price->currency.
@@ -82,15 +61,6 @@ class CatalogServiceProvider extends ServiceProvider
                 cacheTtl: (int) app(Settings::class)->get('recommend.cache_ttl', 3600),
             );
         });
-
-        // Standalone Size Charts resource (Catalog group). Registered here
-        // because ModulesServiceProvider collects resources during register().
-        AdminPages::addResource(
-            SizeChartResource::class,
-        );
-
-        // Catalog settings page (recommendation limits + review moderation).
-        AdminPages::add(CatalogSettingsPage::class);
     }
 
     /**
@@ -119,6 +89,62 @@ class CatalogServiceProvider extends ServiceProvider
                 MigrateVariantsToSkus::class,
             ]);
         }
+    }
+
+    /**
+     * Stop `translate()` handing back an empty string when the current locale's
+     * key is present but blank.
+     *
+     * Lunar 1.x let us fix this by swapping the model — a `translate()` override
+     * carried by four subclasses registered through `ModelManifest::replace()`.
+     * **2.0 removed model replacement**: core names `ProductOptionValue::class`
+     * and friends directly, and `ModelManifest` is now only route bindings plus
+     * the morph map. `Base::addCasts()` (`HasExtendableCasts`) is the seam that
+     * replaced it, so the fix moved from the read method down to the column —
+     * strip blank locales as the JSON is decoded and upstream's `translate()`
+     * is correct as written, because "key exists but is empty" cannot happen.
+     *
+     * The surface moved with 2.0 in both directions:
+     *  - GONE: `lunar_attributes.name` / `lunar_attribute_groups.name` are plain
+     *    `string` columns now, so those two subclasses had nothing left to do.
+     *  - NEW: spec 0018 promoted `name` / `description` / `short_description`
+     *    out of `attribute_data` into real JSON columns on products,
+     *    collections and brands — read through `translate()`, so they are now
+     *    exposed to the same bug and are covered here.
+     *
+     * Match the container each model already declared (`AsCollection` vs
+     * `AsArrayObject`): admin forms and `toArray()` can tell the difference.
+     */
+    protected function guardEmptyTranslations(): void
+    {
+        $collection = FilledTranslations::asCollection();
+        $arrayObject = FilledTranslations::asArrayObject();
+
+        Product::addCasts([
+            'name' => $collection,
+            'description' => $collection,
+            'short_description' => $collection,
+        ]);
+
+        LunarCollection::addCasts([
+            'name' => $collection,
+            'description' => $collection,
+            'short_description' => $collection,
+        ]);
+
+        Brand::addCasts([
+            'description' => $collection,
+            'short_description' => $collection,
+        ]);
+
+        ProductOption::addCasts([
+            'name' => $arrayObject,
+            'label' => $arrayObject,
+        ]);
+
+        ProductOptionValue::addCasts([
+            'name' => $arrayObject,
+        ]);
     }
 
     /**

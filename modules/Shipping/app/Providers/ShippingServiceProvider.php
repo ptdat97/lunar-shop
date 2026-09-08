@@ -4,9 +4,6 @@ namespace Modules\Shipping\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Lunar\Core\Modifiers\ShippingModifiers;
-use Modules\Core\Support\AdminPages;
-use Modules\Shipping\Filament\Pages\ShippingSettingsPage;
-use Modules\Shipping\Filament\Resources\ShippingZoneResource;
 use Modules\Shipping\Modifiers\FlatRateShippingModifier;
 use Modules\Shipping\Modifiers\PickupShippingModifier;
 
@@ -18,9 +15,6 @@ class ShippingServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(base_path('config/shipping.php'), 'shipping');
-
-        AdminPages::addResource(ShippingZoneResource::class);
-        AdminPages::add(ShippingSettingsPage::class);
     }
 
     /**

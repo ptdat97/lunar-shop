@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Product;
-use Modules\Assets\Filament\Forms\MediaPicker;
 use Modules\Catalog\Models\ProductSku;
 
 /**
@@ -29,12 +28,11 @@ use Modules\Catalog\Models\ProductSku;
  * `price` column down to a base Price row so the engine and the admin cache
  * never drift.
  *
- * Image fields (variable image-swatches, SKU `images`) are picked from the
- * shared Media Library (modules/Assets) via {@see MediaPicker}
- * — the form already posts Lunar Asset ids, so this service persists them
- * as-is. There is no upload/ingest step here: MediaPicker never lets an admin
- * upload a file outside the library, so every image reference is guaranteed
- * to already be a library Asset.
+ * Image fields (variable image-swatches, SKU `images`) hold Lunar Asset ids
+ * picked from the shared Media Library (modules/Assets), so this service
+ * persists them as-is. There is no upload/ingest step here: the admin picker
+ * never lets a file be uploaded outside the library, so every image reference
+ * is guaranteed to already be a library Asset.
  */
 class SkuBuilderService
 {

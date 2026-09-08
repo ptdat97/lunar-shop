@@ -19,19 +19,17 @@
         "ext-simplexml": "*",
         "ext-zip": "*",
         "barryvdh/laravel-dompdf": "^3.1",
-        "filament/filament": "^4.1",
-        "filament/spatie-laravel-media-library-plugin": "^4.0",
         "laravel/framework": "^12.0",
         "laravel/horizon": "^5.47",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
-        "lunarphp/lunar": "^1.5",
+        "lunarphp/core": "2.0.0-alpha.6",
+        "lunarphp/panel": "2.0.0-alpha.6",
         "nwidart/laravel-modules": "^13.0",
         "spatie/laravel-medialibrary": "^11.12.7"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",
-        "filament/upgrade": "^4.0",
         "fruitcake/laravel-debugbar": "^4.3",
         "laravel/dusk": "^8.6",
         "laravel/pail": "^1.2.2",
@@ -77,8 +75,7 @@
         ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-            "@php artisan package:discover --ansi",
-            "@php artisan filament:upgrade"
+            "@php artisan package:discover --ansi"
         ],
         "post-update-cmd": [
             "@php artisan vendor:publish --tag=laravel-assets --ansi --force"

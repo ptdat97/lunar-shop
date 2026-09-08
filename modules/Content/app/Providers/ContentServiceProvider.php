@@ -10,15 +10,8 @@ use Modules\Assets\Services\MediaUrl;
 use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Http\Resources\ProductResource;
 use Modules\Catalog\Services\ProductService;
-use Modules\Content\Filament\Resources\BannerResource;
-use Modules\Content\Filament\Resources\LookbookResource;
-use Modules\Content\Filament\Resources\MenuResource;
-use Modules\Content\Filament\Resources\PageResource;
-use Modules\Content\Filament\Resources\PageSectionResource;
-use Modules\Content\Filament\Resources\RedirectResource;
 use Modules\Content\Services\MenuRenderer;
 use Modules\Content\Services\SectionRenderer;
-use Modules\Core\Support\AdminPages;
 use Modules\Promotion\Http\Resources\PromotionResource;
 use Modules\Promotion\Services\PromotionService;
 
@@ -39,18 +32,6 @@ class ContentServiceProvider extends ServiceProvider
         // MenuRenderer is pure per-request memo state (loaded menu trees + the
         // shared linked-collection map), so scoped is the correct lifetime.
         $this->app->scoped(MenuRenderer::class);
-
-        // Register Content Filament resources into Lunar's admin panel.
-        // Must be in register() because ModulesServiceProvider collects
-        // resources in register() after all module providers have registered.
-        AdminPages::addResource(
-            PageResource::class,
-            BannerResource::class,
-            LookbookResource::class,
-            RedirectResource::class,
-            PageSectionResource::class,
-            MenuResource::class,
-        );
     }
 
     /**
@@ -172,7 +153,7 @@ class ContentServiceProvider extends ServiceProvider
         });
 
         // product-tabs → per-tab products. Each tab has an editable label and its
-        // own hand-picked product_ids (PageSectionResource). We load every
+        // own hand-picked product_ids (the page-section editor). We load every
         // referenced product ONCE (de-duped across tabs, N+1-free) then map each
         // tab to its products in the chosen order. A tab with no selection falls
         // back to the newest products so a freshly added tab still shows something.

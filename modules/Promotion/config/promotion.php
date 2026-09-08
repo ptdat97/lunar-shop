@@ -11,8 +11,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | Fashion-specific discount types built on top of Lunar's discount engine.
-    | Registered with Lunar's DiscountManager so they appear in the Filament
-    | admin and are applied by the cart pipeline like the native types.
+    | Registered with Lunar's DiscountManager so they appear in the admin
+    | and are applied by the cart pipeline like the native types.
     |
     */
     'discount_types' => [

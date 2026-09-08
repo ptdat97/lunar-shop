@@ -6,7 +6,7 @@ use Lunar\Core\DataObjects\PaymentAuthorize;
 use Lunar\Core\DataObjects\PaymentCapture;
 use Lunar\Core\DataObjects\PaymentRefund;
 use Lunar\Core\Events\PaymentAttemptEvent;
-use Lunar\Core\Models\Contracts\Transaction;
+use Lunar\Core\Models\Transaction;
 use Lunar\Core\PaymentTypes\AbstractPayment;
 use Modules\Checkout\Services\RefundService;
 

@@ -4,21 +4,17 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Notification as NotificationFacade;
-use Livewire\Livewire;
 use Lunar\Core\Models\Channel;
 use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Order;
 use Lunar\Core\Models\OrderAddress;
-use Lunar\Core\Models\Staff;
 use Modules\Core\Support\Settings;
 use Modules\Notification\Channels\PushChannel;
 use Modules\Notification\Contracts\PushSender;
 use Modules\Notification\Data\PushMessage;
 use Modules\Notification\Drivers\NullPushSender;
-use Modules\Notification\Filament\Pages\NotificationSettingsPage;
 use Modules\Notification\Models\DeviceToken;
 use Modules\Notification\Notifications\OrderStatusChanged;
-use Modules\Notification\Support\PushSettings;
 use Modules\Order\Mail\OrderStatusUpdatedMail;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
@@ -208,19 +204,6 @@ class NotificationTest extends TestCase
         // And the inbox still records it.
         $user->notify($notification);
         $this->assertSame(1, $user->notifications()->count());
-    }
-
-    public function test_the_admin_page_toggles_push(): void
-    {
-        $staff = Staff::factory()->create(['admin' => true]);
-        $this->actingAs($staff, 'staff');
-
-        Livewire::test(NotificationSettingsPage::class)
-            ->fillForm(['push_enabled' => false])
-            ->call('save')
-            ->assertHasNoFormErrors();
-
-        $this->assertFalse(PushSettings::enabled());
     }
 
     public function test_push_is_on_by_default(): void

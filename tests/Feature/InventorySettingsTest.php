@@ -3,15 +3,12 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Artisan;
-use Livewire\Livewire;
 use Lunar\Core\Facades\CartSession;
 use Lunar\Core\Facades\ShippingManifest;
 use Lunar\Core\Models\Order;
-use Lunar\Core\Models\Staff;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Checkout\Services\CheckoutService;
 use Modules\Core\Support\Settings;
-use Modules\Inventory\Filament\Pages\InventorySettingsPage;
 use Modules\Inventory\Services\InventoryService;
 use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
@@ -100,34 +97,4 @@ class InventorySettingsTest extends TestCase
         );
     }
 
-    /**
-     * `Settings::put()` replaces the whole group, so a page that saves only the
-     * field it changed silently nulls its siblings. Measured: saving just
-     * `hold_minutes` left `low_stock_threshold` as NULL.
-     */
-    public function test_the_admin_page_saves_every_field_it_owns(): void
-    {
-        $staff = Staff::factory()->create(['admin' => true]);
-        $this->actingAs($staff, 'staff');
-
-        Livewire::test(InventorySettingsPage::class)
-            ->fillForm(['low_stock_threshold' => 9, 'hold_minutes' => 25])
-            ->call('save')
-            ->assertHasNoFormErrors();
-
-        $settings = app(Settings::class);
-        $this->assertSame(9, (int) $settings->get('inventory.low_stock_threshold'));
-        $this->assertSame(25, (int) $settings->get('inventory.hold_minutes'));
-    }
-
-    public function test_the_admin_page_rejects_a_hold_window_below_the_floor(): void
-    {
-        $staff = Staff::factory()->create(['admin' => true]);
-        $this->actingAs($staff, 'staff');
-
-        Livewire::test(InventorySettingsPage::class)
-            ->fillForm(['low_stock_threshold' => 5, 'hold_minutes' => 1])
-            ->call('save')
-            ->assertHasFormErrors(['hold_minutes']);
-    }
 }

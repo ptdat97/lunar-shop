@@ -2,7 +2,7 @@
 
 namespace Modules\Inventory\Observers;
 
-use Filament\Facades\Filament;
+use Illuminate\Support\Facades\Auth;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Enums\StockMovementType;
 use Modules\Inventory\Services\BackInStockNotifier;
@@ -43,7 +43,7 @@ class ProductSkuObserver
             delta: $current - $previous,
             before: $previous,
             after: $current,
-            causer: Filament::auth()->user(),
+            causer: Auth::guard(config('lunar.staff.guard', 'staff'))->user(),
         );
 
         if ($previous <= 0 && $current > 0) {

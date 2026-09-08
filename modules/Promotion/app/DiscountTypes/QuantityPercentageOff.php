@@ -8,7 +8,7 @@ use Lunar\Core\DiscountTypes\AbstractDiscountType;
 use Lunar\Core\DiscountTypes\BuyXGetY;
 use Lunar\Core\DiscountTypes\PercentageOff;
 use Lunar\Core\Models\CartLine;
-use Lunar\Core\Models\Contracts\Cart;
+use Lunar\Core\Models\Cart;
 use Lunar\Core\Models\Product;
 use Lunar\Core\ValueObjects\Cart\DiscountBreakdown;
 use Lunar\Core\ValueObjects\Cart\DiscountBreakdownLine;

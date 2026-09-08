@@ -162,7 +162,7 @@ class TokenAwareCartSession extends CartSessionManager
      * when there is one. The parent's `createNewCart()` reads the wrong guard,
      * so it would leave `user_id` null for a signed-in app.
      */
-    protected function createNewCart(): \Lunar\Core\Models\Contracts\Cart
+    protected function createNewCart(): \Lunar\Core\Models\Cart
     {
         if (! $this->isStateless()) {
             return parent::createNewCart();
@@ -185,7 +185,7 @@ class TokenAwareCartSession extends CartSessionManager
      * Remember the cart. Writing the session key is pointless (and pollutes the
      * storefront session) for a stateless request.
      */
-    public function use(\Lunar\Core\Models\Contracts\Cart $cart): \Lunar\Core\Models\Contracts\Cart
+    public function use(\Lunar\Core\Models\Cart $cart): \Lunar\Core\Models\Cart
     {
         if (! $this->isStateless()) {
             return parent::use($cart);

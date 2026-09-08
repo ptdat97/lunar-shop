@@ -6,9 +6,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Core\Events\PaymentAttemptEvent;
 use Lunar\Core\Models\Order;
-use Modules\Core\Support\AdminPages;
 use Modules\Order\Events\OrderPaid;
-use Modules\Order\Filament\Resources\ReturnRequestResource;
 use Modules\Order\Listeners\DispatchOrderPaidForOfflineOrder;
 use Modules\Order\Listeners\SendOrderConfirmation;
 use Modules\Order\Listeners\SendOrderPaidEmail;
@@ -21,8 +19,6 @@ class OrderServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Admin resource for customer return (RMA) requests (Sales group).
-        AdminPages::addResource(ReturnRequestResource::class);
     }
 
     /**

@@ -4,10 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Carbon;
 use Laravel\Sanctum\PersonalAccessToken;
-use Livewire\Livewire;
-use Lunar\Core\Models\Staff;
 use Modules\Core\Support\Settings;
-use Modules\Customer\Filament\Pages\CustomerSettingsPage;
 use Modules\Customer\Services\TokenIssuer;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
@@ -111,30 +108,6 @@ class TokenPolicyTest extends TestCase
             (int) config('customer.ttl_days'),
             app(TokenIssuer::class)->ttlDays(),
         );
-    }
-
-    public function test_the_admin_page_saves_the_ttl(): void
-    {
-        $staff = Staff::factory()->create(['admin' => true]);
-        $this->actingAs($staff, 'staff');
-
-        Livewire::test(CustomerSettingsPage::class)
-            ->fillForm(['ttl_days' => 14])
-            ->call('save')
-            ->assertHasNoFormErrors();
-
-        $this->assertSame(14, app(TokenIssuer::class)->ttlDays());
-    }
-
-    /** Abilities are a security scope; the page must not expose them. */
-    public function test_the_admin_page_does_not_expose_token_abilities(): void
-    {
-        $staff = Staff::factory()->create(['admin' => true]);
-        $this->actingAs($staff, 'staff');
-
-        Livewire::test(CustomerSettingsPage::class)
-            ->assertFormFieldExists('ttl_days')
-            ->assertFormFieldDoesNotExist('abilities');
     }
 
     public function test_sanctums_global_expiration_stays_off(): void

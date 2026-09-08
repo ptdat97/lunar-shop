@@ -7,15 +7,11 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Horizon\Horizon;
 use Modules\Assets\Console\Commands\MigrateLegacyImagesToLibrary;
-use Modules\Assets\Filament\Pages\MediaImageSizes;
-use Modules\Assets\Filament\Pages\MediaLibrary;
-use Modules\Assets\Filament\Pages\QueueWorkers;
 use Modules\Assets\Services\ConversionGenerator;
 use Modules\Assets\Services\HorizonSettings;
 use Modules\Assets\Services\MediaLibraryService;
 use Modules\Assets\Services\MediaSettings;
 use Modules\Assets\Services\MediaUrl;
-use Modules\Core\Support\AdminPages;
 use Modules\Core\Support\LunarConfigOverride;
 use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
 
@@ -26,11 +22,6 @@ class AssetsServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Contribute the image-sizes + media-library pages to Lunar's admin panel.
-        AdminPages::add(MediaImageSizes::class);
-        AdminPages::add(MediaLibrary::class);
-        AdminPages::add(QueueWorkers::class);
-
         // One instance per request (scoped, so Octane-safe) so their in-object
         // memos — image sizes, conversion names, exists flags, resolved URLs —
         // hold across every view composer and API resource in the request. A

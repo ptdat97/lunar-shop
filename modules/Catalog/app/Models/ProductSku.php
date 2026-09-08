@@ -90,7 +90,7 @@ class ProductSku extends Model implements Purchasable
         return 1;
     }
 
-    public function getTaxClass(): \Lunar\Core\Models\Contracts\TaxClass
+    public function getTaxClass(): \Lunar\Core\Models\TaxClass
     {
         return $this->taxClass ?? TaxClass::getDefault();
     }
@@ -239,6 +239,20 @@ class ProductSku extends Model implements Purchasable
     public function isShippable(): bool
     {
         return true;
+    }
+
+    /**
+     * Added to the Purchasable contract in 2.0 to split "goes in a parcel" from
+     * "somebody has to hand it over": a digital good needing provisioning is
+     * not shippable but still requires fulfilment.
+     *
+     * The shop sells clothing only — every SKU is a physical item — so this
+     * tracks isShippable() exactly, which is also the invariant the contract
+     * states (`isShippable() implies requiresFulfilment()`).
+     */
+    public function requiresFulfilment(): bool
+    {
+        return $this->isShippable();
     }
 
     /**

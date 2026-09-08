@@ -5,12 +5,8 @@ namespace Modules\Inventory\Providers;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Modules\Catalog\Models\ProductSku;
-use Modules\Core\Support\AdminPages;
 use Modules\Core\Support\LunarConfigOverride;
 use Modules\Inventory\Console\ExpireAbandonedOrders;
-use Modules\Inventory\Filament\Pages\InventorySettingsPage;
-use Modules\Inventory\Filament\Pages\StockNotificationsPage;
-use Modules\Inventory\Filament\Pages\StockOverview;
 use Modules\Inventory\Listeners\ReleaseStockOnOrderClosed;
 use Modules\Inventory\Listeners\SettleStockOnDispatch;
 use Modules\Inventory\Observers\ProductSkuObserver;
@@ -23,11 +19,6 @@ class InventoryServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Contribute the stock-overview (low/out-of-stock) page to the panel.
-        AdminPages::add(StockOverview::class);
-        // Back-in-stock mailing list ("notify me" subscriptions).
-        AdminPages::add(StockNotificationsPage::class);
-        AdminPages::add(InventorySettingsPage::class);
     }
 
     /**

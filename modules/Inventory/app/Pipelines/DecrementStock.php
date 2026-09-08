@@ -3,7 +3,7 @@
 namespace Modules\Inventory\Pipelines;
 
 use Closure;
-use Lunar\Core\Models\Contracts\Order;
+use Lunar\Core\Models\Order;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Services\StockLedger;
 

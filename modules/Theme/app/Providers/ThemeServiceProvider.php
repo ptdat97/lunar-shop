@@ -5,8 +5,6 @@ namespace Modules\Theme\Providers;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
-use Modules\Core\Support\AdminPages;
-use Modules\Theme\Filament\Pages\ThemeSettingsPage;
 use Modules\Theme\Http\Middleware\InitStorefrontSession;
 use Modules\Theme\Http\Middleware\SetApiLocale;
 use Modules\Theme\Http\Middleware\SetStorefrontLocale;
@@ -25,11 +23,6 @@ class ThemeServiceProvider extends ServiceProvider
         // Scoped (one instance per request, Octane-safe) so the in-object memo
         // of theme settings holds across every layout partial in a request.
         $this->app->scoped(ThemeSettings::class);
-
-        // Contribute the admin page (registered by ModulesServiceProvider).
-        AdminPages::add(
-            ThemeSettingsPage::class,
-        );
     }
 
     /**
@@ -50,12 +43,12 @@ class ThemeServiceProvider extends ServiceProvider
 
         View::addNamespace('theme', $base.'/views');
 
-        // Admin (Filament) views for this module.
+        // Admin views for this module.
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'theme-admin');
 
         // Make theme settings available as $theme — only in storefront theme
-        // views (the `theme::` namespace), never in admin/Filament views where
-        // `$theme` already means the panel theme.
+        // views (the `theme::` namespace), never in admin views where `$theme`
+        // already means the panel theme.
         View::composer('theme::*', function ($view) {
             $view->with('theme', $this->app->make(ThemeSettings::class));
         });

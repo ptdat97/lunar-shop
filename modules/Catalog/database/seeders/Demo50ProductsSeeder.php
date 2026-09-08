@@ -4,6 +4,7 @@ namespace Modules\Catalog\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
+use Lunar\Core\Enums\ProductOptionType;
 use Lunar\Core\FieldTypes\Text;
 use Lunar\Core\FieldTypes\TranslatedText;
 use Lunar\Core\Models\Collection;
@@ -129,7 +130,7 @@ class Demo50ProductsSeeder extends Seeder
     protected function options(): array
     {
         $size = $this->option('Size', ['S', 'M', 'L', 'XL']);
-        $color = $this->option('Color', ['Black', 'White', 'Beige', 'Gray', 'Navy', 'Red'], displayType: 'color');
+        $color = $this->option('Color', ['Black', 'White', 'Beige', 'Gray', 'Navy', 'Red'], type: ProductOptionType::Colour);
 
         return [
             $size->values()->pluck('id')->all(),
@@ -140,12 +141,12 @@ class Demo50ProductsSeeder extends Seeder
     }
 
     /**
-     * Shared + display-typed, matching DemoOptionsSeeder (the variant builder
-     * only surfaces shared options; 'color' renders swatches).
+     * Shared + typed, matching DemoOptionsSeeder (the variant builder only
+     * surfaces shared options; Colour renders swatches).
      *
      * @param  array<int,string>  $values
      */
-    protected function option(string $name, array $values, string $displayType = 'text'): ProductOption
+    protected function option(string $name, array $values, ProductOptionType $type = ProductOptionType::Text): ProductOption
     {
         $option = ProductOption::whereJsonContains('name->en', $name)->first()
             ?? ProductOption::create([
@@ -153,12 +154,12 @@ class Demo50ProductsSeeder extends Seeder
                 'label' => ['en' => $name],
                 'handle' => strtolower($name),
                 'shared' => true,
-                'display_type' => $displayType,
+                'type' => $type->value,
             ]);
 
-        if (! $option->shared || $option->display_type !== $displayType) {
+        if (! $option->shared || $option->type !== $type->value) {
             $option->shared = true;
-            $option->display_type = $displayType;
+            $option->type = $type->value;
             $option->save();
         }
 
