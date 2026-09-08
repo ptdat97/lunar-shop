@@ -3,9 +3,9 @@
 namespace Modules\Catalog\Services;
 
 use Illuminate\Support\Collection;
-use Lunar\Core\DataTypes\Price;
 use Lunar\Core\Facades\Pricing;
 use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Price;
 use Lunar\Core\Models\Product;
 use Modules\Catalog\Models\ProductSku;
 
@@ -44,6 +44,13 @@ class PricingService
      * instead of touching the `Pricing` facade directly (keeps price logic out
      * of views, per the coding standards).
      *
+     * Lunar 2.0 (spec 0012) removed the `Price` money cast: `matched` is the
+     * `Price` MODEL and its `price` column is a plain int. Formatting moved onto
+     * the model as `unitFormat('price')` / `unitDecimal('price')`, which divide
+     * by `priceable->unit_quantity` — the same thing the old cast did for
+     * catalogue rows, so a pack price still displays per single unit. Callers
+     * therefore get the model back and ask it to format.
+     *
      * Results are memoized per-request so the same variant queried by
      * product-card, price component, and product page composers resolves
      * in O(1) after the first call.
@@ -70,7 +77,7 @@ class PricingService
             // badge) never lazy-loads a currency per product.
             if ($sku->relationLoaded('prices')) {
                 $currencies = $this->currenciesById();
-                $sku->prices->each(function (\Lunar\Core\Models\Price $price) use ($sku, $currencies): void {
+                $sku->prices->each(function (Price $price) use ($sku, $currencies): void {
                     $price->setRelation('priceable', $sku);
                     if (! $price->relationLoaded('currency')
                         && isset($currencies[(int) $price->currency_id])) {
@@ -79,7 +86,7 @@ class PricingService
                 });
             }
 
-            return $this->priceMemo[$skuId] = Pricing::for($sku)->get()->matched->price;
+            return $this->priceMemo[$skuId] = Pricing::for($sku)->get()->matched;
         } catch (\Throwable $e) {
             return $this->priceMemo[$skuId] = null;
         }
@@ -95,7 +102,7 @@ class PricingService
     {
         $sku = $this->publishedSkus($product)->first();
 
-        return $sku ? (string) $this->matchedPrice($sku)?->formatted() : null;
+        return $sku ? (string) $this->matchedPrice($sku)?->unitFormat('price') : null;
     }
 
     /**
@@ -120,7 +127,7 @@ class PricingService
      */
     public function displayPriceForVariant(?ProductSku $sku): ?string
     {
-        return $sku ? (string) $this->matchedPrice($sku)?->formatted() : null;
+        return $sku ? (string) $this->matchedPrice($sku)?->unitFormat('price') : null;
     }
 
     /**
@@ -139,7 +146,7 @@ class PricingService
     public function lowestPriceAmount(Product $product): ?float
     {
         return $this->publishedSkus($product)
-            ->map(fn (ProductSku $sku) => $this->matchedPrice($sku)?->decimal())
+            ->map(fn (ProductSku $sku) => $this->matchedPrice($sku)?->unitDecimal('price'))
             ->filter()
             ->min();
     }
@@ -147,9 +154,9 @@ class PricingService
     /**
      * Get the price for a SKU in a given currency.
      */
-    public function variantPrice(int $skuId, ?int $currencyId = null): ?\Lunar\Core\Models\Price
+    public function variantPrice(int $skuId, ?int $currencyId = null): ?Price
     {
-        $query = \Lunar\Core\Models\Price::where('priceable_type', (new ProductSku)->getMorphClass())
+        $query = Price::where('priceable_type', (new ProductSku)->getMorphClass())
             ->where('priceable_id', $skuId);
 
         if ($currencyId) {
@@ -164,7 +171,7 @@ class PricingService
      */
     public function hasTieredPricing(int $skuId): bool
     {
-        return \Lunar\Core\Models\Price::where('priceable_type', (new ProductSku)->getMorphClass())
+        return Price::where('priceable_type', (new ProductSku)->getMorphClass())
             ->where('priceable_id', $skuId)
             ->where('min_quantity', '>', 1)
             ->exists();
@@ -175,7 +182,7 @@ class PricingService
      */
     public function customerGroupPrices(int $skuId, int $customerGroupId)
     {
-        return \Lunar\Core\Models\Price::where('priceable_type', (new ProductSku)->getMorphClass())
+        return Price::where('priceable_type', (new ProductSku)->getMorphClass())
             ->where('priceable_id', $skuId)
             ->where('customer_group_id', $customerGroupId)
             ->get();

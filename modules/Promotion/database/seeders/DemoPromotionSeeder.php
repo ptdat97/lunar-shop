@@ -4,7 +4,6 @@ namespace Modules\Promotion\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Lunar\Core\DiscountTypes\PercentageOff;
-use Lunar\Core\FieldTypes\Text;
 use Lunar\Core\Models\Channel;
 use Lunar\Core\Models\Collection;
 use Lunar\Core\Models\CollectionGroup;
@@ -185,7 +184,7 @@ class DemoPromotionSeeder extends Seeder
 
         $collection = Collection::create([
             'collection_group_id' => $group->id,
-            'attribute_data' => ['name' => new Text($name)],
+            'name' => ['en' => $name],
         ]);
 
         Url::create([

@@ -2,7 +2,7 @@
 
 namespace Modules\Promotion\DiscountTypes;
 
-use Lunar\Core\DataTypes\Price;
+use Lunar\Core\DataObjects\PriceValue;
 use Lunar\Core\DiscountTypes\AbstractDiscountType;
 use Lunar\Core\Models\Cart;
 use Lunar\Core\ValueObjects\Cart\DiscountBreakdown;
@@ -82,8 +82,8 @@ class ComboPercentageOff extends AbstractDiscountType
             $totalDiscount += $amount;
 
             $subTotal = $line->subTotalDiscounted?->value ?: $line->subTotal->value;
-            $line->discountTotal = new Price($existing + $amount, $cart->currency, 1);
-            $line->subTotalDiscounted = new Price(max(0, $subTotal - $amount), $cart->currency, 1);
+            $line->discountTotal = new PriceValue($existing + $amount, $cart->currency);
+            $line->subTotalDiscounted = new PriceValue(max(0, $subTotal - $amount), $cart->currency);
 
             $affectedLines->push(new DiscountBreakdownLine(
                 line: $line,
@@ -101,7 +101,7 @@ class ComboPercentageOff extends AbstractDiscountType
         $cart->discounts->push($this);
 
         $this->addDiscountBreakdown($cart, new DiscountBreakdown(
-            price: new Price($totalDiscount, $cart->currency, 1),
+            price: new PriceValue($totalDiscount, $cart->currency),
             lines: $affectedLines,
             discount: $this->discount,
         ));

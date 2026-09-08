@@ -87,10 +87,12 @@ class BaseDataSeeder extends Seeder
         // A default tax zone is required for cart/checkout tax calculation.
         // Seed a 0% zone so the store works out of the box (configure rates later).
         if (! TaxZone::whereDefault(true)->exists()) {
+            // Lunar 2.0 dropped `price_display` from tax zones with no
+            // replacement (core migration 000070) — the concept is gone, not
+            // moved, so there is nothing to set in its place.
             $zone = TaxZone::create([
                 'name' => 'Default',
                 'zone_type' => 'country',
-                'price_display' => 'tax_exclusive',
                 'active' => true,
                 'default' => true,
             ]);

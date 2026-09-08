@@ -3,7 +3,7 @@
 namespace Modules\Shipping\Modifiers;
 
 use Closure;
-use Lunar\Core\DataTypes\Price;
+use Lunar\Core\DataObjects\PriceValue;
 use Lunar\Core\DataTypes\ShippingOption;
 use Lunar\Core\Facades\ShippingManifest;
 use Lunar\Core\Models\Cart;
@@ -39,7 +39,7 @@ class PickupShippingModifier extends ShippingModifier
             name: __('storefront.checkout.pickup_name'),
             description: $this->pickup->addressLine(),
             identifier: PickupLocation::IDENTIFIER,
-            price: new Price(0, $currency, 1),
+            price: new PriceValue(0, $currency),
             taxClass: TaxClass::getDefault(),
         ));
 

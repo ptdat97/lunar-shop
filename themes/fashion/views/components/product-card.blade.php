@@ -6,7 +6,7 @@
 @php
     $slug = $product->defaultUrl?->slug;
     $url = $slug ? route('storefront.product', $slug) : '#';
-    $name = $product->translateAttribute('name');
+    $name = $product->translate('name');
 @endphp
 
 <article class="product-card h-100 position-relative">

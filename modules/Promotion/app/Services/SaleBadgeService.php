@@ -4,12 +4,13 @@ namespace Modules\Promotion\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Number;
-use Lunar\Core\DataTypes\Price;
+use Lunar\Core\DataObjects\PriceValue;
 use Lunar\Core\DiscountTypes\FixedAmountOff;
 use Lunar\Core\DiscountTypes\PercentageOff;
 use Lunar\Core\Models\Cart;
 use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Discount;
+use Lunar\Core\Models\Price;
 use Lunar\Core\Models\Product;
 use Modules\Catalog\Services\PricingService;
 use Modules\Promotion\DiscountTypes\ComboPercentageOff;
@@ -84,12 +85,17 @@ class SaleBadgeService
             return $base;
         }
 
-        $saleValue = (int) round($price->value * (1 - $pct / 100));
+        // `matchedPrice()` hands back the Price MODEL since Lunar 2.0, so the
+        // amount is the plain `price` column and the display string comes from
+        // `unitFormat()` (unit-quantity aware). The discounted figure has no row
+        // of its own, so it is formatted through a PriceValue built from the
+        // row's currency.
+        $saleValue = (int) round($price->price * (1 - $pct / 100));
 
         return array_merge($base, [
             'has_price_break' => true,
-            'original' => (string) $price->formatted(),
-            'sale' => (string) (new Price($saleValue, $price->currency, 1))->formatted(),
+            'original' => (string) $price->unitFormat('price'),
+            'sale' => (string) (new PriceValue($saleValue, $price->resolveCurrency()))->format(),
         ]);
     }
 
@@ -114,12 +120,13 @@ class SaleBadgeService
             ->map(function ($entries) {
                 $discount = $entries->first()->discount;
                 $amount = $entries->sum(fn ($entry) => $entry->price->value);
-                $currency = $entries->first()->price->currency;
+                // PriceValue keeps its currency private since Lunar 2.0.
+                $currency = $entries->first()->price->resolveCurrency();
 
                 return [
                     'name' => $discount->name,
                     'description' => $this->describe($discount),
-                    'amount' => (string) (new Price($amount, $currency, 1))->formatted(),
+                    'amount' => (string) (new PriceValue($amount, $currency))->format(),
                     'is_flash_sale' => (bool) (($discount->data ?? [])['flash_sale'] ?? false),
                 ];
             })

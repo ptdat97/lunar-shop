@@ -34,10 +34,12 @@ class ProductSkuResource extends JsonResource
             'on_hand' => $this->quantity,
             'committed' => (int) $this->committed,
             'status' => $this->status,
+            // `matchedPrice()` returns the Price MODEL since Lunar 2.0, so the
+            // money helpers take the column name and are unit-quantity aware.
             'price' => [
-                'amount' => $price?->decimal(),
-                'formatted' => (string) $price?->formatted(),
-                'currency' => $price?->currency?->code,
+                'amount' => $price?->unitDecimal('price'),
+                'formatted' => (string) $price?->unitFormat('price'),
+                'currency' => $price?->resolveCurrency()?->code,
             ],
             // Option name→value pairs (e.g. {option:"Color",value:"Black"}) so
             // the variant picker can build its matrix from the shared payload —

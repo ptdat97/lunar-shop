@@ -4,7 +4,6 @@ namespace Modules\Catalog\Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
-use Lunar\Core\FieldTypes\Text;
 use Lunar\Core\Models\Collection;
 use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Language;
@@ -55,10 +54,8 @@ class MultiSizeProductsSeeder extends Seeder
             $product = Product::create([
                 'product_type_id' => $type->id,
                 'status' => 'published',
-                'attribute_data' => [
-                    'name' => new Text($item['name']),
-                    'description' => new Text($item['description']),
-                ],
+                'name' => ['en' => $item['name']],
+                'description' => ['en' => $item['description']],
             ]);
 
             Url::create([

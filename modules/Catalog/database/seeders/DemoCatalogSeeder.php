@@ -3,7 +3,6 @@
 namespace Modules\Catalog\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Lunar\Core\FieldTypes\Text;
 use Lunar\Core\Models\Collection;
 use Lunar\Core\Models\CollectionGroup;
 use Lunar\Core\Models\Currency;
@@ -44,7 +43,7 @@ class DemoCatalogSeeder extends Seeder
                     'product_type_id' => $type->id,
                     'status' => 'published',
                     'brand_id' => null,
-                    'attribute_data' => ['name' => new Text($s['name'])],
+                    'name' => ['en' => $s['name']],
                 ]);
 
                 $variant = ProductVariant::create([
@@ -82,7 +81,7 @@ class DemoCatalogSeeder extends Seeder
         if (! $collection) {
             $collection = Collection::create([
                 'collection_group_id' => $group->id,
-                'attribute_data' => ['name' => new Text('New Arrivals')],
+                'name' => ['en' => 'New Arrivals'],
             ]);
 
             Url::create([

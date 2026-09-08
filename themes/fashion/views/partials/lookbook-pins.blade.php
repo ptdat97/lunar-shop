@@ -14,11 +14,11 @@
     @endphp
     @continue(! $product)
     <div class="lookbook-pin" style="left: {{ $pin->pos_x }}%; top: {{ $pin->pos_y }}%;">
-        <button type="button" class="lookbook-pin__dot" aria-label="{{ $product->translateAttribute('name') }}"></button>
+        <button type="button" class="lookbook-pin__dot" aria-label="{{ $product->translate('name') }}"></button>
         <div class="lookbook-pin__card">
             <a href="{{ $url }}" class="d-flex align-items-center gap-2 text-decoration-none text-dark">
                 @php $thumb = $product->thumbnail; @endphp
-                <span class="lookbook-pin__name">{{ $product->translateAttribute('name') }}</span>
+                <span class="lookbook-pin__name">{{ $product->translate('name') }}</span>
             </a>
             <div class="d-flex align-items-center justify-content-between mt-1 gap-2">
                 @include('theme::components.price', ['product' => $product])

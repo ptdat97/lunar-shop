@@ -8,8 +8,8 @@
   //   Media composer   → $zoomSize, $ogImage, $galleryImages
   //   Pricing composer → $displayPrice, $lowestPriceAmount, $currencyCode
   //   Promotion composer → $sale
-  $name = $product->translateAttribute('name');
-  $description = $product->translateAttribute('description');
+  $name = $product->translate('name');
+  $description = $product->translate('description');
   $selectedStock = $selectedVariant?->getTotalInventory() ?? 0;
   $inStock = $product->skus->contains(fn ($sku) => $sku->getTotalInventory() > 0);
 @endphp
@@ -32,7 +32,7 @@
         @if ($collection = $product->collections->first())
           <li class="breadcrumb-item">
             <a href="{{ $collection->defaultUrl?->slug ? route('storefront.collection', $collection->defaultUrl->slug) : '#' }}"
-              class="text-decoration-none">{{ $collection->translateAttribute('name') }}</a>
+              class="text-decoration-none">{{ $collection->translate('name') }}</a>
           </li>
         @endif
         <li class="breadcrumb-item active" aria-current="page">{{ $name }}</li>

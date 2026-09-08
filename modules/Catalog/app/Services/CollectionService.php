@@ -5,6 +5,7 @@ namespace Modules\Catalog\Services;
 use Illuminate\Support\Facades\DB;
 use Lunar\Core\Models\Collection;
 use Modules\Catalog\Support\MediaThumbnails;
+use Modules\Catalog\Support\TranslatedColumn;
 
 /**
  * Shared collection read-logic. Wraps Lunar's Collection model (inherited,
@@ -76,8 +77,9 @@ class CollectionService
                 'brand', 'collections', 'defaultUrl', 'media',
             ]);
 
-        // Lunar stores translatable name as JSONB; sort on the extracted value.
-        $nameExpr = 'JSON_UNQUOTE(JSON_EXTRACT(lunar_products.attribute_data, "$.name.value"))';
+        // `name` is a {locale: text} JSON column since Lunar 2.0; sort on the
+        // visitor's locale.
+        $nameExpr = TranslatedColumn::sql('lunar_products.name');
 
         match ($sort) {
             'a-z' => $query->orderByRaw("{$nameExpr} asc"),

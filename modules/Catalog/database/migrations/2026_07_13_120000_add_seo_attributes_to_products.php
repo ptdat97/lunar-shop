@@ -10,8 +10,21 @@ use Lunar\Core\Models\ProductType;
 /**
  * SEO fields for products (meta title/description) as first-class Lunar
  * attributes in their own "SEO" group — the product editor renders them (with
- * per-locale tabs) natively via the Attributes form component, and the theme
- * layer reads them with translateAttribute(). Idempotent.
+ * per-locale tabs) natively, and the theme layer reads them with
+ * translateAttribute(). Idempotent.
+ *
+ * Rewritten for the Lunar 2.0 attribute schema, which reshaped this table in
+ * three ways:
+ *  - `attribute_groups.attributable_type` and `attributes.attribute_type` are
+ *    gone. Which models an attribute applies to now lives in the
+ *    `attribute_models` pivot (one row per morph name), and a group's `handle`
+ *    is globally unique rather than unique per attributable type.
+ *  - `name` on both tables is a plain string column, not a translatable JSON
+ *    map. (Both names here were identical in en and vi, so nothing is lost.)
+ *  - `description`, `section` and `default_value` no longer exist on attributes.
+ *
+ * The upgrade path already converted the existing rows, so this only has to be
+ * right for a database built from the v2 baseline — CI, and any fresh install.
  */
 return new class extends Migration
 {
@@ -19,15 +32,14 @@ return new class extends Migration
     {
         $group = AttributeGroup::firstOrCreate([
             'handle' => 'seo',
-            'attributable_type' => Product::morphName(),
         ], [
-            'name' => ['en' => 'SEO', 'vi' => 'SEO'],
+            'name' => 'SEO',
             'position' => 99,
         ]);
 
         $attributes = [
-            'meta_title' => ['en' => 'Meta title', 'vi' => 'Meta title'],
-            'meta_description' => ['en' => 'Meta description', 'vi' => 'Meta description'],
+            'meta_title' => 'Meta title',
+            'meta_description' => 'Meta description',
         ];
 
         $position = 1;
@@ -35,20 +47,21 @@ return new class extends Migration
         foreach ($attributes as $handle => $name) {
             $attribute = Attribute::firstOrCreate([
                 'handle' => $handle,
-                'attribute_type' => Product::morphName(),
             ], [
                 'attribute_group_id' => $group->id,
                 'position' => $position++,
                 'name' => $name,
-                'description' => ['en' => ''],
-                'section' => 'main',
                 'type' => TranslatedText::class,
                 'required' => false,
-                'default_value' => null,
                 'configuration' => ['richtext' => false],
                 'system' => false,
                 'searchable' => false,
                 'filterable' => false,
+            ]);
+
+            // What `attribute_type` used to say on the row itself.
+            $attribute->models()->firstOrCreate([
+                'model_type' => Product::morphName(),
             ]);
 
             ProductType::query()->each(
@@ -59,19 +72,18 @@ return new class extends Migration
 
     public function down(): void
     {
-        $attributes = Attribute::whereIn('handle', ['meta_title', 'meta_description'])
-            ->where('attribute_type', Product::morphName())
-            ->get();
+        $attributes = Attribute::whereIn('handle', ['meta_title', 'meta_description'])->get();
 
         foreach ($attributes as $attribute) {
             ProductType::query()->each(
                 fn (ProductType $type) => $type->attributeMapping()->detach($attribute->id)
             );
+
+            // The pivot rows go with it (cascadeOnDelete), and so does the
+            // model's own deleting hook.
             $attribute->delete();
         }
 
-        AttributeGroup::where('handle', 'seo')
-            ->where('attributable_type', Product::morphName())
-            ->delete();
+        AttributeGroup::where('handle', 'seo')->delete();
     }
 };

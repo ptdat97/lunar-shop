@@ -203,7 +203,7 @@ class MigrateLegacyImagesToLibrary extends Command
 
     protected function migrateProductVariables(): void
     {
-        Product::query()->withTrashed()->chunkById(50, function ($products) {
+        Product::query()->chunkById(50, function ($products) {
             foreach ($products as $product) {
                 $variables = $product->variables ?? [];
                 $changed = false;

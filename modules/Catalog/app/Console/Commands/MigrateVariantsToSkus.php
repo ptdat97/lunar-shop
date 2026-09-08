@@ -32,8 +32,8 @@ class MigrateVariantsToSkus extends Command
 
     public function handle(): int
     {
-        $products = Product::query()->withTrashed()->with([
-            'variants' => fn ($q) => $q->withTrashed()->with('values.option'),
+        $products = Product::query()->with([
+            'variants' => fn ($q) => $q->with('values.option'),
         ])->get();
 
         $this->info("Porting {$products->count()} product(s)…");
@@ -92,9 +92,11 @@ class MigrateVariantsToSkus extends Command
                         ->whereNull('customer_group_id')
                         ->first();
                     if ($base) {
+                        // Plain int columns since Lunar 2.0 dropped the money
+                        // cast; `compare_price` was renamed to `list_price`.
                         $sku->update([
-                            'price' => (int) $base->price->value,
-                            'origin_price' => (int) ($base->compare_price?->value ?? 0),
+                            'price' => (int) $base->price,
+                            'origin_price' => (int) ($base->list_price ?? 0),
                         ]);
                     }
                 }
@@ -200,7 +202,7 @@ class MigrateVariantsToSkus extends Command
         $skuMorph = (new ProductSku)->getMorphClass();
         $variantMorph = (new ProductVariant)->getMorphClass();
 
-        $variantBySku = ProductVariant::withTrashed()
+        $variantBySku = ProductVariant::query()
             ->where('product_id', $product->id)
             ->get()
             ->keyBy('sku');

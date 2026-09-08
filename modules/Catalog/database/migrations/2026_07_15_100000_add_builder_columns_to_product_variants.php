@@ -15,9 +15,16 @@ use Lunar\Core\Database\Migration;
  *                 the storefront AND is enforced as a real guard in CartService
  *                 (not just a UI flag — coding standards §17.4).
  *
+ * Lunar 2.0 ships `model` and `cost_price` itself, so on a v2 baseline only
+ * `status` is added here — the per-column guards already handle that.
+ *
  * Lunar has no extension point for per-variant columns, so this alters its
  * table directly (§5), but lives in the Catalog module — no Lunar migration
  * file is touched. Idempotent.
+ *
+ * No `after()` anywhere: column order is cosmetic in MySQL, and naming a
+ * neighbour couples this to the vendor's layout — which is exactly what broke
+ * when 2.0 renamed `purchasable` to `selling_policy`.
  */
 return new class extends Migration
 {
@@ -25,13 +32,13 @@ return new class extends Migration
     {
         Schema::table($this->prefix.'product_variants', function (Blueprint $table) {
             if (! Schema::hasColumn($this->prefix.'product_variants', 'model')) {
-                $table->string('model')->nullable()->after('sku');
+                $table->string('model')->nullable();
             }
             if (! Schema::hasColumn($this->prefix.'product_variants', 'cost_price')) {
-                $table->unsignedInteger('cost_price')->nullable()->after('model');
+                $table->unsignedInteger('cost_price')->nullable();
             }
             if (! Schema::hasColumn($this->prefix.'product_variants', 'status')) {
-                $table->string('status')->default('published')->index()->after('purchasable');
+                $table->string('status')->default('published')->index();
             }
         });
 

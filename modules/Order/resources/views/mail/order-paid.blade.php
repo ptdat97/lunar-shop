@@ -7,11 +7,11 @@
 | {{ __('mail.table_item') }} | {{ __('mail.table_qty') }} | {{ __('mail.table_subtotal') }} |
 | :--- | :-: | -------: |
 @foreach($order->lines as $line)
-| {{ $line->description }} | {{ $line->quantity }} | {{ $line->sub_total?->formatted() }} |
+| {{ $line->description }} | {{ $line->quantity }} | {{ $line->sub_total?->format() }} |
 @endforeach
 @endcomponent
 
-**{{ __('mail.paid.amount_paid', ['total' => $order->total?->formatted()]) }}**
+**{{ __('mail.paid.amount_paid', ['total' => $order->total?->format()]) }}**
 
 {{ __('mail.paid.preparing') }}
 

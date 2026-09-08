@@ -10,6 +10,7 @@ use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Data\SearchResult;
 use Modules\Catalog\Support\MediaThumbnails;
+use Modules\Catalog\Support\TranslatedColumn;
 
 /**
  * Phase 1 driver — queries the database directly (no search server).
@@ -104,15 +105,14 @@ class DatabaseSearchEngine implements SearchEngine
             return;
         }
 
-        // Lunar stores translatable attributes as JSONB in `attribute_data`.
-        // Match against the extracted name value (case-insensitive) + variant SKU.
+        // `name` is a {locale: text} JSON column since Lunar 2.0. Match the
+        // visitor's locale (falling back to any translation) + variant SKU.
         $needle = '%'.mb_strtolower($term).'%';
+        $name = TranslatedColumn::sql('lunar_products.name');
 
-        $builder->where(function ($q) use ($needle, $term) {
-            $q->whereRaw(
-                'LOWER(JSON_UNQUOTE(JSON_EXTRACT(attribute_data, "$.name.value"))) LIKE ?',
-                [$needle]
-            )->orWhereHas('skus', fn ($v) => $v->where('sku', 'like', "%{$term}%"));
+        $builder->where(function ($q) use ($name, $needle, $term) {
+            $q->whereRaw("LOWER({$name}) LIKE ?", [$needle])
+                ->orWhereHas('skus', fn ($v) => $v->where('sku', 'like', "%{$term}%"));
         });
     }
 
@@ -141,7 +141,7 @@ class DatabaseSearchEngine implements SearchEngine
 
     protected function applySort(Builder $builder, ?string $sort): void
     {
-        $nameExpr = 'JSON_UNQUOTE(JSON_EXTRACT(lunar_products.attribute_data, "$.name.value"))';
+        $nameExpr = TranslatedColumn::sql('lunar_products.name');
 
         match ($sort) {
             'newest' => $builder->latest('lunar_products.id'),

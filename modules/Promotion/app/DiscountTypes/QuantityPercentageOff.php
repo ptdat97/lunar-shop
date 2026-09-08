@@ -3,12 +3,12 @@
 namespace Modules\Promotion\DiscountTypes;
 
 use Illuminate\Support\Collection;
-use Lunar\Core\DataTypes\Price;
+use Lunar\Core\DataObjects\PriceValue;
 use Lunar\Core\DiscountTypes\AbstractDiscountType;
 use Lunar\Core\DiscountTypes\BuyXGetY;
 use Lunar\Core\DiscountTypes\PercentageOff;
-use Lunar\Core\Models\CartLine;
 use Lunar\Core\Models\Cart;
+use Lunar\Core\Models\CartLine;
 use Lunar\Core\Models\Product;
 use Lunar\Core\ValueObjects\Cart\DiscountBreakdown;
 use Lunar\Core\ValueObjects\Cart\DiscountBreakdownLine;
@@ -75,8 +75,8 @@ class QuantityPercentageOff extends AbstractDiscountType
 
             $totalDiscount += $amount;
 
-            $line->discountTotal = new Price($existing + $amount, $cart->currency, 1);
-            $line->subTotalDiscounted = new Price($subTotal - $amount, $cart->currency, 1);
+            $line->discountTotal = new PriceValue($existing + $amount, $cart->currency);
+            $line->subTotalDiscounted = new PriceValue($subTotal - $amount, $cart->currency);
 
             $affectedLines->push(new DiscountBreakdownLine(
                 line: $line,
@@ -94,7 +94,7 @@ class QuantityPercentageOff extends AbstractDiscountType
         $cart->discounts->push($this);
 
         $this->addDiscountBreakdown($cart, new DiscountBreakdown(
-            price: new Price($totalDiscount, $cart->currency, 1),
+            price: new PriceValue($totalDiscount, $cart->currency),
             lines: $affectedLines,
             discount: $this->discount,
         ));

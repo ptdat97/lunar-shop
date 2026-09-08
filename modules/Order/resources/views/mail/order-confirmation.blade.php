@@ -7,11 +7,11 @@
 | {{ __('mail.table_item') }} | {{ __('mail.table_qty') }} | {{ __('mail.table_subtotal') }} |
 | :--- | :-: | -------: |
 @foreach($order->lines as $line)
-| {{ $line->description }} | {{ $line->quantity }} | {{ $line->sub_total?->formatted() }} |
+| {{ $line->description }} | {{ $line->quantity }} | {{ $line->sub_total?->format() }} |
 @endforeach
 @endcomponent
 
-**{{ __('mail.confirmation.total', ['total' => $order->total?->formatted()]) }}**
+**{{ __('mail.confirmation.total', ['total' => $order->total?->format()]) }}**
 
 @if($order->shippingAddress)
 **{{ __('mail.shipping_to') }}**

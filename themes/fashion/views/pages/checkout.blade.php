@@ -127,7 +127,7 @@
                                    id="ship-{{ $opt->getIdentifier() }}" value="{{ $opt->getIdentifier() }}"
                                    @checked($checked) required data-shipping-radio>
                             <span class="checkout-option__label">{{ $opt->name }}</span>
-                            <span class="checkout-option__price">{{ $opt->price->formatted() }}</span>
+                            <span class="checkout-option__price">{{ $opt->price->format() }}</span>
                         </label>
                         @if($opt->getIdentifier() === 'pickup' && $pickup)
                             {{-- Shown only while collection is the chosen option; the
@@ -235,9 +235,9 @@
                              pre-discount and would contradict the sale price
                              shown on the product page. --}}
                         <span class="checkout-summary__price">
-                            {{ ($line->subTotalDiscounted ?? $line->subTotal)?->formatted() }}
+                            {{ ($line->subTotalDiscounted ?? $line->subTotal)?->format() }}
                             @if($line->discountTotal?->value)
-                                <s class="text-muted fw-normal ms-1">{{ $line->subTotal?->formatted() }}</s>
+                                <s class="text-muted fw-normal ms-1">{{ $line->subTotal?->format() }}</s>
                             @endif
                         </span>
                     </li>
@@ -293,28 +293,28 @@
                 $shipPrice = $shipApplied ? $cart->shippingTotal : $selectedShip?->price;
                 $displayTotal = $shipApplied
                     ? $cart->total
-                    : new \Lunar\DataTypes\Price(($cart->total?->value ?? 0) + ($selectedShip?->price->value ?? 0), $cart->currency, 1);
+                    : new \Lunar\Core\DataObjects\PriceValue(($cart->total?->value ?? 0) + ($selectedShip?->price->value ?? 0), $cart->currency);
             @endphp
             <dl class="checkout-summary__totals mb-0">
                 <div class="checkout-summary__row">
                     <dt>{{ __('storefront.cart.subtotal') }}</dt>
-                    <dd data-sum-subtotal>{{ $cart->subTotal?->formatted() }}</dd>
+                    <dd data-sum-subtotal>{{ $cart->subTotal?->format() }}</dd>
                 </div>
                 <div class="checkout-summary__row" data-discount-row @class(['d-none' => ! $cart->discountTotal?->value])>
                     <dt>{{ __('storefront.cart.discount') }}</dt>
-                    <dd class="text-success" data-sum-discount>−{{ $cart->discountTotal?->formatted() }}</dd>
+                    <dd class="text-success" data-sum-discount>−{{ $cart->discountTotal?->format() }}</dd>
                 </div>
                 <div class="checkout-summary__row">
                     <dt>{{ __('storefront.cart.shipping') }}</dt>
-                    <dd data-sum-shipping>{{ $shipPrice?->formatted() }}</dd>
+                    <dd data-sum-shipping>{{ $shipPrice?->format() }}</dd>
                 </div>
                 <div class="checkout-summary__row">
                     <dt>{{ __('storefront.cart.tax') }}</dt>
-                    <dd data-sum-tax>{{ $cart->taxTotal?->formatted() }}</dd>
+                    <dd data-sum-tax>{{ $cart->taxTotal?->format() }}</dd>
                 </div>
                 <div class="checkout-summary__row checkout-summary__row--total">
                     <dt>{{ __('storefront.checkout.grand_total') }}</dt>
-                    <dd data-sum-total>{{ $displayTotal?->formatted() }}</dd>
+                    <dd data-sum-total>{{ $displayTotal?->format() }}</dd>
                 </div>
             </dl>
         </div>

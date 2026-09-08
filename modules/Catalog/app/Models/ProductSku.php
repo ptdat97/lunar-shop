@@ -11,6 +11,7 @@ use Lunar\Core\Models\Asset;
 use Lunar\Core\Models\Concerns\HasPrices;
 use Lunar\Core\Models\Product;
 use Lunar\Core\Models\TaxClass;
+use Lunar\Core\States\Product\Published;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
@@ -68,7 +69,7 @@ class ProductSku extends Model implements Purchasable
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class)->withTrashed();
+        return $this->belongsTo(Product::class);
     }
 
     public function taxClass(): BelongsTo
@@ -90,7 +91,7 @@ class ProductSku extends Model implements Purchasable
         return 1;
     }
 
-    public function getTaxClass(): \Lunar\Core\Models\TaxClass
+    public function getTaxClass(): TaxClass
     {
         return $this->taxClass ?? TaxClass::getDefault();
     }
@@ -291,17 +292,22 @@ class ProductSku extends Model implements Purchasable
      * By then the cart may have been sitting for hours, so re-check the state
      * that lives on the SKU and its parent: the same `status === 'disabled'`
      * rule CartService::guardStatus enforces when the line is added, plus a
-     * soft-deleted or unpublished parent product. Channel and customer-group
+     * retired or unpublished parent product. Channel and customer-group
      * availability are NOT checked here — Lunar's CartLineAvailability owns
      * those.
+     *
+     * Lunar 2.0 dropped SoftDeletes from Product and retires one by setting
+     * `status` to `archived` instead, so the old `! $product->trashed()` check
+     * is subsumed by the published check below. `status` is a
+     * `spatie/laravel-model-states` cast now, so it is an object — compare the
+     * class, never `=== 'published'`, which is always false.
      */
     public function isPurchasable(): bool
     {
         return $this->status !== 'disabled'
             && ! $this->trashed()
             && $this->product
-            && ! $this->product->trashed()
-            && $this->product->status === 'published';
+            && $this->product->status instanceof Published;
     }
 
     /**

@@ -25,7 +25,7 @@
   $breadcrumbItems = [['name' => __('storefront.static.home_breadcrumb'), 'url' => route('storefront.home')]];
   if ($collection = $product->collections->first()) {
       $breadcrumbItems[] = [
-          'name' => $collection->translateAttribute('name'),
+          'name' => $collection->translate('name'),
           'url' => $collection->defaultUrl?->slug
               ? route('storefront.collection', $collection->defaultUrl->slug)
               : url()->current(),

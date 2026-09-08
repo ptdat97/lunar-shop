@@ -3,7 +3,7 @@
 namespace Modules\Shipping\Modifiers;
 
 use Closure;
-use Lunar\Core\DataTypes\Price;
+use Lunar\Core\DataObjects\PriceValue;
 use Lunar\Core\DataTypes\ShippingOption;
 use Lunar\Core\Facades\ShippingManifest;
 use Lunar\Core\Models\Cart;
@@ -33,7 +33,7 @@ class FlatRateShippingModifier extends ShippingModifier
             name: 'Standard Delivery',
             description: 'Delivered in 3–5 business days',
             identifier: 'standard',
-            price: new Price($rate, $currency, 1),
+            price: new PriceValue($rate, $currency),
             taxClass: $taxClass,
         ));
 

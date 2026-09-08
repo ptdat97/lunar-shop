@@ -5,8 +5,6 @@ namespace Modules\Catalog\Database\Seeders;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Str;
 use Lunar\Core\Enums\ProductOptionType;
-use Lunar\Core\FieldTypes\Text;
-use Lunar\Core\FieldTypes\TranslatedText;
 use Lunar\Core\Models\Collection;
 use Lunar\Core\Models\CollectionGroup;
 use Lunar\Core\Models\Currency;
@@ -50,10 +48,8 @@ class Demo50ProductsSeeder extends Seeder
             $product = Product::create([
                 'product_type_id' => $type->id,
                 'status' => 'published',
-                'attribute_data' => [
-                    'name' => $this->t($item['name'], $item['name_vi']),
-                    'description' => $this->t($item['description'], $item['description_vi']),
-                ],
+                'name' => $this->t($item['name'], $item['name_vi']),
+                'description' => $this->t($item['description'], $item['description_vi']),
             ]);
 
             $variant = ProductVariant::create([
@@ -112,16 +108,19 @@ class Demo50ProductsSeeder extends Seeder
     }
 
     /**
-     * Build a translatable attribute value with English + Vietnamese. Falls
-     * back to English when no VI translation is provided. Admins can add more
-     * locales later via the Lunar product editor (translateAttribute).
+     * Build a `{locale: text}` map with English + Vietnamese, falling back to
+     * English when no VI translation is given. Since Lunar 2.0 (spec 0018)
+     * `name` and `description` are plain JSON columns rather than
+     * `attribute_data` field types, so this is the whole shape they store.
+     *
+     * @return array<string, string>
      */
-    protected function t(string $en, ?string $vi = null): TranslatedText
+    protected function t(string $en, ?string $vi = null): array
     {
-        return new TranslatedText([
-            'en' => new Text($en),
-            'vi' => new Text($vi !== null && $vi !== '' ? $vi : $en),
-        ]);
+        return [
+            'en' => $en,
+            'vi' => $vi !== null && $vi !== '' ? $vi : $en,
+        ];
     }
 
     /**
@@ -195,7 +194,7 @@ class Demo50ProductsSeeder extends Seeder
             if (! $collection) {
                 $collection = Collection::create([
                     'collection_group_id' => $group->id,
-                    'attribute_data' => ['name' => new Text($name)],
+                    'name' => ['en' => $name],
                 ]);
 
                 Url::create([

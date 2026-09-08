@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use Lunar\Core\DiscountTypes\BuyXGetY;
 use Lunar\Core\DiscountTypes\PercentageOff;
-use Lunar\Core\FieldTypes\Text;
 use Lunar\Core\Models\Cart;
 use Lunar\Core\Models\Channel;
 use Lunar\Core\Models\Collection;
@@ -88,11 +87,11 @@ class PromotionAdvancedTest extends TestCase
 
         $tops = Collection::create([
             'collection_group_id' => CollectionGroup::firstOrCreate(['handle' => 'main'], ['name' => 'Main'])->id,
-            'attribute_data' => ['name' => new Text('Tops')],
+            'name' => ['en' => 'Tops'],
         ]);
         $bottoms = Collection::create([
             'collection_group_id' => $tops->collection_group_id,
-            'attribute_data' => ['name' => new Text('Bottoms')],
+            'name' => ['en' => 'Bottoms'],
         ]);
         $tops->products()->attach($top->id);
         $bottoms->products()->attach($bottom->id);

@@ -3,8 +3,6 @@
 namespace Tests\Concerns;
 
 use App\Models\User;
-use Lunar\Core\FieldTypes\Text;
-use Lunar\Core\FieldTypes\TranslatedText;
 use Lunar\Core\Models\Country;
 use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Language;
@@ -54,16 +52,19 @@ trait CreatesStorefrontData
         $price = $attributes['price'] ?? 1999; // minor units
         $stock = $attributes['stock'] ?? 25;
 
-        // When a Vietnamese name is given, store a translatable attribute so
-        // tests can exercise per-locale product content; otherwise plain Text.
-        $nameAttr = isset($attributes['name_vi'])
-            ? new TranslatedText(['en' => new Text($name), 'vi' => new Text($attributes['name_vi'])])
-            : new Text($name);
+        // Since Lunar 2.0 `name` is a plain `{locale: text}` JSON column, not a
+        // field type inside attribute_data. A Vietnamese name simply adds a
+        // second key, so tests can still exercise per-locale content.
+        $names = ['en' => $name];
+
+        if (isset($attributes['name_vi'])) {
+            $names['vi'] = $attributes['name_vi'];
+        }
 
         $product = Product::create([
             'product_type_id' => ProductType::first()?->id ?? ProductType::create(['name' => 'General'])->id,
             'status' => 'published',
-            'attribute_data' => ['name' => $nameAttr],
+            'name' => $names,
         ]);
 
         // Lunar's Product is fully $guarded, so `variables` can't be mass-assigned

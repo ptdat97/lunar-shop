@@ -19,7 +19,7 @@ class ShippingOptionResource extends JsonResource
             'identifier' => $this->identifier,
             'name' => $this->name,
             'description' => $this->description,
-            'price' => (string) $this->price->formatted(),
+            'price' => (string) $this->price->format(),
         ];
     }
 }

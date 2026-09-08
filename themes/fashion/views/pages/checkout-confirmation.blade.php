@@ -26,7 +26,7 @@
                             <tr>
                                 <td>{{ $line->description }}</td>
                                 <td class="text-center">× {{ $line->quantity }}</td>
-                                <td class="text-end">{{ $line->sub_total?->formatted() }}</td>
+                                <td class="text-end">{{ $line->sub_total?->format() }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -42,25 +42,25 @@
                 <dl class="mb-0 border-top pt-2">
                     <div class="d-flex justify-content-between mb-1">
                         <dt class="fw-normal text-muted">{{ __('storefront.cart.subtotal') }}</dt>
-                        <dd class="mb-0">{{ $order->sub_total?->formatted() }}</dd>
+                        <dd class="mb-0">{{ $order->sub_total?->format() }}</dd>
                     </div>
                     @if($order->discount_total?->value)
                         <div class="d-flex justify-content-between mb-1 text-success">
                             <dt class="fw-normal">{{ __('storefront.cart.discount') }}</dt>
-                            <dd class="mb-0">−{{ $order->discount_total?->formatted() }}</dd>
+                            <dd class="mb-0">−{{ $order->discount_total?->format() }}</dd>
                         </div>
                     @endif
                     <div class="d-flex justify-content-between mb-1">
                         <dt class="fw-normal text-muted">{{ __('storefront.cart.shipping') }}</dt>
-                        <dd class="mb-0">{{ $order->shipping_total?->formatted() }}</dd>
+                        <dd class="mb-0">{{ $order->shipping_total?->format() }}</dd>
                     </div>
                     <div class="d-flex justify-content-between mb-2">
                         <dt class="fw-normal text-muted">{{ __('storefront.cart.tax') }}</dt>
-                        <dd class="mb-0">{{ $order->tax_total?->formatted() }}</dd>
+                        <dd class="mb-0">{{ $order->tax_total?->format() }}</dd>
                     </div>
                     <div class="d-flex justify-content-between fw-bold border-top pt-2">
                         <dt>{{ __('storefront.checkout.grand_total') }}</dt>
-                        <dd class="mb-0">{{ $order->total?->formatted() }}</dd>
+                        <dd class="mb-0">{{ $order->total?->format() }}</dd>
                     </div>
                 </dl>
             </div>

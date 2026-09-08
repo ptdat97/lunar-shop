@@ -2,7 +2,6 @@
 
 namespace Tests\Feature;
 
-use Lunar\Core\FieldTypes\Text;
 use Lunar\Core\Models\Collection;
 use Lunar\Core\Models\CollectionGroup;
 use Lunar\Core\Models\Language;
@@ -82,7 +81,7 @@ class SeoTest extends TestCase
         $group = CollectionGroup::firstOrCreate(['handle' => 'main'], ['name' => 'Main']);
         $collection = Collection::create([
             'collection_group_id' => $group->id,
-            'attribute_data' => ['name' => new Text('Test Collection')],
+            'name' => ['en' => 'Test Collection'],
         ]);
         $collection->products()->attach($product->id, ['position' => 1]);
 

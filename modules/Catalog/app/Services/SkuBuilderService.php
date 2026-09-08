@@ -202,7 +202,7 @@ class SkuBuilderService
             $baseKey,
             [
                 'price' => (int) $sku->price,
-                'compare_price' => $sku->origin_price > $sku->price ? (int) $sku->origin_price : null,
+                'list_price' => $sku->origin_price > $sku->price ? (int) $sku->origin_price : null,
             ],
         );
     }

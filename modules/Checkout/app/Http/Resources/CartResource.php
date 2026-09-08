@@ -4,7 +4,7 @@ namespace Modules\Checkout\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Lunar\Core\DataTypes\Price;
+use Lunar\Core\DataObjects\PriceValue;
 use Lunar\Core\Models\Cart;
 use Lunar\Core\Models\Currency;
 use Modules\Assets\Services\MediaUrl;
@@ -32,21 +32,21 @@ class CartResource extends JsonResource
                 // existing headless clients don't break. Both are the SKU id.
                 'sku_id' => $line->purchasable_id,
                 'variant_id' => $line->purchasable_id,
-                'name' => $line->purchasable?->product?->translateAttribute('name'),
+                'name' => $line->purchasable?->product?->translate('name'),
                 // The chosen combination, e.g. "Black, M" (null for a simple SKU).
                 'option' => $line->purchasable?->getOption(),
                 'slug' => $line->purchasable?->product?->defaultUrl?->slug,
                 'sku' => $line->purchasable?->sku,
                 'thumbnail' => $this->lineThumbnail($line),
-                'unit_price' => $line->unitPrice?->formatted(),
+                'unit_price' => $line->unitPrice?->format(),
                 // What the line actually costs after promotions (flash sale,
                 // buy-2, …). `subTotal` is the pre-discount figure — showing it
                 // as the line price contradicts the discounted price the shopper
                 // saw on the product page. `sub_total_original` is only set when
                 // a discount applies, so the UI can strike it through.
-                'sub_total' => ($line->subTotalDiscounted ?? $line->subTotal)?->formatted(),
+                'sub_total' => ($line->subTotalDiscounted ?? $line->subTotal)?->format(),
                 'sub_total_original' => $line->discountTotal?->value
-                    ? $line->subTotal?->formatted()
+                    ? $line->subTotal?->format()
                     : null,
             ])->values(),
             'coupon_code' => $this->coupon_code,
@@ -54,14 +54,14 @@ class CartResource extends JsonResource
             // combo, coupon, membership) so the UI can label the savings.
             'applied_discounts' => $this->appliedDiscounts(),
             'totals' => [
-                'sub_total' => $this->subTotal?->formatted(),
-                'discount_total' => $this->discountTotal?->formatted(),
+                'sub_total' => $this->subTotal?->format(),
+                'discount_total' => $this->discountTotal?->format(),
                 // Raw minor-unit savings so the UI can decide whether to show a
                 // "you saved" row without parsing the formatted string.
                 'discount_value' => $this->discountTotal?->value ?? 0,
-                'shipping_total' => $this->shippingTotal?->formatted(),
-                'tax_total' => $this->taxTotal?->formatted(),
-                'total' => $this->total?->formatted(),
+                'shipping_total' => $this->shippingTotal?->format(),
+                'tax_total' => $this->taxTotal?->format(),
+                'total' => $this->total?->format(),
             ],
             'free_shipping' => $this->freeShippingInfo(),
         ];
@@ -119,8 +119,8 @@ class CartResource extends JsonResource
 
         return [
             'qualified' => $subTotal >= $threshold,
-            'threshold' => (new Price($threshold, $currency))->formatted(),
-            'remaining' => (new Price($remaining, $currency))->formatted(),
+            'threshold' => (new PriceValue($threshold, $currency))->format(),
+            'remaining' => (new PriceValue($remaining, $currency))->format(),
             'progress' => $threshold > 0 ? min(100, (int) round($subTotal / $threshold * 100)) : 0,
         ];
     }
