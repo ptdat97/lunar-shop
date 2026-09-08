@@ -3,8 +3,11 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\DB;
+use Lunar\Core\Enums\FieldTypeEnum;
 use Lunar\Core\FieldTypes\Text;
 use Lunar\Core\FieldTypes\TranslatedText;
+use Lunar\Core\Models\Attribute;
+use Lunar\Core\Models\AttributeGroup;
 use Lunar\Core\Models\Product;
 use Lunar\Core\Models\ProductOption;
 use Modules\Core\Support\UntranslatedContentReport;
@@ -27,15 +30,25 @@ class UntranslatedContentReportTest extends TestCase
         return app(UntranslatedContentReport::class);
     }
 
+    /**
+     * An option whose `name` is exactly the given map. `label` is translated in
+     * full deliberately: the report scans it too since Lunar 2.0, and the
+     * factory fills it in English only — which would put a second row against
+     * every option and mask what these tests are asserting about `name`.
+     */
     private function optionNamed(array $name): ProductOption
     {
         $option = ProductOption::factory()->create(['name' => $name]);
 
-        // Write the column straight through: the model casts would normalise the
-        // shapes this test is specifically about.
+        // Write the columns straight through: the model casts would normalise
+        // the shapes this test is specifically about (a blank locale is dropped
+        // on read by FilledTranslations, and that is the shape under test).
         DB::table(config('lunar.database.table_prefix').'product_options')
             ->where('id', $option->id)
-            ->update(['name' => json_encode($name)]);
+            ->update([
+                'name' => json_encode($name),
+                'label' => json_encode(['en' => 'Size', 'vi' => 'Kích cỡ']),
+            ]);
 
         return $option;
     }
@@ -95,18 +108,43 @@ class UntranslatedContentReportTest extends TestCase
         );
     }
 
-    /** attribute_data is the other storage shape, and carries several fields. */
-    public function test_attribute_data_gaps_are_reported_per_field(): void
+    /**
+     * Since Lunar 2.0 a product's own copy lives in JSON columns, one report row
+     * per column that is short a locale.
+     */
+    public function test_column_gaps_are_reported_per_field(): void
     {
         $this->seedBaseData();
 
         $product = Product::factory()->create([
+            'name' => ['en' => 'Cotton Tee', 'vi' => 'Áo thun cotton'],
+            'description' => ['en' => 'Soft and light.'],
+            'short_description' => ['en' => 'Soft.', 'vi' => 'Mềm.'],
+        ]);
+
+        $rows = $this->report()->run(['en', 'vi'])
+            ->filter(fn (array $r) => $r['table'] === 'products' && $r['id'] === $product->id);
+
+        // Only `description` is short a locale; the other two are complete.
+        $this->assertSame(['description'], $rows->pluck('field')->all());
+        $this->assertSame(['vi'], $rows->first()['missing']);
+    }
+
+    /**
+     * attribute_data is the other storage shape — still where custom fields
+     * live (meta_title and friends) now that name/description have moved out.
+     */
+    public function test_attribute_data_gaps_are_reported_per_field(): void
+    {
+        $this->seedBaseData();
+
+        $product = $this->completeProduct([
             'attribute_data' => [
-                'name' => new TranslatedText(collect([
+                'meta_title' => new TranslatedText(collect([
                     'en' => new Text('Cotton Tee'),
                     'vi' => new Text('Áo thun cotton'),
                 ])),
-                'description' => new TranslatedText(collect([
+                'meta_description' => new TranslatedText(collect([
                     'en' => new Text('Soft and light.'),
                 ])),
             ],
@@ -115,18 +153,36 @@ class UntranslatedContentReportTest extends TestCase
         $rows = $this->report()->run(['en', 'vi'])
             ->filter(fn (array $r) => $r['table'] === 'products' && $r['id'] === $product->id);
 
-        // Only `description` is short a locale; `name` is complete.
-        $this->assertSame(['description'], $rows->pluck('field')->all());
+        $this->assertSame(['meta_description'], $rows->pluck('field')->all());
         $this->assertSame(['vi'], $rows->first()['missing']);
     }
 
-    /** A plain Text field is not multilingual — its absence is not a gap. */
+    /**
+     * A plain Text field is not multilingual — its absence is not a gap.
+     *
+     * The attribute has to be created here rather than reusing one of the SEO
+     * fields: those are `translated_text`, and since Lunar 2.0 the row itself no
+     * longer records its type — the report reads it from `lunar_attributes`, so
+     * the type has to be real.
+     */
     public function test_a_non_translated_field_is_ignored(): void
     {
         $this->seedBaseData();
 
-        $product = Product::factory()->create([
-            'attribute_data' => ['name' => new Text('Cotton Tee')],
+        $attribute = Attribute::create([
+            'attribute_group_id' => AttributeGroup::firstOrCreate(
+                ['handle' => 'seo'],
+                ['name' => 'SEO', 'position' => 99],
+            )->id,
+            'handle' => 'care_label',
+            'name' => 'Care label',
+            'type' => FieldTypeEnum::Text->value,
+            'position' => 50,
+        ]);
+        $attribute->models()->create(['model_type' => Product::morphName()]);
+
+        $product = $this->completeProduct([
+            'attribute_data' => ['care_label' => new Text('Machine wash cold')],
         ]);
 
         $this->assertCount(
@@ -134,6 +190,24 @@ class UntranslatedContentReportTest extends TestCase
             $this->report()->run(['en', 'vi'])
                 ->filter(fn (array $r) => $r['table'] === 'products' && $r['id'] === $product->id)
         );
+    }
+
+    /**
+     * A product whose own columns are fully translated, so the only rows a test
+     * can see are the ones it put in `attribute_data`. Without this the factory's
+     * English-only name/description/short_description report three gaps of their
+     * own and drown the assertion.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    private function completeProduct(array $attributes = []): Product
+    {
+        return Product::factory()->create([
+            'name' => ['en' => 'Cotton Tee', 'vi' => 'Áo thun cotton'],
+            'description' => ['en' => 'Soft and light.', 'vi' => 'Mềm và nhẹ.'],
+            'short_description' => ['en' => 'Soft.', 'vi' => 'Mềm.'],
+            ...$attributes,
+        ]);
     }
 
     public function test_a_single_locale_shop_reports_nothing(): void

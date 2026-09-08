@@ -4,6 +4,7 @@ namespace Modules\Core\Support;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Lunar\Core\Enums\FieldTypeEnum;
 
 /**
  * Finds catalog content that is missing a translation for a served locale
@@ -16,20 +17,34 @@ use Illuminate\Support\Facades\DB;
  *
  * Two families of translatable content, stored differently:
  *
- *   1. A translatable JSON `name` column — {"en": "Size", "vi": "Kích cỡ"}
- *   2. `attribute_data` — {"name": {"value": {"en": …}, "field_type": …}}
+ *   1. A `{locale: text}` JSON column — {"en": "Size", "vi": "Kích cỡ"}
+ *   2. `attribute_data` — {"<attribute id>": {"en": …, "vi": …}}
  *
- * Only `field_type` ending in TranslatedText is examined in family 2; a plain
+ * Only attributes of type `translated_text` are examined in family 2; a plain
  * Text field is not multilingual and its absence is not a gap.
+ *
+ * Lunar 2.0 moved content between the two families in both directions, so the
+ * lists below are not the same as the 1.x ones:
+ *  - `attributes.name` / `attribute_groups.name` became plain string columns —
+ *    not translatable at all any more, so they left family 1.
+ *  - spec 0018 promoted product / collection / brand `name`, `description` and
+ *    `short_description` out of `attribute_data` into real JSON columns, so
+ *    they moved from family 2 to family 1. `attribute_data` still holds
+ *    everything else (meta_title, meta_description, custom fields).
  */
 class UntranslatedContentReport
 {
-    /** Tables whose `name` column is a translatable JSON map. */
-    private const NAME_COLUMN_TABLES = [
-        'product_options',
-        'product_option_values',
-        'attributes',
-        'attribute_groups',
+    /**
+     * Translatable `{locale: text}` JSON columns, per table.
+     *
+     * @var array<string, list<string>>
+     */
+    private const TRANSLATABLE_COLUMNS = [
+        'products' => ['name', 'description', 'short_description'],
+        'collections' => ['name', 'description', 'short_description'],
+        'brands' => ['description', 'short_description'],
+        'product_options' => ['name', 'label'],
+        'product_option_values' => ['name'],
     ];
 
     /**
@@ -75,7 +90,7 @@ class UntranslatedContentReport
         $prefix = config('lunar.database.table_prefix');
 
         return collect()
-            ->merge($this->scanNameColumns($prefix, $locales))
+            ->merge($this->scanTranslatableColumns($prefix, $locales))
             ->merge($this->scanAttributeData($prefix, $locales))
             ->values();
     }
@@ -84,31 +99,35 @@ class UntranslatedContentReport
      * @param  list<string>  $locales
      * @return Collection<int, array<string, mixed>>
      */
-    private function scanNameColumns(string $prefix, array $locales): Collection
+    private function scanTranslatableColumns(string $prefix, array $locales): Collection
     {
         $rows = collect();
 
-        foreach (self::NAME_COLUMN_TABLES as $table) {
+        foreach (self::TRANSLATABLE_COLUMNS as $table => $columns) {
             DB::table($prefix.$table)
-                ->select(['id', 'name'])
+                ->select(['id', ...$columns])
                 ->orderBy('id')
-                ->chunk(self::CHUNK, function ($chunk) use ($rows, $table, $locales) {
+                ->chunk(self::CHUNK, function ($chunk) use ($rows, $table, $columns, $locales) {
                     foreach ($chunk as $row) {
-                        $values = $this->decode($row->name);
+                        foreach ($columns as $column) {
+                            $values = $this->decode($row->{$column});
 
-                        if ($values === null) {
-                            continue;
-                        }
+                            // A column left entirely empty is a blank field, not
+                            // an untranslated one — there is nothing to translate.
+                            if ($values === null || $values === []) {
+                                continue;
+                            }
 
-                        $gap = $this->missing($values, $locales);
+                            $gap = $this->missing($values, $locales);
 
-                        if ($gap['missing']) {
-                            $rows->push([
-                                'table' => $table,
-                                'id' => (int) $row->id,
-                                'field' => 'name',
-                                ...$gap,
-                            ]);
+                            if ($gap['missing']) {
+                                $rows->push([
+                                    'table' => $table,
+                                    'id' => (int) $row->id,
+                                    'field' => $column,
+                                    ...$gap,
+                                ]);
+                            }
                         }
                     }
                 });
@@ -124,12 +143,17 @@ class UntranslatedContentReport
     private function scanAttributeData(string $prefix, array $locales): Collection
     {
         $rows = collect();
+        $translatable = $this->translatableAttributes($prefix);
+
+        if ($translatable === []) {
+            return $rows;
+        }
 
         foreach (self::ATTRIBUTE_DATA_TABLES as $table) {
             DB::table($prefix.$table)
                 ->select(['id', 'attribute_data'])
                 ->orderBy('id')
-                ->chunk(self::CHUNK, function ($chunk) use ($rows, $table, $locales) {
+                ->chunk(self::CHUNK, function ($chunk) use ($rows, $table, $locales, $translatable) {
                     foreach ($chunk as $row) {
                         $data = $this->decode($row->attribute_data);
 
@@ -137,18 +161,20 @@ class UntranslatedContentReport
                             continue;
                         }
 
-                        foreach ($data as $field => $definition) {
-                            if (! $this->isTranslated($definition)) {
+                        foreach ($data as $attributeId => $values) {
+                            $handle = $translatable[(int) $attributeId] ?? null;
+
+                            if ($handle === null || ! is_array($values)) {
                                 continue;
                             }
 
-                            $gap = $this->missing($definition['value'], $locales);
+                            $gap = $this->missing($values, $locales);
 
                             if ($gap['missing']) {
                                 $rows->push([
                                     'table' => $table,
                                     'id' => (int) $row->id,
-                                    'field' => (string) $field,
+                                    'field' => $handle,
                                     ...$gap,
                                 ]);
                             }
@@ -160,12 +186,25 @@ class UntranslatedContentReport
         return $rows;
     }
 
-    /** Only a TranslatedText field can be missing a locale. */
-    private function isTranslated(mixed $definition): bool
+    /**
+     * Handles of every translated-text attribute, keyed by id.
+     *
+     * Lunar 2.0 (spec 0019) reshaped `attribute_data` from a handle-keyed
+     * envelope carrying its own `field_type` (`{"meta_title": {field_type: …,
+     * value: {…}}}`) to a raw id-keyed map (`{"7": {"en": …}}`). The row no
+     * longer says what type it is or what it is called, so both now come from
+     * the `attributes` table — and `attributes.type` is a `FieldTypeEnum` value
+     * string rather than a class name.
+     *
+     * @return array<int, string>
+     */
+    private function translatableAttributes(string $prefix): array
     {
-        return is_array($definition)
-            && is_array($definition['value'] ?? null)
-            && str_ends_with((string) ($definition['field_type'] ?? ''), 'TranslatedText');
+        return DB::table($prefix.'attributes')
+            ->where('type', FieldTypeEnum::TranslatedText->value)
+            ->pluck('handle', 'id')
+            ->map(fn ($handle) => (string) $handle)
+            ->all();
     }
 
     /**

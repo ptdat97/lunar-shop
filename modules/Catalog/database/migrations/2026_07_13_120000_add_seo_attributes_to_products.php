@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Lunar\Core\FieldTypes\TranslatedText;
+use Lunar\Core\Enums\FieldTypeEnum;
 use Lunar\Core\Models\Attribute;
 use Lunar\Core\Models\AttributeGroup;
 use Lunar\Core\Models\Product;
@@ -21,7 +21,8 @@ use Lunar\Core\Models\ProductType;
  *    is globally unique rather than unique per attributable type.
  *  - `name` on both tables is a plain string column, not a translatable JSON
  *    map. (Both names here were identical in en and vi, so nothing is lost.)
- *  - `description`, `section` and `default_value` no longer exist on attributes.
+ *  - `description`, `section` and `default_value` no longer exist on attributes,
+ *    and `type` holds a `FieldTypeEnum` value string rather than a class name.
  *
  * The upgrade path already converted the existing rows, so this only has to be
  * right for a database built from the v2 baseline — CI, and any fresh install.
@@ -51,7 +52,10 @@ return new class extends Migration
                 'attribute_group_id' => $group->id,
                 'position' => $position++,
                 'name' => $name,
-                'type' => TranslatedText::class,
+                // A FieldTypeEnum value, not a class name: 2.0 (spec 0019)
+                // converted `attributes.type` from the FQCN to the enum string,
+                // and FieldTypeManifest resolves by that string.
+                'type' => FieldTypeEnum::TranslatedText->value,
                 'required' => false,
                 'configuration' => ['richtext' => false],
                 'system' => false,
