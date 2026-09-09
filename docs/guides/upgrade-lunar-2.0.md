@@ -301,18 +301,189 @@ production trước khi đi trọn lộ trình một lần trên staging với d
 
 ---
 
-## 8. Việc chưa trả lời được, phải kiểm lúc bắt tay
+## 8. Năm câu hỏi mở — đã trả lời khi bắt tay
 
-Ghi ra để lúc làm không tưởng là đã khảo sát rồi:
+- [x] **`lunarphp/admin` không có trên packagist.** Không cần nữa: dự án bỏ
+      Filament, cài `lunarphp/core` + `lunarphp/panel` (cả hai `2.0.0-alpha.6`).
+- [ ] **Phân quyền của panel** (`permission: 'sales:manage-customers'`) khớp thế
+      nào với `spatie/laravel-permission`. **Vẫn mở** — chưa chạm tới ở Fase 3,
+      phải trả lời trước khi viết trang admin đầu tiên.
+- [x] **2FA đọc được.** Panel tự làm 2FA (`Lunar\Panel\Auth\AppAuthentication`,
+      pragmarx/google2fa) nhưng đọc **cùng cột** `lunar_staff.app_authentication_*`
+      qua **cùng cast** `encrypted` / `encrypted:array`. Bản vá ở
+      [1.5 §15](upgrade-lunar-1.5.md) vì thế còn nguyên giá trị; chỉ khác accessor
+      (đọc thẳng thuộc tính) và thứ tự tham số `verifyCode($secret, $code)`.
+      `StaffTwoFactorReencryptionTest` đã chuyển sang verifier của panel.
+- [x] **Drafts không xung đột với model replacement** — vì 2.0 **xoá hẳn** cơ chế
+      model replacement (xem §9.1). Câu hỏi tự tiêu.
+- [x] **`SkipsEmptyTranslations` vẫn cần.** `HasTranslations::translate()` ở
+      alpha.6 y nguyên lỗi cũ. Nhưng cách vá phải đổi (§9.1), và bề mặt đổi cả hai
+      chiều: `attributes.name` / `attribute_groups.name` nay là cột string thường
+      (hết việc), còn `name`/`description`/`short_description` của product,
+      collection, brand ra khỏi `attribute_data` thành cột JSON thật (thêm việc).
 
-- [ ] **`lunarphp/admin` không có trên packagist** (404) trong khi tồn tại trong
-      monorepo. Nếu chọn ở lại Filament thì phải xác minh gói nào thực sự cài được.
-- [ ] Panel có cơ chế **phân quyền** riêng (`permission: 'sales:manage-customers'`).
-      Phải soi nó khớp thế nào với `spatie/laravel-permission` mà dự án đang dùng.
-- [ ] **2FA**: panel tự làm (`pragmarx/google2fa` + `bacon/bacon-qr-code`), khác
-      đường của Filament v4. Dữ liệu `lunar_staff.app_authentication_*` — vốn đã
-      phải chuyển mã một lần ở [1.5 §15](upgrade-lunar-1.5.md) — có đọc được không?
-- [ ] Panel dùng **Drafts** (autosave + phát hiện xung đột). Chưa rõ nó tương tác
-      thế nào với `ModelManifest::replace()` của dự án (ProductOption, ProductSku).
-- [ ] Kiểm `SkipsEmptyTranslations` (xem [upstream/README.md](../upstream/README.md))
-      còn cần không — 2.0 có thể đã sửa `translate()` ở upstream.
+---
+
+## 9. Nhật ký thực thi (Fase 0 → 3)
+
+Hoàn tất 2026-09-09. **560/560 test xanh**, panel phục vụ 370 route, `/panel/login`
+trả 200. Sáu commit: `2abb2eb` (Fase 1) → `76c8e29`.
+
+Mục này ghi những gì **kế hoạch không lường được**. Phần nào runbook ở trên đã
+nói đúng thì không nhắc lại.
+
+### 9.1 `ModelManifest::replace()` biến mất — không có cái thay thế
+
+Kế hoạch xếp nó là bậc thứ tư trên thang mở rộng (docs/README.md §1). 2.0 **gỡ
+hẳn**: core gọi thẳng `ProductOptionValue::class`, `ModelManifest` chỉ còn route
+binding + morph map. Bốn lần `replace()` trong `CatalogServiceProvider` phải đi
+đường khác:
+
+| Việc cũ | Đường mới |
+|---|---|
+| `SkipsEmptyTranslations` trên 4 model | Cast `Modules\Core\Casts\FilledTranslations` cài bằng `Model::addCasts()` |
+| `display_type` của ProductOption | Cột `type` chính chủ + enum `ProductOptionType` |
+
+`Base::addCasts()` (`HasExtendableCasts`) là seam duy nhất 2.0 để lại cho việc
+này. Bản vá **hạ xuống một tầng**: thay vì sửa `translate()`, lọc locale rỗng
+ngay lúc decode JSON — thế là `translate()` của upstream trở thành đúng, vì
+"khoá tồn tại nhưng rỗng" không còn xảy ra được. Rộng hơn bản cũ: mọi model đọc
+cột đó đều được, không chỉ những model ta nhớ mà subclass.
+
+`display_type` thì **2.0 đã làm hộ**: cột `type` có index, enum
+`ProductOptionType` (text/colour/swatch), `UpdateProductOption` tự dọn payload
+khi đổi type. Extension của dự án biến mất, dữ liệu chuyển bằng migration
+(`color` → `colour`, `image` → `swatch`).
+
+### 9.2 `lunarphp/upgrade` alpha.6 để lại ba lỗ
+
+Bước cuối của `lunar:upgrade` ghi lại ledger, đánh dấu **toàn bộ** baseline v2 là
+đã chạy. Nghĩa là: cột nào 19 data migration bỏ sót thì **không bao giờ** được
+tạo nữa. Phát hiện bằng cách dựng baseline v2 vào một DB nháp rồi diff
+`information_schema` — nên làm ở mọi lần nâng cấp alpha:
+
+```bash
+mysql -e "create database lunar_v2_ref"
+DB_DATABASE=lunar_v2_ref php artisan migrate
+# rồi so sánh cột giữa hai schema
+```
+
+Ba cột thiếu, cả ba đều có code 2.0 đang đọc: `customers.admin_notes` (panel),
+`order_lines.refunded_quantity` (RefundOrder), `product_options.type`
+(ProductOptionType). Vá bằng
+`2026_09_08_080000_close_lunar_2_0_upgrade_schema_gaps`.
+
+Hai lỗ còn lại:
+
+- `v2_baseline` trong config thiếu bốn file (`000066/70/71/72`) mà chính gói đó
+  ship. `000071` thêm FK đã tồn tại → phải đánh dấu đã chạy bằng tay.
+- `RectorStep` là **stub**, và config của nó hardcode
+  `withPaths([app, config, database])` — dự án này để gần như toàn bộ code trong
+  `modules/`, `themes/`, `tests/` nên **không rule nào chạm tới**. Phải tự viết
+  config trỏ đúng đường và thêm `withImportNames`, nếu không 186 file còn lại
+  import chết.
+
+> **Bẫy production, chưa nổ ở đây chỉ vì DB dev rỗng đơn hàng:**
+> `lunar.upgrade.orders.{fulfilled,closed,cancelled}_statuses` mặc định là
+> `['dispatched','complete']` / `['complete','cancelled','refunded']`. Shop này
+> dùng `completed`, `payment-offline`, `payment-received` — **không khớp**. Chạy
+> trên dữ liệu thật mà không publish và sửa config đó trước thì mọi đơn đã hoàn
+> tất bị map sai, lặng lẽ.
+
+### 9.3 Ba migration của dự án giả định schema v1
+
+Chỉ hỏng khi **cài mới** — tức là CI, không phải máy dev đã nâng cấp. Đây là
+loại lỗi runbook không thấy vì nó chỉ nhìn đường nâng cấp:
+
+- `default_variants_to_in_stock` — cột `purchasable` đổi tên thành
+  `selling_policy`.
+- `add_seo_attributes_to_products` — `attribute_groups.attributable_type` và
+  `attributes.attribute_type` biến mất (quan hệ chuyển sang pivot
+  `attribute_models`), `name` thành cột string, và `type` là **chuỗi
+  `FieldTypeEnum`** chứ không phải class name.
+- `add_builder_columns_to_product_variants` — `after('purchasable')`. 2.0 còn tự
+  có sẵn `model` + `cost_price`.
+
+Bài học chung: **`after()` trong migration là một liên kết ngầm tới layout của
+vendor.** Thứ tự cột là thẩm mỹ; đừng trả giá bằng một lần hỏng khi vendor đổi
+tên hàng xóm.
+
+### 9.4 API tiền — rector không đụng tới
+
+Spec 0012 gỡ cast tiền khỏi `Order`/`OrderLine`/`Transaction`: cột là `int`
+thường, format qua `$model->format('cột')`. Riêng `Price` của catalogue có
+`unitFormat('price')` / `unitDecimal('price')` — chia theo `unit_quantity`, đúng
+bằng việc cast cũ làm. Còn `Cart`/`CartLine`/`ShippingOption` **vẫn** là
+`PriceValue` với `->format()`. Ba nhóm, ba cách gọi.
+
+`Pricing::for($sku)->get()->matched` nay là **model** `Price`, không phải object
+tiền: `->price` là int.
+
+Rule rector cho việc này chỉ khớp property fetch **có kiểu**, mà code dự án đi
+qua quan hệ nên nó bỏ qua sạch — 47 chỗ phải sửa tay.
+
+### 9.5 Catalogue `name`/`description` ra khỏi `attribute_data`
+
+Spec 0018 đưa chúng thành cột JSON thật; spec 0019 đổi luôn hình dạng
+`attribute_data` từ envelope theo handle (mang sẵn `field_type`) sang **map thô
+theo ID attribute**. Hệ quả cho code đọc:
+
+- `translateAttribute('name')` → `translate('name')` (6 file).
+- SQL sort/search phải đổi cột. Đây cũng là **một bản sửa lỗi**: biểu thức cũ
+  `JSON_EXTRACT(attribute_data, '$.name.value')` trả cả object JSON với
+  `TranslatedText`, nên sort A–Z thực chất sort dấu ngoặc kép và tìm kiếm không
+  bao giờ khớp tên đã dịch. Nay đi qua `TranslatedColumn::sql()`.
+- Bất cứ chỗ nào đọc `attribute_data` phải tra loại field từ bảng `attributes`,
+  vì hàng dữ liệu không còn tự khai nữa.
+
+### 9.6 Vòng đời đơn hàng: từ cột sang phái sinh
+
+Thay đổi lớn nhất, và là **quyết định**, không phải phép đổi tên. 2.0 xoá
+`lunar_orders.status` và cố ý không mô hình hoá vòng đời do người vận hành tự
+bấm — thay bằng hai rollup dẫn xuất (`payment_status` từ sổ giao dịch,
+`fulfilment_status` từ fulfilment) cộng `closed_at`/`cancelled_at`.
+
+Dự án **chuyển hẳn** sang mô hình đó. Bảy handle vẫn còn (khách hàng, email,
+SMS, file ngôn ngữ đều nói thứ tiếng đó) nhưng là **khung nhìn** trên bốn sự
+thật kia — `OrderStatus::of()` — không phải cột ai đó ghi. Không nơi nào set
+status nữa: ghi lại sự thật, status tự theo.
+
+Bốn điều chỉ lộ ra khi làm:
+
+1. **Một phân biệt bốn sự thật không làm được:** `payment-offline` (COD, đã bán,
+   thu tiền khi giao) và `awaiting-payment` (cổng thanh toán bỏ dở) đều là
+   payment pending. Cái tách chúng là *phương thức thanh toán*. Nên checkout ghi
+   `meta.payment_type` cho **mọi** đơn, danh sách "trả khi nhận" đọc từ
+   `lunar.payments.types.*.authorized` (config đã khai báo sẵn — đừng chép lại
+   thành hằng số thứ hai), và một migration backfill `cod` cho đơn cũ. Không có
+   nó, mọi đơn COD lịch sử rơi khỏi doanh thu.
+2. **Đơn không có gì để giao rollup thành `fulfilled`** ("settled by
+   definition"). Nếu đọc rollup trần thì đơn rỗng đọc thành `dispatched` ngay
+   khi tạo. Phải thêm điều kiện: thực sự có dòng hàng cần giao.
+3. **`RecomputeOrderStatus` ghi bằng `saveQuietly()`** — cố ý, để rollup không
+   vòng ngược qua observer. Nghĩa là **observer không bao giờ thấy** hai chuyển
+   trạng thái quan trọng nhất. Domain event phải dựng từ chính năm sự kiện của
+   Lunar (payment/fulfilment status, cancelled, closed, reopened). Email đổi
+   trạng thái và lịch sử timeline cũng phải chuyển thành listener của event đó —
+   1.x ghi entry `status-update` vào activity log từ observer canh cột; 2.0 không
+   còn cột nên không còn entry.
+4. **Lunar tạo sẵn fulfilment lúc đặt hàng** (`EnsureInitialFulfilment`). "Giao
+   hàng" là đẩy cái có sẵn sang trạng thái done, **không** phải tạo mới — tạo
+   thêm bị từ chối vì dòng hàng đã được phủ.
+
+### 9.7 Asset của panel
+
+`public/vendor/lunar-panel` là bản biên dịch sẵn của vendor: gitignore, và
+`lunar:panel:install` vào `post-autoload-dump` — đúng vai trò `filament:upgrade`
+từng giữ. Thiếu nó mọi trang panel trả 500 với
+`ViteManifestNotFoundException`. Bài học y hệt `public/build` ở
+[1.5](upgrade-lunar-1.5.md): **thư mục gitignore chứa asset là bước build bắt
+buộc, không phải tuỳ chọn.**
+
+### 9.8 Còn lại
+
+Fase 3 xong. Fase 4 (viết lại admin bằng Vue) và Fase 5 (nghiệm thu) chưa bắt
+đầu — hiện **không có giao diện quản trị**. Tám method test đã cắt khỏi bốn file
+test settings (phần domain giữ nguyên) phải dựng lại cho panel ở Fase 5:
+`InventorySettingsTest`, `TokenPolicyTest`, `NotificationChannelSettingsTest`,
+`NotificationTest`.

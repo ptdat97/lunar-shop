@@ -34,18 +34,33 @@ Trước đây: `composer patch` lên `lunarphp/core` — **nấc cuối** của
 ([../README.md](../README.md) §1), và làm `composer update` fail cứng mỗi khi
 upstream đụng vào method đó.
 
-Nay: [`Modules\Core\Support\Concerns\SkipsEmptyTranslations`](../../modules/Core/app/Support/Concerns/SkipsEmptyTranslations.php),
-gắn qua `ModelManifest::replace()` trong `CatalogServiceProvider`. Không đụng
-`vendor/`, không ràng buộc lúc cài đặt.
+Rồi (1.5): một trait `SkipsEmptyTranslations` ghi đè `translate()`, gắn lên bốn
+model qua `ModelManifest::replace()`.
 
-**Phạm vi là bốn model, và đó là toàn bộ bề mặt.** Chỉ bốn bảng có cột `name` kiểu
-JSON — `lunar_product_options`, `lunar_product_option_values`, `lunar_attributes`,
-`lunar_attribute_groups`. Mọi model khác giữ tên trong `attribute_data` và đọc qua
-`translateAttribute()`, vốn đã bỏ qua giá trị rỗng ở upstream.
+Nay (2.0, 2026-09-09): [`Modules\Core\Casts\FilledTranslations`](../../modules/Core/app/Casts/FilledTranslations.php),
+cài bằng `Model::addCasts()` trong `CatalogServiceProvider`. Phải đổi vì **Lunar
+2.0 gỡ hẳn model replacement** — core gọi thẳng `ProductOptionValue::class` và
+`ModelManifest` chỉ còn route binding + morph map. `addCasts()`
+(`HasExtendableCasts`) là seam duy nhất 2.0 để lại cho việc này.
 
-Phủ bởi `tests/Feature/EmptyTranslationFallbackTest.php` (12 test), trong đó có một
-ca canh **không cho `patches/` quay lại** — nếu cả hai cùng tồn tại thì hai bản vá
-chồng nhau và `composer update` lại fail như cũ.
+Bản vá vì thế **hạ xuống một tầng**: thay vì sửa hàm đọc, nó lọc locale rỗng ngay
+lúc decode JSON — thế là `translate()` của upstream trở thành đúng như đang viết,
+vì "khoá tồn tại nhưng rỗng" không còn xảy ra được. Rộng hơn cách cũ: mọi model
+đọc cột đó đều được vá, không chỉ những model ta nhớ mà subclass.
+
+**Bề mặt đổi cả hai chiều ở 2.0:**
+
+- `lunar_attributes.name` và `lunar_attribute_groups.name` nay là cột `string`
+  thường — hết chuyện dịch, rời khỏi danh sách.
+- Spec 0018 đưa `name` / `description` / `short_description` của product,
+  collection, brand **ra khỏi** `attribute_data` thành cột JSON thật, đọc qua
+  `translate()` — gia nhập danh sách.
+
+Phủ bởi `tests/Feature/EmptyTranslationFallbackTest.php` (19 test): mỗi cột trong
+danh sách, một ca khẳng định container mỗi model khai báo (`Collection` vs
+`ArrayObject`) không bị đổi, một ca nói to rằng `attributes.name` nay là string,
+và một ca canh **không cho `patches/` quay lại** — nếu cả hai cùng tồn tại thì hai
+bản vá chồng nhau và `composer update` lại fail như cũ.
 
 ---
 
@@ -58,9 +73,9 @@ lưu khác định dạng:
 | | Ghi | Đọc |
 |---|---|---|
 | `lunarphp/filament3-2fa` | `encrypt($secret)` — **có** serialize | `decrypt($v)` |
-| Filament v4 | cast `'encrypted'` | `decrypt($v, false)` — **không** serialize |
+| Filament v4 / panel 2.0 | cast `'encrypted'` | `decrypt($v, false)` — **không** serialize |
 
-Filament đọc secret cũ ra đúng chuỗi `s:16:"JBSWY3DPEHPK3PXP";`. Mọi staff từng bật
+Bên đọc secret cũ ra đúng chuỗi `s:16:"JBSWY3DPEHPK3PXP";`. Mọi staff từng bật
 2FA mất đường vào panel. Và không hỏng lịch sự: chuỗi bọc đó không phải base32 hợp
 lệ, Google2FA ném `InvalidCharactersException`, `AppAuthentication::verifyCode()`
 không bắt — màn hình MFA **500** thay vì báo mã sai.
@@ -75,6 +90,12 @@ Lunar.
 Nhận diện **theo nội dung chứ không theo cờ**: chỉ ghi lại giá trị nào giải mã ra
 một chuỗi PHP-serialized. Nhờ vậy chạy lại được nhiều lần và an toàn trên bảng lẫn
 lộn cũ/mới. Phủ bởi `tests/Feature/StaffTwoFactorReencryptionTest.php` (7 test).
+
+**Vẫn đúng nguyên sau khi lên Lunar 2.0** (kiểm 2026-09-09). Panel tự làm 2FA
+(`Lunar\Panel\Auth\AppAuthentication`, pragmarx/google2fa) chứ không dùng của
+Filament nữa, nhưng đọc **cùng cột** `lunar_staff.app_authentication_*` qua **cùng
+cast** `encrypted` / `encrypted:array`. Chỉ accessor đổi (đọc thẳng thuộc tính) và
+`verifyCode()` nhận secret trước, mã sau — test đã chuyển sang verifier của panel.
 
 ---
 
@@ -99,9 +120,8 @@ dạng mã hoá.
 
 ### Khi bản vá chính thức xuất hiện
 
-- Lỗi 1: gỡ `SkipsEmptyTranslations` khỏi bốn model, và gỡ ba model chỉ tồn tại để
-  mang trait (`ProductOptionValue`, `Attribute`, `AttributeGroup`) cùng ba dòng
-  `ModelManifest::replace()` tương ứng. Giữ `ProductOption` — nó còn mang
-  `display_type`. Bỏ luôn `EmptyTranslationFallbackTest`.
+- Lỗi 1: gỡ `guardEmptyTranslations()` khỏi `CatalogServiceProvider` và xoá
+  `Modules\Core\Casts\FilledTranslations`. Bỏ luôn `EmptyTranslationFallbackTest`.
+  (Vẫn còn nguyên ở `lunarphp/core` 2.0.0-alpha.6 — đã kiểm.)
 - Lỗi 2: migration của mình thành thừa, nhưng **an toàn khi chạy trùng** (nhận diện
   theo nội dung nên lần hai là no-op). Chỉ bỏ khi dựng lại DB từ đầu.

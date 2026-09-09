@@ -1,7 +1,8 @@
 # Lunar Shop — Tài liệu kỹ thuật
 
 Ecommerce fashion cho SME single-store. Laravel 12 + [Lunar](https://lunarphp.io/)
-làm commerce core, admin Filament 4, storefront Blade SSR.
+làm commerce core, storefront Blade SSR. Admin đang trong quá trình viết lại
+trên `lunarphp/panel` (Inertia + Vue) — xem [guides/upgrade-lunar-2.0.md](guides/upgrade-lunar-2.0.md).
 
 ---
 
@@ -15,8 +16,8 @@ làm commerce core, admin Filament 4, storefront Blade SSR.
 | Chạy lệnh artisan thường dùng | [guides/commands.md](guides/commands.md) |
 | Lỗi chỉ xảy ra trong trình duyệt | [guides/e2e-testing.md](guides/e2e-testing.md) |
 | Deploy & vận hành production | [guides/deployment.md](guides/deployment.md) |
-| Hiểu đợt nâng Lunar 1.5 / Filament v4 đã làm gì | [guides/upgrade-lunar-1.5.md](guides/upgrade-lunar-1.5.md) |
-| Kế hoạch lên Lunar 2.0 + panel Inertia/Vue | [guides/upgrade-lunar-2.0.md](guides/upgrade-lunar-2.0.md) |
+| Hiểu đợt nâng Lunar 1.5 / Filament v4 đã làm gì (lịch sử) | [guides/upgrade-lunar-1.5.md](guides/upgrade-lunar-1.5.md) |
+| Đợt nâng Lunar 2.0 + panel Inertia/Vue: kế hoạch và nhật ký | [guides/upgrade-lunar-2.0.md](guides/upgrade-lunar-2.0.md) |
 | Hai lỗi của Lunar và cách sống chung | [upstream/README.md](upstream/README.md) |
 | Xem việc còn tồn đọng | [roadmap.md](roadmap.md) |
 
@@ -38,7 +39,7 @@ flowchart TB
     subgraph http["Tầng HTTP"]
         storefront["Storefront Controller"]
         apiv1["API /api/v1/*"]
-        admin["Filament Admin"]
+        admin["Panel (Inertia + Vue)"]
     end
 
     subgraph domain["Tầng nghiệp vụ — 13 module"]
@@ -78,19 +79,20 @@ dùng điểm mở rộng chính chủ, theo thứ tự ưu tiên từ nhẹ t�
 ```mermaid
 flowchart LR
     A["Config /<br/>pipeline"] --> B["Manager<br/>extend()"]
-    B --> C["resolveRelation<br/>Using()"]
-    C --> D["ModelManifest<br/>replace()"]
-    D --> E["Events"]
-    E --> F["Filament<br/>Extension"]
-    F --> G["composer<br/>patch"]
+    B --> C["resolveRelationUsing()<br/>addCasts() · addLocalScope()"]
+    C --> D["Events"]
+    D --> E["Panel<br/>Section/Slot"]
+    E --> F["composer<br/>patch"]
 
     style A fill:#2d6a4f,color:#fff
-    style G fill:#9b2226,color:#fff
+    style F fill:#9b2226,color:#fff
 ```
 
 Càng sang phải càng tốn chi phí bảo trì. `composer patch` là **lựa chọn cuối** —
-hiện **không còn dùng lần nào**: bản vá locale fallback cuối cùng đã chuyển sang
-`ModelManifest::replace()` (2026-08-27, xem [upstream/README.md](upstream/README.md)).
+hiện **không còn dùng lần nào**: bản vá locale fallback đã đi hai chặng, từ
+composer patch sang `ModelManifest::replace()` (2026-08-27) rồi sang cast
+`FilledTranslations` cài bằng `addCasts()` (2026-09-09), vì **Lunar 2.0 gỡ hẳn
+model replacement**. Xem [upstream/README.md](upstream/README.md).
 
 Chi tiết: [architecture/overview.md](architecture/overview.md) §Điểm mở rộng.
 
@@ -134,7 +136,7 @@ Cấu trúc mỗi module (layout v13):
 modules/<Name>/
 ├── module.json          # manifest: provider + priority
 ├── composer.json        # PSR-4 root (merge-plugin)
-├── app/                 # Providers, Models, Http, Services, Filament…
+├── app/                 # Providers, Models, Http, Services…
 ├── config/
 ├── database/migrations|seeders/
 ├── resources/views/
@@ -148,10 +150,10 @@ modules/<Name>/
 | Hạng mục | Giá trị |
 |---|---|
 | Module | 13 |
-| File PHP trong `modules/` | 420 |
-| Route `api/v1` | 63 |
-| Route storefront | 21 |
-| Test | 591 (+ 4 E2E Dusk) |
+| File PHP trong `modules/` | 353 |
+| Route `api/v1` | 64 |
+| Route panel (`lunarphp/panel`) | 370 |
+| Test | 560 |
 
 > Số liệu là snapshot lúc viết. Chạy `php artisan test` và
 > `php artisan route:list` để lấy con số hiện thời.

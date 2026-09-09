@@ -56,7 +56,7 @@ MAIL_MAILER=smtp                 # + credential SMTP thật (mail đang là `log
 SANCTUM_STATEFUL_DOMAINS=your-domain.com
 SESSION_DOMAIN=your-domain.com
 
-# Payment production endpoints + keys (đọc qua Filament Payment Settings/DB
+# Payment production endpoints + keys (đọc qua Settings/DB
 # hoặc env fallback): VNPAY_*, MOMO_* — dùng URL production, không sandbox.
 ```
 
@@ -72,7 +72,7 @@ git pull --ff-only
 composer install --no-dev --prefer-dist --optimize-autoloader
                                    # kéo lunarphp/lunar về vendor/ và dựng lại autoload
                                    # PSR-4 cho 13 module (wikimedia/composer-merge-plugin);
-                                   # post-autoload-dump publish lại asset Filament
+                                   # post-autoload-dump publish lại asset panel
 npm ci && npm run build            # hoặc build ở CI, rsync public/build
 
 # 2. Maintenance window (trang 503 branded đã có)
@@ -84,7 +84,6 @@ php artisan storage:link           # lần đầu
 
 # 4. Cache framework (đã verify hoạt động 2026-07-08)
 php artisan optimize               # config + route + event + view cache
-php artisan filament:cache-components
 php artisan icons:cache
 
 # 5. Restart workers (bắt buộc sau khi đổi code — worker giữ code cũ trong RAM)
@@ -229,7 +228,7 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
   `degraded`** khi bất kỳ cái nào hỏng (trước đây luôn trả `"ok"` → load balancer giữ
   node chết trong rotation). Chạy **không middleware**. Dùng cho readiness probe.
 - **Horizon dashboard** (`/horizon`): chỉ **Lunar staff có cờ admin** (guard
-  `staff`) truy cập ở non-local. Đăng nhập admin Filament trước rồi mở /horizon.
+  `staff`) truy cập ở non-local. Đăng nhập panel trước rồi mở /horizon.
 - **Error pages** 404/500/503/403/419: tự chứa (không phụ thuộc DB/theme),
   song ngữ EN/VI, `noindex` — không lộ stack trace khi `APP_DEBUG=false`.
 - **CSRF** (cập nhật 2026-07-10): bật toàn bộ, trừ
@@ -272,15 +271,15 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
   tracker (Sentry/Flare) khi có ngân sách — chưa wired.
 - **Monitor**: uptime check `/up`; Horizon dashboard cho queue lag; disk cho
   `public/media` (conversion tăng dần).
-- **Nâng cấp**: `composer outdated` hàng tháng (Laravel, Filament, Spatie…) — chạy full
+- **Nâng cấp**: `composer outdated` hàng tháng (Laravel, Lunar, Spatie…) — chạy full
   test suite trước khi lên.
-  Lunar là composer package (`lunarphp/lunar`) nên **nằm trong `composer outdated`
-  bình thường** và nhận security patch như mọi dependency khác.
-  Dự án **không còn composer patch nào** (2026-08-27): bản vá cuối cùng đã chuyển
-  sang `ModelManifest::replace()`, nên `composer update` không còn điểm fail cứng
-  vì vendor bị sửa. Xem [../upstream/README.md](../upstream/README.md).
-  ⚠️ **Nâng minor Lunar không phải việc thường lệ.** Bản 1.5 kéo theo Filament v4
-  và sửa cấu trúc DB — có runbook riêng: [upgrade-lunar-1.5.md](upgrade-lunar-1.5.md).
+  Lunar là composer package (`lunarphp/core` + `lunarphp/panel`) nên **nằm trong
+  `composer outdated` bình thường** và nhận security patch như mọi dependency khác.
+  Dự án **không còn composer patch nào** (2026-08-27), nên `composer update` không
+  còn điểm fail cứng vì vendor bị sửa. Xem [../upstream/README.md](../upstream/README.md).
+  ⚠️ **Nâng minor Lunar không phải việc thường lệ.** Bản 1.5 kéo theo Filament v4;
+  bản 2.0 thay cả tầng admin và bỏ `orders.status`. Mỗi bản có runbook riêng:
+  [upgrade-lunar-1.5.md](upgrade-lunar-1.5.md), [upgrade-lunar-2.0.md](upgrade-lunar-2.0.md).
 
 ## 9. Chưa làm (chấp nhận được ở quy mô SME, làm khi cần)
 

@@ -86,14 +86,14 @@ php artisan optimize:clear
 
 # Production: cache toàn bộ sau khi deploy
 php artisan optimize
-php artisan filament:optimize   # cache component + icon cho admin
+php artisan lunar:panel:install # publish lại asset biên dịch sẵn của panel
 ```
 
 | Lệnh | Mô tả |
 | --- | --- |
 | `cache:clear` | Xóa cache ứng dụng (bao gồm cache section/config trang) |
 | `config:clear` / `route:clear` / `view:clear` | Xóa từng loại cache riêng |
-| `filament:optimize-clear` | Xóa cache Filament |
+| `lunar:panel:link` | Symlink asset của module addon panel |
 
 ## 🔍 Search (Scout)
 
