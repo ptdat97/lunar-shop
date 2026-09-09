@@ -202,12 +202,26 @@ sai mật khẩu · GA + Facebook pixel.
 
 ### Còn treo
 
-- ⬜ **Lunar 2.0 + panel Inertia/Vue** — đã khảo sát và lên kế hoạch:
-  [guides/upgrade-lunar-2.0.md](guides/upgrade-lunar-2.0.md). **Chưa bắt đầu**, và
-  không nên bắt đầu trước khi P0 xong: 2.0 mới ở mức `alpha.6`, API đổi theo tuần
-  (alpha.5 → alpha.6 cách nhau 3 ngày và alpha.5 là bản đổ bộ toàn bộ panel).
-  Đổi lại, nó gỡ được món nợ reflection trong `ModulesServiceProvider` và thoát
-  vòng lặp migrate Filament major (2.0 yêu cầu Filament v5 nếu ở lại đường cũ).
+- 🟡 **Lunar 2.0 + panel Inertia/Vue** — **Fase 0→3 xong** (2026-09-09):
+  `lunarphp/core` + `lunarphp/panel` `2.0.0-alpha.6`, Filament đã gỡ, 560 test
+  xanh, panel phục vụ 370 route. Món nợ reflection trong `ModulesServiceProvider`
+  đã trả (file đó bị xoá). Nhật ký thực thi + năm câu hỏi mở đã trả lời:
+  [guides/upgrade-lunar-2.0.md](guides/upgrade-lunar-2.0.md) §8–9.
+
+  **Còn lại — Fase 4: viết lại admin bằng Vue.** Hiện **không có giao diện quản
+  trị riêng của dự án**; backend (`Settings`, `SkuBuilderService`,
+  `MediaLibraryService`…) còn nguyên, chỉ thiếu UI. Thứ tự rủi ro giảm dần:
+  MediaPicker/MediaBrowser (14 call site) → ManageProductVariants → 9 trang cấu
+  hình → 6 resource Nội dung → RMA/ShippingZone/SizeChart/Kho/MediaLibrary/
+  QueueWorkers → Analytics widget. Kèm Fase 5: dựng lại 8 method test đã cắt khỏi
+  bốn file test settings, và một smoke test mọi route panel.
+
+  ⚠️ Vẫn là **alpha**: API đổi theo tuần. Đọc kỹ changelog trước mỗi lần bump.
+
+- ⬜ **Phân quyền của panel** — câu hỏi mở duy nhất còn lại từ đợt khảo sát:
+  panel dùng chuỗi permission riêng (`sales:manage-customers`), chưa rõ khớp thế
+  nào với `spatie/laravel-permission` dự án đang dùng. **Phải trả lời trước khi
+  viết trang admin đầu tiên.**
 
 - ⬜ **Uptime check bên ngoài.** Dây bảo hiểm cho cron chỉ báo khi *một job* lặng đi; nếu
   **cả scheduler** chết thì heartbeat chết theo. Cần một dịch vụ ngoài gọi lệnh kiểm tra
@@ -229,7 +243,8 @@ sai mật khẩu · GA + Facebook pixel.
 
 ## Cấu hình: cái gì ra admin, cái gì ở lại config
 
-**Đã ra Filament** (đọc qua `Modules\Core\Support\Settings`, DB → fallback config/env): payment keys
+**Đã ra admin** (đọc qua `Modules\Core\Support\Settings`, DB → fallback config/env — backend
+còn nguyên, UI chờ Fase 4): payment keys
 (VNPay/MoMo) + default method · shipping flat-rate + free-threshold · **nhận tại cửa hàng**
 (bật/tắt + địa chỉ + giờ mở cửa + hướng dẫn) · membership tiers ·
 recommendations (limit/TTL) · review auto-approve · media on-demand mode · low-stock threshold ·

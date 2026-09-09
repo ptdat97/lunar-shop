@@ -1,6 +1,7 @@
 # SME Fashion Ecommerce — Coding Standards
 
-> Chuẩn code cho repo **Laravel 12 + LunarPHP 1.5 + Filament 4 + theme `fashion` (SSR)**.
+> Chuẩn code cho repo **Laravel 12 + LunarPHP 2.0 (`lunarphp/core` + `lunarphp/panel`)
+> + theme `fashion` (SSR)**.
 > Đọc kèm [../architecture/overview.md](../architecture/overview.md) (kiến trúc
 > tổng thể) và [../architecture/theme.md](../architecture/theme.md)
 > (chi tiết theme).
@@ -68,7 +69,6 @@ modules/<Name>/
 │   │   └── Resources/      # API Resource — JSON contract ổn định
 │   ├── Services/           # business logic (web + API gọi chung)
 │   ├── Models/             # model fashion-specific (wrap/extend Lunar)
-│   ├── Filament/           # trang/resource admin do module đóng góp
 │   ├── Support/            # value objects, helper nội bộ module
 │   └── Providers/<Name>ServiceProvider.php
 ├── config/
@@ -110,7 +110,7 @@ validation nghiệp vụ, dispatch event, tích hợp ngoài.
   `CheckoutValidator` / `CheckoutCalculator` / `CheckoutProcessor`).
 * Tên hợp lệ: `*Service`, `*Resolver`, `*Engine`/`*Strategy` (Search/Recommend),
   `*Hooks` (đăng ký hook). **Cấm** `Helper`/`Utils`/`Common`/`Manager` (dễ thành
-  thùng rác) — trừ `*Manager` chính chủ của Lunar/Filament khi extend.
+  thùng rác) — trừ `*Manager` chính chủ của Lunar khi extend.
 
 **Transaction — bắt buộc bọc `DB::transaction` cho:** checkout, payment,
 inventory, order (mọi thao tác ghi nhiều bảng liên quan), để tránh bug đồng bộ dữ
@@ -139,36 +139,42 @@ gọi service, không tự `Cache::remember`.
 
 ## 5. Lunar — kiểm tra trước khi build (BẮT BUỘC)
 
-> **Lunar là composer package (`lunarphp/lunar`), KHÔNG fork vào repo.** Bản fork
-> cũ (`modules/Lunar` + `modules/LunarAdmin`) đã được gỡ — đừng sửa `vendor/`.
-> Muốn đổi hành vi thì dùng điểm mở rộng chính chủ (`ModelManifest::replace`,
-> subclass, `resolveRelationUsing`, event, Filament Extension); chỉ khi không còn
-> cách nào khác mới dùng composer patch. Hiện **không còn patch nào** — bản vá cuối
-> cùng đã chuyển sang `ModelManifest::replace()` (xem docs/upstream/README.md).
+> **Lunar là composer package (`lunarphp/core` + `lunarphp/panel`), KHÔNG fork vào
+> repo.** Bản fork cũ (`modules/Lunar` + `modules/LunarAdmin`) đã được gỡ — đừng sửa
+> `vendor/`. Muốn đổi hành vi thì dùng điểm mở rộng chính chủ
+> (`resolveRelationUsing`, `addCasts`, `addLocalScope`, event, Section/Slot của
+> panel); chỉ khi không còn cách nào khác mới dùng composer patch. Hiện **không còn
+> patch nào** (xem docs/upstream/README.md).
 > Xem [../architecture/overview.md](../architecture/overview.md).
+>
+> ⚠️ **Lunar 2.0 gỡ hẳn `ModelManifest::replace()`** — không còn cách override một
+> method của model core. Khi gặp tình huống đó, **vá xuống tầng dữ liệu mà method
+> đó đọc** (một cast là đủ, và vá rộng hơn subclass). Ví dụ có thật ở
+> [../upstream/README.md](../upstream/README.md).
 
 Trước khi viết một dòng code cho tính năng mới, **phải** kiểm tra Lunar đã có chưa.
 Checklist (dừng ngay khi tìm thấy):
 
 1. **Model/nghiệp vụ?** `grep -ri "<feature>" vendor/lunarphp/core/src --include=*.php -l`
-2. **Admin (Filament resource)?** `find vendor/lunarphp/admin/src -path "*Resources*Resource.php" | grep -i "<feature>"`
+2. **Admin?** `grep -ril "<feature>" vendor/lunarphp/panel/src/Http/Controllers`
 3. **Config / điểm mở rộng?** xem `config/lunar/*` + pipelines/events Lunar expose.
 
 **Kết luận:**
-* **Có** → kế thừa: config → extend (model bind / pipeline / custom field /
-  Filament hook) → wrap bằng service. **Không** copy ra module viết lại.
+* **Có** → kế thừa: config → extend (pipeline / custom field / cast / section của
+  panel) → wrap bằng service. **Không** copy ra module viết lại.
 * **Không** → build mới trong module, ghi rõ "Lunar không có" trong PR/commit.
 
 **Composer patch — lựa chọn cuối.** Thứ tự leo thang:
 
 ```text
-config/lunar/* → điểm mở rộng chính chủ (pipeline, ModelManifest::replace,
-Payments::extend, Discounts::addType, Event::listen, ResourceExtension)
+config/lunar/* → điểm mở rộng chính chủ (pipeline, Model::addCasts/addLocalScope,
+Payments::extend, Discounts::addType, Event::listen, Panel::section/slot)
 → wrap bằng service trong module  →  (cuối cùng) composer patch trong patches/
 ```
 
-Chỉ viết patch khi **không có điểm mở rộng nào chạm tới** được — điển hình là trait
-(`ModelManifest` không swap được trait). Khi đó:
+Chỉ viết patch khi **không có điểm mở rộng nào chạm tới** được. Trước khi tới đó,
+hỏi câu đã cứu dự án hai lần: *có vá được ở tầng dữ liệu mà hàm đó đọc không?*
+Khi đã chắc là phải patch:
 * Commit **riêng**, message nói rõ *tại sao không dùng được extension point*.
 * Patch **tối thiểu**, và **kèm PR ngược lên upstream** để sớm gỡ được patch.
 * Nhớ: nâng cấp Lunar có thể làm patch không áp được → `composer update` sẽ fail.
@@ -334,22 +340,33 @@ Module giao tiếp qua **service công khai** của module khác hoặc **domain
 
 ---
 
-## 11. Admin = Filament của Lunar
+## 11. Admin = panel của Lunar
 
-Resource Lunar đã có (Products, Discounts, Orders, Customers, CustomerGroups,
-Taxes…) **không tạo lại** — chỉ thêm field/tab/action qua extension point, hoặc
-swap subclass trong `ModulesServiceProvider`. Resource mới chỉ cho phần Lunar
-không có (Pages, Menus, Banners, Lookbooks, Themes…). Discount type mới đăng ký
-qua `Discounts::addType(...)` để hiện trong panel + chạy trong cart pipeline.
+Trang Lunar đã có (Products, Discounts, Orders, Customers, CustomerGroups, Taxes…)
+**không tạo lại** — chỉ thêm cột/filter/action qua `Panel::extendTable()`,
+`Panel::addPageAction()` hoặc một `PageZone`. Trang mới chỉ cho phần Lunar không có
+(Pages, Menus, Banners, Lookbooks, Themes…), đóng góp bằng `Panel::section()` trong
+provider của chính module. Discount type mới đăng ký qua `Discounts::addType(...)`
+để hiện trong panel + chạy trong cart pipeline.
+
+⚠️ Phần admin riêng của dự án **chưa được viết lại** sau khi bỏ Filament — xem
+[upgrade-lunar-2.0.md](upgrade-lunar-2.0.md) §6 Fase 4.
 
 ---
 
 ## 12. Tiền tệ, Enum & i18n
 
-* **Tiền** luôn thao tác **minor units** (`Price->value`); format qua
-  `->formatted()` / `Number::currency`. Không tự nhân/chia currency factor rải rác.
+* **Tiền** luôn thao tác **minor units**, nhưng Lunar 2.0 có **ba** hình dạng —
+  gọi sai là lỗi im lặng:
+  * `Order` / `OrderLine` / `Transaction`: cột `int` thường → `$model->format('total')`.
+  * `Price` (catalogue): `$price->unitFormat('price')` / `unitDecimal('price')` —
+    chia theo `unit_quantity`.
+  * `Cart` / `CartLine` / `ShippingOption`: `PriceValue` → `->format()`, `->value`.
 * **Magic number → Enum / Constants / Config.** Không `status = 1`; dùng
   `OrderStatus::PAID`. Paid statuses qua `config('analytics.paid_statuses')`.
+* **Trạng thái đơn hàng là phái sinh**: đọc `OrderStatus::of($order)`, lọc bằng
+  `OrderStatus::scopePaid()` / `paidSql()`. Không có cột `orders.status` để
+  `where` — và không set status ở đâu cả, chỉ ghi lại sự thật gây ra nó.
 * App chạy `APP_LOCALE=vi`; chuỗi hiển thị qua `__()` / lang file khi có thể.
   **Lưu ý format tiền theo locale** (`12,34 US$`) khi viết assert test.
 
@@ -366,7 +383,7 @@ qua `Discounts::addType(...)` để hiện trong panel + chạy trong cart pipel
 | Event / Listener | `OrderPaid` / `SendOrderEmail` |
 | DTO | `CheckoutData` |
 
-**Cấm:** `Helper`, `Utils`, `Common`, `Manager` (trừ Manager chính chủ Lunar/Filament).
+**Cấm:** `Helper`, `Utils`, `Common`, `Manager` (trừ Manager chính chủ của Lunar).
 
 ---
 
