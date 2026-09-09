@@ -14,6 +14,7 @@ use Modules\Notification\Data\SmsMessage;
 use Modules\Notification\Drivers\HttpSmsSender;
 use Modules\Notification\Services\OrderSmsNotifier;
 use Modules\Notification\Support\MailSettings;
+use Modules\Notification\Support\PushSettings;
 use Modules\Notification\Support\SmsSettings;
 use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
@@ -336,4 +337,77 @@ class RecordingSmsSender implements SmsSender
 
         return true;
     }
+
+    private function actingAsPanelAdmin(): static
+    {
+        $this->actingAs(Staff::factory()->create(['admin' => true]), 'staff');
+
+        return $this;
+    }
+
+    /**
+     * Re-saving without retyping the password is the common case: the form
+     * renders secrets blank so they never round-trip through the browser, and
+     * blank must mean "unchanged" rather than "clear it".
+     */
+    public function test_saving_the_form_blank_keeps_the_stored_password(): void
+    {
+        app(Settings::class)->put('notification', [
+            'mail_override' => true,
+            'mail' => ['host' => 'smtp.shop.test', 'password' => 'original-secret'],
+        ]);
+
+        $this->actingAsPanelAdmin()
+            ->put(route('panel.shop.settings.notification.update'), [
+                'mail_override' => true,
+                'mail' => ['host' => 'smtp.shop.test', 'password' => ''],
+                'sms_enabled' => false,
+                'push_enabled' => true,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('original-secret', app(Settings::class)->get('notification.mail.password'));
+    }
+
+    public function test_the_settings_screen_saves_the_sms_gateway(): void
+    {
+        $this->actingAsPanelAdmin()
+            ->put(route('panel.shop.settings.notification.update'), [
+                'mail_override' => false,
+                'sms_enabled' => true,
+                'sms_events' => ['dispatched', 'completed'],
+                'sms' => [
+                    'endpoint' => 'https://gw.test/send',
+                    'api_key' => 'key-123',
+                    'auth' => 'body',
+                ],
+                'push_enabled' => true,
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertTrue(SmsSettings::enabled());
+        $this->assertSame(['dispatched', 'completed'], SmsSettings::events());
+        $this->assertSame('key-123', SmsSettings::gateway()['api_key']);
+    }
+
+    /**
+     * One Settings group holds push, mail and SMS, and put() replaces the whole
+     * group — a screen that forgot a key would silently reset it.
+     */
+    public function test_saving_the_notification_screen_leaves_push_untouched(): void
+    {
+        $this->actingAsPanelAdmin()
+            ->put(route('panel.shop.settings.notification.update'), [
+                'mail_override' => false,
+                'push_enabled' => true,
+                'sms_enabled' => true,
+                'sms' => ['endpoint' => 'https://gw.test/send', 'api_key' => 'k'],
+            ])
+            ->assertSessionHasNoErrors();
+
+        $this->assertTrue(PushSettings::enabled());
+    }
+
 }

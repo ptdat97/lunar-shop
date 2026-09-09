@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use Illuminate\Support\Carbon;
 use Laravel\Sanctum\PersonalAccessToken;
+use Lunar\Core\Models\Staff;
+use Modules\Core\Panel\SettingsRegistry;
 use Modules\Core\Support\Settings;
 use Modules\Customer\Services\TokenIssuer;
 use Tests\Concerns\CreatesStorefrontData;
@@ -220,4 +222,33 @@ class TokenPolicyTest extends TestCase
             ->assertStatus(400)
             ->assertJsonPath('message', 'Only token clients can refresh.');
     }
+
+    /** The settings screen writes what TokenIssuer reads. */
+    public function test_the_settings_screen_saves_the_ttl(): void
+    {
+        $this->actingAs(Staff::factory()->create(['admin' => true]), 'staff');
+
+        $this->put(route('panel.shop.settings.customer.update'), ['ttl_days' => 14])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame(14, app(TokenIssuer::class)->ttlDays());
+    }
+
+    /**
+     * Token abilities are decided in code, not by an admin. Exposing them on a
+     * settings screen would put the API's permission model behind a text box.
+     */
+    public function test_the_settings_screen_does_not_expose_token_abilities(): void
+    {
+        $this->actingAs(Staff::factory()->create(['admin' => true]), 'staff');
+
+        $names = collect(app(SettingsRegistry::class)->get('customer')->fields())
+            ->map(fn ($field) => $field->name)
+            ->all();
+
+        $this->assertContains('ttl_days', $names);
+        $this->assertNotContains('abilities', $names);
+    }
+
 }

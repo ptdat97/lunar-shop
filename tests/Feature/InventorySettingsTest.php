@@ -7,6 +7,7 @@ use Lunar\Core\Facades\CartSession;
 use Lunar\Core\Facades\ShippingManifest;
 use Lunar\Core\Models\Order;
 use Lunar\Core\Models\ProductVariant;
+use Lunar\Core\Models\Staff;
 use Modules\Checkout\Services\CheckoutService;
 use Modules\Core\Support\Settings;
 use Modules\Inventory\Services\InventoryService;
@@ -96,4 +97,55 @@ class InventorySettingsTest extends TestCase
             app(InventoryService::class)->holdMinutes()
         );
     }
+
+    /**
+     * The settings screen writes what this service reads.
+     *
+     * Carried over from the Filament era, rewritten against the panel: the
+     * screen changed, the contract between it and InventoryService did not.
+     */
+    public function test_the_settings_screen_saves_every_field_it_owns(): void
+    {
+        $this->actingAs(Staff::factory()->create(['admin' => true]), 'staff');
+
+        $this->put(route('panel.shop.settings.inventory.update'), [
+            'low_stock_threshold' => 9,
+            'hold_minutes' => 25,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $settings = app(Settings::class);
+
+        $this->assertSame(9, (int) $settings->get('inventory.low_stock_threshold'));
+        $this->assertSame(25, (int) $settings->get('inventory.hold_minutes'));
+    }
+
+    /**
+     * holdMinutes() clamps what it reads to [MIN, MAX]. A form that accepted a
+     * value below the floor would report "saved" while the system quietly used
+     * a different number — so the form has to refuse it.
+     */
+    public function test_the_settings_screen_rejects_a_hold_window_outside_the_service_bounds(): void
+    {
+        $this->actingAs(Staff::factory()->create(['admin' => true]), 'staff');
+
+        $this->put(route('panel.shop.settings.inventory.update'), [
+            'low_stock_threshold' => 5,
+            'hold_minutes' => InventoryService::MIN_HOLD_MINUTES - 1,
+        ])->assertSessionHasErrors('hold_minutes');
+
+        $this->put(route('panel.shop.settings.inventory.update'), [
+            'low_stock_threshold' => 5,
+            'hold_minutes' => InventoryService::MAX_HOLD_MINUTES + 1,
+        ])->assertSessionHasErrors('hold_minutes');
+
+        // The bound itself is accepted — an off-by-one here would lock the
+        // admin out of a value the service honours.
+        $this->put(route('panel.shop.settings.inventory.update'), [
+            'low_stock_threshold' => 5,
+            'hold_minutes' => InventoryService::MIN_HOLD_MINUTES,
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame(InventoryService::MIN_HOLD_MINUTES, app(InventoryService::class)->holdMinutes());
+    }
+
 }

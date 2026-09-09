@@ -8,6 +8,7 @@ use Lunar\Core\Models\Channel;
 use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Order;
 use Lunar\Core\Models\OrderAddress;
+use Lunar\Core\Models\Staff;
 use Modules\Core\Support\Settings;
 use Modules\Notification\Channels\PushChannel;
 use Modules\Notification\Contracts\PushSender;
@@ -15,6 +16,7 @@ use Modules\Notification\Data\PushMessage;
 use Modules\Notification\Drivers\NullPushSender;
 use Modules\Notification\Models\DeviceToken;
 use Modules\Notification\Notifications\OrderStatusChanged;
+use Modules\Notification\Support\PushSettings;
 use Modules\Order\Mail\OrderStatusUpdatedMail;
 use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
@@ -277,4 +279,18 @@ class NotificationTest extends TestCase
             app(PushSender::class),
         );
     }
+
+    public function test_the_settings_screen_toggles_push(): void
+    {
+        $this->actingAs(Staff::factory()->create(['admin' => true]), 'staff');
+
+        $this->put(route('panel.shop.settings.notification.update'), [
+            'mail_override' => false,
+            'sms_enabled' => false,
+            'push_enabled' => false,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertFalse(PushSettings::enabled());
+    }
+
 }
