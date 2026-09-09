@@ -213,7 +213,7 @@ class PickupCheckoutTest extends TestCase
         $order = Order::latest('id')->first();
 
         $this->assertNotNull($order);
-        $this->assertSame(0, (int) $order->shipping_total->value);
+        $this->assertSame(0, (int) $order->shipping_total);
         $this->assertSame('12 Nguyễn Huệ', $order->shippingAddress->line_one);
     }
 

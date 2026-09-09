@@ -30,7 +30,7 @@ class OrderSmsNotifier
 
     public function statusChanged(Order $order): bool
     {
-        if (! SmsSettings::sendsOn($order->status)) {
+        if (! SmsSettings::sendsOn((string) OrderStatus::of($order))) {
             return false;
         }
 
@@ -65,7 +65,7 @@ class OrderSmsNotifier
 
         return __('notification.order_status.sms', [
             'reference' => $order->reference,
-            'status' => OrderStatus::label($order->status),
+            'status' => OrderStatus::labelFor($order),
         ], $locale);
     }
 

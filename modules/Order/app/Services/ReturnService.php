@@ -32,7 +32,7 @@ class ReturnService
         // and never shipped. `can_return` in OrderResource only hid the button;
         // the endpoint itself accepted an RMA against an `awaiting-payment`
         // order, and staff could then refund it.
-        if (! OrderStatus::isReturnable($order->status)) {
+        if (! OrderStatus::isReturnable($order)) {
             throw new InvalidArgumentException('This order cannot be returned.');
         }
 
@@ -209,7 +209,7 @@ class ReturnService
      */
     protected function cappedRefund(ReturnRequest $request, Order $order): int
     {
-        $orderTotal = (int) ($order->total?->value ?? 0);
+        $orderTotal = (int) ($order->total ?? 0);
 
         $alreadyRefunded = (int) ReturnRequest::query()
             ->where('order_id', $order->id)
@@ -236,7 +236,7 @@ class ReturnService
                 return 0;
             }
             // Per-unit value from the line total, times the returned quantity.
-            $perUnit = (int) round((int) $orderLine->total->value / (int) $orderLine->quantity);
+            $perUnit = (int) round((int) $orderLine->total / (int) $orderLine->quantity);
 
             return $perUnit * (int) $line->quantity;
         });

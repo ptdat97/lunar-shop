@@ -8,8 +8,10 @@ use Lunar\Core\Models\Order;
 use Lunar\Core\Models\OrderAddress;
 use Lunar\Core\Models\OrderLine;
 use Modules\Order\Mail\OrderConfirmationMail;
+use Modules\Order\Support\OrderStatus;
 use Modules\Theme\Services\ThemeSettings;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -21,6 +23,7 @@ use Tests\TestCase;
 class EmailBrandingTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     /** Write a theme settings group and drop the singleton's cache/memo. */
     private function setBrand(array $brand): ThemeSettings
@@ -37,7 +40,7 @@ class EmailBrandingTest extends TestCase
         $order = Order::factory()->create([
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
-            'status' => 'payment-received',
+            ...$this->orderAttributesFor(OrderStatus::PAYMENT_RECEIVED),
             'reference' => 'BRAND-0001',
             'sub_total' => 5000,
             'discount_total' => 0,

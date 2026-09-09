@@ -9,6 +9,7 @@ use Modules\Inventory\Services\InventoryService;
 use Modules\Inventory\Services\StockLedger;
 use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -26,6 +27,7 @@ use Tests\TestCase;
 class StockCommitmentTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     private function order(ProductSku $sku, int $quantity): Order
     {
@@ -56,7 +58,7 @@ class StockCommitmentTest extends TestCase
         $sku = $this->createProduct(['stock' => 10])->skus->first();
 
         $order = $this->order($sku, 4);
-        $order->update(['status' => OrderStatus::DISPATCHED]);
+        $this->moveOrderTo($order, OrderStatus::DISPATCHED);
 
         $fresh = $sku->fresh();
         $this->assertSame(6, (int) $fresh->quantity);
@@ -70,9 +72,9 @@ class StockCommitmentTest extends TestCase
         $sku = $this->createProduct(['stock' => 10])->skus->first();
 
         $order = $this->order($sku, 4);
-        $order->update(['status' => OrderStatus::DISPATCHED]);
+        $this->moveOrderTo($order, OrderStatus::DISPATCHED);
         // A retried webhook or a second click in admin.
-        $order->fresh()->update(['status' => OrderStatus::DISPATCHED]);
+        $this->moveOrderTo($order->fresh(), OrderStatus::DISPATCHED);
 
         $this->assertSame(6, (int) $sku->fresh()->quantity, 'one shipment, one decrement');
     }
@@ -83,7 +85,7 @@ class StockCommitmentTest extends TestCase
         $sku = $this->createProduct(['stock' => 10])->skus->first();
 
         $order = $this->order($sku, 4);
-        $order->update(['status' => OrderStatus::CANCELLED]);
+        $this->moveOrderTo($order, OrderStatus::CANCELLED);
 
         $fresh = $sku->fresh();
         // The units never left, so crediting `quantity` would create stock
@@ -99,11 +101,11 @@ class StockCommitmentTest extends TestCase
         $sku = $this->createProduct(['stock' => 10])->skus->first();
 
         $order = $this->order($sku, 4);
-        $order->update(['status' => OrderStatus::DISPATCHED]);
+        $this->moveOrderTo($order, OrderStatus::DISPATCHED);
         $this->assertSame(6, (int) $sku->fresh()->quantity);
 
         // A return: the goods physically come back.
-        $order->fresh()->update(['status' => OrderStatus::REFUNDED]);
+        $this->moveOrderTo($order->fresh(), OrderStatus::REFUNDED);
 
         $this->assertSame(10, (int) $sku->fresh()->quantity);
     }
@@ -164,7 +166,8 @@ class StockCommitmentTest extends TestCase
         $inventory = app(InventoryService::class);
 
         $order = $this->order($sku, 2);
-        $order->update(['status' => OrderStatus::PAID[0], 'placed_at' => now()]);
+        // A COD sale: placed and owed, nothing dispatched yet.
+        $order->update($this->orderAttributesFor(OrderStatus::PAYMENT_OFFLINE));
 
         // Fresh: nothing to warn about yet.
         $this->assertCount(0, $inventory->staleCommitments());
@@ -187,7 +190,7 @@ class StockCommitmentTest extends TestCase
 
         $order = $this->order($sku, 2);
         $order->update([
-            'status' => OrderStatus::DISPATCHED,
+            ...$this->orderAttributesFor(OrderStatus::DISPATCHED),
             'placed_at' => now()->subDays(30),
         ]);
 

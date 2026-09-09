@@ -254,7 +254,7 @@ class FitHistoryService
             ->join('lunar_orders as o', 'o.id', '=', 'ol.order_id')
             ->where('ps.product_id', $product->id)
             ->where('o.customer_id', $customer->id)
-            ->whereIn('o.status', OrderStatus::paid())
+            ->whereRaw(OrderStatus::paidSql('o'))
             // A size return against this exact order line, if any.
             ->leftJoin('return_request_lines as rrl', 'rrl.order_line_id', '=', 'ol.id')
             ->leftJoin('return_requests as rr', function ($join) {

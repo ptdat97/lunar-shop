@@ -10,7 +10,9 @@ use Lunar\Core\Models\OrderAddress;
 use Lunar\Core\Models\OrderLine;
 use Modules\Order\Mail\OrderConfirmationMail;
 use Modules\Order\Services\OrderMailer;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -21,6 +23,7 @@ use Tests\TestCase;
 class OrderMailI18nTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     /** A placed order with one line + a shipping address — all a mail needs. */
     private function makeOrder(): Order
@@ -28,7 +31,7 @@ class OrderMailI18nTest extends TestCase
         $order = Order::factory()->create([
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
-            'status' => 'payment-received',
+            ...$this->orderAttributesFor(OrderStatus::PAYMENT_RECEIVED),
             'reference' => 'TEST-0001',
             'sub_total' => 5000,
             'discount_total' => 0,

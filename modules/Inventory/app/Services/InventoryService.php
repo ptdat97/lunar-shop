@@ -67,11 +67,9 @@ class InventoryService
     {
         $days ??= self::STALE_COMMITMENT_DAYS;
 
-        return Order::query()
+        return OrderStatus::scopePaid(Order::query())
             ->whereNull('dispatched_at')
             ->whereNull('stock_released_at')
-            ->whereNotNull('placed_at')
-            ->whereIn('status', OrderStatus::paid())
             ->where('placed_at', '<=', now()->subDays($days))
             ->orderBy('placed_at')
             ->get();

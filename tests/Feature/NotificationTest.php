@@ -16,7 +16,9 @@ use Modules\Notification\Drivers\NullPushSender;
 use Modules\Notification\Models\DeviceToken;
 use Modules\Notification\Notifications\OrderStatusChanged;
 use Modules\Order\Mail\OrderStatusUpdatedMail;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -30,13 +32,21 @@ use Tests\TestCase;
 class NotificationTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
-    private function order(array $attributes = []): Order
+    /**
+     * An order in the given lifecycle status.
+     *
+     * `status` is not a column since Lunar 2.0 — it is derived from the
+     * transaction ledger, the fulfilments and the cancelled/closed timestamps —
+     * so the handle is translated into those facts here.
+     */
+    private function order(array $attributes = [], string $status = OrderStatus::PAYMENT_RECEIVED): Order
     {
         return Order::factory()->create(array_merge([
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
-            'status' => 'payment-received',
+            ...$this->orderAttributesFor($status),
             'reference' => 'NOTIF-0001',
             'sub_total' => 1000, 'discount_total' => 0, 'shipping_total' => 0,
             'tax_total' => 0, 'total' => 1000,
@@ -49,9 +59,9 @@ class NotificationTest extends TestCase
         NotificationFacade::fake();
 
         $user = $this->createUser();
-        $order = $this->order(['user_id' => $user->id, 'status' => 'payment-received']);
+        $order = $this->order(['user_id' => $user->id]);
 
-        $order->update(['status' => 'dispatched']);
+        $this->moveOrderTo($order, OrderStatus::DISPATCHED);
 
         NotificationFacade::assertSentTo($user, OrderStatusChanged::class, function ($notification) {
             return $notification->order->status === 'dispatched'
@@ -66,7 +76,7 @@ class NotificationTest extends TestCase
 
         // Guest checkout has no User row to notify; the email still goes out.
         $order = $this->order(['user_id' => null]);
-        $order->update(['status' => 'dispatched']);
+        $this->moveOrderTo($order, OrderStatus::DISPATCHED);
 
         NotificationFacade::assertNothingSent();
     }
@@ -76,12 +86,12 @@ class NotificationTest extends TestCase
         $this->seedBaseData();
         Mail::fake();
 
-        $order = $this->order(['status' => 'payment-received']);
+        $order = $this->order();
         OrderAddress::factory()->create([
             'order_id' => $order->id, 'type' => 'shipping', 'contact_email' => 'buyer@example.com',
         ]);
 
-        $order->fresh()->update(['status' => 'dispatched']);
+        $this->moveOrderTo($order->fresh(), OrderStatus::DISPATCHED);
 
         Mail::assertQueued(OrderStatusUpdatedMail::class);
     }
@@ -93,9 +103,9 @@ class NotificationTest extends TestCase
         NotificationFacade::fake();
 
         $user = $this->createUser();
-        $order = $this->order(['user_id' => $user->id, 'status' => 'awaiting-payment']);
+        $order = $this->order(['user_id' => $user->id], OrderStatus::AWAITING_PAYMENT);
 
-        $order->update(['status' => 'payment-received']);
+        $this->moveOrderTo($order, OrderStatus::PAYMENT_RECEIVED);
 
         // The confirmation/paid emails cover this transition; the app has no
         // other channel, so it must still hear about it.
@@ -112,7 +122,7 @@ class NotificationTest extends TestCase
         $order = $this->order(['user_id' => $user->id]);
 
         app()->setLocale('vi');
-        $order->update(['status' => 'dispatched']);
+        $this->moveOrderTo($order, OrderStatus::DISPATCHED);
 
         NotificationFacade::assertSentTo($user, OrderStatusChanged::class, function ($notification) {
             // A queued notification renders on a worker, whose locale is the
@@ -125,7 +135,7 @@ class NotificationTest extends TestCase
     {
         $this->seedBaseData();
         $user = $this->createUser();
-        $order = $this->order(['user_id' => $user->id, 'status' => 'dispatched']);
+        $order = $this->order(['user_id' => $user->id], OrderStatus::DISPATCHED);
 
         app()->setLocale('vi');
         $payload = (new OrderStatusChanged($order, 'payment-received'))->toDatabase($user);

@@ -7,7 +7,9 @@ use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Order;
 use Modules\Notification\Models\DeviceToken;
 use Modules\Notification\Notifications\OrderStatusChanged;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -16,6 +18,7 @@ use Tests\TestCase;
 class NotificationApiTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     private function notify($user, string $reference = 'REF-1'): void
     {
@@ -23,7 +26,7 @@ class NotificationApiTest extends TestCase
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
             'user_id' => $user->id,
-            'status' => 'dispatched',
+            ...$this->orderAttributesFor(OrderStatus::DISPATCHED),
             'reference' => $reference,
             'sub_total' => 1000, 'discount_total' => 0, 'shipping_total' => 0,
             'tax_total' => 0, 'total' => 1000,

@@ -43,7 +43,7 @@ class OrderStatusChanged extends Notification implements ShouldQueue
             'type' => 'order.status_changed',
             'order_id' => $this->order->id,
             'reference' => $this->order->reference,
-            'status' => $this->order->status,
+            'status' => OrderStatus::of($this->order),
             'previous_status' => $this->previousStatus,
             'title' => $this->title(),
             'body' => $this->body(),
@@ -68,7 +68,7 @@ class OrderStatusChanged extends Notification implements ShouldQueue
     protected function body(): string
     {
         return __('notification.order_status.body', [
-            'status' => OrderStatus::label($this->order->status),
+            'status' => OrderStatus::labelFor($this->order),
         ]);
     }
 }

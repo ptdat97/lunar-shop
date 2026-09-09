@@ -7,7 +7,9 @@ use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Order;
 use Lunar\Core\Models\OrderLine;
 use Modules\Catalog\Strategies\CoPurchaseStrategy;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -17,6 +19,7 @@ use Tests\TestCase;
 class RecommendationTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     /** A paid order containing the given products' first variants. */
     private function paidOrderWith(array $products): Order
@@ -24,7 +27,7 @@ class RecommendationTest extends TestCase
         $order = Order::factory()->create([
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
-            'status' => 'payment-received',
+            ...$this->orderAttributesFor(OrderStatus::PAYMENT_RECEIVED),
             'reference' => 'CO-'.uniqid(),
             'sub_total' => 1000, 'discount_total' => 0, 'shipping_total' => 0,
             'tax_total' => 0, 'total' => 1000,
@@ -71,7 +74,8 @@ class RecommendationTest extends TestCase
         $b = $this->createProduct(['name' => 'B']);
 
         $order = $this->paidOrderWith([$a, $b]);
-        $order->update(['status' => 'awaiting-payment']); // not a real purchase
+        // Not a real purchase: a gateway order nobody ever paid.
+        $order->update($this->orderAttributesFor(OrderStatus::AWAITING_PAYMENT));
 
         $recs = app(CoPurchaseStrategy::class)->for($a->fresh(), 8);
 

@@ -62,8 +62,8 @@ class OrderTimeline
     protected function seedFromOrder(Order $order): Collection
     {
         return collect([[
-            'status' => $order->status,
-            'status_label' => OrderStatus::label($order->status),
+            'status' => OrderStatus::of($order),
+            'status_label' => OrderStatus::labelFor($order),
             'previous_status' => null,
             'at' => (string) ($order->placed_at ?? $order->created_at),
         ]]);

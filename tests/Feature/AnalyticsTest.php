@@ -9,6 +9,7 @@ use Lunar\Core\Models\Order;
 use Lunar\Core\Models\OrderLine;
 use Modules\Analytics\Services\AnalyticsService;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -18,13 +19,14 @@ use Tests\TestCase;
 class AnalyticsTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     private function order(int $total, string $status, ?Carbon $createdAt = null): Order
     {
         return Order::factory()->create([
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
-            'status' => $status,
+            ...$this->orderAttributesFor($status),
             'sub_total' => $total,
             'discount_total' => 0,
             'shipping_total' => 0,

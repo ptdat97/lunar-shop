@@ -15,7 +15,9 @@ use Modules\Customer\Services\CustomerResolver;
 use Modules\Order\Mail\ReturnStatusMail;
 use Modules\Order\Models\ReturnRequest;
 use Modules\Order\Services\ReturnService;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -25,6 +27,7 @@ use Tests\TestCase;
 class ReturnRequestTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     protected function setUp(): void
     {
@@ -47,7 +50,7 @@ class ReturnRequestTest extends TestCase
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
             'customer_id' => $customerId,
-            'status' => 'payment-received',
+            ...$this->orderAttributesFor(OrderStatus::PAYMENT_RECEIVED),
             'reference' => 'RMA-'.uniqid(),
             'sub_total' => 100000, 'discount_total' => 0, 'shipping_total' => 0,
             'tax_total' => 0, 'total' => 100000,

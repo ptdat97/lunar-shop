@@ -8,7 +8,9 @@ use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Order;
 use Lunar\Core\Models\Transaction;
 use Modules\Checkout\Services\RefundService;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -19,6 +21,7 @@ use Tests\TestCase;
 class RefundTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     protected function setUp(): void
     {
@@ -40,7 +43,7 @@ class RefundTest extends TestCase
         $order = Order::factory()->create([
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
-            'status' => 'payment-received',
+            ...$this->orderAttributesFor(OrderStatus::PAYMENT_RECEIVED),
             'reference' => 'PAID-'.strtoupper($driver),
             'sub_total' => $total,
             'discount_total' => 0,

@@ -16,6 +16,7 @@ use Modules\Checkout\Services\VNPayPaymentProcessor;
 use Modules\Order\Events\OrderPaid;
 use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -28,6 +29,7 @@ use Tests\TestCase;
 class PaymentHardeningTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     private const SECRET = 'TESTSECRET123';
 
@@ -94,7 +96,7 @@ class PaymentHardeningTest extends TestCase
         // The money is still recorded — an unexplained payment must never vanish.
         $tx = Transaction::where('order_id', $order->id)->sole();
         $this->assertFalse((bool) $tx->success);
-        $this->assertSame(100, (int) $tx->amount->value);
+        $this->assertSame(100, (int) $tx->amount);
     }
 
     public function test_exact_amount_marks_order_paid(): void
@@ -131,7 +133,7 @@ class PaymentHardeningTest extends TestCase
         $this->assertSame(9, $variant->fresh()->getTotalInventory(), 'reserved at order creation');
 
         // Abandoned: cancelled, stock returned by ReleaseStockOnOrderClosed.
-        $order->update(['status' => OrderStatus::CANCELLED]);
+        $this->moveOrderTo($order, OrderStatus::CANCELLED);
         $this->assertSame(10, $variant->fresh()->getTotalInventory());
         $this->assertNotNull($order->fresh()->stock_released_at);
 

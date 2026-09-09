@@ -10,6 +10,7 @@ use Modules\Order\Models\ReturnRequest;
 use Modules\Order\Services\ReturnService;
 use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -24,6 +25,7 @@ use Tests\TestCase;
 class ReturnOverRefundTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     /**
      * Place a COD order for `$quantity` units at 100.00 each, then dispatch it.
@@ -46,7 +48,7 @@ class ReturnOverRefundTest extends TestCase
         $this->postJson('/api/v1/checkout', ['payment_type' => 'cod'])->assertSuccessful();
 
         $order = Order::latest('id')->first();
-        $order->update(['status' => OrderStatus::DISPATCHED]);
+        $this->moveOrderTo($order, OrderStatus::DISPATCHED);
 
         return $order->fresh();
     }
@@ -85,7 +87,7 @@ class ReturnOverRefundTest extends TestCase
         $order->forceFill(['status' => OrderStatus::PAYMENT_OFFLINE])->saveQuietly();
         $this->assertFalse(OrderStatus::isReturnable($order->fresh()->status));
 
-        $order->update(['status' => OrderStatus::DISPATCHED]);
+        $this->moveOrderTo($order, OrderStatus::DISPATCHED);
 
         $request = app(ReturnService::class)->open(
             $order->fresh(),
@@ -161,7 +163,7 @@ class ReturnOverRefundTest extends TestCase
             ->sum('refund_amount');
 
         // An offline order has no gateway to enforce a ceiling, so the service must.
-        $this->assertLessThanOrEqual((int) $order->fresh()->total->value, (int) $refunded);
+        $this->assertLessThanOrEqual((int) $order->fresh()->total, (int) $refunded);
     }
 
     public function test_a_legacy_duplicate_claim_is_capped_at_what_remains(): void
@@ -187,7 +189,7 @@ class ReturnOverRefundTest extends TestCase
 
         $service->refund($stale->fresh());
 
-        $orderTotal = (int) $order->fresh()->total->value;
+        $orderTotal = (int) $order->fresh()->total;
         $refunded = (int) ReturnRequest::where('order_id', $order->id)
             ->where('status', ReturnRequest::REFUNDED)
             ->sum('refund_amount');

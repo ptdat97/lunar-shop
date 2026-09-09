@@ -25,7 +25,7 @@ class ReleaseStockOnOrderClosed
      */
     public function handle(OrderStatusUpdated $event): void
     {
-        if (! in_array($event->order->status, OrderStatus::CLOSED, true)) {
+        if (! OrderStatus::isClosed($event->order)) {
             return;
         }
 

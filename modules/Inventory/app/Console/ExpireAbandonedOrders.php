@@ -5,7 +5,6 @@ namespace Modules\Inventory\Console;
 use Illuminate\Console\Command;
 use Lunar\Core\Models\Order;
 use Modules\Inventory\Services\InventoryService;
-use Modules\Order\Support\OrderStatus;
 
 /**
  * Cancels orders that hold reserved stock but will never be paid for, returning
@@ -62,8 +61,12 @@ class ExpireAbandonedOrders extends Command
                 // (a) A gateway order the shopper never paid for. With no gateway
                 // configured this branch matches nothing — but (b) must still run.
                 if ($gateways !== []) {
+                    // "Never paid" is `payment_status = pending` since Lunar 2.0
+                    // removed the headline column; combined with a gateway
+                    // payment type that is exactly the old awaiting-payment.
                     $q->where(fn ($q) => $q
-                        ->where('status', OrderStatus::AWAITING_PAYMENT)
+                        ->where('payment_status', 'pending')
+                        ->whereNull('cancelled_at')
                         ->whereIn('meta->payment_type', $gateways)
                     );
                 }
@@ -84,8 +87,11 @@ class ExpireAbandonedOrders extends Command
                 $this->line("  #{$order->id} {$order->reference} (created {$order->created_at})");
 
                 if (! $dryRun) {
-                    // The status change releases the stock via the domain event.
-                    $order->update(['status' => OrderStatus::CANCELLED]);
+                    // Cancelling releases the stock via the domain event.
+                    // `cancel()` is Lunar's own action: it stamps `cancelled_at`
+                    // and fires OrderCancelled, which RaiseOrderStatusUpdated
+                    // turns into the shop's OrderStatusUpdated.
+                    $order->cancel(reason: 'abandoned', notify: false);
                 }
             }
         });

@@ -20,30 +20,30 @@ class OrderResource extends JsonResource
         $data = [
             'id' => $this->id,
             'reference' => $this->reference,
-            'status' => $this->status,
+            'status' => OrderStatus::of($this->resource),
             // The raw handle stays (clients switch on it); the label is what a
             // human reads, localised — Lunar's config only has English, and only
             // for the four statuses it ships with.
-            'status_label' => OrderStatus::label($this->status),
+            'status_label' => OrderStatus::labelFor($this->resource),
             'placed_at' => $this->placed_at?->toIso8601String(),
-            'total' => $this->total?->format(),
+            'total' => $this->format('total'),
             // Lunar's Order exposes a camelCase accessor only for `total`; the
             // other totals must be read snake_case (they're Price-cast columns),
             // otherwise they serialize as null.
-            'sub_total' => $this->sub_total?->format(),
-            'shipping_total' => $this->shipping_total?->format(),
-            'tax_total' => $this->tax_total?->format(),
+            'sub_total' => $this->format('sub_total'),
+            'shipping_total' => $this->format('shipping_total'),
+            'tax_total' => $this->format('tax_total'),
             // Returnable when the order is in a paid/fulfilled state (customer can
             // open an RMA from the account order-detail). ReturnService enforces
             // the same rule — this flag only hides the button.
-            'can_return' => OrderStatus::isReturnable($this->status),
+            'can_return' => OrderStatus::isReturnable($this->resource),
             'lines' => $this->whenLoaded('lines', fn () => $this->lines->map(fn ($line) => [
                 'id' => $line->id,
                 'description' => $line->description,
                 'identifier' => $line->identifier,
                 'quantity' => $line->quantity,
-                'unit_price' => $line->unit_price?->format(),
-                'sub_total' => $line->sub_total?->format(),
+                'unit_price' => $line->format('unit_price'),
+                'sub_total' => $line->format('sub_total'),
             ])->values()),
             'shipping_address' => $this->whenLoaded('shippingAddress', fn () => $this->address($this->shippingAddress)),
             'billing_address' => $this->whenLoaded('billingAddress', fn () => $this->address($this->billingAddress)),

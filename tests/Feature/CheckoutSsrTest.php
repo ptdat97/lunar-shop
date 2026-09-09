@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Lunar\Core\Models\Country;
 use Lunar\Core\Models\Order;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -64,10 +65,7 @@ class CheckoutSsrTest extends TestCase
         $this->assertNotNull($order, 'order should be created');
         $response->assertRedirectContains('/checkout/confirmation/'.$order->reference);
 
-        $this->assertDatabaseHas('lunar_orders', [
-            'reference' => $order->reference,
-            'status' => 'payment-offline',
-        ]);
+        $this->assertSame(OrderStatus::PAYMENT_OFFLINE, OrderStatus::of($order));
     }
 
     public function test_missing_address_field_is_a_validation_error(): void

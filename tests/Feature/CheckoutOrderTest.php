@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Lunar\Core\Models\Order;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -30,10 +31,11 @@ class CheckoutOrderTest extends TestCase
             ->assertSuccessful()
             ->assertJsonStructure(['data' => ['id', 'reference', 'status']]);
 
-        $this->assertDatabaseHas('lunar_orders', [
-            'reference' => $res->json('data.reference'),
-            'status' => 'payment-offline',
-        ]);
+        // COD: placed, nothing captured yet, and no gateway payment type —
+        // which is exactly what the derived `payment-offline` means.
+        $order = Order::where('reference', $res->json('data.reference'))->firstOrFail();
+
+        $this->assertSame(OrderStatus::PAYMENT_OFFLINE, OrderStatus::of($order));
     }
 
     public function test_resaving_address_after_choosing_shipping_keeps_the_order_placeable(): void

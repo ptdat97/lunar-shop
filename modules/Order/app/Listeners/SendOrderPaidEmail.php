@@ -26,7 +26,7 @@ class SendOrderPaidEmail
 
     public function handle(OrderPaid $event): void
     {
-        if (! in_array($event->order->status, self::CAPTURED, true)) {
+        if (! in_array(OrderStatus::of($event->order), self::CAPTURED, true)) {
             return;
         }
 

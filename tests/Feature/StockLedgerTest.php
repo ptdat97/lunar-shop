@@ -11,6 +11,7 @@ use Modules\Inventory\Models\StockMovement;
 use Modules\Inventory\Services\StockLedger;
 use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -23,6 +24,7 @@ use Tests\TestCase;
 class StockLedgerTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     private function placeOrder(ProductSku $sku, int $quantity): TestResponse
     {
@@ -66,7 +68,7 @@ class StockLedgerTest extends TestCase
         $this->assertSame(6, $variant->fresh()->getTotalInventory(), 'held units are not sellable');
 
         $order = Order::latest('id')->first();
-        $order->update(['status' => OrderStatus::CANCELLED]);
+        $this->moveOrderTo($order, OrderStatus::CANCELLED);
 
         $release = StockMovement::where('product_sku_id', $variant->id)
             ->where('type', StockMovementType::Release->value)

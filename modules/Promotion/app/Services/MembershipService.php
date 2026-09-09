@@ -44,9 +44,8 @@ class MembershipService
      */
     public function lifetimeSpend(Customer $customer): int
     {
-        return (int) Order::query()
+        return (int) OrderStatus::scopePaid(Order::query())
             ->where('customer_id', $customer->id)
-            ->whereIn('status', OrderStatus::paid())
             ->sum('total');
     }
 

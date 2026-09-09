@@ -98,12 +98,12 @@ abstract class GatewayReconciler
             // A closed order has already handed its stock back. Record the money
             // so it is never invisible, but do not revive the order — a human
             // must decide whether to refund or re-ship.
-            if ($success && OrderStatus::isClosed($order->status)) {
+            if ($success && OrderStatus::isClosed($order)) {
                 $this->recordTransaction($order, $payload, $reference, $amount, success: true);
 
                 Log::warning('Payment landed on a closed order.', [
                     'order_id' => $order->id,
-                    'status' => $order->status,
+                    'status' => OrderStatus::of($order),
                     'driver' => $this->driver(),
                     'reference' => $reference,
                     'amount' => $amount,
@@ -114,12 +114,12 @@ abstract class GatewayReconciler
 
             // The signature proves provenance, not price. Underpayment must never
             // mark an order paid; overpayment is recorded and flagged, not refused.
-            if ($success && $amount < (int) $order->total->value) {
+            if ($success && $amount < (int) $order->total) {
                 $this->recordTransaction($order, $payload, $reference, $amount, success: false);
 
                 Log::warning('Gateway callback underpaid the order.', [
                     'order_id' => $order->id,
-                    'expected' => (int) $order->total->value,
+                    'expected' => (int) $order->total,
                     'received' => $amount,
                     'driver' => $this->driver(),
                     'reference' => $reference,
@@ -134,19 +134,26 @@ abstract class GatewayReconciler
                 return $this->outcome(verified: true, paid: false, order: $order);
             }
 
-            if ($amount > (int) $order->total->value) {
+            if ($amount > (int) $order->total) {
                 Log::warning('Gateway callback overpaid the order.', [
                     'order_id' => $order->id,
-                    'expected' => (int) $order->total->value,
+                    'expected' => (int) $order->total,
                     'received' => $amount,
                     'driver' => $this->driver(),
                 ]);
             }
 
+            // No status to set since Lunar 2.0: the successful capture
+            // transaction recorded above IS the fact, and TransactionObserver
+            // recomputes payment_status from the ledger. Writing a status here
+            // would be the second place describing one truth.
             $order->update([
-                'status' => OrderStatus::PAYMENT_RECEIVED,
                 'placed_at' => $order->placed_at ?? Carbon::now(),
             ]);
+
+            // The order was loaded before the transaction landed, so its rollup
+            // is stale in memory — refresh before handing it to the email.
+            $order->refresh();
 
             // Domain signal for the payment-received email (+ future fulfilment).
             OrderPaid::dispatch($order);

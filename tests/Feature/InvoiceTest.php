@@ -9,7 +9,9 @@ use Lunar\Core\Models\Order;
 use Lunar\Core\Models\OrderLine;
 use Modules\Customer\Services\CustomerResolver;
 use Modules\Order\Services\InvoiceService;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -18,6 +20,7 @@ use Tests\TestCase;
 class InvoiceTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     /** An order owned by the given user (via their resolved customer). */
     private function orderFor(User $user): Order
@@ -28,7 +31,7 @@ class InvoiceTest extends TestCase
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
             'customer_id' => $customer->id,
-            'status' => 'payment-received',
+            ...$this->orderAttributesFor(OrderStatus::PAYMENT_RECEIVED),
             'reference' => 'INV-0001',
             'sub_total' => 5000,
             'discount_total' => 0,

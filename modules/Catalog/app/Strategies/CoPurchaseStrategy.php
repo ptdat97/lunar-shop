@@ -23,13 +23,14 @@ use Modules\Order\Support\OrderStatus;
 class CoPurchaseStrategy implements RecommendationStrategy
 {
     /**
-     * Statuses that count as a real purchase — one definition across the app.
+     * What counts as a real purchase, as SQL — one definition across the app.
      *
-     * @return list<string>
+     * Lunar 2.0 has no order `status` column left to match on; the rule is a
+     * predicate over the derived facts, kept in {@see OrderStatus}.
      */
-    protected function paidStatuses(): array
+    protected function paidOrderSql(): string
     {
-        return OrderStatus::paid();
+        return OrderStatus::paidSql('o');
     }
 
     public function for(Product $product, int $limit = 8): Collection
@@ -42,7 +43,7 @@ class CoPurchaseStrategy implements RecommendationStrategy
             })
             ->join('lunar_orders as o', 'o.id', '=', 'ol.order_id')
             ->where('ps.product_id', $product->id)
-            ->whereIn('o.status', $this->paidStatuses())
+            ->whereRaw($this->paidOrderSql())
             ->distinct()
             ->pluck('ol.order_id');
 

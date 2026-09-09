@@ -13,6 +13,7 @@ use Modules\Catalog\Models\ProductSku;
 use Modules\Catalog\Services\FitHistoryService;
 use Modules\Order\Models\ReturnRequest;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -22,6 +23,7 @@ use Tests\TestCase;
 class FitHistoryTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     /** @var array<string, ProductSku> size label => variant */
     private array $variants = [];
@@ -71,7 +73,7 @@ class FitHistoryTest extends TestCase
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
             'customer_id' => $this->customer->id,
-            'status' => $status,
+            ...$this->orderAttributesFor($status),
             'sub_total' => 1000, 'discount_total' => 0, 'shipping_total' => 0,
             'tax_total' => 0, 'total' => 1000,
         ]);

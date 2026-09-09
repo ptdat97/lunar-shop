@@ -7,7 +7,9 @@ use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Order;
 use Modules\Core\Support\ApiPagination;
 use Modules\Customer\Services\CustomerResolver;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -23,6 +25,7 @@ use Tests\TestCase;
 class ApiPaginationContractTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     /** The only shape any list endpoint may return. */
     private const KEYS = ['page', 'per_page', 'last_page', 'total'];
@@ -107,7 +110,7 @@ class ApiPaginationContractTest extends TestCase
                 'customer_id' => $customer->id,
                 'channel_id' => Channel::getDefault()->id,
                 'currency_code' => Currency::getDefault()->code,
-                'status' => 'payment-received',
+                ...$this->orderAttributesFor(OrderStatus::PAYMENT_RECEIVED),
                 'sub_total' => 1000, 'discount_total' => 0, 'shipping_total' => 0,
                 'tax_total' => 0, 'total' => 1000,
             ]);

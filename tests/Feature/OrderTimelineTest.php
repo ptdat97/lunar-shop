@@ -7,7 +7,9 @@ use Lunar\Core\Models\Channel;
 use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Order;
 use Modules\Customer\Services\CustomerResolver;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -21,6 +23,7 @@ use Tests\TestCase;
 class OrderTimelineTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     private function orderFor($user): Order
     {
@@ -31,7 +34,7 @@ class OrderTimelineTest extends TestCase
             'currency_code' => Currency::getDefault()->code,
             'customer_id' => $customer->id,
             'user_id' => $user->id,
-            'status' => 'awaiting-payment',
+            ...$this->orderAttributesFor(OrderStatus::AWAITING_PAYMENT),
             'reference' => 'TL-1',
             'sub_total' => 1000, 'discount_total' => 0, 'shipping_total' => 0,
             'tax_total' => 0, 'total' => 1000,
@@ -44,8 +47,8 @@ class OrderTimelineTest extends TestCase
         $user = $this->createUser();
         $order = $this->orderFor($user);
 
-        $order->update(['status' => 'payment-received']);
-        $order->update(['status' => 'dispatched']);
+        $this->moveOrderTo($order, OrderStatus::PAYMENT_RECEIVED);
+        $this->moveOrderTo($order, OrderStatus::DISPATCHED);
 
         $timeline = $this->actingAs($user)
             ->getJson("/api/v1/orders/{$order->id}/timeline")
@@ -67,7 +70,7 @@ class OrderTimelineTest extends TestCase
         // A plain attribute change logs a generic `updated` row whose properties
         // are a full column diff — that must never reach the customer.
         $order->update(['notes' => 'internal packing note']);
-        $order->update(['status' => 'dispatched']);
+        $this->moveOrderTo($order, OrderStatus::DISPATCHED);
 
         $response = $this->actingAs($user)->getJson("/api/v1/orders/{$order->id}/timeline")->assertOk();
 
@@ -81,7 +84,7 @@ class OrderTimelineTest extends TestCase
         $this->seedBaseData();
         $user = $this->createUser();
         $order = $this->orderFor($user);
-        $order->update(['status' => 'dispatched']);
+        $this->moveOrderTo($order, OrderStatus::DISPATCHED);
 
         $entry = $this->actingAs($user)
             ->getJson("/api/v1/orders/{$order->id}/timeline?locale=vi")
@@ -115,7 +118,7 @@ class OrderTimelineTest extends TestCase
         $this->seedBaseData();
         $owner = $this->createUser();
         $order = $this->orderFor($owner);
-        $order->update(['status' => 'dispatched']);
+        $this->moveOrderTo($order, OrderStatus::DISPATCHED);
 
         $other = $this->createUser();
         app(CustomerResolver::class)->forUser($other);

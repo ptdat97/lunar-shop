@@ -8,6 +8,7 @@ use Lunar\Core\Models\Order;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Enums\StockMovementType;
 use Modules\Inventory\Pipelines\DecrementStock;
+use Modules\Order\Support\OrderStatus;
 
 /**
  * Puts an order's reserved stock back.
@@ -104,7 +105,7 @@ class StockReleaser
                     after: $before + $quantity,
                     causer: null,
                     orderId: (int) $fresh->id,
-                    meta: ['status' => (string) $fresh->status, 'after_dispatch' => true],
+                    meta: ['status' => (string) OrderStatus::of($fresh), 'after_dispatch' => true],
                 );
             }
 

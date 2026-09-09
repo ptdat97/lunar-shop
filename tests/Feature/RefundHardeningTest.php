@@ -13,7 +13,9 @@ use Lunar\Core\Models\Transaction;
 use Modules\Checkout\Services\RefundService;
 use Modules\Order\Models\ReturnRequest;
 use Modules\Order\Services\ReturnService;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -23,6 +25,7 @@ use Tests\TestCase;
 class RefundHardeningTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     protected function setUp(): void
     {
@@ -39,7 +42,7 @@ class RefundHardeningTest extends TestCase
         $order = Order::factory()->create([
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
-            'status' => 'payment-received',
+            ...$this->orderAttributesFor(OrderStatus::PAYMENT_RECEIVED),
             'reference' => 'RMA-'.uniqid(),
             'sub_total' => 100000, 'discount_total' => 0, 'shipping_total' => 0,
             'tax_total' => 0, 'total' => 100000,

@@ -14,12 +14,14 @@ use Lunar\Core\Models\CustomerGroup;
 use Lunar\Core\Models\Discount;
 use Lunar\Core\Models\Order;
 use Modules\Checkout\Http\Resources\CartResource;
+use Modules\Order\Support\OrderStatus;
 use Modules\Promotion\Database\Seeders\DemoPromotionSeeder;
 use Modules\Promotion\DiscountTypes\ComboPercentageOff;
 use Modules\Promotion\DiscountTypes\QuantityPercentageOff;
 use Modules\Promotion\Services\MembershipService;
 use Modules\Promotion\Services\PromotionService;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -30,6 +32,7 @@ use Tests\TestCase;
 class PromotionAdvancedTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     /** A cart with the default currency + channel. */
     private function makeCart(): Cart
@@ -321,7 +324,7 @@ class PromotionAdvancedTest extends TestCase
             'customer_id' => $customer->id,
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
-            'status' => 'payment-received',
+            ...$this->orderAttributesFor(OrderStatus::PAYMENT_RECEIVED),
             'sub_total' => 300_000_000,
             'discount_total' => 0,
             'shipping_total' => 0,

@@ -12,7 +12,8 @@ use Modules\Checkout\Services\RefundService;
 
 /**
  * VNPay payment driver. Online gateways are redirect-based, so "authorize"
- * only turns the cart into an order in the awaiting-payment state — the actual
+ * only turns the cart into an order in the awaiting-payment state
+ * (payment_status pending, and `meta.payment_type` says which gateway) — the actual
  * payment is confirmed later by the VNPay return/IPN callback (which records
  * the Transaction and moves the order to payment-received). The redirect URL is
  * built by the storefront from the resulting order via VNPayGateway.
@@ -26,7 +27,6 @@ class VNPayPayment extends AbstractPayment
         }
 
         $this->order->update([
-            'status' => $this->config['authorized'] ?? 'awaiting-payment',
             'placed_at' => now(),
             'meta' => array_merge((array) $this->order->meta, [
                 'payment_type' => 'vnpay',

@@ -36,10 +36,16 @@ class AnalyticsService
         return OrderStatus::paid();
     }
 
-    /** Base query scoped to paid orders. */
+    /**
+     * Base query scoped to paid orders.
+     *
+     * Lunar 2.0 has no `status` column to filter on — "a real sale" is now a
+     * predicate over placed_at / cancelled_at / payment_status, expressed once
+     * in {@see OrderStatus::scopePaid()}.
+     */
     protected function paidOrders(): Builder
     {
-        return Order::query()->whereIn('status', $this->paidStatuses());
+        return OrderStatus::scopePaid(Order::query());
     }
 
     /**
@@ -161,7 +167,7 @@ class AnalyticsService
             ->select('purchasable_id')
             ->selectRaw('SUM(quantity) as units, SUM(total) as revenue')
             ->where('purchasable_type', $skuMorph)
-            ->whereHas('order', fn (Builder $q) => $q->whereIn('status', $this->paidStatuses()))
+            ->whereHas('order', fn (Builder $q) => OrderStatus::scopePaid($q))
             ->groupBy('purchasable_id')
             ->orderByDesc('units')
             ->limit($limit)

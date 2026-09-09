@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use Lunar\Core\Models\Order;
 use Modules\Catalog\Models\ProductSku;
 use Modules\Inventory\Services\StockReleaser;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -20,6 +22,7 @@ use Tests\TestCase;
 class StockReleaseTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     /** Place a COD order for 2 units of a product stocked at 5. */
     private function placeOrder(int $stock = 5, int $quantity = 2): Order
@@ -63,7 +66,7 @@ class StockReleaseTest extends TestCase
         $this->seedBaseData();
         $order = $this->placeOrder();
 
-        $order->update(['status' => 'cancelled']);
+        $this->moveOrderTo($order, OrderStatus::CANCELLED);
 
         $this->assertSame(5, $this->stock());
         $this->assertNotNull($order->fresh()->stock_released_at);
@@ -92,7 +95,7 @@ class StockReleaseTest extends TestCase
         ]);
         $this->assertNull(ProductSku::find((int) $line->purchasable_id), 'ordered id should be gone');
 
-        $order->update(['status' => 'cancelled']);
+        $this->moveOrderTo($order, OrderStatus::CANCELLED);
 
         // The 2 held units are freed on the recreated SKU via the identifier
         // fallback rather than lost: the shelf never moved, the hold is gone.
@@ -108,7 +111,7 @@ class StockReleaseTest extends TestCase
         $this->seedBaseData();
         $order = $this->placeOrder();
 
-        $order->update(['status' => 'refunded']);
+        $this->moveOrderTo($order, OrderStatus::REFUNDED);
 
         $this->assertSame(5, $this->stock());
     }
@@ -118,8 +121,8 @@ class StockReleaseTest extends TestCase
         $this->seedBaseData();
         $order = $this->placeOrder();
 
-        $order->update(['status' => 'cancelled']);
-        $order->fresh()->update(['status' => 'refunded']);
+        $this->moveOrderTo($order, OrderStatus::CANCELLED);
+        $this->moveOrderTo($order->fresh(), OrderStatus::REFUNDED);
 
         // Restocking twice would invent inventory that was never sold.
         $this->assertSame(5, $this->stock());
@@ -141,7 +144,7 @@ class StockReleaseTest extends TestCase
         $this->seedBaseData();
         $order = $this->placeOrder();
 
-        $order->update(['status' => 'dispatched']);
+        $this->moveOrderTo($order, OrderStatus::DISPATCHED);
 
         // The goods are on their way out; the reservation stands.
         $this->assertSame(3, $this->stock());
@@ -155,14 +158,13 @@ class StockReleaseTest extends TestCase
 
         // A VNPay order sits in `awaiting-payment` with `meta.payment_type` set.
         $order->forceFill([
-            'status' => 'awaiting-payment',
-            'meta' => ['payment_type' => 'vnpay'],
+            ...$this->orderAttributesFor(OrderStatus::AWAITING_PAYMENT, ['payment_type' => 'vnpay']),
             'created_at' => now()->subHours(3),
         ])->saveQuietly();
 
         $this->artisan('orders:expire-abandoned --minutes=60')->assertSuccessful();
 
-        $this->assertSame('cancelled', $order->fresh()->status);
+        $this->assertSame(OrderStatus::CANCELLED, OrderStatus::of($order->fresh()));
         $this->assertSame(5, $this->stock());
     }
 
@@ -172,8 +174,7 @@ class StockReleaseTest extends TestCase
         $order = $this->placeOrder();
 
         $order->forceFill([
-            'status' => 'awaiting-payment',
-            'meta' => ['payment_type' => 'vnpay'],
+            ...$this->orderAttributesFor(OrderStatus::AWAITING_PAYMENT, ['payment_type' => 'vnpay']),
             'created_at' => now()->subMinutes(5),
         ])->saveQuietly();
 

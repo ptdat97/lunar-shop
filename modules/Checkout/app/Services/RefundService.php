@@ -67,10 +67,12 @@ class RefundService
             'meta' => ['refund_of' => $capture->reference, 'created_by' => $createdBy],
         ]);
 
-        // Full refund → mark order refunded. Partial → keep paid status.
-        if (($alreadyRefunded + $amount) >= $capturedAmount) {
-            $order->update(['status' => 'refunded']);
-        }
+        // No status to write since Lunar 2.0: creating the refund transaction
+        // above is itself the fact. TransactionObserver recomputes the order's
+        // payment_status from the ledger, which lands on `refunded` for a full
+        // refund and `partially-refunded` for a partial one — and OrderStatus
+        // reads the lifecycle off that, so a partial refund correctly leaves the
+        // sale standing.
 
         return new RefundResult(success: true, message: $result['message'], driver: $driver, amount: $amount);
     }

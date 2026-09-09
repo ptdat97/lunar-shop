@@ -32,7 +32,7 @@ class DispatchOrderPaidForOfflineOrder
 
         // The single definition of "counts as paid", shared with the sales
         // dashboard, co-purchase recommendations and fit history.
-        if (! $order || ! OrderStatus::isPaid($order->status)) {
+        if (! $order || ! OrderStatus::isPaid($order)) {
             return;
         }
 

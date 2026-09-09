@@ -246,10 +246,17 @@ class CheckoutService
             abort(422, 'Please choose a shipping method before placing your order.');
         }
 
+        // `meta.payment_type` is recorded for EVERY order, not just the
+        // gateways. Since Lunar 2.0 the lifecycle status is derived, and the one
+        // thing the derived facts cannot tell apart is "pays on delivery" from
+        // "has not paid the gateway yet" — both are payment-pending. The payment
+        // type is what separates them (see OrderStatus::isPaidOnDelivery), so an
+        // order without one would be unclassifiable.
         $authorize = Payments::driver(
             config("lunar.payments.types.{$paymentType}.driver", 'offline')
         )->cart($cart)->withData([
             'authorized' => config("lunar.payments.types.{$paymentType}.authorized"),
+            'meta' => ['payment_type' => $paymentType],
         ])->authorize();
 
         abort_unless($authorize->success, 422, 'Payment could not be authorized.');

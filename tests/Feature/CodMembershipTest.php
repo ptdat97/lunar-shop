@@ -14,6 +14,7 @@ use Modules\Order\Events\OrderPaid;
 use Modules\Order\Mail\OrderPaidMail;
 use Modules\Promotion\Services\MembershipService;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -29,6 +30,7 @@ use Tests\TestCase;
 class CodMembershipTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     private function order(string $status, int $total, ?Customer $customer = null): Order
     {
@@ -36,7 +38,7 @@ class CodMembershipTest extends TestCase
             'customer_id' => $customer?->id,
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
-            'status' => $status,
+            ...$this->orderAttributesFor($status),
             'sub_total' => $total,
             'discount_total' => 0,
             'shipping_total' => 0,

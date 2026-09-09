@@ -26,7 +26,7 @@ class SettleStockOnDispatch
      */
     public function handle(OrderStatusUpdated $event): void
     {
-        if ($event->order->status !== OrderStatus::DISPATCHED) {
+        if (OrderStatus::of($event->order) !== OrderStatus::DISPATCHED) {
             return;
         }
 

@@ -44,7 +44,7 @@ class OrderStatusUpdatedMail extends Mailable implements ShouldQueue
             'previousStatus' => $this->previousStatus,
             // Localised: Lunar's config carries English labels only, and none at
             // all for `completed` / `refunded` / `cancelled`.
-            'statusLabel' => OrderStatus::label($this->order->status),
+            'statusLabel' => OrderStatus::labelFor($this->order),
         ]);
     }
 }

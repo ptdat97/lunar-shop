@@ -15,7 +15,9 @@ use Modules\Notification\Drivers\HttpSmsSender;
 use Modules\Notification\Services\OrderSmsNotifier;
 use Modules\Notification\Support\MailSettings;
 use Modules\Notification\Support\SmsSettings;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -30,13 +32,21 @@ use Tests\TestCase;
 class NotificationChannelSettingsTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
-    private function order(array $attributes = []): Order
+    /**
+     * An order in the given lifecycle status.
+     *
+     * `status` is not a column since Lunar 2.0 — it is derived from the
+     * transaction ledger, the fulfilments and the cancelled/closed timestamps —
+     * so the handle is translated into those facts here.
+     */
+    private function order(array $attributes = [], string $status = OrderStatus::PAYMENT_RECEIVED): Order
     {
         return Order::factory()->create(array_merge([
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
-            'status' => 'payment-received',
+            ...$this->orderAttributesFor($status),
             'reference' => 'SMS-0001',
             'sub_total' => 1000, 'discount_total' => 0, 'shipping_total' => 0,
             'tax_total' => 0, 'total' => 1000,
@@ -146,7 +156,7 @@ class NotificationChannelSettingsTest extends TestCase
             'sms_gateway' => ['endpoint' => 'https://gw.test/send', 'api_key' => 'k'],
         ]);
 
-        $order = $this->order(['status' => 'dispatched']);
+        $order = $this->order([], OrderStatus::DISPATCHED);
         OrderAddress::factory()->create([
             'order_id' => $order->id, 'type' => 'shipping', 'contact_phone' => '0912345678',
         ]);
@@ -168,7 +178,7 @@ class NotificationChannelSettingsTest extends TestCase
             'sms_gateway' => ['endpoint' => 'https://gw.test/send', 'api_key' => 'k'],
         ]);
 
-        $order = $this->order(['status' => 'dispatched']);
+        $order = $this->order([], OrderStatus::DISPATCHED);
         OrderAddress::factory()->create([
             'order_id' => $order->id, 'type' => 'shipping', 'contact_phone' => '0912 345 678',
         ]);
@@ -192,7 +202,7 @@ class NotificationChannelSettingsTest extends TestCase
 
         // No user_id: the in-app notification cannot reach this buyer at all,
         // which is precisely why SMS is worth having.
-        $order = $this->order(['status' => 'dispatched', 'user_id' => null]);
+        $order = $this->order(['user_id' => null], OrderStatus::DISPATCHED);
         OrderAddress::factory()->create([
             'order_id' => $order->id, 'type' => 'shipping', 'contact_phone' => '0987654321',
         ]);
@@ -214,7 +224,7 @@ class NotificationChannelSettingsTest extends TestCase
             'sms_gateway' => ['endpoint' => 'https://gw.test/send', 'api_key' => 'k'],
         ]);
 
-        $order = $this->order(['status' => 'dispatched']);
+        $order = $this->order([], OrderStatus::DISPATCHED);
 
         $sender = new RecordingSmsSender;
 

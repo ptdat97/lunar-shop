@@ -26,7 +26,6 @@ class MoMoPayment extends AbstractPayment
         }
 
         $this->order->update([
-            'status' => $this->config['authorized'] ?? 'awaiting-payment',
             'placed_at' => now(),
             'meta' => array_merge((array) $this->order->meta, [
                 'payment_type' => 'momo',

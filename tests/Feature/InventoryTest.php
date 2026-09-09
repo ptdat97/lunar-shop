@@ -11,6 +11,7 @@ use Modules\Inventory\Models\StockNotification;
 use Modules\Inventory\Services\InventoryService;
 use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
+use Tests\Concerns\DrivesOrderLifecycle;
 use Tests\TestCase;
 
 /**
@@ -20,6 +21,7 @@ use Tests\TestCase;
 class InventoryTest extends TestCase
 {
     use CreatesStorefrontData;
+    use DrivesOrderLifecycle;
 
     /** Drive the cart to an order for the given variant + quantity. */
     private function placeOrder(ProductSku $sku, int $quantity): TestResponse
@@ -54,8 +56,7 @@ class InventoryTest extends TestCase
 
         $this->placeOrder($variant, 3)->assertSuccessful();
 
-        Order::latest('id')->first()
-            ->update(['status' => OrderStatus::DISPATCHED]);
+        $this->moveOrderTo(Order::latest('id')->first(), OrderStatus::DISPATCHED);
 
         $fresh = $variant->fresh();
 
