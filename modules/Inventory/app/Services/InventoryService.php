@@ -2,7 +2,6 @@
 
 namespace Modules\Inventory\Services;
 
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Lunar\Core\Models\Order;
 use Lunar\Core\Models\Product;
@@ -161,77 +160,6 @@ class InventoryService
         return max(self::MIN_HOLD_MINUTES, min(self::MAX_HOLD_MINUTES, $minutes));
     }
 
-    /**
-     * Get low stock SKUs (below the given threshold, or the configured one).
-     */
-    public function lowStock(?int $threshold = null)
-    {
-        $threshold ??= $this->lowStockThreshold();
-
-        // Low on SELLABLE stock — that is what determines whether the shop can
-        // keep taking orders. A variant with a full shelf but everything committed
-        // needs restocking just as urgently as an empty one.
-        return ProductVariant::where('stock_available', '<', $threshold)
-            ->whereRaw('quantity - committed > 0')
-            ->with('product')
-            ->get();
-    }
-
-    /**
-     * Get out of stock SKUs.
-     */
-    public function outOfStock()
-    {
-        return ProductVariant::where('stock_available', '<=', 0)
-            ->with('product')
-            ->get();
-    }
-
     // --- Overview stats (Stock Overview header) --------------------------------
 
-    /** All SKUs track stock. */
-    protected function tracked(): Builder
-    {
-        return ProductVariant::query();
-    }
-
-    /** Count of tracked SKUs. */
-    public function trackedCount(): int
-    {
-        return $this->tracked()->count();
-    }
-
-    /**
-     * Count of tracked SKUs low on SELLABLE stock (but not yet at zero).
-     *
-     * Counted on `quantity - committed` for the same reason the table filters
-     * are: units promised to an unshipped order cannot fill the next order, so
-     * they must not make a SKU look healthier than it is.
-     */
-    public function lowCount(): int
-    {
-        return $this->tracked()
-            ->whereRaw('quantity - committed BETWEEN 1 AND ?', [$this->lowStockThreshold()])
-            ->count();
-    }
-
-    /** Count of tracked SKUs with nothing left to sell. */
-    public function outCount(): int
-    {
-        return $this->tracked()->whereRaw('quantity - committed <= 0')->count();
-    }
-
-    /**
-     * Total value of stock on hand, in minor units: SUM(quantity × cost_price)
-     * over SKUs with stock. SKUs without a cost_price are skipped (COALESCE → 0
-     * contribution), so this is the value of stock whose cost is known. Divide by
-     * the default currency factor to display.
-     */
-    public function inventoryValueMinor(): int
-    {
-        return (int) $this->tracked()
-            ->where('stock_on_hand', '>', 0)
-            ->selectRaw('COALESCE(SUM(stock_on_hand * cost_price), 0) as value')
-            ->value('value');
-    }
 }

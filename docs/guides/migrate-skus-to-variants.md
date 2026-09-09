@@ -309,10 +309,18 @@ Drop khi: đã chạy production một thời gian, và không còn ai cần tra
 migration nhỏ, chạy sau chứ không phải bây giờ — đây là bước duy nhất không thể
 hoàn tác từ dữ liệu còn lại.
 
-**Kiểm chứng lại 2026-09-09** (khi chốt Fase 5): ngoài migration không còn dòng
-code nào đọc hai bảng, và ánh xạ còn nguyên vẹn — 648 SKU ↔ 648 map ↔ 648
-variant, 0 mồ côi theo cả hai chiều. Lưới an toàn dùng được; điều kiện drop thì
-vẫn chưa đạt.
+**Đã drop 2026-09-09** (`2026_09_09_170000_drop_legacy_sku_tables.php`), sau khi
+kiểm chứng: ngoài migration không còn dòng code nào đọc chúng, và ánh xạ nguyên
+vẹn — 648 SKU ↔ 648 map ↔ 648 variant, 0 mồ côi hai chiều.
+
+Đi cùng là bảng thứ ba: `stock_movements`, sổ cái tồn kho của shop. Lunar 2.0 sở
+hữu việc này rồi (`lunar_stock_movements`, do chính action AdjustStock /
+RecordStockMovement của nó ghi), và model + enum đọc bảng cũ đã bị xoá từ đợt hợp
+nhất. Nó còn nằm đó chỉ vì một khoá ngoại buộc vào bảng SKU — đúng cái khoá làm
+lệnh drop đầu tiên gãy giữa chừng.
+
+`down()` để rỗng có chủ ý: dựng lại hai bảng rỗng là nói dối, và code cần chúng
+sẽ gãy khó hiểu hơn khi gặp bảng rỗng so với khi gặp bảng không tồn tại.
 
 Cài mới thì đã sạch: `migrate:fresh --seed` cho 648 variant và **0 SKU** (bảng
 được tạo rồi để rỗng, vì migration tạo bảng vẫn chạy trước migration chuyển đổi).

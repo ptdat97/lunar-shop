@@ -108,33 +108,6 @@ class MediaLibraryService
     }
 
     /**
-     * Update metadata (name, alt, title, folder) on the attached media.
-     */
-    public function updateMeta(Asset $asset, array $data): Asset
-    {
-        $media = $asset->file;
-
-        if (! $media) {
-            return $asset;
-        }
-
-        if (array_key_exists('name', $data) && $data['name'] !== null) {
-            $media->name = $data['name'];
-        }
-
-        foreach (['alt', 'title', 'folder'] as $key) {
-            if (array_key_exists($key, $data)) {
-                $value = $data[$key] !== null && $data[$key] !== '' ? $data[$key] : null;
-                $media->setCustomProperty($key, $value);
-            }
-        }
-
-        $media->save();
-
-        return $asset->fresh();
-    }
-
-    /**
      * Delete the asset (its media + files cascade via Spatie).
      */
     public function delete(Asset $asset): void

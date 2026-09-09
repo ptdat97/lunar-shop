@@ -43,14 +43,4 @@ class StockNotificationService
         );
     }
 
-    /**
-     * Number of shoppers waiting on a SKU.
-     */
-    public function pendingCount(ProductVariant $variant): int
-    {
-        return StockNotification::query()
-            ->where('product_variant_id', $variant->id)
-            ->pending()
-            ->count();
-    }
 }

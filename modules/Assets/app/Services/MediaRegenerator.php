@@ -135,16 +135,6 @@ class MediaRegenerator
         }
     }
 
-    /**
-     * Whether a batch is currently running.
-     */
-    public function isRunning(): bool
-    {
-        $progress = $this->progress();
-
-        return $progress !== null && ! $progress['finished'] && ! $progress['cancelled'];
-    }
-
     protected function find(?string $batchId): ?Batch
     {
         if (! $batchId) {

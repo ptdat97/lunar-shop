@@ -117,11 +117,4 @@ class SectionSchemas
         };
     }
 
-    /**
-     * Whether this section type pulls dynamic data from Lunar (vs pure settings).
-     */
-    public static function isDynamic(string $type): bool
-    {
-        return in_array($type, ['collection-grid', 'product-tabs', 'promotion-slider', 'promotions-strip', 'flash-sale'], true);
-    }
 }

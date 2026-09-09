@@ -109,19 +109,6 @@ class AnalyticsService
     }
 
     /**
-     * Recent orders for the dashboard list.
-     *
-     * @return Collection<int, Order>
-     */
-    public function recentOrders(int $limit = 8): Collection
-    {
-        return Order::with(['customer', 'currency'])
-            ->latest()
-            ->limit($limit)
-            ->get();
-    }
-
-    /**
      * Revenue + order count per month for the last $months (oldest first).
      * Portable across MySQL/SQLite by bucketing in PHP rather than in SQL.
      *

@@ -246,33 +246,6 @@ class PromotionService
     }
 
     /**
-     * Batch-compute sale badges for a collection of products — one pass over
-     * the promotions, zero loadMissing() calls per product.
-     *
-     * @param  Collection<int, Product>  $products
-     * @return array<int, array|null> productId => saleFor() result
-     */
-    public function saleForMany(Collection $products): array
-    {
-        $promotions = $this->displayablePromotions();
-
-        if ($promotions->isEmpty()) {
-            return $products->pluck('id')->mapWithKeys(fn ($id) => [$id => null])->all();
-        }
-
-        // Pre-load relations for ALL products at once, not per product.
-        $products->loadMissing(['variants', 'collections']);
-
-        $results = [];
-        foreach ($products as $product) {
-            $results[$product->id] = $this->badges->saleFor($product, $promotions);
-            $this->saleMemo[$product->id] = $results[$product->id];
-        }
-
-        return $results;
-    }
-
-    /**
      * Best automatic promotion for a single product, for the product card /
      * detail page (see SaleBadgeService::saleFor for the payload shape).
      *
@@ -325,14 +298,6 @@ class PromotionService
             ->active()
             ->usable()
             ->first();
-    }
-
-    /**
-     * Check if a coupon is valid.
-     */
-    public function couponValid(string $code): bool
-    {
-        return $this->findByCoupon($code) !== null;
     }
 
     /**
