@@ -17,9 +17,7 @@ class InventoryServiceProvider extends ServiceProvider
     /**
      * Register module bindings.
      */
-    public function register(): void
-    {
-    }
+    public function register(): void {}
 
     /**
      * Bootstrap module: routes, migrations, views, stock pipeline + observer.

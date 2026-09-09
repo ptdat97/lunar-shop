@@ -26,7 +26,7 @@ class DecrementStock
      */
     public function handle(Order $order, Closure $next): mixed
     {
-        /** @var \Lunar\Core\Models\Order $order */
+        /** @var Order $order */
         $order->loadMissing('lines');
 
         foreach ($order->lines as $line) {
