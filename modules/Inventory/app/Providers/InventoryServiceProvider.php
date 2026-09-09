@@ -6,10 +6,12 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Core\Events\Orders\OrderCancelled;
 use Lunar\Core\Models\ProductVariant;
+use Modules\Core\Panel\ResourceRegistry;
 use Modules\Core\Support\LunarConfigOverride;
 use Modules\Inventory\Console\ExpireAbandonedOrders;
 use Modules\Inventory\Listeners\StampStockReleased;
 use Modules\Inventory\Observers\BackInStockObserver;
+use Modules\Inventory\Panel\StockNotificationResource;
 
 /**
  * Inventory is now mostly Lunar's.
@@ -42,6 +44,9 @@ class InventoryServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Màn hình admin của module trên panel Lunar.
+        $this->app->make(ResourceRegistry::class)->add(new StockNotificationResource);
+
         // The last-line oversell guard, on Lunar's own validator hook. Re-applied
         // here so it survives `vendor:publish --tag=lunar --force`.
         LunarConfigOverride::applyFrom('lunar.cart', __DIR__.'/../../config/overrides.php');

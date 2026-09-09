@@ -109,6 +109,16 @@ class Field
     }
 
     /**
+     * A list of short strings edited as one comma-separated line — province
+     * names on a shipping zone, say. Stored as a JSON array, which is what the
+     * column holds and what the code reading it expects.
+     */
+    public static function tags(string $name, string $label): static
+    {
+        return new static($name, $label, 'tags');
+    }
+
+    /**
      * A free-form JSON object. The last resort for a column whose shape varies
      * per row (page_sections.settings, pages.og_data) — the editor validates
      * that it parses, nothing more.

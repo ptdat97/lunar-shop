@@ -75,6 +75,12 @@ class ResourceRegistry
                             ->whereNumber('record')->defaults('resourceKey', $key)->name('update');
                         Route::delete('/{record}', [ResourceController::class, 'destroy'])
                             ->whereNumber('record')->defaults('resourceKey', $key)->name('destroy');
+
+                        // Declared row operations. One route for all of them:
+                        // which ones a given row offers is decided per row when
+                        // the index is built, not by the route table.
+                        Route::post('/{record}/actions/{action}', [ResourceController::class, 'action'])
+                            ->whereNumber('record')->defaults('resourceKey', $key)->name('action');
                     });
             }
         };

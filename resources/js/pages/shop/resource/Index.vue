@@ -38,7 +38,9 @@ watch(search, (term) => {
          Wrapping it here would nest the sidebar inside itself. -->
     <PageHeader :title="resource.label" :icon="resource.icon">
         <template #actions>
-            <Link :href="resource.routes.create">
+            <!-- A queue worked by staff (returns, stock alerts) is filled by
+                 customers, never by an admin — so it offers no New button. -->
+            <Link v-if="resource.canCreate" :href="resource.routes.create">
                 <Button variant="primary" icon="plus">{{ resource.newLabel }}</Button>
             </Link>
         </template>

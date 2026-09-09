@@ -11,6 +11,7 @@ use Lunar\Core\Events\Orders\OrderPaymentStatusUpdated;
 use Lunar\Core\Events\Orders\OrderReopened;
 use Lunar\Core\Events\PaymentAttemptEvent;
 use Lunar\Core\Models\Order;
+use Modules\Core\Panel\ResourceRegistry;
 use Modules\Order\Events\OrderPaid;
 use Modules\Order\Events\OrderStatusUpdated;
 use Modules\Order\Listeners\DispatchOrderPaidForOfflineOrder;
@@ -20,6 +21,7 @@ use Modules\Order\Listeners\SendOrderConfirmation;
 use Modules\Order\Listeners\SendOrderPaidEmail;
 use Modules\Order\Listeners\SendOrderStatusEmail;
 use Modules\Order\Observers\OrderObserver;
+use Modules\Order\Panel\ReturnRequestResource;
 
 class OrderServiceProvider extends ServiceProvider
 {
@@ -37,6 +39,10 @@ class OrderServiceProvider extends ServiceProvider
 
         $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
         $this->loadRoutesFrom(__DIR__.'/../../routes/api.php');
+
+        // The returns queue on the panel — the one admin screen this module
+        // owns; orders themselves are Lunar's first-party screen now.
+        $this->app->make(ResourceRegistry::class)->add(new ReturnRequestResource);
 
         // Transactional email templates under the order:: namespace (separate
         // from the storefront theme — these aren't theme views).

@@ -53,6 +53,38 @@ abstract class PanelResource
         return 'content:manage';
     }
 
+    /**
+     * Named operations the rows offer beyond edit and delete — the seam for a
+     * resource whose records move through states rather than just being edited.
+     *
+     * @return array<int, RowAction>
+     */
+    public function rowActions(): array
+    {
+        return [];
+    }
+
+    /**
+     * Whether rows are created and deleted from this screen at all. A returns
+     * queue is opened by customers and worked by staff; an admin "New return"
+     * button would only ever create nonsense.
+     */
+    public function canCreate(): bool
+    {
+        return true;
+    }
+
+    public function canDelete(): bool
+    {
+        return true;
+    }
+
+    /** Whether the form saves at all, or only shows the record. */
+    public function canEdit(): bool
+    {
+        return true;
+    }
+
     /** Lucide icon name for the navigation item. */
     public function icon(): string
     {
@@ -286,6 +318,12 @@ abstract class PanelResource
             }
 
             if ($field->isVirtual()) {
+                continue;
+            }
+
+            if ($type === 'tags') {
+                data_set($row, $field->name, implode(', ', (array) ($value ?? [])));
+
                 continue;
             }
 

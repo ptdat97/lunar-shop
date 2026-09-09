@@ -11,7 +11,9 @@ use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Core\Panel\Field;
 use Modules\Core\Panel\PanelResource;
+use Modules\Core\Panel\RowAction;
 use Modules\Core\Panel\ResourceRegistry;
+use Throwable;
 
 /**
  * The one controller behind every declared PanelResource.
@@ -44,6 +46,11 @@ class ResourceController extends Controller
 
         $paginator = $query
             ->orderBy($sortColumn, $sortDirection)
+            // Tie-break on the key. Every default sort here is on a column that
+            // repeats — created_at, sort, priority — and a paginated query with
+            // an unstable order can show the same row on two pages and never
+            // show another at all.
+            ->orderBy($resource->model()::make()->getQualifiedKeyName(), $sortDirection)
             ->paginate($resource->perPage())
             ->withQueryString();
 
@@ -53,24 +60,10 @@ class ResourceController extends Controller
             // `_actions` is the panel's own row-action contract: RowActions.vue
             // renders an action only when the row carries a URL under its key,
             // so per-row permissions and route names both stay in PHP.
-            'rows' => collect($paginator->items())->map(fn ($record) => [
-                ...$resource->toIndexRow($record),
-                '_actions' => [
-                    'edit' => route($resource->routeName('edit'), $record->getKey()),
-                    'destroy' => route($resource->routeName('destroy'), $record->getKey()),
-                ],
-            ])->all(),
-            'actions' => [
-                ['key' => 'edit', 'label' => __('panel.edit'), 'icon' => 'edit', 'method' => 'get', 'primary' => true],
-                [
-                    'key' => 'destroy',
-                    'label' => __('panel.delete'),
-                    'icon' => 'trash',
-                    'method' => 'delete',
-                    'primary' => false,
-                    'confirmation' => __('panel.confirm_delete'),
-                ],
-            ],
+            'rows' => collect($paginator->items())
+                ->map(fn ($record) => [...$resource->toIndexRow($record), '_actions' => $this->rowUrls($resource, $record)])
+                ->all(),
+            'actions' => $this->actionDescriptors($resource),
             // Pagination.vue reads Laravel's own paginator meta keys, so send
             // them verbatim rather than inventing a second shape.
             'meta' => [
@@ -90,6 +83,8 @@ class ResourceController extends Controller
     {
         $resource = $this->resource($request);
 
+        abort_unless($resource->canCreate(), 404);
+
         return Inertia::render('shop/resource/Form', [
             'resource' => $this->descriptor($resource),
             'fields' => array_map(fn (Field $f) => $f->toArray(), $resource->fields()),
@@ -102,6 +97,8 @@ class ResourceController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $resource = $this->resource($request);
+
+        abort_unless($resource->canCreate(), 404);
 
         $data = $this->validated($request, $resource, null);
         $payload = $data;
@@ -144,6 +141,8 @@ class ResourceController extends Controller
         $resource = $this->resource($request);
         $model = $resource->model()::findOrFail($record);
 
+        abort_unless($resource->canEdit(), 404);
+
         $data = $this->validated($request, $resource, $model);
         $payload = $data;
         $relations = $this->extractRelations($data, $resource);
@@ -160,11 +159,85 @@ class ResourceController extends Controller
     {
         $resource = $this->resource($request);
 
+        abort_unless($resource->canDelete(), 404);
+
         $resource->model()::findOrFail($record)->delete();
 
         return redirect()
             ->route($resource->routeName('index'))
             ->with('success', __('panel.deleted', ['name' => $resource->singular()]));
+    }
+
+    /**
+     * Run a declared row operation. The action decides for itself whether it
+     * applies to this row, so a stale button in a browser tab left open cannot
+     * refund a return twice.
+     */
+    public function action(Request $request, int $record, string $action): RedirectResponse
+    {
+        $resource = $this->resource($request);
+        $model = $resource->model()::findOrFail($record);
+
+        $rowAction = collect($resource->rowActions())->firstWhere('key', $action);
+
+        if (! $rowAction || ! $rowAction->availableFor($model)) {
+            abort(404);
+        }
+
+        if ($rules = $rowAction->validationRules()) {
+            $request->validate($rules);
+        }
+
+        try {
+            $rowAction->handle($model, $request);
+        } catch (Throwable $e) {
+            // The service layer refuses for real reasons — a gateway declining
+            // a refund, above all. Surfacing the message beats a 500 on a
+            // screen whose whole job is handling money going back out.
+            return back()->with('error', $e->getMessage());
+        }
+
+        return back()->with('success', __('panel.action_done', ['name' => $rowAction->label]));
+    }
+
+    /**
+     * The URLs one row offers. RowActions.vue draws an action only when its key
+     * is present here, so availability is decided per row in PHP.
+     *
+     * @return array<string, string>
+     */
+    protected function rowUrls(PanelResource $resource, Model $record): array
+    {
+        $urls = ['edit' => route($resource->routeName('edit'), $record->getKey())];
+
+        if ($resource->canDelete()) {
+            $urls['destroy'] = route($resource->routeName('destroy'), $record->getKey());
+        }
+
+        foreach ($resource->rowActions() as $action) {
+            if ($action->availableFor($record)) {
+                $urls[$action->key] = route($resource->routeName('action'), [$record->getKey(), $action->key]);
+            }
+        }
+
+        return $urls;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    protected function actionDescriptors(PanelResource $resource): array
+    {
+        return [
+            ['key' => 'edit', 'label' => __('panel.edit'), 'icon' => 'edit', 'method' => 'get', 'primary' => true],
+            ...array_map(fn (RowAction $action) => $action->toArray(), $resource->rowActions()),
+            [
+                'key' => 'destroy',
+                'label' => __('panel.delete'),
+                'icon' => 'trash',
+                'method' => 'delete',
+                'primary' => false,
+                'confirmation' => __('panel.confirm_delete'),
+            ],
+        ];
     }
 
     /**
@@ -180,7 +253,20 @@ class ResourceController extends Controller
         $data = $request->validate($resource->validationRules($record, $request->all()));
 
         foreach ($resource->fieldsFor($request->all()) as $field) {
-            if ($field->toArray()['type'] !== 'json') {
+            $type = $field->toArray()['type'];
+
+            if ($type === 'tags') {
+                $raw = (string) (data_get($data, $field->name) ?? '');
+
+                data_set($data, $field->name, array_values(array_filter(
+                    array_map('trim', explode(',', $raw)),
+                    fn (string $tag) => $tag !== '',
+                )));
+
+                continue;
+            }
+
+            if ($type !== 'json') {
                 continue;
             }
 
@@ -315,6 +401,9 @@ class ResourceController extends Controller
                 'store' => route($resource->routeName('store')),
             ],
             'searchable' => (bool) $resource->searchable(),
+            'canCreate' => $resource->canCreate(),
+            'canEdit' => $resource->canEdit(),
+            'canDelete' => $resource->canDelete(),
         ];
     }
 }

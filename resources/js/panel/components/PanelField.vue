@@ -18,7 +18,7 @@ const value = computed({
 // PHP sends select options as an object so JSON keeps their declared order.
 const options = computed(() => Object.entries(props.field.options ?? {}));
 
-const isTextLike = computed(() => ['text', 'image', 'slug'].includes(props.field.type));
+const isTextLike = computed(() => ['text', 'image', 'slug', 'tags'].includes(props.field.type));
 const isMultiline = computed(() => ['textarea', 'html', 'json'].includes(props.field.type));
 
 // A multi-value select posts a list. The panel has no multi-select component,

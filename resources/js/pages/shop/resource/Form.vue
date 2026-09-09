@@ -107,8 +107,15 @@ const onFieldInput = (field) => {
             <Link :href="resource.routes.index">
                 <Button variant="ghost">{{ resource.backLabel }}</Button>
             </Link>
-            <Button v-if="!isNew" variant="ghost" icon="trash" @click="confirmingDelete = true" />
-            <Button variant="primary" :disabled="form.processing" @click="submit">{{ resource.saveLabel }}</Button>
+            <Button
+                v-if="!isNew && resource.canDelete"
+                variant="ghost"
+                icon="trash"
+                @click="confirmingDelete = true"
+            />
+            <Button v-if="resource.canEdit" variant="primary" :disabled="form.processing" @click="submit">
+                {{ resource.saveLabel }}
+            </Button>
         </template>
     </PageHeader>
 
@@ -142,7 +149,7 @@ const onFieldInput = (field) => {
     </div>
 
     <ConfirmDialog
-        v-if="!isNew"
+        v-if="!isNew && resource.canDelete"
         :open="confirmingDelete"
         :title="resource.deleteLabel"
         :confirm-label="resource.deleteLabel"

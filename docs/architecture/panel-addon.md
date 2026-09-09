@@ -66,9 +66,15 @@ thật (wizard, thao tác hàng loạt, editor có xem trước) nên viết Sec
 | `repeater(fields)` | danh sách lồng trong một cột JSON, lồng được nhiều tầng |
 | `hasMany(fields)` | danh sách là **bảng con thật**; giữ nguyên id của hàng qua mỗi lần lưu |
 
+| `tags` | danh sách chuỗi ngắn, sửa như một dòng ngăn bằng dấu phẩy, lưu thành mảng JSON |
+
 Modifier: `required()` `nullable()` `default()` `help()` `placeholder()`
 `width(1..12)` `onIndex()` `multiple()` `itemLabel()` `addLabel()`
 `visibleWhen($field, ...$values)` `virtual()`.
+
+Resource cũng khai báo được: `rowActions()` (thao tác theo dòng),
+`canCreate()` / `canEdit()` / `canDelete()`, `computed()` (cột tính toán),
+`indexQuery()` (eager load / scope), `saved()` (hook sau khi lưu).
 
 ### Ba modifier đáng nói riêng
 
@@ -134,6 +140,32 @@ này biến việc đổi tên file thành test đỏ thay vì trang trắng.
 | Section trang chủ | 8 nhánh `visibleWhen` + repeater trong cột JSON |
 | Lookbook | hai `hasMany` (ảnh, sản phẩm) + picker ghim scope theo bản ghi |
 | Menu | `virtual` + repeater lồng 3 tầng, `MenuTree` dịch cây ↔ bảng |
+| Hàng đợi đổi trả (RMA) | `rowActions()` + `canCreate/Edit/Delete = false` |
+| Vùng vận chuyển | trường phẳng + `tags` |
+| Bảng size | `hasMany` cho các dòng size |
+| Đăng ký báo hàng về | chỉ đọc, cột tính toán + eager load |
+
+## Thao tác theo dòng
+
+Chỗ engine thôi làm forms-over-data. Một bản ghi đi qua các trạng thái thì khai
+báo thao tác thay vì viết màn hình riêng:
+
+```php
+RowAction::make('refund', __('admin.returns.refund'))
+    ->icon('percent')
+    ->confirm(__('admin.returns.refund'))
+    ->when(fn (ReturnRequest $r) => $r->status === ReturnRequest::APPROVED)
+    ->run(fn (ReturnRequest $r) => app(ReturnService::class)->refund($r));
+```
+
+Điều kiện `when()` khớp đúng cách panel vẽ: `RowActions.vue` chỉ vẽ thao tác nào
+mà dòng có URL tương ứng trong `row._actions`. Nghĩa là **quyền theo từng dòng
+nằm hẳn ở PHP**, và thao tác còn tự kiểm tra lại điều kiện lúc chạy — một tab
+để mở từ hôm qua không hoàn tiền được hai lần.
+
+Handler ném exception thì thành `flash.error` (panel đã chia sẻ sẵn key này),
+không phải 500. Với màn hình mà việc của nó là tiền chảy ngược ra thì đó là
+khác biệt đáng kể.
 
 ## Build
 

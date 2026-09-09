@@ -4,8 +4,10 @@ namespace Modules\Shipping\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Lunar\Core\Modifiers\ShippingModifiers;
+use Modules\Core\Panel\ResourceRegistry;
 use Modules\Shipping\Modifiers\FlatRateShippingModifier;
 use Modules\Shipping\Modifiers\PickupShippingModifier;
+use Modules\Shipping\Panel\ShippingZoneResource;
 
 class ShippingServiceProvider extends ServiceProvider
 {
@@ -22,6 +24,9 @@ class ShippingServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Màn hình admin của module trên panel Lunar.
+        $this->app->make(ResourceRegistry::class)->add(new ShippingZoneResource);
+
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'shipping-admin');
 

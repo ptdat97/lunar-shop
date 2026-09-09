@@ -20,6 +20,8 @@ return [
     'search' => 'Search :name…',
     'empty' => 'No :name yet',
 
+    'action_done' => ':name done',
+
     'saved' => ':name saved',
     'deleted' => ':name deleted',
     'invalid_json' => 'This is not valid JSON.',

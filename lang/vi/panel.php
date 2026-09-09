@@ -19,6 +19,8 @@ return [
     'search' => 'Tìm :name…',
     'empty' => 'Chưa có :name nào',
 
+    'action_done' => 'Đã :name',
+
     'saved' => 'Đã lưu :name',
     'deleted' => 'Đã xoá :name',
     'invalid_json' => 'Nội dung không phải JSON hợp lệ.',
