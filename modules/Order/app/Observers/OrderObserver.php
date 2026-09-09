@@ -4,8 +4,7 @@ namespace Modules\Order\Observers;
 
 use Lunar\Core\Models\Order;
 use Modules\Order\Events\OrderStatusUpdated;
-use Modules\Order\Mail\OrderStatusUpdatedMail;
-use Modules\Order\Services\OrderMailer;
+use Modules\Order\Listeners\SendOrderStatusEmail;
 use Modules\Order\Support\OrderStatus;
 
 /**
@@ -23,20 +22,12 @@ use Modules\Order\Support\OrderStatus;
  * that renamed nothing, and it cannot miss a transition that arrived through a
  * different column than the one being watched.
  *
- * The status-update *email* keeps its skip list: payment statuses already have
- * dedicated emails (confirmation / payment-received) and must not double-notify.
- * The domain event has no such exclusion — an app has no other channel, so it
- * should hear about every transition.
+ * Only the event is raised here. The status email moved out to
+ * {@see SendOrderStatusEmail}, which listens to that
+ * event like every other consumer — the observer no longer does two jobs.
  */
 class OrderObserver
 {
-    /** Statuses handled by other emails (no status-update mail for these). */
-    protected const SKIP_MAIL = [
-        OrderStatus::AWAITING_PAYMENT,
-        OrderStatus::PAYMENT_OFFLINE,
-        OrderStatus::PAYMENT_RECEIVED,
-    ];
-
     /**
      * The columns the derived status is built from. A save that touches none of
      * them cannot have changed it, so the comparison is skipped entirely.
@@ -52,10 +43,6 @@ class OrderObserver
         'meta',
     ];
 
-    public function __construct(
-        protected OrderMailer $mailer,
-    ) {}
-
     public function updated(Order $order): void
     {
         if (! $order->wasChanged(self::DERIVED_FROM)) {
@@ -70,12 +57,6 @@ class OrderObserver
         }
 
         OrderStatusUpdated::dispatch($order, (string) $previous);
-
-        if (in_array($current, self::SKIP_MAIL, true)) {
-            return;
-        }
-
-        $this->mailer->send($order, new OrderStatusUpdatedMail($order, (string) $previous));
     }
 
     /**

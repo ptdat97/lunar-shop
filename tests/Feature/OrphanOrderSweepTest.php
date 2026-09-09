@@ -63,7 +63,7 @@ class OrphanOrderSweepTest extends TestCase
         Order::whereKey($order->id)->update(['created_at' => now()->subDay()]);
         Artisan::call('orders:expire-abandoned', ['--minutes' => 60]);
 
-        $this->assertSame(OrderStatus::CANCELLED, $order->fresh()->status);
+        $this->assertSame(OrderStatus::CANCELLED, OrderStatus::of($order->fresh()));
         $this->assertSame(5, $variant->fresh()->getTotalInventory(), 'the held units came back');
         $this->assertNotNull($order->fresh()->stock_released_at);
     }
@@ -76,7 +76,7 @@ class OrphanOrderSweepTest extends TestCase
         // Created just now — a checkout still in flight must not be cancelled.
         Artisan::call('orders:expire-abandoned', ['--minutes' => 60]);
 
-        $this->assertNotSame(OrderStatus::CANCELLED, $order->fresh()->status);
+        $this->assertNotSame(OrderStatus::CANCELLED, OrderStatus::of($order->fresh()));
         $this->assertSame(3, $variant->fresh()->getTotalInventory(), 'still reserved');
     }
 
@@ -87,13 +87,13 @@ class OrphanOrderSweepTest extends TestCase
         [, $variant] = $this->readyCart();
 
         $order = app(CheckoutService::class)->placeOrder('bank-transfer');
-        $this->assertSame(OrderStatus::AWAITING_PAYMENT, $order->status);
+        $this->assertSame(OrderStatus::AWAITING_PAYMENT, OrderStatus::of($order));
         $this->assertNotNull($order->placed_at, 'offline driver stamps placed_at');
 
         Order::whereKey($order->id)->update(['created_at' => now()->subDay()]);
         Artisan::call('orders:expire-abandoned', ['--minutes' => 60]);
 
-        $this->assertSame(OrderStatus::AWAITING_PAYMENT, $order->fresh()->status);
+        $this->assertSame(OrderStatus::AWAITING_PAYMENT, OrderStatus::of($order->fresh()));
         $this->assertSame(3, $variant->fresh()->getTotalInventory(), 'still reserved for the buyer');
     }
 
@@ -108,7 +108,7 @@ class OrphanOrderSweepTest extends TestCase
 
         Artisan::call('orders:expire-abandoned', ['--minutes' => 60]);
 
-        $this->assertSame(OrderStatus::CANCELLED, $order->fresh()->status);
+        $this->assertSame(OrderStatus::CANCELLED, OrderStatus::of($order->fresh()));
         $this->assertSame(5, $variant->fresh()->getTotalInventory());
     }
 
@@ -120,7 +120,7 @@ class OrphanOrderSweepTest extends TestCase
 
         Artisan::call('orders:expire-abandoned', ['--minutes' => 60, '--dry-run' => true]);
 
-        $this->assertNotSame(OrderStatus::CANCELLED, $order->fresh()->status);
+        $this->assertNotSame(OrderStatus::CANCELLED, OrderStatus::of($order->fresh()));
         $this->assertSame(3, $variant->fresh()->getTotalInventory());
     }
 }

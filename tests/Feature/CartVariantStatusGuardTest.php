@@ -95,17 +95,44 @@ class CartVariantStatusGuardTest extends TestCase
         $this->getJson('/api/v1/cart')->assertJsonPath('data.lines_count', 0);
     }
 
-    public function test_adding_a_variant_of_a_soft_deleted_product_is_refused(): void
+    /**
+     * Lunar 2.0 dropped SoftDeletes from Product: retiring one is now
+     * `status = 'archived'`, and `delete()` really deletes (taking its SKUs
+     * with it, so there is no variant left to add). Archiving is therefore the
+     * case worth guarding — the SKU still exists and could still be posted.
+     */
+    public function test_adding_a_variant_of_an_archived_product_is_refused(): void
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 100]);
         $variant = $product->skus->first();
 
-        $product->delete();
+        $product->update(['status' => 'archived']);
 
         $this->addLine($variant->id)
             ->assertStatus(422)
             ->assertJsonValidationErrorFor('variant');
+    }
+
+    /**
+     * The SKU itself still soft-deletes, and a deleted one is not buyable.
+     *
+     * 404 rather than 422: `CartService::add()` resolves the SKU with
+     * `findOrFail()` before any guard runs, so a deleted one never reaches the
+     * availability check. That is the right answer — the resource is gone, not
+     * merely unavailable — and it is what the endpoint has always done.
+     */
+    public function test_adding_a_soft_deleted_variant_is_refused(): void
+    {
+        $this->seedBaseData();
+        $product = $this->createProduct(['stock' => 100]);
+        $variant = $product->skus->first();
+
+        $variant->delete();
+
+        $this->addLine($variant->id)->assertNotFound();
+
+        $this->getJson('/api/v1/cart')->assertJsonPath('data.lines_count', 0);
     }
 
     public function test_updating_a_line_after_its_product_is_unpublished_is_refused(): void

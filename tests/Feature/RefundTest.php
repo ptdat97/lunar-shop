@@ -80,7 +80,7 @@ class RefundTest extends TestCase
         $this->assertDatabaseHas('lunar_transactions', [
             'order_id' => $order->id, 'type' => 'refund', 'driver' => 'vnpay', 'success' => true,
         ]);
-        $this->assertSame('refunded', $order->fresh()->status);
+        $this->assertSame(OrderStatus::REFUNDED, OrderStatus::of($order->fresh()));
     }
 
     public function test_momo_full_refund_records_transaction_and_marks_refunded(): void
@@ -94,7 +94,7 @@ class RefundTest extends TestCase
         $this->assertDatabaseHas('lunar_transactions', [
             'order_id' => $order->id, 'type' => 'refund', 'driver' => 'momo', 'success' => true,
         ]);
-        $this->assertSame('refunded', $order->fresh()->status);
+        $this->assertSame(OrderStatus::REFUNDED, OrderStatus::of($order->fresh()));
     }
 
     public function test_partial_refund_keeps_order_paid_and_reduces_balance(): void
@@ -106,7 +106,7 @@ class RefundTest extends TestCase
         $result = $service->refund($order, 40000);
 
         $this->assertTrue($result->success);
-        $this->assertSame('payment-received', $order->fresh()->status, 'partial refund keeps order paid');
+        $this->assertSame(OrderStatus::PAYMENT_RECEIVED, OrderStatus::of($order->fresh()), 'partial refund keeps order paid');
         $this->assertSame(40000, $service->refundedTotal($order->fresh()));
         $this->assertTrue($service->isRefundable($order->fresh()), 'still 60k refundable');
     }
@@ -120,7 +120,7 @@ class RefundTest extends TestCase
 
         $this->assertFalse($result->success);
         $this->assertDatabaseMissing('lunar_transactions', ['order_id' => $order->id, 'type' => 'refund']);
-        $this->assertSame('payment-received', $order->fresh()->status);
+        $this->assertSame(OrderStatus::PAYMENT_RECEIVED, OrderStatus::of($order->fresh()));
     }
 
     public function test_over_refund_is_rejected(): void

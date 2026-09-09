@@ -12,6 +12,7 @@ use Modules\Checkout\Services\MoMoGateway;
 use Modules\Checkout\Services\MoMoPaymentProcessor;
 use Modules\Order\Mail\OrderConfirmationMail;
 use Modules\Order\Mail\OrderPaidMail;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -92,7 +93,7 @@ class MoMoPaymentTest extends TestCase
         Mail::fake();
         $order = $this->placeMoMoOrder();
 
-        $this->assertSame('awaiting-payment', $order->status);
+        $this->assertSame(OrderStatus::AWAITING_PAYMENT, OrderStatus::of($order));
         $this->assertSame('momo', $order->meta['payment_type'] ?? null);
         Mail::assertQueued(OrderConfirmationMail::class);
     }
@@ -130,7 +131,7 @@ class MoMoPaymentTest extends TestCase
 
         $this->assertTrue($result->verified);
         $this->assertTrue($result->paid);
-        $this->assertSame('payment-received', $order->fresh()->status);
+        $this->assertSame(OrderStatus::PAYMENT_RECEIVED, OrderStatus::of($order->fresh()));
         $this->assertDatabaseHas('lunar_transactions', [
             'order_id' => $order->id,
             'driver' => 'momo',
@@ -170,7 +171,7 @@ class MoMoPaymentTest extends TestCase
 
         $this->assertTrue($result->verified);
         $this->assertFalse($result->paid);
-        $this->assertSame('awaiting-payment', $order->fresh()->status);
+        $this->assertSame(OrderStatus::AWAITING_PAYMENT, OrderStatus::of($order->fresh()));
     }
 
     public function test_ipn_endpoint_returns_204(): void
@@ -180,6 +181,6 @@ class MoMoPaymentTest extends TestCase
         $this->postJson('/payment/momo/ipn', $this->signedCallback($order))
             ->assertNoContent();
 
-        $this->assertSame('payment-received', $order->fresh()->status);
+        $this->assertSame(OrderStatus::PAYMENT_RECEIVED, OrderStatus::of($order->fresh()));
     }
 }

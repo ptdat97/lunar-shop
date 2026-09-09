@@ -12,10 +12,13 @@ use Lunar\Core\Events\Orders\OrderReopened;
 use Lunar\Core\Events\PaymentAttemptEvent;
 use Lunar\Core\Models\Order;
 use Modules\Order\Events\OrderPaid;
+use Modules\Order\Events\OrderStatusUpdated;
 use Modules\Order\Listeners\DispatchOrderPaidForOfflineOrder;
 use Modules\Order\Listeners\RaiseOrderStatusUpdated;
+use Modules\Order\Listeners\RecordOrderStatusHistory;
 use Modules\Order\Listeners\SendOrderConfirmation;
 use Modules\Order\Listeners\SendOrderPaidEmail;
+use Modules\Order\Listeners\SendOrderStatusEmail;
 use Modules\Order\Observers\OrderObserver;
 
 class OrderServiceProvider extends ServiceProvider
@@ -57,6 +60,12 @@ class OrderServiceProvider extends ServiceProvider
         Event::listen(OrderCancelled::class, [RaiseOrderStatusUpdated::class, 'handleCancelled']);
         Event::listen(OrderClosed::class, [RaiseOrderStatusUpdated::class, 'handleClosed']);
         Event::listen(OrderReopened::class, [RaiseOrderStatusUpdated::class, 'handleReopened']);
+
+        // Consumers of that event: the customer's email, and the history the
+        // order timeline reads (2.0 stopped logging status changes, having no
+        // status column left to log).
+        Event::listen(OrderStatusUpdated::class, SendOrderStatusEmail::class);
+        Event::listen(OrderStatusUpdated::class, RecordOrderStatusHistory::class);
 
         // Placement is the one transition that is not one of those events: it
         // moves the order from nothing to awaiting-payment / payment-offline by

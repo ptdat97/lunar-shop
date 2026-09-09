@@ -43,14 +43,20 @@ class NotificationTest extends TestCase
      */
     private function order(array $attributes = [], string $status = OrderStatus::PAYMENT_RECEIVED): Order
     {
-        return Order::factory()->create(array_merge([
+        $order = Order::factory()->create(array_merge([
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
-            ...$this->orderAttributesFor($status),
+            ...$this->orderAttributesFor($this->creatableStatusFor($status)),
             'reference' => 'NOTIF-0001',
             'sub_total' => 1000, 'discount_total' => 0, 'shipping_total' => 0,
             'tax_total' => 0, 'total' => 1000,
         ], $attributes));
+
+        // `dispatched` is not a column value — it needs a fulfilment over real
+        // lines — so it is reached by making the transition, not by writing it.
+        return in_array($status, self::COLUMN_EXPRESSIBLE, true)
+            ? $order
+            : $this->moveOrderTo($order, $status);
     }
 
     public function test_a_status_change_notifies_the_signed_in_buyer(): void
@@ -64,7 +70,7 @@ class NotificationTest extends TestCase
         $this->moveOrderTo($order, OrderStatus::DISPATCHED);
 
         NotificationFacade::assertSentTo($user, OrderStatusChanged::class, function ($notification) {
-            return $notification->order->status === 'dispatched'
+            return OrderStatus::of($notification->order) === OrderStatus::DISPATCHED
                 && $notification->previousStatus === 'payment-received';
         });
     }

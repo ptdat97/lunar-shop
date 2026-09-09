@@ -51,13 +51,13 @@ class InventorySettingsTest extends TestCase
 
         // Default is 60 minutes: a 30-minute-old order is still the shopper's.
         Artisan::call('orders:expire-abandoned');
-        $this->assertSame(OrderStatus::AWAITING_PAYMENT, $order->fresh()->status);
+        $this->assertSame(OrderStatus::AWAITING_PAYMENT, OrderStatus::of($order->fresh()));
 
         // The shop starts a flash sale and wants the units back sooner.
         app(Settings::class)->put('inventory', ['hold_minutes' => 20]);
 
         Artisan::call('orders:expire-abandoned');
-        $this->assertSame(OrderStatus::CANCELLED, $order->fresh()->status);
+        $this->assertSame(OrderStatus::CANCELLED, OrderStatus::of($order->fresh()));
         $this->assertSame(5, $variant->fresh()->getTotalInventory(), 'units back on sale');
     }
 
@@ -70,7 +70,7 @@ class InventorySettingsTest extends TestCase
         // A one-off sweep after fixing the gateway, without touching the setting.
         Artisan::call('orders:expire-abandoned', ['--minutes' => 5]);
 
-        $this->assertSame(OrderStatus::CANCELLED, $order->fresh()->status);
+        $this->assertSame(OrderStatus::CANCELLED, OrderStatus::of($order->fresh()));
     }
 
     /**
@@ -96,5 +96,4 @@ class InventorySettingsTest extends TestCase
             app(InventoryService::class)->holdMinutes()
         );
     }
-
 }

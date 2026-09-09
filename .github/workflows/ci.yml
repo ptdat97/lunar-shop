@@ -60,13 +60,13 @@ jobs:
 
       - name: Dựng .env
         # PHẢI đứng trước composer install: post-autoload-dump gọi artisan
-        # (package:discover, filament:upgrade) nên app phải boot được.
+        # (package:discover, lunar:panel:install) nên app phải boot được.
         run: cp .env.example .env
 
       - name: composer install
-        # post-autoload-dump chạy filament:upgrade, tức publish lại asset Filament.
-        # FilamentAssetsPublishedTest đối chiếu bản publish với vendor nên bước này
-        # phải xong trước khi chạy test.
+        # post-autoload-dump chạy lunar:panel:install, tức publish asset biên dịch
+        # sẵn của panel sang public/vendor/lunar-panel (thư mục này gitignore, nên
+        # bản checkout không có; thiếu nó mọi trang panel trả 500).
         run: composer install --prefer-dist --no-interaction --no-progress
 
       - name: Sinh APP_KEY

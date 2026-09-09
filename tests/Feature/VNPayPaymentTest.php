@@ -11,6 +11,7 @@ use Modules\Checkout\Services\VNPayGateway;
 use Modules\Checkout\Services\VNPayPaymentProcessor;
 use Modules\Order\Mail\OrderConfirmationMail;
 use Modules\Order\Mail\OrderPaidMail;
+use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -85,7 +86,7 @@ class VNPayPaymentTest extends TestCase
         Mail::fake();
         $order = $this->placeVNPayOrder();
 
-        $this->assertSame('awaiting-payment', $order->status);
+        $this->assertSame(OrderStatus::AWAITING_PAYMENT, OrderStatus::of($order));
         Mail::assertQueued(OrderConfirmationMail::class);
     }
 
@@ -98,7 +99,7 @@ class VNPayPaymentTest extends TestCase
 
         $this->assertTrue($result->verified);
         $this->assertTrue($result->paid);
-        $this->assertSame('payment-received', $order->fresh()->status);
+        $this->assertSame(OrderStatus::PAYMENT_RECEIVED, OrderStatus::of($order->fresh()));
         $this->assertDatabaseHas('lunar_transactions', [
             'order_id' => $order->id, 'driver' => 'vnpay', 'success' => true,
         ]);
@@ -126,7 +127,7 @@ class VNPayPaymentTest extends TestCase
         $result = VNPayPaymentProcessor::make()->reconcile($callback);
 
         $this->assertFalse($result->verified);
-        $this->assertSame('awaiting-payment', $order->fresh()->status);
+        $this->assertSame(OrderStatus::AWAITING_PAYMENT, OrderStatus::of($order->fresh()));
     }
 
     public function test_failed_payment_code_does_not_mark_paid(): void
@@ -138,7 +139,7 @@ class VNPayPaymentTest extends TestCase
 
         $this->assertTrue($result->verified);
         $this->assertFalse($result->paid);
-        $this->assertSame('awaiting-payment', $order->fresh()->status);
+        $this->assertSame(OrderStatus::AWAITING_PAYMENT, OrderStatus::of($order->fresh()));
     }
 
     public function test_return_route_redirects_to_confirmation_when_paid(): void

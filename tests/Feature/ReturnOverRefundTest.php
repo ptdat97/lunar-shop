@@ -28,13 +28,14 @@ class ReturnOverRefundTest extends TestCase
     use DrivesOrderLifecycle;
 
     /**
-     * Place a COD order for `$quantity` units at 100.00 each, then dispatch it.
+     * Place a COD order for `$quantity` units at 100.00 each, dispatching it
+     * unless the test is about an order that has not shipped.
      *
      * A COD order sits at `payment-offline` until it ships — the buyer has
      * nothing in hand yet, so it is not returnable. Returns start once the
      * goods are on their way.
      */
-    private function placeOrder(int $quantity): Order
+    private function placeOrder(int $quantity, bool $dispatch = true): Order
     {
         $product = $this->createProduct(['stock' => 10, 'price' => 10000]);
 
@@ -48,7 +49,10 @@ class ReturnOverRefundTest extends TestCase
         $this->postJson('/api/v1/checkout', ['payment_type' => 'cod'])->assertSuccessful();
 
         $order = Order::latest('id')->first();
-        $this->moveOrderTo($order, OrderStatus::DISPATCHED);
+
+        if ($dispatch) {
+            $this->moveOrderTo($order, OrderStatus::DISPATCHED);
+        }
 
         return $order->fresh();
     }
@@ -61,13 +65,11 @@ class ReturnOverRefundTest extends TestCase
     public function test_an_order_that_never_shipped_cannot_be_returned(): void
     {
         $this->seedBaseData();
-        $order = $this->placeOrder(1);
+        // Placed but never shipped. `can_return` in OrderResource hid the
+        // button, but the endpoint accepted an RMA anyway — and staff could then
+        // refund it. Measured: 10,000 refunded on an order never paid for.
+        $order = $this->placeOrder(1, dispatch: false);
         $line = $this->physicalLine($order);
-
-        // Back to "placed, not yet shipped". `can_return` in OrderResource hid
-        // the button, but the endpoint accepted an RMA anyway — and staff could
-        // then refund it. Measured: 10,000 refunded on an order never paid for.
-        $order->forceFill(['status' => OrderStatus::AWAITING_PAYMENT])->saveQuietly();
 
         $this->expectExceptionMessage('This order cannot be returned.');
         app(ReturnService::class)->open(
@@ -80,12 +82,12 @@ class ReturnOverRefundTest extends TestCase
     public function test_a_cod_order_becomes_returnable_once_dispatched(): void
     {
         $this->seedBaseData();
-        $order = $this->placeOrder(1);
+        $order = $this->placeOrder(1, dispatch: false);
         $line = $this->physicalLine($order);
 
         // COD sits at `payment-offline` until it ships: nothing to send back.
-        $order->forceFill(['status' => OrderStatus::PAYMENT_OFFLINE])->saveQuietly();
-        $this->assertFalse(OrderStatus::isReturnable($order->fresh()->status));
+        $this->assertSame(OrderStatus::PAYMENT_OFFLINE, OrderStatus::of($order));
+        $this->assertFalse(OrderStatus::isReturnable($order));
 
         $this->moveOrderTo($order, OrderStatus::DISPATCHED);
 

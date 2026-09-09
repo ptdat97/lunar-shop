@@ -153,14 +153,30 @@ class OrderStatus
             $order->isCancelled() => self::CANCELLED,
             $order->payment_status instanceof Refunded => self::REFUNDED,
             $order->isClosed() => self::COMPLETED,
-            $order->fulfilment_status instanceof Fulfilled,
-            $order->fulfilment_status instanceof PartiallyFulfilled => self::DISPATCHED,
+            self::hasBeenHandedOver($order) => self::DISPATCHED,
             $order->payment_status instanceof Paid,
             $order->payment_status instanceof PartiallyPaid,
             $order->payment_status instanceof PartiallyRefunded => self::PAYMENT_RECEIVED,
             self::isPaidOnDelivery($order) => self::PAYMENT_OFFLINE,
             default => self::AWAITING_PAYMENT,
         };
+    }
+
+    /**
+     * Have the goods actually left the shop?
+     *
+     * The rollup alone is not enough: `ResolveFulfilmentStatus` reports
+     * `Fulfilled` for an order with NOTHING to fulfil — settled by definition —
+     * so an order with no fulfillable lines would read as dispatched from the
+     * moment it was created. Nothing to send is not the same as sent, so
+     * require that there was something to hand over.
+     */
+    protected static function hasBeenHandedOver(Order $order): bool
+    {
+        $rolledUp = $order->fulfilment_status instanceof Fulfilled
+            || $order->fulfilment_status instanceof PartiallyFulfilled;
+
+        return $rolledUp && $order->fulfillableLines()->exists();
     }
 
     /**

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Lunar\Core\Models\Cart;
 use Lunar\Core\Models\Channel;
@@ -135,6 +136,9 @@ class SkuBuilderTest extends TestCase
 
         $cart = Cart::create(['currency_id' => Currency::getDefault()->id, 'channel_id' => Channel::getDefault()->id]);
         DB::table('lunar_cart_lines')->insert([
+            // `public_id` is a required ULID since Lunar 2.0; a raw insert has to
+            // mint its own, where the model would have done it on create.
+            'public_id' => (string) Str::ulid(),
             'cart_id' => $cart->id, 'purchasable_type' => $morph, 'purchasable_id' => $oldId,
             'quantity' => 1, 'created_at' => now(), 'updated_at' => now(),
         ]);

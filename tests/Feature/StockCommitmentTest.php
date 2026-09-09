@@ -189,10 +189,8 @@ class StockCommitmentTest extends TestCase
         $sku = $this->createProduct(['stock' => 10])->skus->first();
 
         $order = $this->order($sku, 2);
-        $order->update([
-            ...$this->orderAttributesFor(OrderStatus::DISPATCHED),
-            'placed_at' => now()->subDays(30),
-        ]);
+        $this->moveOrderTo($order, OrderStatus::DISPATCHED);
+        $order->update(['placed_at' => now()->subDays(30)]);
 
         $this->assertCount(0, app(InventoryService::class)->staleCommitments());
     }

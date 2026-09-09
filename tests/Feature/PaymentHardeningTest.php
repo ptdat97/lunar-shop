@@ -90,7 +90,7 @@ class PaymentHardeningTest extends TestCase
 
         $this->assertTrue($result->verified, 'signature is valid');
         $this->assertFalse($result->paid);
-        $this->assertNotSame(OrderStatus::PAYMENT_RECEIVED, $order->fresh()->status);
+        $this->assertNotSame(OrderStatus::PAYMENT_RECEIVED, OrderStatus::of($order->fresh()));
         Event::assertNotDispatched(OrderPaid::class);
 
         // The money is still recorded — an unexplained payment must never vanish.
@@ -107,7 +107,7 @@ class PaymentHardeningTest extends TestCase
         $result = VNPayPaymentProcessor::make()->reconcile($this->signedCallback($order));
 
         $this->assertTrue($result->paid);
-        $this->assertSame(OrderStatus::PAYMENT_RECEIVED, $order->fresh()->status);
+        $this->assertSame(OrderStatus::PAYMENT_RECEIVED, OrderStatus::of($order->fresh()));
         Event::assertDispatched(OrderPaid::class);
     }
 
@@ -122,7 +122,7 @@ class PaymentHardeningTest extends TestCase
 
         // Refusing the goods to a customer who overpaid helps nobody; it is logged.
         $this->assertTrue($result->paid);
-        $this->assertSame(OrderStatus::PAYMENT_RECEIVED, $order->fresh()->status);
+        $this->assertSame(OrderStatus::PAYMENT_RECEIVED, OrderStatus::of($order->fresh()));
     }
 
     public function test_late_callback_does_not_revive_a_cancelled_order(): void
@@ -140,7 +140,7 @@ class PaymentHardeningTest extends TestCase
         $result = VNPayPaymentProcessor::make()->reconcile($this->signedCallback($order));
 
         $this->assertFalse($result->paid);
-        $this->assertSame(OrderStatus::CANCELLED, $order->fresh()->status);
+        $this->assertSame(OrderStatus::CANCELLED, OrderStatus::of($order->fresh()));
         $this->assertSame(10, $variant->fresh()->getTotalInventory(), 'must not silently oversell');
         Event::assertNotDispatched(OrderPaid::class);
 

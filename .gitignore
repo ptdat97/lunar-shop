@@ -14,6 +14,8 @@
 /node_modules
 /public/build
 /public/hot
+# Tài sản biên dịch sẵn của lunarphp/panel — publish lại ở mỗi lần cài
+/public/vendor/lunar-panel
 /public/storage
 /storage/*.key
 /storage/pail

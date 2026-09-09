@@ -26,13 +26,16 @@ class NotificationApiTest extends TestCase
             'channel_id' => Channel::getDefault()->id,
             'currency_code' => Currency::getDefault()->code,
             'user_id' => $user->id,
-            ...$this->orderAttributesFor(OrderStatus::DISPATCHED),
+            ...$this->orderAttributesFor(OrderStatus::PAYMENT_RECEIVED),
             'reference' => $reference,
             'sub_total' => 1000, 'discount_total' => 0, 'shipping_total' => 0,
             'tax_total' => 0, 'total' => 1000,
         ]);
 
-        $user->notify(new OrderStatusChanged($order, 'payment-received'));
+        // Notified directly, not by transitioning the order: these tests are
+        // about the inbox endpoint, and a real transition now raises its own
+        // notification too — two per call, which is not what the counts assert.
+        $user->notify(new OrderStatusChanged($order, OrderStatus::AWAITING_PAYMENT));
     }
 
     public function test_the_inbox_requires_authentication(): void

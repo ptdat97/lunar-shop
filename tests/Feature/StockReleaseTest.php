@@ -181,7 +181,7 @@ class StockReleaseTest extends TestCase
         // The shopper may still be on the gateway's page.
         $this->artisan('orders:expire-abandoned --minutes=60')->assertSuccessful();
 
-        $this->assertSame('awaiting-payment', $order->fresh()->status);
+        $this->assertSame(OrderStatus::AWAITING_PAYMENT, OrderStatus::of($order->fresh()));
         $this->assertSame(3, $this->stock());
     }
 
@@ -190,17 +190,17 @@ class StockReleaseTest extends TestCase
         $this->seedBaseData();
         $order = $this->placeOrder();
 
-        // Bank transfer sits in the same status but is settled by hand; Lunar's
-        // offline driver stamps no `payment_type`.
+        // A bank transfer is awaiting payment like a gateway order, but it is
+        // settled by hand and the timer must never touch it — its payment type
+        // is not one of the gateways the sweep looks for.
         $order->forceFill([
-            'status' => 'awaiting-payment',
-            'meta' => [],
+            ...$this->orderAttributesFor(OrderStatus::AWAITING_PAYMENT, ['payment_type' => 'bank-transfer']),
             'created_at' => now()->subDays(3),
         ])->saveQuietly();
 
         $this->artisan('orders:expire-abandoned --minutes=60')->assertSuccessful();
 
-        $this->assertSame('awaiting-payment', $order->fresh()->status);
+        $this->assertSame(OrderStatus::AWAITING_PAYMENT, OrderStatus::of($order->fresh()));
         $this->assertSame(3, $this->stock(), 'the money may still be on its way');
     }
 
@@ -210,14 +210,13 @@ class StockReleaseTest extends TestCase
         $order = $this->placeOrder();
 
         $order->forceFill([
-            'status' => 'awaiting-payment',
-            'meta' => ['payment_type' => 'momo'],
+            ...$this->orderAttributesFor(OrderStatus::AWAITING_PAYMENT, ['payment_type' => 'momo']),
             'created_at' => now()->subDay(),
         ])->saveQuietly();
 
         $this->artisan('orders:expire-abandoned --minutes=60 --dry-run')->assertSuccessful();
 
-        $this->assertSame('awaiting-payment', $order->fresh()->status);
+        $this->assertSame(OrderStatus::AWAITING_PAYMENT, OrderStatus::of($order->fresh()));
         $this->assertSame(3, $this->stock());
     }
 }
