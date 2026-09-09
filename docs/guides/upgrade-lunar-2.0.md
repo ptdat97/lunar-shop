@@ -258,19 +258,26 @@ composer remove lunarphp/lunar   # kéo theo filament/*
 - Dựng khung addon theo `packages/panel-addon-example`: một `Section` cho mỗi
   module có admin.
 
-### Fase 4 — viết lại admin
+### Fase 4 — viết lại admin — ✅ xong
 
-Thứ tự đề nghị, **rủi ro cao trước**:
+Thứ tự **thực tế đã làm** khác kế hoạch, vì việc hợp nhất SKU → variant đã xoá
+hai mục nặng nhất khỏi danh sách:
 
-1. **MediaPicker/MediaBrowser** — 14 call site phụ thuộc. Làm xong mới có nền cho
-   phần còn lại.
-2. **ManageProductVariants** (SKU builder) — phức tạp nhất, và là nơi đã có 2 bug
-   thật.
-3. **9 trang cấu hình** — dễ nhất, backend `Settings` giữ nguyên. Làm sớm để quen
-   `SettingsShell`.
-4. **6 resource Nội dung** — nhiều nhưng lặp lại.
-5. **RMA, ShippingZone, SizeChart, Kho, MediaLibrary, QueueWorkers**.
-6. **AnalyticsDashboard → widget**.
+1. **Engine resource khai báo + 3 màn hình Nội dung** — dựng nền trước, để một
+   màn hình admin tốn một class schema chứ không tốn một trang Vue.
+2. **Trang chủ (section) + Lookbook** — hai màn hình Nội dung khó nhất.
+3. **Menu** — form sâu nhất (cây 3 tầng).
+4. **RMA, vùng ship, bảng size, báo hàng về**.
+5. **8 trang cài đặt → một màn hình**.
+6. **AnalyticsDashboard → một widget** (phần còn lại panel đã có sẵn).
+7. **Size & Fit (slot) + bộ chọn thư viện ảnh**.
+
+`ManageProductVariants` biến mất khỏi danh sách: sau hợp nhất SKU → variant thì
+màn hình biến thể chính chủ dùng được. MediaPicker làm **cuối** chứ không phải
+đầu — hoá ra nó là chuyện đúng/sai (cột lưu id Asset) chứ không phải nền móng.
+
+Nhật ký ở §9.8; kiến trúc ở
+[architecture/panel-addon.md](../architecture/panel-addon.md).
 
 ### Fase 5 — nghiệm thu
 
@@ -305,9 +312,15 @@ production trước khi đi trọn lộ trình một lần trên staging với d
 
 - [x] **`lunarphp/admin` không có trên packagist.** Không cần nữa: dự án bỏ
       Filament, cài `lunarphp/core` + `lunarphp/panel` (cả hai `2.0.0-alpha.6`).
-- [ ] **Phân quyền của panel** (`permission: 'sales:manage-customers'`) khớp thế
-      nào với `spatie/laravel-permission`. **Vẫn mở** — chưa chạm tới ở Fase 3,
-      phải trả lời trước khi viết trang admin đầu tiên.
+- [x] **Phân quyền của panel khớp sẵn** — câu hỏi tự tiêu khi kiểm tra:
+      `Lunar\Core\Models\Staff` dùng đúng `Spatie\Permission\Traits\HasRoles`
+      mà dự án đang dùng, `NavigationRegistry` chỉ gọi `$user->can($permission)`,
+      và bảng `permissions` đã có sẵn các handle với `guard_name = staff`.
+      Điều **không** hiển nhiên: `Gate::after` của panel chỉ cấp một ability khi
+      manifest access-control biết đến nó, mà manifest dựng từ bảng
+      `permissions`. Quyền mới vì thế phải có hàng trong bảng — thiếu nó thì
+      `can:` chặn tất cả, kể cả admin. Xem
+      `..._add_content_manage_permission.php`.
 - [x] **2FA đọc được.** Panel tự làm 2FA (`Lunar\Panel\Auth\AppAuthentication`,
       pragmarx/google2fa) nhưng đọc **cùng cột** `lunar_staff.app_authentication_*`
       qua **cùng cast** `encrypted` / `encrypted:array`. Bản vá ở
@@ -480,17 +493,47 @@ từng giữ. Thiếu nó mọi trang panel trả 500 với
 [1.5](upgrade-lunar-1.5.md): **thư mục gitignore chứa asset là bước build bắt
 buộc, không phải tuỳ chọn.**
 
-### 9.8 Còn lại
+### 9.8 Fase 4 — đã xong
 
-Fase 3 xong. Fase 4 (viết lại admin bằng Vue) và Fase 5 (nghiệm thu) chưa bắt
-đầu — hiện **không có giao diện quản trị**.
+Bảy commit (`c16c8e3` → `3bec7ad`), **618 test xanh**.
 
-> ⚠️ **Fase 4 đang bị chặn bởi một quyết định kiến trúc.** Panel đọc
-> `$variant->stockLevels()` của `ProductVariant`, model mà shop này không bán —
-> nên màn hình sản phẩm chính chủ hiện số liệu của 66 variant ma. Đã chốt hướng
-> hợp nhất `ProductSku` → `ProductVariant`; runbook riêng ở
-> [migrate-skus-to-variants.md](migrate-skus-to-variants.md). Làm xong thì phần
-> lớn màn hình catalog của panel chạy sẵn và Fase 4 co lại đáng kể. Tám method test đã cắt khỏi bốn file
-test settings (phần domain giữ nguyên) phải dựng lại cho panel ở Fase 5:
-`InventorySettingsTest`, `TokenPolicyTest`, `NotificationChannelSettingsTest`,
-`NotificationTest`.
+Điểm chốt: 25 trong 64 file admin đã xoá là **panel lo sẵn** (sản phẩm, biến thể,
+collection, product type, product option, attribute group, customer group, tag,
+thuế) — không viết lại gì. Phần còn lại đi qua điểm mở rộng chính thức, không
+fork gì cả:
+
+| Cách | Dùng cho |
+| --- | --- |
+| Engine resource khai báo | 10 màn hình CRUD (Nội dung, RMA, vùng ship, bảng size, báo hàng về) |
+| `SettingsGroup` | 8 trang cài đặt cũ → một màn hình, 8 tab |
+| `Slot` | Size & Fit chèn vào trang sửa sản phẩm chính chủ |
+| `widgets()` | một thẻ dashboard (phần còn lại panel đã có) |
+| Không làm | QueueWorkers → Horizon + `queue:monitor`; MediaImageSizes → `media-library:regenerate` |
+
+Chi tiết kiến trúc và các hợp đồng của panel phải dò ra bằng cách đọc nguồn:
+[architecture/panel-addon.md](../architecture/panel-addon.md).
+
+**Bốn lỗi tự gây rồi tự bắt được** — đáng ghi vì đều thuộc loại hỏng im lặng:
+
+1. `syncRelations` tái dùng cùng một query builder của quan hệ. `find()` để lại
+   `where id = ?` trên chính builder đó nên `delete()` sau đó không xoá hàng nào.
+2. Mọi default sort đều trên cột lặp (`created_at`, `sort`, `priority`). Phân
+   trang với thứ tự không xác định có thể hiện một dòng ở hai trang và giấu hẳn
+   một dòng khác. Nay luôn tie-break theo khoá chính.
+3. `tags` chỉ được chuẩn hoá ở `ResourceController`, `SettingsController` không
+   biết — hai controller cùng phải tự biết về kiểu trường là công thức sinh lỗi.
+   Gộp về `InputNormaliser`.
+4. `Field::image()` ban đầu là ô text. Các cột ảnh lưu **id Asset**, nên đó là
+   gõ id trong vô định và ảnh xem trước không bao giờ resolve.
+
+### 9.9 Còn lại
+
+Fase 5 (nghiệm thu) chưa bắt đầu:
+
+- Dựng lại smoke test cho panel: mọi route panel trả 200.
+- Selector Dusk: `wire:` → `data-*` của Vue.
+- Tám method test đã cắt khỏi bốn file test settings (phần domain giữ nguyên)
+  phải dựng lại: `InventorySettingsTest`, `TokenPolicyTest`,
+  `NotificationChannelSettingsTest`, `NotificationTest`.
+- Cuối cùng mới bỏ `lunar_product_skus` + `sku_variant_map` (đang cố ý giữ làm
+  lưới an toàn — xem [migrate-skus-to-variants.md](migrate-skus-to-variants.md)).
