@@ -13,6 +13,7 @@ trên `lunarphp/panel` (Inertia + Vue) — xem [guides/upgrade-lunar-2.0.md](gui
 | Hiểu hệ thống có gì, chạy ra sao | [architecture/overview.md](architecture/overview.md) |
 | Viết code theo đúng quy tắc dự án | [guides/coding-standards.md](guides/coding-standards.md) |
 | Sửa giao diện storefront | [architecture/theme.md](architecture/theme.md) |
+| Thêm màn hình admin riêng trên panel Lunar | [architecture/panel-addon.md](architecture/panel-addon.md) |
 | Chạy lệnh artisan thường dùng | [guides/commands.md](guides/commands.md) |
 | Lỗi chỉ xảy ra trong trình duyệt | [guides/e2e-testing.md](guides/e2e-testing.md) |
 | Deploy & vận hành production | [guides/deployment.md](guides/deployment.md) |
@@ -169,6 +170,7 @@ docs/
 ├── roadmap.md                       # việc còn tồn đọng
 ├── architecture/
 │   ├── overview.md                  # nguồn sự thật về hiện trạng
+│   ├── panel-addon.md               # màn hình admin riêng trên panel Lunar
 │   └── theme.md                     # theme `fashion`
 ├── guides/
 │   ├── coding-standards.md          # quy tắc viết code

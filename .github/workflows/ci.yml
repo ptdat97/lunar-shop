@@ -78,10 +78,15 @@ jobs:
           node-version: '22'
           cache: npm
 
-      - name: Build asset storefront
+      - name: Build asset storefront + add-on panel
         # BẮT BUỘC, không phải tuỳ chọn: public/build nằm trong .gitignore nên
         # bản checkout không có Vite manifest. Thiếu nó, mọi trang Blade dùng
         # @vite trả 500 — đã đo: 9 test đỏ (product page, checkout, promotions).
+        #
+        # `npm run build` chạy CẢ HAI config: storefront (vite.config.js) và
+        # bundle Vue của màn hình admin riêng (vite.panel.config.js → public/
+        # vendor/lunar-panel/shop, cũng gitignore). Thiếu bundle thì trang panel
+        # của shop render rỗng mà không có lỗi phía server nào để lần.
         run: |
           npm ci
           npm run build

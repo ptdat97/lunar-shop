@@ -9,7 +9,10 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Modules\Core\Console\ReportUntranslatedContent;
 use Modules\Core\Console\ScheduleHeartbeat;
+use Lunar\Panel\Facades\Panel;
 use Modules\Core\Listeners\RecordScheduledRun;
+use Modules\Core\Panel\ResourceRegistry;
+use Modules\Core\Panel\ShopSection;
 use Modules\Core\Support\Settings;
 
 /**
@@ -31,6 +34,10 @@ class CoreServiceProvider extends ServiceProvider
         // Singleton: the scheduler-event listener keeps the open run rows in
         // memory between the starting and finished events of one tick.
         $this->app->singleton(RecordScheduledRun::class);
+
+        // Singleton so every module's provider adds to the same registry; the
+        // panel reads it once, when it processes sections after boot.
+        $this->app->singleton(ResourceRegistry::class);
     }
 
     public function boot(): void
@@ -50,5 +57,11 @@ class CoreServiceProvider extends ServiceProvider
         Event::listen(ScheduledTaskStarting::class, fn ($event) => $recorder->starting($event));
         Event::listen(ScheduledTaskFinished::class, fn ($event) => $recorder->finished($event));
         Event::listen(ScheduledTaskFailed::class, fn ($event) => $recorder->failed($event));
+
+        // The shop's section on the Lunar panel. Registered from boot because
+        // PanelManager warns (and ignores the section) once it has processed
+        // sections, which happens after every provider has booted — feature
+        // modules add their resources to the registry in their own boot.
+        Panel::section($this->app->make(ShopSection::class));
     }
 }

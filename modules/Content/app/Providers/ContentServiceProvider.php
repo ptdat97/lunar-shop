@@ -10,8 +10,12 @@ use Modules\Assets\Services\MediaUrl;
 use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Http\Resources\ProductResource;
 use Modules\Catalog\Services\ProductService;
+use Modules\Content\Panel\BannerResource;
+use Modules\Content\Panel\PageResource;
+use Modules\Content\Panel\RedirectResource;
 use Modules\Content\Services\MenuRenderer;
 use Modules\Content\Services\SectionRenderer;
+use Modules\Core\Panel\ResourceRegistry;
 use Modules\Promotion\Http\Resources\PromotionResource;
 use Modules\Promotion\Services\PromotionService;
 
@@ -47,6 +51,21 @@ class ContentServiceProvider extends ServiceProvider
         $this->registerSectionData();
         $this->registerSectionPayloads();
         $this->composeMenus();
+        $this->registerPanelResources();
+    }
+
+    /**
+     * The shop's own admin screens for content the Lunar panel knows nothing
+     * about. Each is a declared schema, not a hand-written page — ShopSection
+     * turns them into routes and navigation, and one pair of Vue pages renders
+     * them (see Modules\Core\Panel\PanelResource).
+     */
+    protected function registerPanelResources(): void
+    {
+        $this->app->make(ResourceRegistry::class)
+            ->add(new BannerResource)
+            ->add(new PageResource)
+            ->add(new RedirectResource);
     }
 
     /**
