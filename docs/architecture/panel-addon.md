@@ -54,6 +54,43 @@ resource.
 Đây cố tình là **forms-over-data**, không phải framework. Màn hình có hành vi
 thật (wizard, thao tác hàng loạt, editor có xem trước) nên viết Section riêng.
 
+## Bộ trường
+
+| Kiểu | Dùng cho |
+| --- | --- |
+| `text` `textarea` `html` `number` `toggle` `image` | cột thường |
+| `slug(from:)` | slug tự suy từ trường khác, khớp hook `creating` của model |
+| `select(options)` | danh sách cố định |
+| `relation(fn (?Model $record) => …)` | option lấy từ DB, resolve theo từng request; nhận bản ghi đang sửa nên picker scope được (ảnh ghim của lookbook chỉ lấy ảnh của chính lookbook đó) |
+| `json` | cột JSON hình dạng tự do — chốt chặn cuối |
+| `repeater(fields)` | danh sách lồng trong một cột JSON, lồng được nhiều tầng |
+| `hasMany(fields)` | danh sách là **bảng con thật**; giữ nguyên id của hàng qua mỗi lần lưu |
+
+Modifier: `required()` `nullable()` `default()` `help()` `placeholder()`
+`width(1..12)` `onIndex()` `multiple()` `itemLabel()` `addLabel()`
+`visibleWhen($field, ...$values)` `virtual()`.
+
+### Ba modifier đáng nói riêng
+
+**`visibleWhen`** không chỉ là chuyện hiển thị — trường ẩn thì **không render,
+không submit, và không validate**. Đó là thứ cho phép hai nhánh loại trừ nhau
+dùng chung một tên: `hero-slider` và `lookbook` cùng ghi `settings.slides` với
+sub-field khác hẳn nhau. Validate cả hai một lúc thì rule đè nhau và một nhánh
+im lặng thắng.
+
+Trong một repeater, điều kiện đọc **hàng của chính nó**, không phải cả form:
+một mục menu chỉ hiện danh sách link con khi bản thân nó là dropdown.
+
+**`hasMany` giữ id.** Hàng con round-trip kèm `id` để lần lưu sau *cập nhật* chứ
+không xoá-tạo-lại. Không có nó thì mọi thứ trỏ tới hàng con theo id sẽ đứt —
+lookbook ghim sản phẩm lên ảnh theo `image_id`, xoá-tạo-lại là mất sạch pin mà
+vẫn báo "đã lưu". Thứ tự ghi từ vị trí hàng, nên admin sắp xếp bằng mũi tên chứ
+không gõ số.
+
+**`virtual`** đánh dấu trường không phải cột: engine bỏ qua nó khi đọc và khi
+mass-assign, resource tự lo qua `toRow()` + `saved()`. Cây menu là ví dụ — một
+trường trên form, một bảng riêng bên dưới, `MenuTree` dịch hai chiều.
+
 ## Những ràng buộc đã phải tuân theo
 
 Bốn điều dưới đây là hợp đồng của panel, không phải lựa chọn — làm sai thì trang
@@ -88,6 +125,15 @@ quyền theo từng dòng nằm hẳn ở PHP.
 (`shop/resource/Index`). Không bắt buộc về mặt chạy — registry là một map phẳng —
 nhưng `ensure_pages_exist` của Inertia lúc test tra theo đường dẫn, nên quy ước
 này biến việc đổi tên file thành test đỏ thay vì trang trắng.
+
+## Đã chuyển được gì
+
+| Màn hình | Cách khai báo |
+| --- | --- |
+| Banner, Trang tĩnh, Redirect | trường phẳng |
+| Section trang chủ | 8 nhánh `visibleWhen` + repeater trong cột JSON |
+| Lookbook | hai `hasMany` (ảnh, sản phẩm) + picker ghim scope theo bản ghi |
+| Menu | `virtual` + repeater lồng 3 tầng, `MenuTree` dịch cây ↔ bảng |
 
 ## Build
 

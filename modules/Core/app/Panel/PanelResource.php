@@ -112,6 +112,15 @@ abstract class PanelResource
         return $data;
     }
 
+    /**
+     * Called after the record and its hasMany rows are written. The seam for a
+     * resource whose form holds something the engine cannot store on its own —
+     * a menu's item tree, which is a table of its own shape.
+     *
+     * @param  array<string, mixed>  $data  the validated payload, relations included
+     */
+    public function saved(Model $record, array $data): void {}
+
     public function routeName(string $action): string
     {
         return "panel.shop.{$this->key()}.{$action}";
@@ -182,19 +191,36 @@ abstract class PanelResource
         foreach ($this->fieldsFor($input) as $field) {
             $rules[$field->name] = $field->validationRules();
 
-            // A repeater validates its rows through Laravel's own wildcard
-            // syntax, so an invalid slide reports against
-            // `settings.slides.2.title` and the form can point at that row.
-            foreach ($field->children() as $child) {
-                $rules[$field->name.'.*.'.$child->name] = $child->validationRules();
-            }
+            $rules += $this->childRules($field, $field->name, $input);
+        }
 
-            // A hasMany row carries the child's id so a save updates it rather
-            // than recreating it; undeclared keys are stripped by validate(),
-            // so the id needs a rule of its own to survive.
-            if ($field->isRelation()) {
-                $rules[$field->name.'.*.id'] = ['nullable', 'integer'];
-            }
+        return $rules;
+    }
+
+    /**
+     * Rules for a repeater's rows, recursing into nested repeaters — a menu is
+     * three levels deep (items → columns → links). Laravel's own wildcard
+     * syntax does the addressing, so an invalid row reports against
+     * `tree.0.children.2.label` and the form can point straight at it.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<string, array<int, mixed>>
+     */
+    protected function childRules(Field $field, string $prefix, array $input): array
+    {
+        $rules = [];
+
+        foreach ($field->children() as $child) {
+            $path = $prefix.'.*.'.$child->name;
+            $rules[$path] = $child->validationRules();
+            $rules += $this->childRules($child, $path, $input);
+        }
+
+        // A hasMany row carries the child's id so a save updates it rather than
+        // recreating it; undeclared keys are stripped by validate(), so the id
+        // needs a rule of its own to survive.
+        if ($field->isRelation()) {
+            $rules[$prefix.'.*.id'] = ['nullable', 'integer'];
         }
 
         return $rules;
@@ -259,6 +285,10 @@ abstract class PanelResource
                 continue;
             }
 
+            if ($field->isVirtual()) {
+                continue;
+            }
+
             if ($type === 'repeater') {
                 data_set($row, $field->name, $field->isRelation()
                     ? $this->relationRows($record, $field)
@@ -312,6 +342,12 @@ abstract class PanelResource
     public function relationFields(): array
     {
         return array_values(array_filter($this->fields(), fn (Field $f) => $f->isRelation()));
+    }
+
+    /** @return array<int, Field> */
+    public function virtualFields(): array
+    {
+        return array_values(array_filter($this->fields(), fn (Field $f) => $f->isVirtual()));
     }
 
     /**

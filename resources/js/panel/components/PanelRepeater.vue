@@ -5,6 +5,10 @@ import PanelField from './PanelField.vue';
 
 const props = defineProps({
     field: { type: Object, required: true },
+    // The full dotted path to this list in the form payload. Nested repeaters
+    // get `tree.0.children`, which is exactly how Laravel addresses the row's
+    // validation errors.
+    path: { type: String, required: true },
     modelValue: { type: Array, default: () => [] },
     errors: { type: Object, default: () => ({}) },
 });
@@ -50,9 +54,14 @@ const setCell = (index, name, value) => {
 // without it a list of slides is a list of "Slide, Slide, Slide".
 const rowLabel = (row, index) => row?.[props.field.itemLabel] || `#${index + 1}`;
 
-// Laravel reports a repeater's errors against `settings.slides.2.title`, so a
-// row's messages are the ones prefixed with its own index.
-const cellError = (index, name) => props.errors[`${props.field.name}.${index}.${name}`];
+// A sub-field's condition reads its own row, not the form: a menu item shows
+// its links only when that item is a dropdown.
+const fieldsFor = (row) =>
+    props.field.children.filter(
+        (child) => !child.visibleWhen || child.visibleWhen.values.includes(String(row?.[child.visibleWhen.field])),
+    );
+
+const cellPath = (index, name) => `${props.path}.${index}.${name}`;
 </script>
 
 <template>
@@ -76,18 +85,27 @@ const cellError = (index, name) => props.errors[`${props.field.name}.${index}.${
                 <Button size="sm" variant="ghost" icon="trash" @click="remove(index)" />
             </div>
 
-            <div
-                class="p-3 grid gap-4"
-                style="grid-template-columns: repeat(12, minmax(0, 1fr))"
-            >
-                <PanelField
-                    v-for="child in field.children"
-                    :key="child.name"
-                    :field="child"
-                    :model-value="row[child.name] ?? null"
-                    :error="cellError(index, child.name)"
-                    @update:model-value="setCell(index, child.name, $event)"
-                />
+            <div class="p-3 grid gap-4" style="grid-template-columns: repeat(12, minmax(0, 1fr))">
+                <template v-for="child in fieldsFor(row)" :key="child.name">
+                    <!-- A repeater inside a repeater: a menu is items → columns
+                         → links. The component renders itself, carrying the
+                         path down so error addressing keeps working. -->
+                    <PanelRepeater
+                        v-if="child.type === 'repeater'"
+                        :field="child"
+                        :path="cellPath(index, child.name)"
+                        :model-value="row[child.name] ?? []"
+                        :errors="errors"
+                        @update:model-value="setCell(index, child.name, $event)"
+                    />
+                    <PanelField
+                        v-else
+                        :field="child"
+                        :model-value="row[child.name] ?? null"
+                        :error="errors[cellPath(index, child.name)]"
+                        @update:model-value="setCell(index, child.name, $event)"
+                    />
+                </template>
             </div>
         </div>
     </div>

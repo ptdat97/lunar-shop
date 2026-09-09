@@ -175,6 +175,23 @@ class Field
         return (bool) ($this->meta['relation'] ?? false);
     }
 
+    /**
+     * This field is not a column and must never reach a mass assignment — it
+     * is assembled by the resource on read and consumed by its saved() hook on
+     * write. A menu's item tree is the case: one form field, its own table.
+     */
+    public function virtual(): static
+    {
+        $this->meta['virtual'] = true;
+
+        return $this;
+    }
+
+    public function isVirtual(): bool
+    {
+        return (bool) ($this->meta['virtual'] ?? false);
+    }
+
     /** Text on the repeater's add button — "Thêm slide" beats a bare "Thêm". */
     public function addLabel(string $label): static
     {

@@ -104,6 +104,7 @@ class ResourceController extends Controller
         $resource = $this->resource($request);
 
         $data = $this->validated($request, $resource, null);
+        $payload = $data;
 
         // hasMany rows are not columns, so they are held back and written once
         // the parent exists and can own them.
@@ -112,6 +113,7 @@ class ResourceController extends Controller
         $record = $resource->model()::create($data);
 
         $this->syncRelations($record, $resource, $relations);
+        $resource->saved($record, $payload);
 
         return redirect()
             ->route($resource->routeName('edit'), $record->getKey())
@@ -143,11 +145,13 @@ class ResourceController extends Controller
         $model = $resource->model()::findOrFail($record);
 
         $data = $this->validated($request, $resource, $model);
+        $payload = $data;
         $relations = $this->extractRelations($data, $resource);
 
         $model->update($data);
 
         $this->syncRelations($model, $resource, $relations);
+        $resource->saved($model, $payload);
 
         return back()->with('success', __('panel.saved', ['name' => $resource->singular()]));
     }
@@ -217,6 +221,12 @@ class ResourceController extends Controller
 
         foreach ($resource->relationFields() as $field) {
             $relations[$field->name] = array_values((array) ($data[$field->name] ?? []));
+            unset($data[$field->name]);
+        }
+
+        // Virtual fields are not columns either: the resource's saved() hook
+        // owns them, and leaving one in would break the mass assignment.
+        foreach ($resource->virtualFields() as $field) {
             unset($data[$field->name]);
         }
 

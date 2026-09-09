@@ -125,6 +125,7 @@ const onFieldInput = (field) => {
                 <PanelRepeater
                     v-if="field.type === 'repeater'"
                     :field="field"
+                    :path="field.name"
                     :model-value="valueOf(field) ?? []"
                     :errors="form.errors"
                     @update:model-value="assign(field, $event)"
