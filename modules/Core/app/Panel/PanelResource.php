@@ -56,7 +56,7 @@ abstract class PanelResource
     /** Lucide icon name for the navigation item. */
     public function icon(): string
     {
-        return 'file-text';
+        return 'fileText';
     }
 
     /**
@@ -117,6 +117,18 @@ abstract class PanelResource
         return "panel.shop.{$this->key()}.{$action}";
     }
 
+    /**
+     * The fields that apply to a given form state — everything unconditional
+     * plus whichever conditional branch that state selects.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array<int, Field>
+     */
+    public function fieldsFor(array $input): array
+    {
+        return array_values(array_filter($this->fields(), fn (Field $f) => $f->appliesTo($input)));
+    }
+
     /** @return array<int, Field> */
     public function indexFields(): array
     {
@@ -163,12 +175,26 @@ abstract class PanelResource
      *
      * @return array<string, array<int, mixed>>
      */
-    public function validationRules(?Model $record = null): array
+    public function validationRules(?Model $record = null, array $input = []): array
     {
         $rules = [];
 
-        foreach ($this->fields() as $field) {
+        foreach ($this->fieldsFor($input) as $field) {
             $rules[$field->name] = $field->validationRules();
+
+            // A repeater validates its rows through Laravel's own wildcard
+            // syntax, so an invalid slide reports against
+            // `settings.slides.2.title` and the form can point at that row.
+            foreach ($field->children() as $child) {
+                $rules[$field->name.'.*.'.$child->name] = $child->validationRules();
+            }
+
+            // A hasMany row carries the child's id so a save updates it rather
+            // than recreating it; undeclared keys are stripped by validate(),
+            // so the id needs a rule of its own to survive.
+            if ($field->isRelation()) {
+                $rules[$field->name.'.*.id'] = ['nullable', 'integer'];
+            }
         }
 
         return $rules;
@@ -191,8 +217,15 @@ abstract class PanelResource
     {
         $blank = [];
 
-        foreach ($this->fields() as $field) {
-            $blank[$field->name] = $field->defaultValue();
+        // Only unconditional fields: a create form opens with no branch chosen,
+        // and seeding every branch's defaults would let one branch's value win
+        // by declaration order (two of them share `settings.limit` with
+        // different limits). The form seeds a branch when it becomes visible.
+        foreach ($this->fieldsFor([]) as $field) {
+            // Dot names address a path inside a JSON column
+            // (`settings.slides`), so the blank record has to be nested the
+            // same way the saved one is.
+            data_set($blank, $field->name, $field->defaultValue());
         }
 
         return $blank;
@@ -210,13 +243,26 @@ abstract class PanelResource
         $row = ['id' => $record->getKey()];
 
         foreach ($this->fields() as $field) {
-            $value = $record->getAttribute($field->name);
+            // data_get, not getAttribute: a field may address a path inside a
+            // JSON column ('settings.slides') rather than a column of its own.
+            $value = data_get($record, $field->name);
             $type = $field->toArray()['type'];
 
             // A JSON column arrives as an array from the cast but the editor is
             // a textarea, so it round-trips as pretty-printed text.
             if ($type === 'json' && is_array($value)) {
-                $row[$field->name] = json_encode($value, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                data_set($row, $field->name, json_encode(
+                    $value,
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
+                ));
+
+                continue;
+            }
+
+            if ($type === 'repeater') {
+                data_set($row, $field->name, $field->isRelation()
+                    ? $this->relationRows($record, $field)
+                    : array_values((array) ($value ?? [])));
 
                 continue;
             }
@@ -224,7 +270,9 @@ abstract class PanelResource
             // A select's value must match its <option value>, and JSON turns
             // every object key into a string — so an int column (status_code
             // 301) would arrive as 301 against "301" and select nothing.
-            $row[$field->name] = $type === 'select' && $value !== null ? (string) $value : $value;
+            data_set($row, $field->name, $type === 'select' && $value !== null && ! is_array($value)
+                ? (string) $value
+                : $value);
         }
 
         foreach ($this->computed() as $name => $callback) {
@@ -232,6 +280,38 @@ abstract class PanelResource
         }
 
         return $row;
+    }
+
+    /**
+     * A hasMany field's rows: the declared sub-fields plus the child's id, so a
+     * save updates the existing rows instead of deleting and recreating them —
+     * anything referencing a child by id keeps pointing at it.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    protected function relationRows(Model $record, Field $field): array
+    {
+        $names = array_map(fn (Field $child) => $child->name, $field->children());
+
+        return $record->{$field->name}
+            ->map(function (Model $child) use ($names): array {
+                $row = ['id' => $child->getKey()];
+
+                foreach ($names as $name) {
+                    $value = $child->getAttribute($name);
+                    $row[$name] = $value === null ? null : (is_scalar($value) ? (string) $value : $value);
+                }
+
+                return $row;
+            })
+            ->values()
+            ->all();
+    }
+
+    /** @return array<int, Field> */
+    public function relationFields(): array
+    {
+        return array_values(array_filter($this->fields(), fn (Field $f) => $f->isRelation()));
     }
 
     /**
@@ -252,8 +332,8 @@ abstract class PanelResource
                 continue;
             }
 
-            $value = $row[$field->name] ?? null;
-            $row[$field->name] = $definition['options'][$value] ?? $value;
+            $value = data_get($row, $field->name);
+            data_set($row, $field->name, $definition['options'][$value] ?? $value);
         }
 
         return $row;

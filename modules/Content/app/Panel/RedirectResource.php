@@ -37,7 +37,7 @@ class RedirectResource extends PanelResource
 
     public function icon(): string
     {
-        return 'corner-up-right';
+        return 'externalLink';
     }
 
     public function fields(): array
@@ -67,9 +67,9 @@ class RedirectResource extends PanelResource
      * `old_url` must stay unique: the redirect middleware matches on it and
      * would otherwise pick an arbitrary winner between duplicates.
      */
-    public function validationRules(?Model $record = null): array
+    public function validationRules(?Model $record = null, array $input = []): array
     {
-        $rules = parent::validationRules($record);
+        $rules = parent::validationRules($record, $input);
         $rules['old_url'][] = $this->unique('old_url', $record);
 
         return $rules;

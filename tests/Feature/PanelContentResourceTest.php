@@ -8,6 +8,7 @@ use Lunar\Panel\Facades\Panel;
 use Modules\Content\Models\Banner;
 use Modules\Content\Models\Page;
 use Modules\Content\Models\Redirect;
+use Modules\Core\Panel\ResourceRegistry;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
@@ -284,10 +285,37 @@ class PanelContentResourceTest extends TestCase
             ->assertSee('/vendor/lunar-panel/shop/build/'.$manifest['resources/js/panel/index.js']['file'], false);
     }
 
+    /**
+     * The panel's Icon component renders an empty <svg> for a name it does not
+     * know — no warning, no error, just an invisible navigation item. So the
+     * icon each resource asks for has to be checked against the set the panel
+     * actually ships.
+     */
+    public function test_every_resource_icon_exists_in_the_panels_icon_set(): void
+    {
+        $source = file_get_contents(
+            base_path('vendor/lunarphp/panel/resources/js/components/Icon.vue'),
+        );
+
+        preg_match_all("/^    '?([a-zA-Z0-9_-]+)'?: '/m", $source, $matches);
+
+        $available = $matches[1];
+
+        $this->assertNotEmpty($available, 'Không đọc được danh sách icon của panel.');
+
+        foreach (app(ResourceRegistry::class)->all() as $key => $resource) {
+            $this->assertContains(
+                $resource->icon(),
+                $available,
+                "Resource [{$key}] dùng icon [{$resource->icon()}] mà panel không có.",
+            );
+        }
+    }
+
     /** Every declared resource must be reachable and navigable. */
     public function test_every_registered_resource_has_a_working_index(): void
     {
-        foreach (['banners', 'pages', 'redirects'] as $key) {
+        foreach (array_keys(app(ResourceRegistry::class)->all()) as $key) {
             $this->actingAsAdmin()
                 ->get(route("panel.shop.{$key}.index"))
                 ->assertOk()

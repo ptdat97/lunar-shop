@@ -2,6 +2,8 @@
 
 namespace Modules\Core\Panel;
 
+use Illuminate\Database\Eloquent\Model;
+
 /**
  * One editable field in a panel resource form.
  *
@@ -33,6 +35,12 @@ class Field
 
     /** @var array<string, mixed> */
     protected array $meta = [];
+
+    /** @var (callable(): array<string|int, string>)|null */
+    protected $optionsResolver = null;
+
+    /** @var array<int, Field> */
+    protected array $children = [];
 
     final protected function __construct(
         public readonly string $name,
@@ -110,6 +118,99 @@ class Field
         return new static($name, $label, 'json');
     }
 
+    /**
+     * A select whose options are rows, resolved when the form is built rather
+     * than declared inline — collections, products, promotions.
+     *
+     * The resolver receives the record being edited, so a picker can be scoped
+     * to it — a lookbook item's pin image must come from that lookbook's own
+     * photos, not from every photo in the database.
+     *
+     * @param  callable(?Model): array<string|int, string>  $options
+     */
+    public static function relation(string $name, string $label, callable $options): static
+    {
+        $field = new static($name, $label, 'select');
+        $field->optionsResolver = $options;
+
+        return $field;
+    }
+
+    /**
+     * A repeating group of sub-fields, stored as a list of objects. This is
+     * what a JSON settings column is usually holding: hero slides, icon boxes,
+     * product tabs.
+     *
+     * @param  array<int, Field>  $fields
+     */
+    public static function repeater(string $name, string $label, array $fields): static
+    {
+        $field = new static($name, $label, 'repeater');
+        $field->children = $fields;
+
+        return $field->rules('array');
+    }
+
+    /**
+     * A repeater backed by a hasMany relation rather than a JSON column: each
+     * row is a child model. Rows keep their ids across a save, so anything
+     * pointing at them (a lookbook item pinned to a photo) survives editing.
+     *
+     * Row order is the relation's `sort` column, written from the row's
+     * position — the admin reorders with the repeater's own arrows instead of
+     * typing numbers into a field.
+     *
+     * @param  array<int, Field>  $fields
+     */
+    public static function hasMany(string $name, string $label, array $fields): static
+    {
+        $field = static::repeater($name, $label, $fields);
+        $field->meta['relation'] = true;
+
+        return $field;
+    }
+
+    public function isRelation(): bool
+    {
+        return (bool) ($this->meta['relation'] ?? false);
+    }
+
+    /** Text on the repeater's add button — "Thêm slide" beats a bare "Thêm". */
+    public function addLabel(string $label): static
+    {
+        $this->meta['addLabel'] = $label;
+
+        return $this;
+    }
+
+    /** Which sub-field titles a collapsed repeater row. */
+    public function itemLabel(string $field): static
+    {
+        $this->meta['itemLabel'] = $field;
+
+        return $this;
+    }
+
+    /** Let the select hold several values (stored as a JSON list). */
+    public function multiple(): static
+    {
+        $this->meta['multiple'] = true;
+
+        return $this->rules('array');
+    }
+
+    /**
+     * Show this field only while another field holds one of these values —
+     * how a page_sections form shows the slides of a hero slider and nothing
+     * else. Purely a display rule: a hidden field is simply not submitted.
+     */
+    public function visibleWhen(string $field, string ...$values): static
+    {
+        $this->meta['visibleWhen'] = ['field' => $field, 'values' => $values];
+
+        return $this;
+    }
+
     public function rules(string ...$rules): static
     {
         $this->rules = [...$this->rules, ...$rules];
@@ -169,6 +270,26 @@ class Field
         return $this->onIndex;
     }
 
+    /**
+     * Whether this field applies to the given form state. A field hidden by
+     * `visibleWhen` is not rendered and not submitted, so it must not be
+     * validated either — and two fields may share a name across mutually
+     * exclusive branches (a hero slider and a lookbook both store
+     * `settings.slides`), which only works while exactly one is live.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function appliesTo(array $input): bool
+    {
+        $rule = $this->meta['visibleWhen'] ?? null;
+
+        if (! $rule) {
+            return true;
+        }
+
+        return in_array((string) data_get($input, $rule['field']), $rule['values'], true);
+    }
+
     public function defaultValue(): mixed
     {
         return $this->default;
@@ -187,17 +308,30 @@ class Field
         return $this->rules;
     }
 
+    /** @return array<int, Field> */
+    public function children(): array
+    {
+        return $this->children;
+    }
+
     /** @return array<string, mixed> */
-    public function toArray(): array
+    public function toArray(?Model $record = null): array
     {
         return [
             'name' => $this->name,
             'label' => $this->label,
             'type' => $this->type,
-            'options' => $this->options,
+            // Relation options are resolved here, not at declaration: a schema
+            // is built on every request and a query in the constructor would
+            // run even for the screens that never render this field.
+            'options' => $this->optionsResolver
+                ? array_map('strval', ($this->optionsResolver)($record))
+                : $this->options,
+            'children' => array_map(fn (Field $child) => $child->toArray($record), $this->children),
             'help' => $this->help,
             'placeholder' => $this->placeholder,
             'columns' => $this->columns,
+            'default' => $this->default,
             'required' => in_array('required', $this->rules, true),
             ...$this->meta,
         ];

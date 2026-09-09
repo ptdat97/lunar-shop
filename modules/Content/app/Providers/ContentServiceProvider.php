@@ -11,7 +11,9 @@ use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Http\Resources\ProductResource;
 use Modules\Catalog\Services\ProductService;
 use Modules\Content\Panel\BannerResource;
+use Modules\Content\Panel\LookbookResource;
 use Modules\Content\Panel\PageResource;
+use Modules\Content\Panel\PageSectionResource;
 use Modules\Content\Panel\RedirectResource;
 use Modules\Content\Services\MenuRenderer;
 use Modules\Content\Services\SectionRenderer;
@@ -64,6 +66,8 @@ class ContentServiceProvider extends ServiceProvider
     {
         $this->app->make(ResourceRegistry::class)
             ->add(new BannerResource)
+            ->add(new LookbookResource)
+            ->add(new PageSectionResource)
             ->add(new PageResource)
             ->add(new RedirectResource);
     }

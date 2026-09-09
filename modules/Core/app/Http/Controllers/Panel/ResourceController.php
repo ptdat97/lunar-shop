@@ -105,7 +105,13 @@ class ResourceController extends Controller
 
         $data = $this->validated($request, $resource, null);
 
+        // hasMany rows are not columns, so they are held back and written once
+        // the parent exists and can own them.
+        $relations = $this->extractRelations($data, $resource);
+
         $record = $resource->model()::create($data);
+
+        $this->syncRelations($record, $resource, $relations);
 
         return redirect()
             ->route($resource->routeName('edit'), $record->getKey())
@@ -119,7 +125,9 @@ class ResourceController extends Controller
 
         return Inertia::render('shop/resource/Form', [
             'resource' => $this->descriptor($resource),
-            'fields' => array_map(fn (Field $f) => $f->toArray(), $resource->fields()),
+            // The record is passed down so a picker can be scoped to it — a
+            // lookbook item's pin image comes from that lookbook's own photos.
+            'fields' => array_map(fn (Field $f) => $f->toArray($model), $resource->fields()),
             'record' => $resource->toRow($model),
             'isNew' => false,
             'actions' => [
@@ -134,7 +142,12 @@ class ResourceController extends Controller
         $resource = $this->resource($request);
         $model = $resource->model()::findOrFail($record);
 
-        $model->update($this->validated($request, $resource, $model));
+        $data = $this->validated($request, $resource, $model);
+        $relations = $this->extractRelations($data, $resource);
+
+        $model->update($data);
+
+        $this->syncRelations($model, $resource, $relations);
 
         return back()->with('success', __('panel.saved', ['name' => $resource->singular()]));
     }
@@ -158,17 +171,21 @@ class ResourceController extends Controller
      */
     protected function validated(Request $request, PanelResource $resource, ?Model $record): array
     {
-        $data = $request->validate($resource->validationRules($record));
+        // The request's own state selects which conditional fields apply, so a
+        // page section is validated against the branch it actually submitted.
+        $data = $request->validate($resource->validationRules($record, $request->all()));
 
-        foreach ($resource->fields() as $field) {
+        foreach ($resource->fieldsFor($request->all()) as $field) {
             if ($field->toArray()['type'] !== 'json') {
                 continue;
             }
 
-            $raw = $data[$field->name] ?? null;
+            // data_get/data_set, not array access: a field name may be a path
+            // into a JSON column rather than a key of its own.
+            $raw = data_get($data, $field->name);
 
             if (blank($raw)) {
-                $data[$field->name] = null;
+                data_set($data, $field->name, null);
 
                 continue;
             }
@@ -181,10 +198,80 @@ class ResourceController extends Controller
                 ]);
             }
 
-            $data[$field->name] = $decoded;
+            data_set($data, $field->name, $decoded);
         }
 
         return $resource->mutate($data, $record);
+    }
+
+    /**
+     * Pull the hasMany payloads out of the validated data — they would be
+     * rejected as unknown columns by a mass assignment.
+     *
+     * @param  array<string, mixed>  $data
+     * @return array<string, array<int, array<string, mixed>>>
+     */
+    protected function extractRelations(array &$data, PanelResource $resource): array
+    {
+        $relations = [];
+
+        foreach ($resource->relationFields() as $field) {
+            $relations[$field->name] = array_values((array) ($data[$field->name] ?? []));
+            unset($data[$field->name]);
+        }
+
+        return $relations;
+    }
+
+    /**
+     * Bring each hasMany relation in line with what was submitted: update the
+     * rows that came back with an id, create the new ones, delete the rest.
+     * Order is written from each row's position, so the repeater's arrows are
+     * the only place the admin thinks about ordering.
+     *
+     * @param  array<string, array<int, array<string, mixed>>>  $relations
+     */
+    protected function syncRelations(Model $record, PanelResource $resource, array $relations): void
+    {
+        foreach ($resource->relationFields() as $field) {
+            $rows = $relations[$field->name] ?? [];
+            $names = array_map(fn (Field $child) => $child->name, $field->children());
+
+            // Loaded once into models rather than queried per row. A relation's
+            // query builder is a single mutable object: calling find() on it
+            // leaves a `where id = ?` behind that would then silently scope the
+            // delete below to that one row.
+            $existing = $record->{$field->name}()->get()->keyBy(fn (Model $child) => $child->getKey());
+
+            // `sort` is written from the row's position when the child model
+            // accepts it, so ordering is the repeater's arrows and nothing else.
+            $ordered = in_array('sort', $record->{$field->name}()->getRelated()->getFillable(), true);
+
+            $kept = [];
+
+            foreach ($rows as $index => $row) {
+                $attributes = array_intersect_key($row, array_flip($names));
+
+                if ($ordered) {
+                    $attributes['sort'] = $index;
+                }
+
+                $child = ! empty($row['id']) ? $existing->get($row['id']) : null;
+
+                if ($child) {
+                    $child->update($attributes);
+                    $kept[] = $child->getKey();
+
+                    continue;
+                }
+
+                $kept[] = $record->{$field->name}()->create($attributes)->getKey();
+            }
+
+            $existing
+                ->reject(fn (Model $child) => in_array($child->getKey(), $kept, true))
+                ->each->delete();
+        }
     }
 
     protected function resource(Request $request): PanelResource

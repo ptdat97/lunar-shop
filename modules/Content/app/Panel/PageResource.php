@@ -37,7 +37,7 @@ class PageResource extends PanelResource
 
     public function icon(): string
     {
-        return 'file-text';
+        return 'fileText';
     }
 
     public function fields(): array
@@ -55,9 +55,9 @@ class PageResource extends PanelResource
     }
 
     /** A page is served by slug, so a duplicate would shadow another page. */
-    public function validationRules(?Model $record = null): array
+    public function validationRules(?Model $record = null, array $input = []): array
     {
-        $rules = parent::validationRules($record);
+        $rules = parent::validationRules($record, $input);
         $rules['slug'][] = $this->unique('slug', $record);
 
         return $rules;

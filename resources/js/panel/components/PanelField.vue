@@ -20,6 +20,15 @@ const options = computed(() => Object.entries(props.field.options ?? {}));
 
 const isTextLike = computed(() => ['text', 'image', 'slug'].includes(props.field.type));
 const isMultiline = computed(() => ['textarea', 'html', 'json'].includes(props.field.type));
+
+// A multi-value select posts a list. The panel has no multi-select component,
+// so this is a plain <select multiple> styled to match the single one.
+const isMulti = computed(() => props.field.type === 'select' && props.field.multiple);
+
+const selected = computed({
+    get: () => (Array.isArray(props.modelValue) ? props.modelValue.map(String) : []),
+    set: (v) => emit('update:modelValue', v),
+});
 </script>
 
 <template>
@@ -54,6 +63,20 @@ const isMultiline = computed(() => ['textarea', 'html', 'json'].includes(props.f
             :invalid="!!error"
             :data-field="field.name"
         />
+
+        <select
+            v-else-if="isMulti"
+            :id="field.name"
+            v-model="selected"
+            multiple
+            size="6"
+            class="w-full rounded-md border border-line-strong bg-surface text-ink-900 text-[12.5px] px-2 py-1.5"
+            :data-field="field.name"
+        >
+            <option v-for="[optionValue, label] in options" :key="optionValue" :value="optionValue">
+                {{ label }}
+            </option>
+        </select>
 
         <Select
             v-else-if="field.type === 'select'"

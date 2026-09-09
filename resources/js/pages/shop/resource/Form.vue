@@ -1,8 +1,9 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useForm, router, Link } from '@inertiajs/vue3';
 import { PageHeader, Button, ConfirmDialog } from '@lunarphp/panel';
 import PanelField from '../../../panel/components/PanelField.vue';
+import PanelRepeater from '../../../panel/components/PanelRepeater.vue';
 
 const props = defineProps({
     resource: { type: Object, required: true },
@@ -15,12 +16,52 @@ const props = defineProps({
 // Seeded from the declared fields only, so `id`, `_actions` and any computed
 // column stay out of the payload — a column the schema does not name can never
 // be written from the browser.
-const form = useForm(Object.fromEntries(props.fields.map((field) => [field.name, props.record[field.name] ?? null])));
+// Dot names address a path inside a JSON column ('settings.slides'), so the
+// form is keyed by the top-level segment and read back through the same path.
+const at = (source, path) => path.split('.').reduce((carry, key) => carry?.[key], source);
+
+const setAt = (target, path, value) => {
+    const keys = path.split('.');
+    const last = keys.pop();
+    const parent = keys.reduce((carry, key) => (carry[key] ??= {}), target);
+    parent[last] = value;
+};
+
+const seed = {};
+props.fields.forEach((field) => setAt(seed, field.name, at(props.record, field.name) ?? null));
+
+const form = useForm(seed);
+
+const valueOf = (field) => at(form.data(), field.name);
+
+const assign = (field, value) => setAt(form, field.name, value);
+
+// A hidden field is simply not rendered and not submitted — how a page-section
+// form shows the slides of a hero slider and nothing else.
+const isVisible = (field) => {
+    const rule = field.visibleWhen;
+
+    return !rule || rule.values.includes(String(at(form.data(), rule.field)));
+};
+
+const visibleFields = computed(() => props.fields.filter(isVisible));
+
+// A conditional branch carries no value until its type is chosen — the server's
+// blank record deliberately omits it, because branches share field names and
+// whichever was declared last would otherwise win. Seed a branch's defaults the
+// moment it becomes visible, which is what the old admin did on type change.
+watch(visibleFields, (fields) => {
+    fields.forEach((field) => {
+        if (field.visibleWhen && at(form.data(), field.name) == null && field.default != null) {
+            setAt(form, field.name, field.default);
+        }
+    });
+});
 
 // The first field is the resource's name-ish one by convention (title, old_url);
 // showing it beats a generic "Edit" on a list of near-identical records.
 const title = computed(() =>
-    props.isNew ? props.resource.newLabel : form[props.fields[0].name] || props.resource.singular,
+    props.isNew ? props.resource.newLabel : at(form.data(), props.fields[0].name) || props.resource.singular,
 );
 
 const confirmingDelete = ref(false);
@@ -56,7 +97,7 @@ const onFieldInput = (field) => {
         return;
     }
 
-    form[slug.name] = slugify(form[field.name]);
+    setAt(form, slug.name, slugify(at(form.data(), field.name)));
 };
 </script>
 
@@ -80,14 +121,22 @@ const onFieldInput = (field) => {
             style="grid-template-columns: repeat(12, minmax(0, 1fr))"
             @submit.prevent="submit"
         >
-            <PanelField
-                v-for="field in fields"
-                :key="field.name"
-                v-model="form[field.name]"
-                :field="field"
-                :error="form.errors[field.name]"
-                @update:model-value="onFieldInput(field)"
-            />
+            <template v-for="field in visibleFields" :key="field.name">
+                <PanelRepeater
+                    v-if="field.type === 'repeater'"
+                    :field="field"
+                    :model-value="valueOf(field) ?? []"
+                    :errors="form.errors"
+                    @update:model-value="assign(field, $event)"
+                />
+                <PanelField
+                    v-else
+                    :field="field"
+                    :model-value="valueOf(field)"
+                    :error="form.errors[field.name]"
+                    @update:model-value="assign(field, $event); onFieldInput(field)"
+                />
+            </template>
         </form>
     </div>
 
