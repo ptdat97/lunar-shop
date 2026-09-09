@@ -18,6 +18,7 @@ trên `lunarphp/panel` (Inertia + Vue) — xem [guides/upgrade-lunar-2.0.md](gui
 | Deploy & vận hành production | [guides/deployment.md](guides/deployment.md) |
 | Hiểu đợt nâng Lunar 1.5 / Filament v4 đã làm gì (lịch sử) | [guides/upgrade-lunar-1.5.md](guides/upgrade-lunar-1.5.md) |
 | Đợt nâng Lunar 2.0 + panel Inertia/Vue: kế hoạch và nhật ký | [guides/upgrade-lunar-2.0.md](guides/upgrade-lunar-2.0.md) |
+| Hợp nhất ProductSku → ProductVariant (chặn Fase 4) | [guides/migrate-skus-to-variants.md](guides/migrate-skus-to-variants.md) |
 | Hai lỗi của Lunar và cách sống chung | [upstream/README.md](upstream/README.md) |
 | Xem việc còn tồn đọng | [roadmap.md](roadmap.md) |
 

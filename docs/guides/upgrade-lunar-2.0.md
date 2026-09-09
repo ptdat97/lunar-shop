@@ -483,7 +483,14 @@ buộc, không phải tuỳ chọn.**
 ### 9.8 Còn lại
 
 Fase 3 xong. Fase 4 (viết lại admin bằng Vue) và Fase 5 (nghiệm thu) chưa bắt
-đầu — hiện **không có giao diện quản trị**. Tám method test đã cắt khỏi bốn file
+đầu — hiện **không có giao diện quản trị**.
+
+> ⚠️ **Fase 4 đang bị chặn bởi một quyết định kiến trúc.** Panel đọc
+> `$variant->stockLevels()` của `ProductVariant`, model mà shop này không bán —
+> nên màn hình sản phẩm chính chủ hiện số liệu của 66 variant ma. Đã chốt hướng
+> hợp nhất `ProductSku` → `ProductVariant`; runbook riêng ở
+> [migrate-skus-to-variants.md](migrate-skus-to-variants.md). Làm xong thì phần
+> lớn màn hình catalog của panel chạy sẵn và Fase 4 co lại đáng kể. Tám method test đã cắt khỏi bốn file
 test settings (phần domain giữ nguyên) phải dựng lại cho panel ở Fase 5:
 `InventorySettingsTest`, `TokenPolicyTest`, `NotificationChannelSettingsTest`,
 `NotificationTest`.
