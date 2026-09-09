@@ -279,7 +279,7 @@ màn hình biến thể chính chủ dùng được. MediaPicker làm **cuối**
 Nhật ký ở §9.8; kiến trúc ở
 [architecture/panel-addon.md](../architecture/panel-addon.md).
 
-### Fase 5 — nghiệm thu
+### Fase 5 — nghiệm thu — ✅ xong
 
 - Dựng lại `AdminPagesSmokeTest` cho panel mới: mọi route panel trả 200.
 - Test cho **từng slot/extension** khẳng định nó xuất hiện (bẫy 3 & 4 ở §5).
@@ -526,14 +526,44 @@ Chi tiết kiến trúc và các hợp đồng của panel phải dò ra bằng 
 4. `Field::image()` ban đầu là ô text. Các cột ảnh lưu **id Asset**, nên đó là
    gõ id trong vô định và ảnh xem trước không bao giờ resolve.
 
-### 9.9 Còn lại
+### 9.9 Fase 5 — đã xong
 
-Fase 5 (nghiệm thu) chưa bắt đầu:
+Hai commit (`20d27e0`, `75cfbdc`). **639 test PHPUnit + 8 test Dusk**, tất cả xanh.
 
-- Dựng lại smoke test cho panel: mọi route panel trả 200.
-- Selector Dusk: `wire:` → `data-*` của Vue.
-- Tám method test đã cắt khỏi bốn file test settings (phần domain giữ nguyên)
-  phải dựng lại: `InventorySettingsTest`, `TokenPolicyTest`,
-  `NotificationChannelSettingsTest`, `NotificationTest`.
-- Cuối cùng mới bỏ `lunar_product_skus` + `sku_variant_map` (đang cố ý giữ làm
-  lưới an toàn — xem [migrate-skus-to-variants.md](migrate-skus-to-variants.md)).
+`PanelRoutesSmokeTest` quét **bảng route** chứ không phải danh sách viết tay, nên
+màn hình thêm ngày mai được phủ mà không cần ai nhớ sửa nó. Hiện 60 màn hình,
+cộng: từng resource khớp đúng cái nó khai (`canCreate` sai thì màn hình thêm
+phải 404, không phải mở), từng tab cài đặt, và mọi mục điều hướng phải trỏ tới
+route có thật — mục nào route đổi tên sẽ resolve ra null thành link chết mà
+không ai chạy test thấy được. Chuyển hướng thì đi theo chứ không bỏ qua: một cú
+302 vào màn hình hỏng vẫn trông như pass.
+
+Về Dusk: suite cũ chỉ phủ storefront nên **không có selector `wire:` nào để
+đổi** — thứ lỗi thời là tài liệu, đã viết lại (§3.2, §3.3 của
+[e2e-testing.md](e2e-testing.md)). `PanelFormsTest` thêm vào để phủ đúng nửa mà
+test feature không chạm tới được: nhánh điều kiện hiện/ẩn, thêm/xoá dòng
+repeater, slug bám tiêu đề, bộ chọn ảnh mở ra. Chỉ đọc, không bao giờ lưu.
+
+Hai lỗi bắt được nhờ chính việc viết test:
+
+- `hold_minutes` để `min:1` trong khi `InventoryService::holdMinutes()` clamp về
+  `MIN_HOLD_MINUTES = 10` — admin gõ 1, thấy báo đã lưu, hệ thống dùng 10.
+- Select bắt buộc chưa chọn thì Vue đặt `selectedIndex = -1`, ô hiện trống, đọc
+  như "rỗng" chứ không phải "hãy chọn".
+
+### 9.10 Việc duy nhất còn lại — và tại sao chưa làm
+
+`lunar_product_skus` (648 dòng) và `sku_variant_map` (648 dòng) **vẫn còn trong
+DB**. Đã kiểm chứng lại 2026-09-09:
+
+- Ngoài migration, **không còn dòng code nào** đọc hai bảng này.
+- Ánh xạ còn nguyên vẹn: 648 SKU ↔ 648 map ↔ 648 variant, 0 mồ côi hai chiều.
+
+Chưa drop là **có chủ ý**, đúng điều kiện đặt ra ở
+[migrate-skus-to-variants.md §7](migrate-skus-to-variants.md): drop khi *đã chạy
+production một thời gian và không còn ai cần tra ngược*. Điều kiện đó chưa đạt —
+panel vừa viết xong tuần này. Đây là bước duy nhất không hoàn tác được từ dữ
+liệu còn lại, và bỏ nó đi ngay lúc rủi ro lộ lỗi muộn còn cao nhất là đổi một
+lưới an toàn không tốn gì lấy một khoảng trống không lấp lại được.
+
+Khi đủ điều kiện: một migration nhỏ drop hai bảng, không gì khác.

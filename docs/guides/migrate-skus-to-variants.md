@@ -309,5 +309,10 @@ Drop khi: đã chạy production một thời gian, và không còn ai cần tra
 migration nhỏ, chạy sau chứ không phải bây giờ — đây là bước duy nhất không thể
 hoàn tác từ dữ liệu còn lại.
 
+**Kiểm chứng lại 2026-09-09** (khi chốt Fase 5): ngoài migration không còn dòng
+code nào đọc hai bảng, và ánh xạ còn nguyên vẹn — 648 SKU ↔ 648 map ↔ 648
+variant, 0 mồ côi theo cả hai chiều. Lưới an toàn dùng được; điều kiện drop thì
+vẫn chưa đạt.
+
 Cài mới thì đã sạch: `migrate:fresh --seed` cho 648 variant và **0 SKU** (bảng
 được tạo rồi để rỗng, vì migration tạo bảng vẫn chạy trước migration chuyển đổi).
