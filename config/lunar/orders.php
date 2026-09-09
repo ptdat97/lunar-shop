@@ -56,50 +56,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Draft Status
+    | Trạng thái đơn hàng — ĐÃ BỎ ở Lunar 2.0
     |--------------------------------------------------------------------------
     |
-    | When a draft order is created from a cart, we need an initial status for
-    | the order that's created. Define that here, it can be anything that would
-    | make sense for the store you're building.
+    | v1 có `draft_status` + bảng `statuses` (label/color/mailers/notifications)
+    | đi kèm cột `lunar_orders.status`. 2.0 xoá cả cột lẫn config: vòng đời đơn
+    | hàng nay là PHÁI SINH từ `payment_status` + `fulfilment_status` +
+    | `closed_at` / `cancelled_at`.
+    |
+    | Bảy handle của shop và nhãn i18n của chúng sống ở
+    | `Modules\Order\Support\OrderStatus` + file lang `order.php` — một nguồn duy
+    | nhất. Đừng dựng lại bảng trạng thái ở đây: nó sẽ là nơi thứ hai mô tả cùng
+    | một thứ, và Lunar không đọc nó nữa.
     |
     */
-    'draft_status' => 'awaiting-payment',
-
-    'statuses' => [
-
-        'awaiting-payment' => [
-            'label' => 'Awaiting Payment',
-            'color' => '#848a8c',
-            'mailers' => [],
-            'notifications' => [],
-            'favourite' => true,
-        ],
-
-        'payment-offline' => [
-            'label' => 'Payment Offline',
-            'color' => '#0A81D7',
-            'mailers' => [],
-            'notifications' => [],
-            'favourite' => true,
-        ],
-
-        'payment-received' => [
-            'label' => 'Payment Received',
-            'color' => '#6a67ce',
-            'mailers' => [],
-            'notifications' => [],
-            'favourite' => true,
-        ],
-
-        'dispatched' => [
-            'label' => 'Dispatched',
-            'mailers' => [],
-            'notifications' => [],
-            'favourite' => true,
-        ],
-
-    ],
 
     /*
     |--------------------------------------------------------------------------

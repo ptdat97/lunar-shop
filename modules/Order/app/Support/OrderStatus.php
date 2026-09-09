@@ -293,7 +293,11 @@ class OrderStatus
     /**
      * The localised label for a status handle.
      *
-     * Resolution order: our translation file → Lunar's config label → the handle.
+     * The lang file is the only source. It used to fall back to
+     * `lunar.orders.statuses.*.label`, which Lunar 2.0 deleted along with the
+     * status column — a fallback onto config nobody writes any more is worse
+     * than none, because a missing translation would silently render whatever
+     * a stale published config happened to hold.
      */
     public static function label(?string $status): string
     {
@@ -304,11 +308,7 @@ class OrderStatus
         $key = "order.status.{$status}";
         $translated = __($key);
 
-        if ($translated !== $key) {
-            return $translated;
-        }
-
-        return (string) config("lunar.orders.statuses.{$status}.label", $status);
+        return $translated === $key ? $status : $translated;
     }
 
     /** The localised label for an order, derived. */
