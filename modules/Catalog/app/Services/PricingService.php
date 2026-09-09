@@ -55,12 +55,12 @@ class PricingService
      * product-card, price component, and product page composers resolves
      * in O(1) after the first call.
      */
-    public function matchedPrice(ProductVariant $sku): ?Price
+    public function matchedPrice(ProductVariant $variant): ?Price
     {
-        $skuId = (int) $sku->id;
+        $variantId = (int) $variant->id;
 
-        if (array_key_exists($skuId, $this->priceMemo)) {
-            return $this->priceMemo[$skuId];
+        if (array_key_exists($variantId, $this->priceMemo)) {
+            return $this->priceMemo[$variantId];
         }
 
         try {
@@ -75,10 +75,10 @@ class PricingService
             // `lunar_currencies` query per section) and downstream formatting
             // (e.g. PromotionService reading $matched->currency for a sale
             // badge) never lazy-loads a currency per product.
-            if ($sku->relationLoaded('prices')) {
+            if ($variant->relationLoaded('prices')) {
                 $currencies = $this->currenciesById();
-                $sku->prices->each(function (Price $price) use ($sku, $currencies): void {
-                    $price->setRelation('priceable', $sku);
+                $variant->prices->each(function (Price $price) use ($variant, $currencies): void {
+                    $price->setRelation('priceable', $variant);
                     if (! $price->relationLoaded('currency')
                         && isset($currencies[(int) $price->currency_id])) {
                         $price->setRelation('currency', $currencies[(int) $price->currency_id]);
@@ -86,23 +86,23 @@ class PricingService
                 });
             }
 
-            return $this->priceMemo[$skuId] = Pricing::for($sku)->get()->matched;
+            return $this->priceMemo[$variantId] = Pricing::for($variant)->get()->matched;
         } catch (\Throwable $e) {
-            return $this->priceMemo[$skuId] = null;
+            return $this->priceMemo[$variantId] = null;
         }
     }
 
     /**
-     * Formatted display price for a product's first PUBLISHED variant (e.g.
+     * Formatted display price for a product's first ENABLED variant (e.g.
      * "$60.00"), or null when it can't be resolved. Used by the <x-price>
-     * component. Skips disabled SKUs so a hidden variant never sets the headline
-     * price, even if the caller eager-loaded skus without a status filter.
+     * component. Skips disabled variants so a hidden one never sets the
+     * headline price, even if the caller eager-loaded variants unfiltered.
      */
     public function displayPrice(Product $product): ?string
     {
-        $sku = $this->publishedSkus($product)->first();
+        $variant = $this->publishedSkus($product)->first();
 
-        return $sku ? (string) $this->matchedPrice($sku)?->unitFormat('price') : null;
+        return $variant ? (string) $this->matchedPrice($variant)?->unitFormat('price') : null;
     }
 
     /**
@@ -125,9 +125,9 @@ class PricingService
      * Formatted display price for a specific SKU (e.g. a deep-linked variant
      * on the product page). Null when the SKU can't be priced.
      */
-    public function displayPriceForVariant(?ProductVariant $sku): ?string
+    public function displayPriceForVariant(?ProductVariant $variant): ?string
     {
-        return $sku ? (string) $this->matchedPrice($sku)?->unitFormat('price') : null;
+        return $variant ? (string) $this->matchedPrice($variant)?->unitFormat('price') : null;
     }
 
     /**
@@ -146,7 +146,7 @@ class PricingService
     public function lowestPriceAmount(Product $product): ?float
     {
         return $this->publishedSkus($product)
-            ->map(fn (ProductVariant $sku) => $this->matchedPrice($sku)?->unitDecimal('price'))
+            ->map(fn (ProductVariant $variant) => $this->matchedPrice($variant)?->unitDecimal('price'))
             ->filter()
             ->min();
     }

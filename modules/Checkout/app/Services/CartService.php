@@ -93,16 +93,16 @@ class CartService
     /**
      * Add a SKU to the cart.
      *
-     * The `$skuId` is the surrogate id of the currently-selected SKU as the
+     * The `$variantId` is the surrogate id of the currently-selected SKU as the
      * storefront rendered it. It is only used to look the SKU up right now;
      * once in the cart, Lunar records the purchasable by morph id and the SKU's
      * stable `sku` string travels onto the order line as the identifier.
      *
      * @throws ValidationException
      */
-    public function add(int $skuId, int $quantity = 1): Cart
+    public function add(int $variantId, int $quantity = 1): Cart
     {
-        $sku = ProductVariant::findOrFail($skuId);
+        $sku = ProductVariant::findOrFail($variantId);
         $cart = $this->mutableCart();
 
         // A disabled SKU must never enter the cart, no matter how the request
@@ -111,7 +111,7 @@ class CartService
 
         // Guard the RESULTING quantity, not the increment. Checking `$quantity`
         // alone let a shopper past the last unit by adding 1 five times over.
-        $this->guardStock($sku, $this->quantityInCart($cart, $skuId) + $quantity);
+        $this->guardStock($sku, $this->quantityInCart($cart, $variantId) + $quantity);
 
         return $cart->add($sku, $quantity)->calculate();
     }
@@ -139,11 +139,11 @@ class CartService
     /**
      * How many units of a SKU the cart already holds.
      */
-    protected function quantityInCart(Cart $cart, int $skuId): int
+    protected function quantityInCart(Cart $cart, int $variantId): int
     {
         return (int) $cart->lines
             ->where('purchasable_type', (new ProductVariant)->getMorphClass())
-            ->where('purchasable_id', $skuId)
+            ->where('purchasable_id', $variantId)
             ->sum('quantity');
     }
 
