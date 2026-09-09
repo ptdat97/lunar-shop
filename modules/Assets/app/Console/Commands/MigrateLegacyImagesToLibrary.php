@@ -54,7 +54,6 @@ class MigrateLegacyImagesToLibrary extends Command
         $this->migrateMenuItems();
         $this->migratePageSections();
         $this->migrateThemeSettings();
-        $this->migrateProductVariables();
         $this->migrateVariantImages();
 
         $this->info(($this->dryRun ? '[dry-run] ' : '')."Done. {$this->created} new library asset(s) created.");
@@ -200,35 +199,6 @@ class MigrateLegacyImagesToLibrary extends Command
     // Sources: Spatie Media ids already attached to a Product -> Asset
     // (variant image-swatches + per-SKU photos)
     // ---------------------------------------------------------------------
-
-    protected function migrateProductVariables(): void
-    {
-        Product::query()->chunkById(50, function ($products) {
-            foreach ($products as $product) {
-                $variables = $product->variables ?? [];
-                $changed = false;
-
-                foreach ($variables as $ai => $axis) {
-                    if (($axis['display_type'] ?? null) !== 'image') {
-                        continue;
-                    }
-
-                    foreach ($axis['values'] ?? [] as $vi => $value) {
-                        $asset = $this->mediaIdToAsset($value['image'] ?? null);
-
-                        if ($asset !== null) {
-                            $variables[$ai]['values'][$vi]['image'] = $asset;
-                            $changed = true;
-                        }
-                    }
-                }
-
-                if ($changed) {
-                    $this->saveIfChanged($product, ['variables' => $variables]);
-                }
-            }
-        });
-    }
 
     protected function migrateVariantImages(): void
     {

@@ -174,14 +174,6 @@ class CatalogServiceProvider extends ServiceProvider
         // before the rename — see the rename migration.
         ProductVariant::addCasts(['image_asset_ids' => 'array']);
 
-        // `products.variables` is the shop's old free-form axis definition. It is
-        // being retired in favour of the shared ProductOption links the variants
-        // now carry, but the storefront picker still reads it until that swap
-        // lands, and an uncast JSON column would silently hand back a string.
-        $castVariables = fn (Product $product) => $product->mergeCasts(['variables' => 'array']);
-        Product::retrieved($castVariables);
-        Product::saving($castVariables);
-
         // NOT a `resolveRelationUsing('variants', …)` override: Laravel only
         // consults a dynamic relation when the model has no such method, and
         // Lunar's Product defines `variants()` — so an override there is

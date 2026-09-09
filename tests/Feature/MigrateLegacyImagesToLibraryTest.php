@@ -116,36 +116,6 @@ class MigrateLegacyImagesToLibraryTest extends TestCase
         $this->assertNotNull(Asset::find($settings->get('general.logo')));
         $this->assertIsNumeric($settings->get('payment')[0]);
     }
-
-    public function test_a_product_variable_image_swatch_media_id_is_re_owned_by_a_new_asset(): void
-    {
-        $this->seedBaseData();
-        $product = $this->createProduct(['variables' => [
-            ['name' => ['en' => 'Pattern'], 'display_type' => 'image', 'values' => [['name' => ['en' => 'Stripe'], 'image' => null]]],
-        ]]);
-        $media = $product->addMedia(UploadedFile::fake()->image('swatch.png', 200, 200))->toMediaCollection('swatch');
-        $product->variables = [
-            ['name' => ['en' => 'Pattern'], 'display_type' => 'image', 'values' => [['name' => ['en' => 'Stripe'], 'image' => $media->id]]],
-        ];
-        $product->save();
-
-        $this->artisan('assets:migrate-legacy-images')->assertSuccessful();
-
-        $newValue = $product->refresh()->variables[0]['values'][0]['image'];
-        $asset = Asset::find($newValue);
-        $this->assertNotNull($asset);
-
-        // The Media row was RE-OWNED (moved onto the new Asset), not duplicated:
-        // exactly one Media row still exists for this id, and it now belongs to
-        // the Asset (an Asset id and a Media id can coincidentally be equal —
-        // both are separate auto-increment sequences — so morph ownership is
-        // the real assertion here, not comparing the raw ids).
-        $media->refresh();
-        $this->assertSame($asset->getMorphClass(), $media->model_type);
-        $this->assertSame($asset->id, $media->model_id);
-        $this->assertSame(1, Media::where('id', $media->id)->count());
-    }
-
     public function test_a_sku_image_media_id_is_re_owned_by_a_new_asset(): void
     {
         $this->seedBaseData();

@@ -276,39 +276,38 @@ class DatabaseSearchEngine implements SearchEngine
             return ['size' => [], 'color' => [], 'brand' => [], 'material' => [], 'availability' => [], 'price' => null];
         }
 
-        // Option facets (size/color) are derived from each product's flexible
-        // `variables` JSON — one distinct product counted per (option, value).
-        $variablesByProduct = DB::table('lunar_products')
-            ->whereIn('id', $productIds)
-            ->whereNotNull('variables')
-            ->pluck('variables');
-
-        // option (lowercased) => value => set of product ids (for distinct count)
-        $counts = [];
-
-        foreach ($variablesByProduct as $i => $json) {
-            $variables = json_decode((string) $json, true) ?: [];
-            foreach ($variables as $variable) {
-                $optName = strtolower((string) ($variable['name']['en'] ?? ''));
-                if ($optName === '') {
-                    continue;
-                }
-                foreach ($variable['values'] ?? [] as $value) {
-                    $label = (string) ($value['name']['en'] ?? '');
-                    if ($label === '') {
-                        continue;
-                    }
-                    $counts[$optName][$label][$i] = true;
-                }
-            }
-        }
-
+        // Option facets (size/color) come from the SAME place the filter above
+        // queries: Lunar's product options, joined variant → value → option.
+        //
+        // They used to be decoded from `products.variables`, a JSON blob this
+        // shop maintained itself. That was two sources of truth, and since the
+        // Lunar panel took over variant editing it only ever updates the option
+        // tables — so the blob went stale the first time anyone touched a
+        // product in the admin, and the sidebar would offer a colour that
+        // filtered to nothing (or hide one that matched).
         $facets = ['size' => [], 'color' => []];
 
-        foreach (['size', 'color'] as $key) {
-            foreach ($counts[$key] ?? [] as $label => $productSet) {
-                $facets[$key][] = ['value' => $label, 'count' => count($productSet)];
+        $rows = DB::table('lunar_product_variants as v')
+            ->join('lunar_product_option_value_product_variant as pv', 'pv.variant_id', '=', 'v.id')
+            ->join('lunar_product_option_values as ov', 'ov.id', '=', 'pv.value_id')
+            ->join('lunar_product_options as o', 'o.id', '=', 'ov.product_option_id')
+            ->whereIn('v.product_id', $productIds)
+            ->groupBy('opt', 'val')
+            ->select([
+                DB::raw("LOWER(JSON_UNQUOTE(JSON_EXTRACT(o.name, '$.en'))) as opt"),
+                DB::raw("JSON_UNQUOTE(JSON_EXTRACT(ov.name, '$.en')) as val"),
+                // Distinct products, not variants: a size offered in three
+                // colours is one product on the shelf, not three.
+                DB::raw('COUNT(DISTINCT v.product_id) as products'),
+            ])
+            ->get();
+
+        foreach ($rows as $row) {
+            if (! isset($facets[$row->opt]) || blank($row->val)) {
+                continue;
             }
+
+            $facets[$row->opt][] = ['value' => (string) $row->val, 'count' => (int) $row->products];
         }
 
         // Brand buckets + price bounds in ONE query pass (combined subquery)
