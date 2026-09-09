@@ -90,6 +90,23 @@ class PanelProductEditTest extends TestCase
         );
     }
 
+    /**
+     * `enabled` is Lunar's answer to "is this variant live", and it must be the
+     * only one. The SKU builder left a `status` column beside it saying
+     * 'published' on every row while 54 variants were disabled — a second,
+     * contradicting answer next to the real one.
+     */
+    public function test_only_lunars_enabled_flag_decides_whether_a_variant_is_live(): void
+    {
+        $table = config('lunar.database.table_prefix').'product_variants';
+
+        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasColumn($table, 'enabled'));
+        $this->assertFalse(
+            \Illuminate\Support\Facades\Schema::hasColumn($table, 'status'),
+            'Cột status thời SKU đã quay lại — lại có hai câu trả lời cho cùng một câu hỏi.',
+        );
+    }
+
     /** The Size & Fit card the shop injects must not break the page either. */
     public function test_the_editor_renders_with_the_shops_sizing_slot(): void
     {

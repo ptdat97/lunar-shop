@@ -203,7 +203,6 @@ class ProductVariantMatrixSeeder extends Seeder
 
             $variant->forceFill([
                 'sku' => sprintf('%s-%s-%s', $prefix.($productIndex + 1), Str::upper(Str::substr($colour['en'], 0, 3)), $size['en']),
-                'model' => $product->translate('name').' / '.$colour['en'].' / '.$size['en'],
                 'cost_price' => (int) round($price * 0.55),
                 'weight_value' => self::WEIGHT_BY_SIZE[$size['en']] ?? 250,
                 'weight_unit' => 'g',
