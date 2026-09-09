@@ -146,6 +146,35 @@ này biến việc đổi tên file thành test đỏ thay vì trang trắng.
 | Đăng ký báo hàng về | chỉ đọc, cột tính toán + eager load |
 | 8 trang cài đặt cũ | một màn hình `SettingsGroup`, mỗi nhóm một tab |
 | Báo cáo bán hàng | **một** widget dashboard (phần còn lại panel đã có) |
+| Size & Fit của sản phẩm | một `Slot` gắn vào trang sửa sản phẩm chính chủ |
+
+## Slot — chèn vào màn hình chính chủ
+
+Trang sản phẩm của Lunar 2.0 tốt hơn bất cứ thứ gì shop này tự viết, nên để
+nguyên. Thứ nó không thể biết là bảng size và thông tin vải của shop. Slot
+registry sinh ra đúng cho việc đó: một component chèn vào một vùng có tên của
+trang chính chủ, nhận record của trang đó làm prop.
+
+```php
+$registry->add(new Slot(
+    zone: 'products.edit:sidebar:after',   // "{page}:{region}:{position}"
+    component: 'shop::ProductSizing',
+    props: ProductSizingController::slotProps(),
+    permission: 'catalog:manage-products',
+));
+```
+
+`{page}` là tên route của panel bỏ tiền tố `panel.`. Các vùng có sẵn ở trang
+sản phẩm: `main:before`, `content:after`, `variants:after`, `main:after`,
+`sidebar:before`, `sidebar:after`.
+
+**Props của slot cố định trong một request và không biết trang đang hiển thị
+record nào.** Nên component tự gọi endpoint riêng để lấy trạng thái của chính
+sản phẩm đó, thay vì bắt payload sản phẩm phình ra những trường panel không
+biết gì về chúng.
+
+Không có gì ở đây ghi đè màn hình của panel. Bỏ section này đi thì trang sửa sản
+phẩm vẫn chạy, chỉ thiếu một thẻ ở sidebar.
 
 ## Widget dashboard
 

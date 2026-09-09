@@ -11,10 +11,12 @@ use Lunar\Core\Models\Product;
 use Lunar\Core\Models\ProductOption;
 use Lunar\Core\Models\ProductOptionValue;
 use Lunar\Core\Models\ProductVariant;
+use Lunar\Panel\Facades\Panel;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Drivers\DatabaseSearchEngine;
 use Modules\Catalog\Models\ProductMaterial;
 use Modules\Catalog\Models\SizeChart;
+use Modules\Catalog\Panel\CatalogSection;
 use Modules\Catalog\Panel\CatalogSettings;
 use Modules\Catalog\Panel\SizeChartResource;
 use Modules\Catalog\Services\PricingService;
@@ -70,6 +72,9 @@ class CatalogServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Thẻ "Size & Fit" gắn vào trang sửa sản phẩm của panel (không ghi đè gì).
+        Panel::section(new CatalogSection);
+
         // Nhóm cài đặt của module trên panel Lunar.
         $this->app->make(SettingsRegistry::class)->add(new CatalogSettings);
 

@@ -14,6 +14,7 @@ import ResourceIndex from '../pages/shop/resource/Index.vue';
 import ResourceForm from '../pages/shop/resource/Form.vue';
 import SettingsEdit from '../pages/shop/settings/Edit.vue';
 import LifetimeWidget from './widgets/LifetimeWidget.vue';
+import ProductSizing from './slots/ProductSizing.vue';
 
 // The panel's page resolver auto-applies its shell layout to add-on pages, but
 // only when the page declares none (`layout ??=`). A settings page brings its
@@ -37,4 +38,6 @@ window.LunarPanel.registerPages({
 
 // Dashboard widgets are components, not pages: the dashboard resolves them by
 // the namespaced name the PHP Widget's component() returns.
-window.LunarPanel.registerComponents('shop', { LifetimeWidget });
+// Dashboard widgets and page slots are both components under one namespace —
+// the name a PHP Widget's component() or a Slot's component returns.
+window.LunarPanel.registerComponents('shop', { LifetimeWidget, ProductSizing });
