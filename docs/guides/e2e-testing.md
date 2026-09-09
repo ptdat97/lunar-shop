@@ -13,17 +13,21 @@ Chỉ khi **hành vi sai nằm ở trình duyệt, không ở server**. Dấu hi
 
 - Test PHPUnit xanh, request trả 200, dữ liệu đúng — nhưng thao tác trên màn hình
   không có tác dụng.
-- Console có lỗi mà PHP không hề ném: `Livewire Entangle Error`,
-  `x is not defined`, `Alpine Expression Error`.
+- Console có lỗi mà PHP không hề ném. Với panel Inertia/Vue thường là
+  `Panel page not found: …` (bundle add-on chưa build, xem
+  [panel-addon.md](../architecture/panel-addon.md)),
+  `[LunarPanel] Extension component "…" is not registered`, hoặc một lỗi render
+  của Vue. Storefront là JS thuần nên thường là `x is not defined`.
 - Lỗi chỉ xảy ra **sau một tương tác** (mở modal, bấm nút), không xảy ra lúc tải.
 
-Nếu tái hiện được bằng `Livewire::test()` thì **đừng dùng Dusk** — nó chậm hơn hai
-bậc và khó đọc hơn nhiều.
+Nếu tái hiện được bằng test feature (`assertInertia()` cho panel, request test cho
+storefront) thì **đừng dùng Dusk** — nó chậm hơn hai bậc và khó đọc hơn nhiều.
 
 ### Bài học đắt nhất
 
-Trong đợt truy bug media picker, **mọi phép đo phía server đều sạch**: khoá
-repeater đúng UUID, ổn định qua các vòng Livewire, HTML render luôn khớp state
+Trong đợt truy bug media picker (thời admin còn chạy Filament/Livewire), **mọi
+phép đo phía server đều sạch**: khoá repeater đúng UUID, ổn định qua các vòng
+Livewire, HTML render luôn khớp state
 (12 dòng / 12 uuid). Ba lần tôi tưởng đã sửa xong dựa trên suy luận, ba lần vẫn
 lỗi.
 
@@ -92,36 +96,53 @@ $browser->driver->executeScript(
 );
 ```
 
-### 3.2 Thuộc tính `wire:` không dùng được trong CSS selector
+### 3.2 Selector cho panel admin: dùng `data-*`, không có `wire:` nữa
 
-Dấu hai chấm cần escape, và cách escape đó **không sống sót** khi chuỗi đi từ PHP
-sang JS. Đừng `querySelector('[wire\\:snapshot]')` — dùng `hasAttribute`:
+Admin từ Lunar 2.0 là Inertia + Vue, không còn Livewire — nên **mọi lời khuyên
+cũ về `wire:snapshot` / `wire:key` đã hết hiệu lực**. Nếu bạn thấy chúng ở đâu
+đó, đó là tàn dư.
 
-```php
-$browser->driver->executeScript(<<<'JS'
-    const el = [...document.querySelectorAll('*')].find(e => e.hasAttribute('wire:snapshot'));
-JS);
-```
+Bề mặt selector ổn định của panel, theo thứ tự ưu tiên:
 
-### 3.3 Đọc snapshot Livewire là đường dẫn tới false green
+| Thuộc tính | Ai đặt | Dùng cho |
+| --- | --- | --- |
+| `data-screen-label` | panel first-party | khẳng định đang ở đúng màn hình |
+| `data-testid` | panel first-party | vài chỗ cụ thể (dòng fulfilment…) |
+| `data-widget` | panel first-party | thẻ trên dashboard |
+| `data-field="{tên}"` | component của shop | ô nhập trên form khai báo |
+| `data-error="{tên}"` | component của shop | thông báo lỗi của đúng ô đó |
+| `data-media-picker` | component của shop | nút mở thư viện ảnh |
+| `data-repeater-add` / `-remove` / `-up` / `-down` / `-row` | component của shop | thao tác trên repeater |
+
+`data-field` khớp **tên trường trong schema PHP**, kể cả tên dạng dot
+(`settings.slides`) — nghĩa là selector Dusk và schema không thể lệch nhau mà
+không ai biết.
+
+Đừng bám vào class Tailwind: CSS của panel là bản biên dịch sẵn và class có thể
+đổi bất cứ lúc nào mà không phải một thay đổi có chủ đích nào cả.
+
+### 3.3 Đọc state nội bộ của framework là đường dẫn tới false green
+
+Bài học từ thời Livewire, và nó **không** mất đi cùng Livewire — chỉ đổi chỗ.
 
 Tôi từng assert dựa trên `snapshot.data.data[0].skus[0]`. Đường dẫn đoán sai, hàm
 trả về chuỗi `"NO SKUS: []"`, và cả ba assert đều **lọt** vì nó không bằng
 `null`, `[]` hay `ROW MISSING`. Test xanh, chẳng canh gì cả.
 
-**Assert vào thứ người dùng nhìn thấy.** Ở đây là thumbnail trên dòng, đọc qua
-`wire:key`:
+Với Inertia cái bẫy y hệt nằm ở `<div id="app" data-page="...">`: cả state của
+trang là một khối JSON ngay trong DOM, rất mời gọi để đọc thẳng. Đừng. Một
+đường dẫn sai trong đó cũng "không null" y như cũ.
+
+**Assert vào thứ người dùng nhìn thấy** — text đã render, hoặc `data-field` của
+đúng ô đó:
 
 ```php
-// data.skus.<uuid>.images-<assetId>
-$keys = $browser->driver->executeScript(<<<'JS'
-    const needle = 'skus.' + arguments[0] + '.images-';
-    return [...document.querySelectorAll('*')]
-        .map(e => e.getAttribute('wire:key'))
-        .filter(k => k && k.includes(needle))
-        .sort();
-JS, [$rowKey]);
+$browser->assertSeeIn('[data-screen-label="New product"]', 'Lưu')
+        ->assertInputValue('[data-field="title"]', 'Áo khoác');
 ```
+
+Muốn kiểm payload phía server thì đã có `assertInertia()` trong test feature —
+nhanh hơn Dusk hai bậc và không đoán đường dẫn (xem `PanelContentResourceTest`).
 
 ### 3.4 Test chạy trên DB dev thì phải tự dọn
 

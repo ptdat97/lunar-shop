@@ -107,6 +107,11 @@ const selected = computed({
             :invalid="!!error"
             :data-field="field.name"
         >
+            <!-- A required select with nothing chosen renders blank, which
+                 reads as "empty" rather than "pick one". The placeholder is
+                 dropped again the moment a value exists, so it can never be
+                 submitted. -->
+            <option v-if="value === null || value === ''" value="">—</option>
             <option v-for="[optionValue, label] in options" :key="optionValue" :value="optionValue">
                 {{ label }}
             </option>

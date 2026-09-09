@@ -68,21 +68,26 @@ const cellPath = (index, name) => `${props.path}.${index}.${name}`;
     <div :style="{ gridColumn: `span ${field.columns} / span ${field.columns}` }">
         <div class="flex items-center justify-between mb-1.5">
             <span class="text-xs font-medium text-ink-700">{{ field.label }}</span>
-            <Button size="sm" icon="plus" @click="add">{{ field.addLabel ?? '+' }}</Button>
+            <Button size="sm" icon="plus" data-repeater-add @click="add">{{ field.addLabel ?? '+' }}</Button>
         </div>
 
         <div v-if="!rows.length" class="text-[11px] text-ink-500 border border-line rounded-md p-3">
             {{ field.help ?? '—' }}
         </div>
 
-        <div v-for="(row, index) in rows" :key="index" class="border border-line rounded-md mb-2 bg-surface-2">
+        <div
+            v-for="(row, index) in rows"
+            :key="index"
+            class="border border-line rounded-md mb-2 bg-surface-2"
+            data-repeater-row
+        >
             <div class="flex items-center gap-1 px-3 py-2 border-b border-line">
                 <span class="text-xs font-medium text-ink-900 flex-1 truncate">{{ rowLabel(row, index) }}</span>
                 <span :style="UPSIDE_DOWN" class="inline-flex">
-                    <Button size="sm" variant="ghost" icon="chevDown" @click="move(index, -1)" />
+                    <Button size="sm" variant="ghost" icon="chevDown" data-repeater-up @click="move(index, -1)" />
                 </span>
-                <Button size="sm" variant="ghost" icon="chevDown" @click="move(index, 1)" />
-                <Button size="sm" variant="ghost" icon="trash" @click="remove(index)" />
+                <Button size="sm" variant="ghost" icon="chevDown" data-repeater-down @click="move(index, 1)" />
+                <Button size="sm" variant="ghost" icon="trash" data-repeater-remove @click="remove(index)" />
             </div>
 
             <div class="p-3 grid gap-4" style="grid-template-columns: repeat(12, minmax(0, 1fr))">
