@@ -66,8 +66,8 @@ Mỗi pha để lại app chạy được và test xanh. **Không gộp pha.**
 | B | ✅ **Xong** — chuyển 648 SKU → variant (dữ liệu) | 0 dòng lệch tồn kho; xem §6 |
 | C | ✅ **Xong** (gộp vào B) — tồn kho sang `StockLevel` | `stock_on_hand` khớp `quantity` cũ từng dòng |
 | D | ✅ **Xong** — đổi purchasable trong code | xem §6 |
-| E | Bộ chọn biến thể storefront đọc option value | Trang sản phẩm giữ nguyên hành vi |
-| F | Gỡ `ProductSku`, `SkuBuilderService`, sổ kho cũ | Không còn tham chiếu; bảng cũ drop ở migration riêng |
+| E | ✅ **Xong** — bộ chọn đọc option value | Trang sản phẩm giữ nguyên hành vi; JS không đổi |
+| F | 🟡 Gỡ code xong; **bảng `lunar_product_skus` còn nguyên** | Giữ làm lưới an toàn — xem §7 |
 
 > **Pha A chạy được ngay và độc lập.** Nó không phụ thuộc quyết định nào ở B–F.
 > Đã xong — và nó đào ra hai lỗi thật, xem [§5](#5-nhật-ký-pha-a).
@@ -294,3 +294,20 @@ nội bộ của vendor không phải việc của dự án.
 cho dependency không đồng nghĩa với hết cần lời hứa đó: đây là những gì shop hứa
 với khách, và đúng là thứ sẽ hỏng im lặng ở lần nâng Lunar kế tiếp. Chúng nay
 kiểm **kết quả** đi qua checkout, không kiểm ruột của bên tạo ra kết quả.
+
+
+---
+
+## 7. Việc còn lại
+
+`lunar_product_skus` (648 dòng) và `sku_variant_map` **vẫn còn trong DB**, dù
+không còn dòng code nào đọc chúng. Cố ý: chúng là thứ duy nhất trả lời được
+"đơn hàng cũ này trỏ vào SKU nào" nếu có gì đó sai lộ ra muộn. Bảng cũng không
+tốn gì.
+
+Drop khi: đã chạy production một thời gian, và không còn ai cần tra ngược. Một
+migration nhỏ, chạy sau chứ không phải bây giờ — đây là bước duy nhất không thể
+hoàn tác từ dữ liệu còn lại.
+
+Cài mới thì đã sạch: `migrate:fresh --seed` cho 648 variant và **0 SKU** (bảng
+được tạo rồi để rỗng, vì migration tạo bảng vẫn chạy trước migration chuyển đổi).
