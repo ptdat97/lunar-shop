@@ -68,7 +68,8 @@ Ecommerce fashion cho SME single-store:
 - Storefront render **Blade SSR** cho mọi nội dung công khai (SEO), vanilla JS chỉ
   *enhance* markup đã có.
 - Admin dùng **`lunarphp/panel`** (Inertia + Vue) của Lunar — kế thừa & mở rộng,
-  không build lại. Các trang riêng của dự án đang chờ Fase 4.
+  không build lại. Các trang riêng của dự án là một bundle add-on riêng — xem
+  [panel-addon.md](panel-addon.md).
 
 ## Nguyên tắc kiến trúc cốt lõi
 
@@ -173,8 +174,11 @@ hoặc dùng **`Modules\Core\Support\LunarConfigOverride`** để re-apply overr
 - **Pipelines** (`cart.pipelines.*`, `orders.pipelines.creation`): chèn / đổi / bỏ bước
   xử lý. Stage là class implement pipeline; muốn thêm logic thì viết stage riêng và
   chèn vào mảng.
-  - ✅ **Đang dùng:** `Inventory/config/overrides.php` chèn `DecrementStock` vào cuối
-    `orders.pipelines.creation` (giảm tồn khi tạo order).
+  - ❌ **Đã bỏ:** stage `DecrementStock` của shop. Lunar 2.0 tự điều khiển tồn kho
+    bằng sự kiện `OrderPlaced`/`OrderCancelled`. Thứ shop còn cắm vào là
+    `CartStockAtOrderCreation` ở hook validator `order_create` — guard oversell,
+    vì `ValidateCartForOrderCreation` của Lunar kiểm *purchasable* chứ không kiểm
+    *available*.
   - Các stage core có sẵn để tham chiếu/sắp lại: `FillOrderFromCart`, `CreateOrderLines`,
     `CreateOrderAddresses`, `CreateShippingLine`, `CleanUpOrderLines`, `MapDiscountBreakdown`
     (order); `CalculateLines`, `ApplyShipping`, `ApplyDiscounts`, `CalculateTax`,
@@ -182,10 +186,9 @@ hoặc dùng **`Modules\Core\Support\LunarConfigOverride`** để re-apply overr
 - **Payment types / media definitions / cart_session / cart eager-load**:
   - ✅ **Đang dùng:** `Checkout/config/payment-overrides.php` (COD/bank/vnpay/momo type),
     `Assets/config/overrides.php` (FashionMediaDefinitions), cart_session auto_create.
-  - ✅ **Đang dùng:** `Catalog/config/cart-eager-load-overrides.php` bỏ `lines.purchasable.values`
-    khỏi `cart.eager_load` — purchasable ở dự án này là `ProductSku`, **không có**
-    quan hệ `values` (option label dựng từ blob `variables`), để nguyên thì mọi lần
-    render cart ném `BadMethodCallException`.
+  - ❌ **Đã bỏ:** `Catalog/config/cart-eager-load-overrides.php`. Nó tồn tại vì
+    purchasable cũ (`ProductSku`) không có quan hệ `values`. `ProductVariant` của
+    Lunar thì có, nên `cart.eager_load` mặc định dùng được nguyên trạng.
 
 > **Bất biến:** mọi tuỳ biến `lunar.*` phải nằm ở `modules/*/config/*.php` + gọi
 > `LunarConfigOverride::applyFrom()` trong `boot()` — **không** sửa tay `config/lunar/*.php`.
@@ -230,7 +233,7 @@ Customer::resolveRelationUsing(
 
 ```php
 // trong register()
-Product::addCasts(['variables' => 'array']);
+ProductVariant::addCasts(['image_asset_ids' => 'array']);
 Product::addLocalScope('featured', fn (Builder $q) => $q->where(...));
 ```
 
@@ -367,18 +370,18 @@ fallback của Lunar, xem [../upstream/README.md](../upstream/README.md)),
 
 | Module | Gộp từ | Trách nhiệm | Nội dung chính |
 |---|---|---|---|
-| **Catalog** | Catalog + Product + Pricing + Review + Recommend + Search + Collection | Toàn bộ hiển thị/truy vấn sản phẩm | Services: `ProductService`, `PricingService`, `ReviewService`, `RecommendationService`, `CollectionService`, `SitemapService`, `SizeChartService`, `SizeRecommender`, `FitHistoryService`. Models: `ProductMaterial`, `SizeChart`, `SizeChartRow`, `Review`. Contracts/Drivers: `SearchEngine` + `DatabaseSearchEngine`. Strategies: `Association`, `Collection`. Admin: chờ Fase 4. Home/sitemap/health + seeders demo. |
-| **Content** | CMS + SectionBuilder + Menu | Nội dung storefront admin-managed | Models: `Page`, `Banner`, `Lookbook`(+Image/Item), `Redirect`, `PageSection`, `Menu`(+Item). Services: `ContentService`, `SectionRenderer`, `MenuRenderer`, `MenuTree`. Admin: chờ Fase 4. |
-| **Assets** | Media + FileManager | Ảnh/file | Services: `MediaUrl`, `ConversionGenerator`, `MediaRegenerator`, `MediaSettings`, `MediaLibraryService`. On-demand conversion + media library. Admin: chờ Fase 4. |
+| **Catalog** | Catalog + Product + Pricing + Review + Recommend + Search + Collection | Toàn bộ hiển thị/truy vấn sản phẩm | Services: `ProductService`, `PricingService`, `ReviewService`, `RecommendationService`, `CollectionService`, `SitemapService`, `SizeChartService`, `SizeRecommender`, `FitHistoryService`. Models: `ProductMaterial`, `SizeChart`, `SizeChartRow`, `Review`. Contracts/Drivers: `SearchEngine` + `DatabaseSearchEngine`. Strategies: `Association`, `Collection`. Admin: bảng size + Size&Fit (slot). Home/sitemap/health + seeders demo. |
+| **Content** | CMS + SectionBuilder + Menu | Nội dung storefront admin-managed | Models: `Page`, `Banner`, `Lookbook`(+Image/Item), `Redirect`, `PageSection`, `Menu`(+Item). Services: `ContentService`, `SectionRenderer`, `MenuRenderer`, `MenuTree`. Admin: 6 màn hình khai báo dưới `/panel/shop`. |
+| **Assets** | Media + FileManager | Ảnh/file | Services: `MediaUrl`, `ConversionGenerator`, `MediaRegenerator`, `MediaSettings`, `MediaLibraryService`. On-demand conversion + media library. Admin: bộ chọn ảnh cho mọi trường ảnh của panel. |
 | **Checkout** | Checkout + Cart + Payment | Luồng cart → checkout → payment | Services: `CartService`, `CheckoutService`, `TokenAwareCartSession`, `RefundService`. Gateway: `VNPayGateway`/`MoMoGateway` + `*PaymentProcessor` kế thừa **`GatewayReconciler`** (nơi duy nhất giữ luật callback: chữ ký → số tiền → đơn đã đóng → khoá chống race). PaymentTypes: `VNPayPayment`, `MoMoPayment`. Config override `cart-overrides.php` + `payment-overrides.php`. |
 | **Customer** | Customer + Location | Khách, địa chỉ, auth, wishlist, địa giới VN | Services: `CustomerResolver`, `AuthService`, `TokenIssuer`, `WishlistService`, `RecentlyViewedService`, `CountryService`. Models: `WishlistItem`, `Province`, `Ward`. Auth web + Sanctum (cookie + PAT), address book, order history, VN provinces/wards API + seeder dataset. |
 | **Order** | — | Order, trạng thái, email giao dịch, RMA | Services: `OrderService`, `OrderMailer`, `ReturnService`, `InvoiceService`, `OrderTimeline`. Support: `OrderStatus` (**một nguồn** cho status handle, nhãn i18n, `PAID`/`CLOSED`/`RETURNABLE`). Events: `OrderPaid`, `OrderStatusUpdated`. 4 mailable queued + observer/listeners. |
 | **Promotion** | — | Discount nâng cao hiển thị storefront | Services: `PromotionService` (facade: queries + coupon + memoization), `PromotionTargetResolver` (targeting/eligibility), `SaleBadgeService` (badge/banner/describe), `MembershipService`. Custom discount types + flash sale + membership. |
-| **Inventory** | — | Stock per-variant, reserve **+ release**, notify-me | Services: `InventoryService`, `StockReleaser`, `StockNotificationService`, `BackInStockNotifier`. Pipeline `DecrementStock`. Command `orders:expire-abandoned`. Model `StockNotification`. Admin: chờ Fase 4. |
-| **Shipping** | — | Zone/rate DB-backed | Services: `ShippingService`, `ShippingZoneResolver`. Model `ShippingZone`. Admin: chờ Fase 4. |
+| **Inventory** | — | Stock per-variant, reserve **+ release**, notify-me | Services: `InventoryService` (facade mỏng trên rollup của Lunar), `StockNotificationService`, `BackInStockNotifier`. Validator `CartStockAtOrderCreation`. Command `orders:expire-abandoned`. Model `StockNotification`. Admin: hàng đợi báo hàng về (chỉ đọc). |
+| **Shipping** | — | Zone/rate DB-backed | Services: `ShippingService`, `ShippingZoneResolver`. Model `ShippingZone`. Admin: vùng vận chuyển + cài đặt. |
 | **Notification** | — | In-app inbox + push cho mobile | Notification `OrderStatusChanged` (channel `database` + `PushChannel`). Contract `PushSender` + `NullPushSender`. Models `DeviceToken`. Service `DeviceRegistry`. Support `PushSettings` (kill-switch push, admin). API inbox + device registry. **Không** đụng 4 mailable đang chạy. |
-| **Analytics** | — | Dashboard bán hàng | `AnalyticsService`. Admin: chờ Fase 4. |
-| **Theme** | — | Active theme, locale, view namespace | Services: `LocaleService`, `ThemeSettings`. Admin: chờ Fase 4. Middleware storefront/locale. |
+| **Analytics** | — | Dashboard bán hàng | `AnalyticsService`. Admin: một widget dashboard (luỹ kế + xu hướng 6 tháng). |
+| **Theme** | — | Active theme, locale, view namespace | Services: `LocaleService`, `ThemeSettings`. Admin: tab cài đặt Giao diện. Middleware storefront/locale. |
 
 > Cấu hình hệ thống (Channels, Languages, Taxes, Staff) dùng thẳng Settings của Lunar.
 
@@ -408,7 +411,7 @@ modules/<Name>/
  │   ├── Data/                                   # DTO / result object, bất biến
  │   ├── Contracts/                              # CHỈ khi có ≥ 2 implementation (SearchEngine, PushSender)
  │   ├── Models/ Events/ Listeners/ Jobs/ Observers/
- │   ├── Pipelines/                              # stage chèn vào pipeline Lunar (DecrementStock)
+ │   ├── Palidation/                             # hook validator của Lunar (guard oversell)
  │   ├── DiscountTypes/ | PaymentTypes/ | Modifiers/ | Strategies/ | Drivers/
  │   ├── Console/                                # artisan command của module
  │   └── Providers/<Name>ServiceProvider.php
@@ -578,7 +581,7 @@ theo session không cần crawl (cart drawer/page, wishlist).
 - **Lookbook shoppable** — hotspot pins (dot pulse + popover add-to-cart) + "Shop the set".
 - **i18n EN/VI** — lang files `lang/{en,vi}/storefront.php`, `LocaleService` +
   `SetStorefrontLocale` middleware + language switcher; cấu hình ngôn ngữ bật/mặc định
-  qua trang Theme Settings (chờ Fase 4; backend `ThemeSettings` vẫn chạy). Single-market: bật 1 ngôn ngữ → khoá locale, ẩn switcher.
+  qua tab cài đặt Giao diện (`/panel/settings/shop/theme`). Single-market: bật 1 ngôn ngữ → khoá locale, ẩn switcher.
 
 ## Quy ước JS
 
@@ -599,35 +602,36 @@ theo session không cần crawl (cart drawer/page, wishlist).
 # Các domain nghiệp vụ
 
 ## Catalog / Product / Search / Recommend
-- **Tầng SKU linh hoạt (VaniCommerce-style) là purchasable thật.** Product map lên Lunar,
-  nhưng biến thể **không** dùng `lunar_product_variants` + bảng option/value; thay vào đó:
-  - `Product.variables` (JSON) định nghĩa các trục — mỗi trục có `name` (map locale),
-    `display_type` (`text` | `color` | `image`) và danh sách `values`.
-  - `Modules\Catalog\Models\ProductSku` (`lunar_product_skus`) giữ **một dòng cho mỗi tổ
-    hợp Cartesian**: `variants` (mảng chỉ số vào `variables`), `sku`, `price`,
-    `origin_price`, `quantity`, `weight`, `images`, `status`.
-  - Cart/order line trỏ vào SKU qua morph alias **`product_sku`**
-    (`Relation::morphMap` trong `CatalogServiceProvider`).
-  - **`SkuBuilderService` là writer duy nhất** (`save()`): validate số dòng khớp số tổ
-    hợp, chặn trùng mã SKU, ghi lại theo kiểu delete-and-recreate rồi **re-point** mọi
-    tham chiếu theo mã SKU (discount target, cart/order line) sang dòng mới, đồng bộ một
-    `Price` cơ sở, và đảm bảo **đúng một** SKU mặc định (ưu tiên bản published).
-  - Quan hệ `Product::skus` khai bằng `resolveRelationUsing` + **`chaperone()`** — mỗi SKU
-    được trỏ ngược về product đã nạp nó, nếu không `optionPairs()` và ảnh SKU sẽ lazy-load
-    product/media **một lần mỗi SKU** (N+1 thật, đã đo: 297 → 33 statement).
+- **Purchasable là `ProductVariant` của Lunar** — không còn tầng SKU riêng. Trục
+  biến thể là `ProductOption` / `ProductOptionValue` dùng chung của Lunar, variant
+  liên kết tới value qua bảng pivot của nó.
+  - `Modules\Catalog\Support\VariantAxes` suy ra **chỉ số vị trí** của mỗi
+    variant (`[1, 0]`) từ các option của product, nên hợp đồng JS của storefront
+    không đổi khi bỏ tầng SKU.
+  - Ảnh swatch nằm ở `meta` của chính `ProductOptionValue`.
+  - Cart/order line trỏ vào variant qua morph alias **`product_variant`**.
+  - `products.variables` (blob trục tự định nghĩa), `lunar_product_skus`,
+    `sku_variant_map` và các cột `status`/`model` trên variant **đã bị bỏ**. Xem
+    [migrate-skus-to-variants.md](../guides/migrate-skus-to-variants.md).
+  - Cột duy nhất shop còn thêm vào variant: `image_asset_ids` (danh sách Asset id
+    của thư viện ảnh) và `cost_price`. **Không đặt tên cột trùng tên method của
+    `ProductVariant`** — cột thật luôn thắng quan hệ trùng tên trong Eloquent, và
+    cột `images` cũ từng làm hỏng mọi trang sửa sản phẩm của panel vì thế.
 - `ProductService` là nguồn read duy nhất (list qua `SearchEngine`, `findBySlug`,
   `bySlugs` giữ thứ tự, `related`, `resolveSelectedVariant` cho deep-link).
   ⚠️ `resolveSelectedVariant` khớp theo **nhãn đã localise** (`?màu-sắc=Đen`), không phải
   handle — `product-variant.js` slugify đúng nhãn đó nên hai bên khớp nhau.
-- **Ảnh theo màu:** `ProductSku.images` giữ danh sách **media id**; `ProductSkuResource`
+- **Ảnh theo màu:** `ProductVariant.image_asset_ids` giữ danh sách **Asset id**; `ProductVariantResource`
   resolve chúng qua `MediaImageResource` để ra **cùng shape** với gallery cấp product
   (`{small,large,zoom,width,height}`), giữ nguyên thứ tự do admin đặt. SSR đã render
   đúng bộ ảnh của variant đang chọn (view composer trong Assets), nên deep-link không bị
   nháy; JS chỉ đổi gallery khi **tập ảnh** đổi — đổi size cùng màu không rebuild.
-  SKU không có ảnh riêng → fallback về gallery product.
+  Variant không có ảnh riêng → fallback về gallery product.
 - **Search abstraction:** interface `SearchEngine` + driver `DatabaseSearchEngine`
   (MySQL, `computeFacets` trả size/color/brand/price, `applyFilters`). Đổi engine sau =
-  thêm driver, không sửa caller.
+  thêm driver, không sửa caller. **Facet và filter đọc chung một nguồn** — bảng
+  option của Lunar; trước đây facet giải mã blob `variables` còn filter đã dùng
+  bảng option, và panel chỉ ghi bảng option nên blob lệch ngay lần sửa đầu tiên.
 - **Recommend:** strategy chain `AssociationStrategy` (Lunar `ProductAssociation`, curate
   tay) → `CollectionStrategy` (wrap `related`). Product page SSR + mini-cart drawer.
 - **Review:** model + service + API `products/{product}/reviews`; summary (count+average)
@@ -650,8 +654,7 @@ theo session không cần crawl (cart drawer/page, wishlist).
   chỗ. Trước đó nó là `Select` chỉ hiện tên file, và nút "mở thư viện" **rời khỏi form**
   sang tab mới → admin mất context đang sửa dở.
   - **State không đổi:** vẫn đúng một Asset id (hoặc mảng id) — nên mọi consumer đang
-    resolve id đó (storefront, API Resource, `SkuBuilderService`) không phải sửa gì, và
-    mọi callsite `MediaPicker::make(...)` giữ nguyên chữ ký.
+    resolve id đó (storefront, API Resource) không phải sửa gì.
   - Cấu tạo: `MediaPickerField` (hiển thị + xoá/đổi thứ tự) + `MediaBrowser` (lưới trong
     modal) + `MediaPicker` (factory nối hai cái, giữ API cũ). Truy vấn/lưu file nằm ở
     `MediaLibraryService::browse()/folders()/preview()` — **trang Media Library dùng
@@ -757,95 +760,69 @@ theo session không cần crawl (cart drawer/page, wishlist).
 
 ### Ba con số, không phải một
 
-Tồn kho tách làm hai cột, số thứ ba là suy ra — học từ `ordered_inventories` của
-[Bagisto](https://github.com/bagisto/bagisto), rút về **một cột** cho shop một kho:
+Tồn kho tách làm hai cột, số thứ ba là suy ra. **Lunar 2.0 sở hữu cả ba** — shop
+không còn giữ cột tồn kho nào của riêng mình:
 
 | | Ý nghĩa | Nguồn |
 |---|---|---|
-| **on-hand** | Hàng đang nằm trong kho — **kiểm kê đếm ra đúng số này** | `lunar_product_skus.quantity` |
-| **committed** | Trong số đó, đã bán nhưng **chưa xuất kho** | `lunar_product_skus.committed` |
-| **sellable** | Thực sự còn bán được | `quantity - committed` (`getTotalInventory()`) |
+| **on-hand** | Hàng đang nằm trong kho — **kiểm kê đếm ra đúng số này** | `lunar_product_variants.stock_on_hand` |
+| **committed** | Trong số đó, đã bán nhưng **chưa xuất kho** | `lunar_product_variants.stock_committed` |
+| **sellable** | Thực sự còn bán được | `stock_available` / `getTotalInventory()` |
 
-**Vì sao cần tách:** trước đây đặt hàng trừ thẳng `quantity`, nên một con số trả lời
-đúng câu "còn bán được bao nhiêu" và **sai** câu "trong kho còn bao nhiêu". Chủ shop
-đi kiểm kê không bao giờ khớp được với hệ thống.
+**Vì sao cần tách:** trước đây đặt hàng trừ thẳng số tồn, nên một con số trả lời
+đúng câu "còn bán được bao nhiêu" và **sai** câu "trong kho còn bao nhiêu". Chủ
+shop đi kiểm kê không bao giờ khớp được với hệ thống.
 
-**Vòng đời:**
+**Vòng đời — do Lunar 2.0 điều khiển, không phải code của shop:**
 
 ```text
-đặt hàng   → StockLedger::commit()          quantity giữ nguyên, committed +N
-giao hàng  → StockLedger::settleCommitment() quantity -N, committed -N   (dispatched_at)
-huỷ/hoàn   → StockLedger::uncommit()         committed -N   (hàng chưa từng rời kho)
-hoàn SAU giao → StockReleaser cộng lại quantity (hàng thật sự quay về)
+đặt hàng      OrderPlaced      → SyncStockForOrder
+tạo fulfilment FulfilmentCreated → AllocateStockForFulfilment
+giao/huỷ kiện  chuyển trạng thái  → ApplyStockForFulfilmentTransition
+huỷ đơn        OrderCancelled    → SyncStockForOrder
 ```
 
-⚠️ **Mọi guard phải đọc `sellable`, không đọc `quantity`.** Hàng đã giữ vẫn nằm
-trong kho — đọc nhầm cột là bán chồng đơn: `CartService::guardStock`,
-`canBeFulfilledAtQuantity()`, filter/badge trong Stock Overview, `lowStock()`,
-`lowCount()`/`outCount()` đều đã dùng `quantity - committed`.
+Bên dưới là các action của Lunar: `AdjustStock`, `RecordStockMovement`,
+`RecomputeStockRollup`, `SyncStockCommitment`, ghi vào `lunar_stock_levels` /
+`lunar_stock_movements` / `lunar_stock_reservations`.
 
-⚠️ **Bất biến `committed ≤ quantity`.** Không được hạ tồn xuống dưới số đã bán chưa
-giao — đó là mô tả một shop đã hứa giao hàng không có trong kho, và **không có gì
-báo động** vì `sellable` bị kẹp về 0 trong cả hai trường hợp. Hai đường ghi đều chặn:
-`StockLedger::mutate()` ném `InvalidStockAdjustmentException` (kèm số `committed` để
-admin hiện đúng thông báo), và `SkuBuilderService::assertStockCoversCommitments()`
-ném `ValidationException` cho trang biến thể.
-`SkuBuilderService` cũng **mang `committed` qua** lần delete-and-recreate — nó không
-nằm trong payload của editor, không mang qua thì lưu tab biến thể sẽ **xoá sạch mọi
-hold** và hàng đã bán quay lại kệ.
+`StockLedger`, `StockReleaser`, `StockSettler`, `DecrementStock`,
+`ProductSkuObserver` và bảng `stock_movements` của shop **đã bị xoá** cùng đợt
+hợp nhất SKU → variant. Cột `lunar_orders.dispatched_at` (cờ idempotency của
+`SettleStockOnDispatch`) cũng đã bỏ: một đơn chia nhiều kiện không thể mô tả
+bằng một mốc thời gian, và `fulfilment_status` mới là câu trả lời.
+
+⚠️ **Mọi guard phải đọc `sellable`, không đọc `stock_on_hand`.** Hàng đã giữ vẫn
+nằm trong kho — đọc nhầm cột là bán chồng đơn. `canBeFulfilledAtQuantity()` của
+Lunar là đường đọc chuẩn; `InventoryService` chỉ là facade mỏng trên nó.
+
+⚠️ **Guard oversell ở bước tạo đơn** là của shop:
+`Modules\Inventory\Validation\CartStockAtOrderCreation` cắm vào hook validator
+`order_create` của Lunar. Cần nó vì `ValidateCartForOrderCreation` của Lunar kiểm
+*purchasable*, không kiểm *available* — không có nó thì giỏ vẫn thành đơn khi
+hàng đã hết giữa lúc thêm giỏ và lúc thanh toán.
 
 ⚠️ **Cảnh báo tồn đọng:** committed chỉ được giải phóng khi giao hoặc huỷ. Đơn đã
-thanh toán quá `STALE_COMMITMENT_DAYS` (3) mà chưa `dispatched` sẽ giữ hàng vô hạn →
-`InventoryService::staleCommitments()` liệt kê và Stock Overview hiện banner cảnh báo.
+thanh toán quá `STALE_COMMITMENT_DAYS` (3) mà chưa giao xong sẽ giữ hàng vô hạn →
+`InventoryService::staleCommitments()` liệt kê. Màn hình Stock Overview cũ đã bỏ;
+dashboard của panel có sẵn `LowStockWidget`.
 
-- **Reserve** khi tạo order (`DecrementStock` pipeline) + oversell guard
-  (row lock + kiểm tra sellable, tôn trọng `backorder`/`always`).
-- **Sổ cái tồn kho (`stock_movements`)** — mọi thay đổi tồn đều để lại một dòng
-  (`type`: sale · release · adjustment · restock · manual · edit) kèm `stock_before` /
-  `stock_after`, người gây ra và `order_id` nếu có.
-  **`StockLedger` là writer duy nhất:** `record()` chỉ ghi sổ cho thay đổi caller đã áp,
-  `adjust()`/`set()` vừa đổi tồn vừa ghi sổ trong **một transaction có row lock**, và từ
-  chối kết quả âm.
-  ⚠️ **Bất biến:** mọi lệnh ghi tồn nuôi sổ cái (`StockLedger`, `DecrementStock`,
-  `StockReleaser`) đều dùng **query builder** (`whereKey()->update`), **không** dùng
-  `$sku->save()` — `save()` bắn event `updated` khiến `ProductSkuObserver` ghi thêm một
-  dòng `edit`, tức **đếm đôi** cùng một thay đổi. Observer chỉ để bắt sửa tay qua editor.
-  Kiểm nhanh tính đúng: `stock_after` của dòng cuối mỗi SKU phải bằng `quantity` hiện tại.
-- **Mặc định `selling_policy = in_stock`** (migration đổi default của Lunar, vốn là
-  `always`; cột tên `purchasable` cho tới Lunar 1.x).
-  ⚠️ Trước 2026-07-10 mọi variant đều `always` nên **guard chống oversell chưa từng chạy**
-  (đo được: stock=2, đặt 10 → checkout 200, stock **−8**). Admin vẫn chọn backorder/always
-  cho từng variant khi muốn bán trước.
-- **Release** stock khi đơn `cancelled`/`refunded` (`StockReleaser`, nghe `OrderStatusUpdated`;
-  **cố ý đồng bộ** — stock là bất biến đúng-sai, queue chết thì hàng mất im lặng).
-  Idempotent qua cột `lunar_orders.stock_released_at`.
-- Đơn gateway giữ stock **trước khi** khách trả tiền → command `orders:expire-abandoned`
-  (scheduler 10'/lần) huỷ đơn quá hạn và trả stock. Quét **hai** loại:
-  (a) đơn gateway bỏ ngang (`payment_status = pending` + `meta.payment_type` là một
-  cổng thanh toán);
-  (b) **đơn mồ côi** `placed_at IS NULL`. Bank-transfer cũng ở `awaiting-payment` nhưng
-  thu tay và **có** `placed_at`, nên không bị timer đụng tới.
-- **Vì sao có đơn mồ côi:** `Lunar\Actions\Carts\CreateOrder` bọc `DB::transaction` (order
-  lines + `DecrementStock` là atomic) và **commit**; driver thanh toán *sau đó* mới
-  `update(status, placed_at, meta)` ở câu lệnh riêng. Chết giữa hai bước → order tồn tại,
-  kho đã trừ, `meta = null` nên nhánh (a) **mù**. Đo được: sweeper dọn 0 đơn, 2 units kẹt
-  vĩnh viễn. Mọi driver đều set `placed_at` ngay khi `authorize()` thành công, nên
-  `placed_at IS NULL` là dấu hiệu tin cậy "checkout chưa bao giờ hoàn tất".
-  (Double-submit **không** phải nguyên nhân: Lunar chặn bằng `ValidateCartForOrderCreation`
-  — cart đã có `completedOrder` thì `createOrder()` ném `CartException`.)
-- `InsufficientStockException` trả **422** (không phải 500): người khác lấy mất units cuối
-  là chuyện của người mua, không phải lỗi server.
-- Notify-me back-in-stock (model + API `/inventory/notify-me` + email queued khi restock). Admin: chờ Fase 4.
+- **Báo hàng về:** `stock_notifications` + `BackInStockObserver` (bắt rollup tồn
+  của Lunar chuyển từ 0 lên dương) → `BackInStockMail`. Hàng đợi xem ở
+  `/panel/shop/stock-notifications` (chỉ đọc).
 
 ## Shipping
 - Zone/rate DB-backed (`ShippingZone`: country + states → rate + free-threshold,
   most-specific-wins) qua `ShippingZoneResolver` + `FlatRateShippingModifier`, fallback
-  config. Trang Shipping Zones: chờ Fase 4.
+  config. Quản trị: `/panel/shop/shipping-zones` + tab cài đặt Vận chuyển.
 
 ## Analytics
 - `AnalyticsService` (revenue/orders/AOV/monthly/top-products, MySQL-portable, đếm đúng
-  paid statuses) + **Sales Dashboard** (chờ Fase 4: KPI + trend 6 tháng + recent orders +
-  best-sellers).
+  paid statuses).
+- Trên panel chỉ có **một widget**: luỹ kế + xu hướng 6 tháng. Phần còn lại của
+  trang Sales Dashboard cũ — KPI, biểu đồ doanh thu, đơn gần đây, best-seller,
+  sắp hết hàng — dashboard của Lunar 2.0 đã ship sẵn, nên dựng lại là làm trùng.
+  Thứ nó thiếu là tầm nhìn xa hơn 90 ngày, và đó là lý do widget này tồn tại.
 
 ---
 
@@ -855,19 +832,22 @@ Panel Lunar có sẵn trang cho Catalog, Sales, Customers, Settings — **kế t
 build lại**. Phục vụ 370 route dưới `/panel`; asset là bản biên dịch sẵn của vendor,
 publish bằng `lunar:panel:install` (đã gắn vào `post-autoload-dump`).
 
-> ⚠️ **Phần admin riêng của dự án hiện KHÔNG có.** Fase 3 của
-> [đợt nâng 2.0](../guides/upgrade-lunar-2.0.md) đã xoá 64 file PHP + 17 blade
-> Filament; Fase 4 sẽ viết lại chúng bằng Vue. Danh sách phải dựng lại, theo thứ
-> tự rủi ro giảm dần (§6 của runbook):
->
-> 1. **MediaPicker / MediaBrowser** — 14 call site phụ thuộc.
-> 2. **ManageProductVariants** (SKU builder) — phức tạp nhất, đã từng có 2 bug thật.
-> 3. **9 trang cấu hình** — backend `Settings` giữ nguyên, chỉ thiếu UI.
-> 4. **6 resource Nội dung**: Pages, Banners, Lookbooks, Redirects, Page Sections, Menus.
-> 5. **RMA, Shipping Zones, Size Charts, Stock Overview, Media Library, Queue Workers.**
-> 6. **Analytics Sales Dashboard → widget.**
->
-> Ảnh chụp 49 màn hình admin cũ được giữ ngoài repo để đối chiếu khi viết lại.
+**Phần admin riêng của dự án đã viết lại xong** (Fase 4 + 5 của
+[đợt nâng 2.0](../guides/upgrade-lunar-2.0.md)). Điểm chốt: **25 trong 64 file
+Filament đã xoá là panel lo sẵn** — sản phẩm, biến thể, collection, product type,
+product option, attribute group, customer group, tag, thuế. Phần còn lại đi qua
+điểm mở rộng chính thức, không fork:
+
+| Cách | Dùng cho |
+| --- | --- |
+| Engine resource khai báo | 10 màn hình CRUD (Nội dung, RMA, vùng ship, bảng size, báo hàng về) |
+| `SettingsGroup` | 8 trang cài đặt cũ → một màn hình, 8 tab |
+| `Slot` | Size & Fit chèn vào trang sửa sản phẩm chính chủ |
+| `widgets()` | một thẻ dashboard (phần còn lại panel đã có) |
+| Không làm | QueueWorkers → Horizon; MediaImageSizes → `media-library:regenerate` |
+
+Chi tiết và các hợp đồng của panel: [panel-addon.md](panel-addon.md).
+
 
 ---
 
