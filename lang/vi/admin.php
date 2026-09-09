@@ -721,6 +721,12 @@ return [
 
     'analytics' => [
         'title' => 'Báo cáo bán hàng',
+            'revenue' => 'Doanh thu',
+        'orders' => 'Đơn hàng',
+        'aov' => 'Giá trị đơn trung bình',
+        'products' => 'Sản phẩm',
+        'lifetime' => 'Luỹ kế',
+        'trend' => 'Xu hướng 6 tháng',
     ],
 
 ];

@@ -145,6 +145,27 @@ này biến việc đổi tên file thành test đỏ thay vì trang trắng.
 | Bảng size | `hasMany` cho các dòng size |
 | Đăng ký báo hàng về | chỉ đọc, cột tính toán + eager load |
 | 8 trang cài đặt cũ | một màn hình `SettingsGroup`, mỗi nhóm một tab |
+| Báo cáo bán hàng | **một** widget dashboard (phần còn lại panel đã có) |
+
+## Widget dashboard
+
+Panel 2.0 đã ship sẵn KPI doanh thu/đơn/AOV, biểu đồ doanh thu, đơn gần đây, top
+sản phẩm, sắp hết hàng, kênh, nhóm khách. Đó gần như đúng những gì trang
+`AnalyticsDashboard` cũ có — nên dựng lại là làm trùng việc của bản chính chủ.
+
+Thứ panel **không** có là tầm nhìn xa hơn 90 ngày: dải của nó dừng ở đó và chia
+theo ngày. Một shop thời trang bán theo mùa cần nhìn thấy cả mùa. Đó là lý do
+duy nhất `LifetimeWidget` tồn tại, và test canh đúng chuyện đó — nó khẳng định
+shop chỉ đóng góp **một** widget.
+
+Widget đi qua Section riêng của module Analytics chứ không gắn vào section của
+shop: Core không có việc gì phải import từ một module tính năng, và `widgets()`
+là seam có tài liệu cho đúng chuyện này. Component Vue của nó vẫn nằm trong
+bundle add-on duy nhất — một bundle phục vụ nhiều section.
+
+Payload phải khớp hợp đồng component của panel: `TimeSeriesChart` đọc `value` là
+**đơn vị lớn** và `display` là chữ trên tooltip. Gửi đơn vị nhỏ thì biểu đồ cao
+gấp trăm lần với đúng con số ghi trên đó.
 
 ## Cài đặt tính năng
 

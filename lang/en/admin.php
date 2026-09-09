@@ -719,6 +719,12 @@ return [
 
     'analytics' => [
         'title' => 'Sales Dashboard',
+            'revenue' => 'Revenue',
+        'orders' => 'Orders',
+        'aov' => 'Average order value',
+        'products' => 'Products',
+        'lifetime' => 'Lifetime',
+        'trend' => 'Six-month trend',
     ],
 
 ];

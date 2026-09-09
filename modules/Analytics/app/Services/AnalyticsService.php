@@ -5,6 +5,8 @@ namespace Modules\Analytics\Services;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Number;
+use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Order;
 use Lunar\Core\Models\OrderLine;
 use Lunar\Core\Models\Product;
@@ -13,7 +15,7 @@ use Modules\Order\Support\OrderStatus;
 
 /**
  * Sales reporting over Lunar's orders. Read-only aggregation — feeds the admin
- * dashboard (AnalyticsDashboard) and any reporting API.
+ * dashboard widget and any reporting API.
  *
  * "Revenue" counts orders in a paid/fulfilled status (see {@see paidStatuses()})
  * and uses the order `total` (minor units), matching what the customer actually
@@ -182,5 +184,23 @@ class AnalyticsService
                     'revenue' => (int) $line->revenue,
                 ];
             });
+    }
+
+    /**
+     * Minor units as money in the default currency.
+     *
+     * Lives here rather than in whatever renders it: the admin dashboard and
+     * any reporting endpoint must agree on the decimal places, and the old
+     * dashboard page kept its own copy of this.
+     */
+    public function format(int $minor): string
+    {
+        return Number::currency($this->major($minor), Currency::getDefault()?->code ?? 'USD');
+    }
+
+    /** Minor units as a plain number in the currency's major unit — chart geometry. */
+    public function major(int $minor): float
+    {
+        return $minor / (10 ** (Currency::getDefault()?->decimal_places ?? 2));
     }
 }
