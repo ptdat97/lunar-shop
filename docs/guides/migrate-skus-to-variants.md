@@ -316,3 +316,43 @@ vẫn chưa đạt.
 
 Cài mới thì đã sạch: `migrate:fresh --seed` cho 648 variant và **0 SKU** (bảng
 được tạo rồi để rỗng, vì migration tạo bảng vẫn chạy trước migration chuyển đổi).
+
+
+## 8. Sự cố sau khi chốt: cột `images` che quan hệ của Lunar
+
+Báo lỗi: `Call to a member function first() on array` ở
+`ProductVariant.php:256`, trên mọi `/panel/products/{id}/edit`.
+
+Migration này thêm cột `images` (JSON, danh sách **Asset id**) vào
+`lunar_product_variants`. Lunar đã có sẵn `ProductVariant::images()` —
+BelongsToMany tới Media. Trong Eloquent **cột thật luôn thắng quan hệ trùng
+tên** (`getAttribute()` xét `$attributes` trước khi xét quan hệ), nên
+`$variant->images` trả về mảng id của mình, và `getThumbnail()` gọi `->first()`
+lên mảng đó. Trang sửa sản phẩm của panel gọi `getThumbnail()`.
+
+Hai thứ khác nhau tình cờ trùng một chữ: cột là các asset mà variant **trỏ
+tới**, quan hệ là media mà variant **sở hữu**.
+
+Sửa: đổi tên cột thành `image_asset_ids`
+(`2026_09_09_160000_rename_variant_images_column.php`), migration gốc nay tạo
+thẳng tên mới nên bản cài mới không bao giờ có cột cũ, và migration rename thành
+no-op. Cập nhật cast, ba nơi đọc, seeder và test. Key JSON `images` của API
+**giữ nguyên** — đó là hợp đồng với client, không phải tên cột.
+
+### Vì sao không có gì bắt được
+
+Smoke test panel chỉ quét route **không tham số**;
+`/panel/products/{product}/edit` có tham số nên chưa từng được mở.
+`PanelProductEditTest` bịt đúng khoảng đó, kèm một chốt chặn ở mức schema: không
+cột nào trên `lunar_product_variants` được trùng tên với một method của
+`ProductVariant`.
+
+### Một lỗi thứ hai lộ ra khi kiểm tra bản cài mới
+
+`ProductSizingController::slotProps()` truy vấn `SizeChart` ngay lúc panel xử lý
+section — mà việc đó chạy ở **mọi** lần boot, kể cả `php artisan migrate` trên
+database chưa có bảng nào. Danh sách bảng size chuyển sang đi cùng endpoint
+`show()` mà component vốn đã gọi.
+
+**Quy tắc rút ra: props của slot không được chạm database.** Chúng được dựng lúc
+boot, không phải lúc request.

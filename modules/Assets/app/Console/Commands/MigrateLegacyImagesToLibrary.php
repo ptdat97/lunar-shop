@@ -234,11 +234,11 @@ class MigrateLegacyImagesToLibrary extends Command
     {
         ProductVariant::query()->chunkById(200, function ($variants) {
             foreach ($variants as $sku) {
-                $ids = collect($sku->images ?? []);
+                $ids = collect($sku->image_asset_ids ?? []);
                 $rewritten = $ids->map(fn ($id) => $this->mediaIdToAsset($id) ?? $id)->all();
 
                 if ($rewritten !== $ids->all()) {
-                    $this->saveIfChanged($sku, ['images' => $rewritten]);
+                    $this->saveIfChanged($sku, ['image_asset_ids' => $rewritten]);
                 }
             }
         });

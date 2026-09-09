@@ -204,7 +204,7 @@ class AssetsServiceProvider extends ServiceProvider
             // set leads with a different photo must actually open on it, which
             // a whereIn() filter would silently undo by keeping media order.
             // Falls back to the whole gallery when the SKU has none of its own.
-            $skuImageIds = collect($data['selectedVariant']?->images ?? [])
+            $skuImageIds = collect($data['selectedVariant']?->image_asset_ids ?? [])
                 ->map(fn ($id) => is_array($id) ? ($id['id'] ?? null) : $id)
                 ->filter(fn ($id) => is_numeric($id))
                 ->map(fn ($id) => (int) $id);

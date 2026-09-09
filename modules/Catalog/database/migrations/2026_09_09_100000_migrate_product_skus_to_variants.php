@@ -103,13 +103,31 @@ return new class extends Migration
      * `images` is the shop's own concept (asset ids picked from the shared
      * library); the rest 2.0 already provides.
      */
+    /**
+     * Which name the image-id column carries on this database.
+     *
+     * An upgrade that ran this migration before the rename still has `images`
+     * at this point; a fresh install has `image_asset_ids`. Writing to whichever
+     * exists keeps one migration correct on both.
+     */
+    private function imagesColumn(): string
+    {
+        return Schema::hasColumn($this->prefix().'product_variants', 'image_asset_ids')
+            ? 'image_asset_ids'
+            : 'images';
+    }
+
     private function addVariantColumns(): void
     {
         $variants = $this->prefix().'product_variants';
 
-        if (! Schema::hasColumn($variants, 'images')) {
+        // `image_asset_ids`, not `images`: the latter shadows Lunar's own
+        // ProductVariant::images() relation, and a real column always beats a
+        // relation of the same name. See the rename migration for the crash
+        // that taught us.
+        if (! Schema::hasColumn($variants, 'image_asset_ids') && ! Schema::hasColumn($variants, 'images')) {
             Schema::table($variants, function (Blueprint $table) {
-                $table->json('images')->nullable();
+                $table->json('image_asset_ids')->nullable();
             });
         }
 
@@ -169,7 +187,7 @@ return new class extends Migration
                 // Encoded by hand: the column is added by this migration, so the
                 // model carries no cast for it yet (that arrives with
                 // `ProductVariant::addCasts()` in CatalogServiceProvider).
-                'images' => filled($sku->images) ? json_encode($sku->images) : null,
+                $this->imagesColumn() => filled($sku->images) ? json_encode($sku->images) : null,
             ]);
 
             $this->linkOptionValues($variant, $axes, (array) $sku->variants);

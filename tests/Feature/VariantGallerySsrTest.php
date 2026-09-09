@@ -52,7 +52,7 @@ class VariantGallerySsrTest extends TestCase
         $asset = $this->libraryAsset('variant-only.png');
 
         $sku = $product->variants->first();
-        $sku->update(['images' => [$asset->id]]);
+        $sku->update(['image_asset_ids' => [$asset->id]]);
 
         $slug = $product->defaultUrl->slug;
 
@@ -80,7 +80,7 @@ class VariantGallerySsrTest extends TestCase
         $product = $this->createProduct(['stock' => 5]);
         $asset = $this->libraryAsset('agree.png');
 
-        $product->variants->first()->update(['images' => [$asset->id]]);
+        $product->variants->first()->update(['image_asset_ids' => [$asset->id]]);
 
         $slug = $product->defaultUrl->slug;
         $html = $this->get("/products/{$slug}")->assertOk()->getContent();
@@ -113,7 +113,7 @@ class VariantGallerySsrTest extends TestCase
         $this->seedBaseData();
 
         $product = $this->createProduct(['stock' => 5]);
-        $product->variants->first()->update(['images' => []]);
+        $product->variants->first()->update(['image_asset_ids' => []]);
 
         $slug = $product->defaultUrl->slug;
 

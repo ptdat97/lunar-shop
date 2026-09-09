@@ -208,7 +208,7 @@ class ProductVariantMatrixSeeder extends Seeder
                 'weight_value' => self::WEIGHT_BY_SIZE[$size['en']] ?? 250,
                 'weight_unit' => 'g',
                 // Every size of a colour shares that colour's photo set.
-                'images' => $imagesByColor[$ci] ?? [],
+                'image_asset_ids' => $imagesByColor[$ci] ?? [],
                 // One disabled variant per product, so the storefront's enabled
                 // filter is visibly doing something.
                 'enabled' => ! ($size['en'] === 'L' && $ci === 2),

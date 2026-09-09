@@ -14,7 +14,7 @@ use Tests\TestCase;
 
 /**
  * Per-colour product galleries: each SKU may carry its own subset of Media
- * Library Assets (the `images` JSON column, a list of Asset ids picked via
+ * Library Assets (the `image_asset_ids` JSON column, a list of Asset ids picked via
  * MediaPicker), so choosing a colour swaps the gallery.
  *
  * Covers the two halves that have to agree: the SSR gallery (the media view
@@ -51,7 +51,7 @@ class VariantGalleryTest extends TestCase
         $ids = $this->makeAssets(2);
 
         $sku = $product->variants()->first();
-        $sku->update(['images' => $ids]);
+        $sku->update(['image_asset_ids' => $ids]);
 
         $payload = (new ProductVariantResource($sku))->toArray(request());
 
@@ -72,7 +72,7 @@ class VariantGalleryTest extends TestCase
         $reordered = [$ids[2], $ids[0], $ids[1]];
 
         $sku = $product->variants()->first();
-        $sku->update(['images' => $reordered]);
+        $sku->update(['image_asset_ids' => $reordered]);
 
         $payload = (new ProductVariantResource($sku))->toArray(request());
 
@@ -96,7 +96,7 @@ class VariantGalleryTest extends TestCase
         $this->makeAssets(2);
 
         $sku = $product->variants()->first();
-        $sku->update(['images' => []]);
+        $sku->update(['image_asset_ids' => []]);
 
         $payload = (new ProductVariantResource($sku))->toArray(request());
 
@@ -119,12 +119,12 @@ class VariantGalleryTest extends TestCase
         $ids = $this->makeAssets(2);
 
         // Black leads with the first asset, White with the second.
-        $product->variants()->first()->update(['images' => [$ids[0]]]);
+        $product->variants()->first()->update(['image_asset_ids' => [$ids[0]]]);
 
         $white = ProductVariant::create([
             'product_id' => $product->id,
             'sku' => 'GAL-WHITE',
-            'images' => [$ids[1]],
+            'image_asset_ids' => [$ids[1]],
             'tax_class_id' => TaxClass::getDefault()?->id,
             'enabled' => true,
         ]);
@@ -141,8 +141,8 @@ class VariantGalleryTest extends TestCase
         $this->assertSame('GAL-BLACK', $blackPick->sku);
         $this->assertSame('GAL-WHITE', $whitePick->sku);
         $this->assertNotSame(
-            $blackPick->images,
-            $whitePick->images,
+            $blackPick->image_asset_ids,
+            $whitePick->image_asset_ids,
             'each colour must own a distinct image set, else the gallery never changes',
         );
     }
@@ -163,7 +163,7 @@ class VariantGalleryTest extends TestCase
             ProductVariant::create([
                 'product_id' => $product->id,
                 'sku' => 'NP-'.$i,
-                'images' => $ids,
+                'image_asset_ids' => $ids,
                 'tax_class_id' => TaxClass::getDefault()?->id,
                 'enabled' => true,
             ]);
@@ -215,7 +215,7 @@ class VariantGalleryTest extends TestCase
                 ProductVariant::create([
                     'product_id' => $product->id,
                     'sku' => "BULK-{$p}-{$i}",
-                    'images' => $ids,
+                    'image_asset_ids' => $ids,
                     'tax_class_id' => TaxClass::getDefault()?->id,
                     'enabled' => true,
                 ]);

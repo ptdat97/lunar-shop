@@ -110,9 +110,9 @@ class VariantSwatchTest extends TestCase
         $second = $this->libraryAsset('two.png');
 
         $variant = $product->variants->first();
-        $variant->update(['images' => [$second->id, $first->id]]);
+        $variant->update(['image_asset_ids' => [$second->id, $first->id]]);
 
-        $this->assertSame([$second->id, $first->id], $variant->fresh()->images);
+        $this->assertSame([$second->id, $first->id], $variant->fresh()->image_asset_ids);
     }
 
     /** Dropping an image from one variant must not delete the shared asset. */
@@ -123,19 +123,19 @@ class VariantSwatchTest extends TestCase
         $asset = $this->libraryAsset();
 
         $a = $product->variants->first();
-        $a->update(['images' => [$asset->id]]);
+        $a->update(['image_asset_ids' => [$asset->id]]);
 
         $b = ProductVariant::create([
             'product_id' => $product->id,
             'sku' => 'SW-B-'.uniqid(),
-            'images' => [$asset->id],
+            'image_asset_ids' => [$asset->id],
             'tax_class_id' => $a->tax_class_id,
             'enabled' => true,
         ]);
 
-        $a->update(['images' => []]);
+        $a->update(['image_asset_ids' => []]);
 
-        $this->assertSame([$asset->id], $b->fresh()->images);
+        $this->assertSame([$asset->id], $b->fresh()->image_asset_ids);
         $this->assertNotNull(Asset::find($asset->id), 'the library keeps the file for everyone else');
     }
 }

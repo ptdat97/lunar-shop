@@ -161,13 +161,18 @@ class CatalogServiceProvider extends ServiceProvider
      */
     protected function registerVariantExtensions(): void
     {
-        // `images` is the shop's own column on Lunar's variant: a list of Media
-        // Library Asset ids, not media the variant owns. The catalogue holds
-        // 1,945 references resolving to 162 distinct assets, so owning them
-        // would copy the same files twelve times over and defeat the shared
-        // library the Assets module exists for. `addCasts()` is the seam 2.0
-        // leaves for exactly this — see docs/guides/migrate-skus-to-variants.md.
-        ProductVariant::addCasts(['images' => 'array']);
+        // `image_asset_ids` is the shop's own column on Lunar's variant: a list
+        // of Media Library Asset ids the variant points at, not media it owns.
+        // The catalogue holds 1,945 references resolving to 162 distinct assets,
+        // so owning them would copy the same files twelve times over and defeat
+        // the shared library the Assets module exists for. `addCasts()` is the
+        // seam 2.0 leaves for exactly this.
+        //
+        // NOT named `images`: that shadows Lunar's own ProductVariant::images()
+        // relation, because a real column always wins over a relation of the
+        // same name in Eloquent. It cost a 500 on every product editor page
+        // before the rename — see the rename migration.
+        ProductVariant::addCasts(['image_asset_ids' => 'array']);
 
         // `products.variables` is the shop's old free-form axis definition. It is
         // being retired in favour of the shared ProductOption links the variants

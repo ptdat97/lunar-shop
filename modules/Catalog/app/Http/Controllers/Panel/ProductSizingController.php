@@ -38,6 +38,15 @@ class ProductSizingController extends Controller
         $material = $product->material;
 
         return response()->json([
+            // The chart list rides along here rather than in the slot's props:
+            // props are built when sections are processed, which happens on
+            // every artisan command too — including `migrate` on a database
+            // where `size_charts` does not exist yet.
+            'charts' => SizeChart::query()
+                ->where('active', true)
+                ->orderBy('name')
+                ->pluck('name', 'id')
+                ->all(),
             'size_chart_id' => $product->sizeChart()->first()?->id,
             'material' => $material
                 ? array_intersect_key($material->toArray(), array_flip(self::MATERIAL_FIELDS))
@@ -79,20 +88,19 @@ class ProductSizingController extends Controller
     }
 
     /**
-     * The slot's props: the charts to choose from, this screen's labels and its
-     * option lists. Resolved per request, so a chart added a minute ago is
-     * pickable without clearing anything.
+     * The slot's props: this screen's labels and option lists, and nothing that
+     * touches the database.
+     *
+     * Sections are processed on every boot, artisan commands included, so a
+     * query here runs during `migrate` on a database whose tables do not exist
+     * yet. The chart list comes from show() instead, which the component calls
+     * anyway.
      *
      * @return array<string, mixed>
      */
     public static function slotProps(): array
     {
         return [
-            'charts' => SizeChart::query()
-                ->where('active', true)
-                ->orderBy('name')
-                ->pluck('name', 'id')
-                ->all(),
             'labels' => [
                 'heading' => __('admin.sizing.title'),
                 'chart' => __('admin.sizing.assigned_chart'),

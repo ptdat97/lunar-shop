@@ -7,10 +7,14 @@ import { SideCard, FieldLabel, TextInput, Textarea, Select, Button, http } from 
 // are the props the PHP Slot declared.
 const props = defineProps({
     product: { type: Object, default: null },
-    charts: { type: Object, default: () => ({}) },
     labels: { type: Object, required: true },
     options: { type: Object, required: true },
 });
+
+// Fetched with the record rather than passed as a slot prop: slot props are
+// built when the panel processes sections, which happens on every boot — a
+// query there runs during `migrate` on a database that has no tables yet.
+const charts = ref({});
 
 const blank = () => ({
     size_chart_id: '',
@@ -42,6 +46,8 @@ onMounted(async () => {
     try {
         const current = await http.get(`/panel/shop/products/${props.product.id}/sizing`);
 
+        charts.value = current.charts ?? {};
+
         form.value = {
             size_chart_id: current.size_chart_id ?? '',
             material: { ...blank().material, ...(current.material ?? {}) },
@@ -51,7 +57,7 @@ onMounted(async () => {
     }
 });
 
-const chartOptions = computed(() => Object.entries(props.charts));
+const chartOptions = computed(() => Object.entries(charts.value));
 
 const optionsOf = (key) => Object.entries(props.options[key] ?? {});
 

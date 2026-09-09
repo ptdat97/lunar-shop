@@ -152,13 +152,13 @@ class MigrateLegacyImagesToLibraryTest extends TestCase
         $product = $this->createProduct();
         $media = $product->addMedia(UploadedFile::fake()->image('front.png', 300, 300))->toMediaCollection('images');
 
-        $sku = $product->variants()->create(['images' => [$media->id],
+        $sku = $product->variants()->create(['image_asset_ids' => [$media->id],
             'sku' => 'MIG-1', 'tax_class_id' => TaxClass::getDefault()?->id,
             'enabled' => true, ]);
 
         $this->artisan('assets:migrate-legacy-images')->assertSuccessful();
 
-        $newIds = $sku->refresh()->images;
+        $newIds = $sku->refresh()->image_asset_ids;
         $this->assertCount(1, $newIds);
         $asset = Asset::find($newIds[0]);
         $this->assertNotNull($asset);

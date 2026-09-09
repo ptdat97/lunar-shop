@@ -67,7 +67,7 @@ class ProductVariantResource extends JsonResource
     }
 
     /**
-     * Resolve the variant's `images` JSON column (a list of Media Library Asset
+     * Resolve the variant's `image_asset_ids` JSON column (a list of Media Library Asset
      * ids picked from the shared library — modules/Assets) into the gallery
      * shape.
      *
@@ -83,7 +83,7 @@ class ProductVariantResource extends JsonResource
      */
     protected function galleryImages(): array
     {
-        $ids = collect($this->images ?? [])
+        $ids = collect($this->image_asset_ids ?? [])
             ->map(fn ($id) => is_array($id) ? ($id['id'] ?? null) : $id)
             ->filter(fn ($id) => is_numeric($id))
             ->map(fn ($id) => (int) $id);
