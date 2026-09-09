@@ -3,6 +3,7 @@
 namespace Modules\Catalog\Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Lunar\Core\Contracts\Actions\Products\AdjustsStock;
 use Lunar\Core\Models\Collection;
 use Lunar\Core\Models\CollectionGroup;
 use Lunar\Core\Models\Currency;
@@ -49,10 +50,15 @@ class DemoCatalogSeeder extends Seeder
                 $variant = ProductVariant::create([
                     'product_id' => $product->id,
                     'sku' => $s['sku'],
-                    'stock' => 50,
                     'unit_quantity' => 1,
                     'tax_class_id' => TaxClass::getDefault()?->id,
                 ]);
+
+                // Lunar 2.0 has no `stock` column: on-hand lives in a per-location
+                // `StockLevel` fed by the movement ledger. `AdjustStock` records the
+                // opening movement and recomputes the rollup, which is what a real
+                // stock-in does — so demo data takes the same path as production.
+                app(AdjustsStock::class)->execute($variant, 50, 'seed');
 
                 Price::create([
                     'price' => $s['price'],

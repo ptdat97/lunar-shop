@@ -8,7 +8,9 @@ use Lunar\Core\Models\Country;
 use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\CustomerGroup;
 use Lunar\Core\Models\Language;
+use Lunar\Core\Models\Location;
 use Lunar\Core\Models\ProductType;
+use Lunar\Core\Models\Region;
 use Lunar\Core\Models\TaxClass;
 use Lunar\Core\Models\TaxRate;
 use Lunar\Core\Models\TaxRateAmount;
@@ -117,6 +119,43 @@ class BaseDataSeeder extends Seeder
 
         if (! ProductType::count()) {
             ProductType::create(['name' => 'General']);
+        }
+
+        $this->seedRegionAndLocation();
+    }
+
+    /**
+     * The two defaults Lunar 2.0 introduced and nothing creates on a fresh
+     * install.
+     *
+     * Both are backfilled by the upgrade path (`lunar:upgrade` seeds a Region
+     * from the v1 channel/currency/language, and the stock backfill creates a
+     * Location), so an UPGRADED database has them and a NEW one does not —
+     * exactly the asymmetry that hides this class of bug from anyone testing
+     * only the upgrade. Without a default Location every stock write throws:
+     * `RecordStockMovement` takes a non-nullable `Location`, and
+     * `Location::getDefault()` returns null.
+     */
+    protected function seedRegionAndLocation(): void
+    {
+        if (! Location::count()) {
+            Location::create([
+                'name' => 'Default',
+                'handle' => 'default',
+                'default' => true,
+            ]);
+        }
+
+        if (! Region::count()) {
+            Region::create([
+                'name' => 'Default',
+                'handle' => 'default',
+                'channel_id' => Channel::getDefault()?->id,
+                'currency_id' => Currency::getDefault()?->id,
+                'language_id' => Language::getDefault()?->id,
+                'tax_zone_id' => TaxZone::whereDefault(true)->value('id'),
+                'default' => true,
+            ]);
         }
     }
 }
