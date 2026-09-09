@@ -21,8 +21,16 @@
         // them on the first gallery image instead so they aren't lost.
         $fallbackImageId = (! $cover && $images->isNotEmpty()) ? $images->first()->id : null;
 
-        // Variant ids for "shop the set" (first variant of each product).
-        $setVariantIds = $products->map(fn ($p) => $p->variants->first()?->id)->filter()->values();
+        // "Shop the set" adds one line per product, so these must be the ids the
+        // cart endpoint resolves — SKU ids. It used to read `$p->variants`, which
+        // is Lunar's own variant relation and a DIFFERENT id space: the endpoint
+        // looked each id up as a SKU, found an unrelated product's SKU with the
+        // same number, and added that instead. Silently — the button reported
+        // success because the request succeeded.
+        $setSkuIds = $products
+            ->map(fn ($p) => $p->skus->firstWhere('status', 'published')?->id)
+            ->filter()
+            ->values();
     @endphp
 
     {{-- Hero / cover with hotspots --}}
@@ -48,11 +56,11 @@
 
             {{-- Shop the whole set in one click. Real link to the lookbook section
                  as no-JS fallback; the enhancer adds all variants to the cart. --}}
-            @if($setVariantIds->isNotEmpty())
+            @if($setSkuIds->isNotEmpty())
                 <button type="button" class="btn btn-dark"
-                        data-lookbook-add-set data-variant-ids="{{ $setVariantIds->join(',') }}">
+                        data-lookbook-add-set data-sku-ids="{{ $setSkuIds->join(',') }}">
                     <i class="bi bi-bag-plus me-1"></i>{{ __('storefront.lookbook.shop_the_set') }}
-                    <span class="opacity-75">({{ $setVariantIds->count() }})</span>
+                    <span class="opacity-75">({{ $setSkuIds->count() }})</span>
                 </button>
                 <span class="small ms-2" data-lookbook-set-status></span>
             @endif

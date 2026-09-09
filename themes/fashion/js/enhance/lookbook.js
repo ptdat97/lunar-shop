@@ -18,7 +18,7 @@ export default function (root = document) {
     btn.dataset.setInit = '1';
 
     const status = root.querySelector('[data-lookbook-set-status]');
-    const ids = (btn.dataset.variantIds || '')
+    const ids = (btn.dataset.skuIds || '')
         .split(',')
         .map((s) => parseInt(s, 10))
         .filter(Boolean);
@@ -33,9 +33,9 @@ export default function (root = document) {
         // passed along so the mini-cart renders without re-fetching /cart.
         let added = 0;
         let cart = null;
-        for (const variant_id of ids) {
+        for (const sku_id of ids) {
             try {
-                const { data } = await api.post('/cart', { variant_id, quantity: 1 });
+                const { data } = await api.post('/cart', { sku_id, quantity: 1 });
                 cart = data.data ?? data;
                 added += 1;
             } catch {
