@@ -62,15 +62,15 @@ Mỗi pha để lại app chạy được và test xanh. **Không gộp pha.**
 
 | # | Pha | Kết quả kiểm chứng được |
 |---|---|---|
-| A | Dọn variant ma + dừng seeder tạo chúng | Panel hết hiện số liệu ảo; `lunar_product_variants` rỗng |
+| A | ✅ **Xong** — dựng lại được môi trường dev, sửa lỗi hai không gian id | xem §5 |
 | B | Chuyển 648 SKU → variant (dữ liệu) | Mỗi SKU có đúng một variant, ánh xạ id ghi lại được |
 | C | Chuyển sổ kho sang `StockLevel` / `StockMovement` | `stock_on_hand` khớp `quantity` cũ từng dòng |
 | D | Đổi purchasable trong code | 560 test xanh với `ProductVariant` |
 | E | Bộ chọn biến thể storefront đọc option value | Trang sản phẩm giữ nguyên hành vi |
 | F | Gỡ `ProductSku`, `SkuBuilderService`, sổ kho cũ | Không còn tham chiếu; bảng cũ drop ở migration riêng |
 
-> **Pha A chạy được ngay và độc lập.** Nó không phụ thuộc quyết định nào ở B–F,
-> nên làm trước cả khi chốt phần còn lại: panel đang nói dối *ngay bây giờ*.
+> **Pha A chạy được ngay và độc lập.** Nó không phụ thuộc quyết định nào ở B–F.
+> Đã xong — và nó đào ra hai lỗi thật, xem [§5](#5-nhật-ký-pha-a).
 
 ---
 
@@ -135,3 +135,48 @@ mysqldump -h127.0.0.1 -uroot --single-transaction lunar > ../backup-pre-phase-<X
 Bảng `_sku_variant_map` giữ lại **cho tới khi pha F xong và đã chạy production
 một thời gian** — nó là thứ duy nhất trả lời được "đơn hàng cũ này trỏ vào SKU
 nào".
+
+
+---
+
+## 5. Nhật ký pha A
+
+Pha A định là "dọn variant ma". Vừa chạm vào thì lộ hai thứ nặng hơn, nên phạm
+vi đổi: **sửa hai lỗi thật trước, dọn variant ma để lại cho pha B** (ở đó chúng
+biến mất tự nhiên, vì SKU sẽ TRỞ THÀNH variant — xoá bây giờ rồi tạo lại là công
+bỏ đi).
+
+### 5.1 `migrate:fresh --seed` hỏng suốt từ lúc nâng cấp
+
+Không dựng được môi trường dev mới. Suite vẫn xanh vì test dựng dữ liệu bằng
+`CreatesStorefrontData`, chưa bao giờ đi qua seeder demo.
+
+Hai nguyên nhân, cùng một họ với ba migration ở [2.0 §9.3](upgrade-lunar-2.0.md):
+**thứ mà đường NÂNG CẤP tự backfill nên DB đã nâng cấp thì có, DB cài mới thì
+không.** Ai chỉ thử đường nâng cấp sẽ không bao giờ thấy.
+
+- `'stock' => N`: 2.0 không còn cột `stock`.
+- `Location` và `Region`: khái niệm mới của 2.0, `lunar:upgrade` backfill cả hai
+  nhưng **không có gì tạo chúng khi cài mới** — kể cả Lunar. Thiếu Location thì
+  mọi lệnh ghi tồn kho ném lỗi.
+
+Phủ bởi `BaseDataSeederTest`.
+
+### 5.2 "Shop the set" thêm nhầm sản phẩm của người khác
+
+Trang lookbook render `$product->variants->first()->id` trong khi cart endpoint
+phân giải id đó thành `ProductSku`. Hai không gian id, cả hai bắt đầu từ 1, nên
+**mọi id đều khớp một SKU nào đó** — chỉ là của sản phẩm khác. Nút báo thành
+công vì request thành công thật.
+
+Đây chính là **cái giá của việc để hai mô hình "thứ khách mua" cùng tồn tại**, và
+là lý do độc lập thứ hai để hợp nhất — ngoài chuyện panel hiện số liệu sai.
+
+Phủ bởi `LookbookShopTheSetTest` (có mutation-check).
+
+### 5.3 Việc còn lại của pha A, đã chuyển sang pha B
+
+- Xoá 66 variant ma + 66 dòng giá của chúng.
+- Seeder thôi tạo variant rời (`Demo50ProductsSeeder`, `DemoCatalogSeeder`,
+  `MultiSizeProductsSeeder`), thay bằng: ma trận variant sinh từ cùng dữ liệu mà
+  `ProductSkuMatrixSeeder` đang dùng để sinh SKU.
