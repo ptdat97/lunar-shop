@@ -3,7 +3,7 @@
 namespace Modules\Inventory\Services;
 
 use Illuminate\Support\Facades\Mail;
-use Modules\Catalog\Models\ProductSku;
+use Lunar\Core\Models\ProductVariant;
 use Modules\Inventory\Mail\BackInStockMail;
 use Modules\Inventory\Models\StockNotification;
 
@@ -11,16 +11,16 @@ use Modules\Inventory\Models\StockNotification;
  * Emails pending "notify me" subscribers when a SKU is restocked, then marks
  * their subscriptions notified so they aren't emailed again on the next restock.
  *
- * Driven by ProductSkuObserver (fires when stock crosses ≤0 → >0). Mail is
+ * Driven by BackInStockObserver (fires when sellable stock crosses ≤0 → >0). Mail is
  * queued (BackInStockMail implements ShouldQueue), so this stays cheap on the
  * web request / admin save that replenished stock.
  */
 class BackInStockNotifier
 {
-    public function notify(ProductSku $sku): int
+    public function notify(ProductVariant $variant): int
     {
         $subscriptions = StockNotification::query()
-            ->where('product_sku_id', $sku->id)
+            ->where('product_variant_id', $variant->id)
             ->pending()
             ->get();
 
@@ -28,13 +28,13 @@ class BackInStockNotifier
             return 0;
         }
 
-        $sku->loadMissing('product');
-        $productName = $sku->getDescription();
-        $url = $this->productUrl($sku);
+        $variant->loadMissing('product');
+        $productName = $variant->getDescription();
+        $url = $this->productUrl($variant);
 
         foreach ($subscriptions as $subscription) {
             Mail::to($subscription->email)->send(
-                new BackInStockMail($sku, $productName, $url)
+                new BackInStockMail($variant, $productName, $url)
             );
         }
 
@@ -46,9 +46,9 @@ class BackInStockNotifier
         return $subscriptions->count();
     }
 
-    protected function productUrl(ProductSku $sku): ?string
+    protected function productUrl(ProductVariant $variant): ?string
     {
-        $slug = $sku->product?->defaultUrl?->slug;
+        $slug = $variant->product?->defaultUrl?->slug;
 
         return $slug ? url("/products/{$slug}") : null;
     }

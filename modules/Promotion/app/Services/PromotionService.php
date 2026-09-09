@@ -121,7 +121,7 @@ class PromotionService
             // `media` powers the card hover (second) image; the `thumbnail`
             // (primary media) is back-filled from it below instead of being a
             // second, primary-filtered media query.
-            ->with(['skus.prices', 'brand', 'collections', 'defaultUrl', 'media']);
+            ->with(['variants.prices', 'brand', 'collections', 'defaultUrl', 'media']);
 
         $productIds = $this->targets->targetedProductIds($discount);
         $collectionIds = $this->targets->targetedCollectionIds($discount);
@@ -188,7 +188,7 @@ class PromotionService
         // (previously one query set PER promotion — an N+1 over promotions).
         $query = Product::query()
             ->where('status', 'published')
-            ->with(['skus.prices', 'brand', 'collections', 'defaultUrl', 'media']);
+            ->with(['variants.prices', 'brand', 'collections', 'defaultUrl', 'media']);
 
         // When no promotion is cart-wide, scope to just the targeted products
         // (by id or by membership of a targeted collection). Otherwise leave the
@@ -261,7 +261,7 @@ class PromotionService
         }
 
         // Pre-load relations for ALL products at once, not per product.
-        $products->loadMissing(['skus', 'collections']);
+        $products->loadMissing(['variants', 'collections']);
 
         $results = [];
         foreach ($products as $product) {
@@ -293,7 +293,7 @@ class PromotionService
         }
 
         // Pre-load for this single product (same as before, but memoized).
-        $product->loadMissing(['skus', 'collections']);
+        $product->loadMissing(['variants', 'collections']);
 
         return $this->saleMemo[$product->id] = $this->badges->saleFor($product, $promotions);
     }

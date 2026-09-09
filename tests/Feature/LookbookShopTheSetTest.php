@@ -12,12 +12,12 @@ use Tests\TestCase;
  *
  * It did not. The page rendered `$product->variants->first()->id` — Lunar's own
  * `ProductVariant` — while `POST /api/v1/cart` resolves whatever it is given as
- * a `ProductSku`. Two id spaces, both starting at 1, so every id matched *some*
+ * a `ProductVariant`. Two id spaces, both starting at 1, so every id matched *some*
  * SKU: measured on the dev catalogue, variant 13 belongs to product 13 while SKU
  * 13 belongs to product 2. The button added a stranger's product and reported
  * success, because the request really did succeed.
  *
- * The shop sells `ProductSku`; Lunar variants are vestigial here (0 order lines,
+ * The shop sells `ProductVariant`; Lunar variants are vestigial here (0 order lines,
  * 0 cart lines reference them). So the page must read `skus`, which is what the
  * lookbook query eager-loads anyway.
  */
@@ -53,7 +53,7 @@ class LookbookShopTheSetTest extends TestCase
         $b = $this->createProduct(['name' => 'Scarf', 'sku' => 'SCARF-1']);
         $lookbook = $this->lookbookWith([$a, $b]);
 
-        $expected = [$a->skus->first()->id, $b->skus->first()->id];
+        $expected = [$a->variants->first()->id, $b->variants->first()->id];
 
         $html = $this->get("/lookbooks/{$lookbook->slug}")->assertOk()->getContent();
 

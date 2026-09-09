@@ -34,7 +34,7 @@ class RecommendationTest extends TestCase
         ]);
 
         foreach ($products as $product) {
-            $variant = $product->skus->first();
+            $variant = $product->variants->first();
             OrderLine::factory()->create([
                 'order_id' => $order->id,
                 'purchasable_type' => $variant->getMorphClass(),
@@ -119,13 +119,13 @@ class RecommendationTest extends TestCase
 
         // Put the source product in the cart.
         $this->postJson('/api/v1/cart', [
-            'sku_id' => $inCart->skus->first()->id,
+            'sku_id' => $inCart->variants->first()->id,
             'quantity' => 1,
         ])->assertSuccessful();
 
         $response = $this->getJson('/api/v1/cart/recommendations')
             ->assertOk()
-            ->assertJsonStructure(['data' => [['id', 'name', 'slug', 'skus' => [['id', 'stock', 'price']]]]]);
+            ->assertJsonStructure(['data' => [['id', 'name', 'slug', 'variants' => [['id', 'stock', 'price']]]]]);
 
         // The product already in the cart must not be recommended back.
         $ids = collect($response->json('data'))->pluck('id');

@@ -5,8 +5,9 @@ namespace Tests\Feature;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Lunar\Core\Models\Asset;
-use Modules\Catalog\Http\Resources\ProductSkuResource;
-use Modules\Catalog\Models\ProductSku;
+use Lunar\Core\Models\ProductVariant;
+use Lunar\Core\Models\TaxClass;
+use Modules\Catalog\Http\Resources\ProductVariantResource;
 use Modules\Catalog\Services\ProductService;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
@@ -18,7 +19,7 @@ use Tests\TestCase;
  *
  * Covers the two halves that have to agree: the SSR gallery (the media view
  * composer scopes it to the selected variant) and the hydration payload
- * (ProductSkuResource resolves ids into the same shape as the product gallery,
+ * (ProductVariantResource resolves ids into the same shape as the product gallery,
  * which is what enhance/product-variant.js swaps in).
  */
 class VariantGalleryTest extends TestCase
@@ -49,10 +50,10 @@ class VariantGalleryTest extends TestCase
         $product = $this->createProduct();
         $ids = $this->makeAssets(2);
 
-        $sku = $product->skus()->first();
+        $sku = $product->variants()->first();
         $sku->update(['images' => $ids]);
 
-        $payload = (new ProductSkuResource($sku))->toArray(request());
+        $payload = (new ProductVariantResource($sku))->toArray(request());
 
         $this->assertCount(2, $payload['images']);
         // The gallery renderer needs these keys; a raw id list would break it.
@@ -70,10 +71,10 @@ class VariantGalleryTest extends TestCase
         // Lead with the LAST asset — the whole point of per-colour sets.
         $reordered = [$ids[2], $ids[0], $ids[1]];
 
-        $sku = $product->skus()->first();
+        $sku = $product->variants()->first();
         $sku->update(['images' => $reordered]);
 
-        $payload = (new ProductSkuResource($sku))->toArray(request());
+        $payload = (new ProductVariantResource($sku))->toArray(request());
 
         // The payload's `id` is the underlying Media id (not the Asset id) —
         // resolve each Asset's Media id in the same order to compare.
@@ -94,10 +95,10 @@ class VariantGalleryTest extends TestCase
         $product = $this->createProduct();
         $this->makeAssets(2);
 
-        $sku = $product->skus()->first();
+        $sku = $product->variants()->first();
         $sku->update(['images' => []]);
 
-        $payload = (new ProductSkuResource($sku))->toArray(request());
+        $payload = (new ProductVariantResource($sku))->toArray(request());
 
         // Empty here is the contract: the storefront then shows state.images.
         $this->assertSame([], $payload['images']);
@@ -107,51 +108,41 @@ class VariantGalleryTest extends TestCase
     {
         $this->seedBaseData();
 
-        $variables = [
-            [
-                'name' => ['en' => 'Color'],
-                'display_type' => 'color',
-                'values' => [
-                    ['name' => ['en' => 'Black'], 'color' => '#000000'],
-                    ['name' => ['en' => 'White'], 'color' => '#ffffff'],
-                ],
-            ],
-        ];
-
+        // Two colours as real option values — the shape the picker resolves
+        // against since the purchasable became Lunar's ProductVariant.
         $product = $this->createProduct([
             'slug' => 'gallery-tee',
-            'variables' => $variables,
-            'variant_indexes' => ['0'],
             'sku' => 'GAL-BLACK',
+            'options' => ['Color' => 'Black'],
         ]);
 
         $ids = $this->makeAssets(2);
 
         // Black leads with the first asset, White with the second.
-        $product->skus()->first()->update(['images' => [$ids[0]]]);
+        $product->variants()->first()->update(['images' => [$ids[0]]]);
 
-        ProductSku::create([
+        $white = ProductVariant::create([
             'product_id' => $product->id,
             'sku' => 'GAL-WHITE',
-            'variants' => ['1'],
-            'quantity' => 5,
-            'price' => 1999,
             'images' => [$ids[1]],
-            'is_default' => false,
-            'status' => 'published',
+            'tax_class_id' => TaxClass::getDefault()?->id,
+            'enabled' => true,
+        ]);
+        $white->values()->syncWithoutDetaching([
+            $this->optionValue($product, 'Color', 'White')->id,
         ]);
 
         $service = app(ProductService::class);
         $fresh = $service->findBySlug('gallery-tee');
 
-        $black = $service->resolveSelectedVariant($fresh, ['Color' => 'Black']);
-        $white = $service->resolveSelectedVariant($fresh, ['Color' => 'White']);
+        $blackPick = $service->resolveSelectedVariant($fresh, ['Color' => 'Black']);
+        $whitePick = $service->resolveSelectedVariant($fresh, ['Color' => 'White']);
 
-        $this->assertSame('GAL-BLACK', $black->sku);
-        $this->assertSame('GAL-WHITE', $white->sku);
+        $this->assertSame('GAL-BLACK', $blackPick->sku);
+        $this->assertSame('GAL-WHITE', $whitePick->sku);
         $this->assertNotSame(
-            $black->images,
-            $white->images,
+            $blackPick->images,
+            $whitePick->images,
             'each colour must own a distinct image set, else the gallery never changes',
         );
     }
@@ -169,15 +160,12 @@ class VariantGalleryTest extends TestCase
         $ids = $this->makeAssets(2);
 
         foreach (range(1, 4) as $i) {
-            ProductSku::create([
+            ProductVariant::create([
                 'product_id' => $product->id,
                 'sku' => 'NP-'.$i,
-                'variants' => [(string) $i],
-                'quantity' => 3,
-                'price' => 1999,
                 'images' => $ids,
-                'is_default' => false,
-                'status' => 'published',
+                'tax_class_id' => TaxClass::getDefault()?->id,
+                'enabled' => true,
             ]);
         }
 
@@ -186,8 +174,8 @@ class VariantGalleryTest extends TestCase
         \DB::enableQueryLog();
         \DB::flushQueryLog();
 
-        foreach ($fresh->skus as $sku) {
-            (new ProductSkuResource($sku))->toArray(request());
+        foreach ($fresh->variants as $sku) {
+            (new ProductVariantResource($sku))->toArray(request());
         }
 
         $assetQueries = collect(\DB::getQueryLog())
@@ -224,15 +212,12 @@ class VariantGalleryTest extends TestCase
 
             // Several SKUs each, so an N+1 would be unmistakable.
             foreach (range(1, 4) as $i) {
-                ProductSku::create([
+                ProductVariant::create([
                     'product_id' => $product->id,
                     'sku' => "BULK-{$p}-{$i}",
-                    'variants' => [(string) $i],
-                    'quantity' => 5,
-                    'price' => 1999,
                     'images' => $ids,
-                    'is_default' => false,
-                    'status' => 'published',
+                    'tax_class_id' => TaxClass::getDefault()?->id,
+                    'enabled' => true,
                 ]);
             }
         }

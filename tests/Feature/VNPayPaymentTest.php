@@ -36,7 +36,7 @@ class VNPayPaymentTest extends TestCase
     private function placeVNPayOrder(): Order
     {
         $product = $this->createProduct(['price' => 5000]);
-        CartSession::add($product->skus->first(), 1);
+        CartSession::add($product->variants->first(), 1);
         $cart = CartSession::current();
         // Direct cart manipulation (bypassing CheckoutService) → Lunar requires a
         // postcode for order creation; the real flow defaults it in setAddresses.

@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Artisan;
 use Lunar\Core\Facades\CartSession;
 use Lunar\Core\Facades\ShippingManifest;
 use Lunar\Core\Models\Order;
-use Modules\Catalog\Models\ProductSku;
+use Lunar\Core\Models\ProductVariant;
 use Modules\Checkout\Services\CheckoutService;
 use Modules\Core\Support\Settings;
 use Modules\Inventory\Services\InventoryService;
@@ -23,13 +23,13 @@ class InventorySettingsTest extends TestCase
 {
     use CreatesStorefrontData;
 
-    /** @return array{0: Order, 1: ProductSku} */
+    /** @return array{0: Order, 1: ProductVariant} */
     private function unpaidGatewayOrder(int $ageMinutes): array
     {
         $product = $this->createProduct(['price' => 5000]);
-        $product->skus->first()->update(['quantity' => 5]);
+        $this->setStock($product->variants->first(), 5);
 
-        CartSession::add($product->skus->first(), 2);
+        CartSession::add($product->variants->first(), 2);
         $cart = CartSession::current();
         $address = $this->shippingPayload(['postcode' => '00000']);
         $cart->setShippingAddress($address);
@@ -40,7 +40,7 @@ class InventorySettingsTest extends TestCase
         $order = app(CheckoutService::class)->placeOrder('vnpay');
         Order::whereKey($order->id)->update(['created_at' => now()->subMinutes($ageMinutes)]);
 
-        return [$order, $product->skus->first()];
+        return [$order, $product->variants->first()];
     }
 
     public function test_the_saved_setting_decides_when_stock_comes_back(): void

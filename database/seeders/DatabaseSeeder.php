@@ -9,7 +9,7 @@ use Modules\Catalog\Database\Seeders\Demo50ProductsSeeder;
 use Modules\Catalog\Database\Seeders\DemoOptionsSeeder;
 use Modules\Catalog\Database\Seeders\DemoReviewSeeder;
 use Modules\Catalog\Database\Seeders\MultiSizeProductsSeeder;
-use Modules\Catalog\Database\Seeders\ProductSkuMatrixSeeder;
+use Modules\Catalog\Database\Seeders\ProductVariantMatrixSeeder;
 use Modules\Catalog\Database\Seeders\SizeIntelligenceDemoSeeder;
 use Modules\Content\Database\Seeders\CmsDemoSeeder;
 use Modules\Content\Database\Seeders\FooterMenuSeeder;
@@ -36,9 +36,9 @@ class DatabaseSeeder extends Seeder
             DemoOptionsSeeder::class,         // ensure size/color assigned to base variants
             MultiSizeProductsSeeder::class,   // products with full S/M/L/XL run + dimensions (recommender demo)
             SizeIntelligenceDemoSeeder::class, // variant dimensions + materials (size chart/recommender)
-            ProductSkuMatrixSeeder::class,    // colour x size SKU matrix + `variables` blob (storefront picker/stock/price)
+            ProductVariantMatrixSeeder::class, // colour x size variant matrix (storefront picker/stock/price)
             DemoReviewSeeder::class,          // ratings + a moderation queue
-            StockHistorySeeder::class,        // stock ledger movements (needs the SKUs above)
+            StockHistorySeeder::class,        // stock ledger movements (needs the variants above)
             DemoCouponSeeder::class,          // SAVE10 coupon
             DemoPromotionSeeder::class,       // flash sale, buy-2, shirt+pants combo, membership tiers
             PromotionShowcaseSeeder::class,   // wires promotions onto real demo products (visible badges)

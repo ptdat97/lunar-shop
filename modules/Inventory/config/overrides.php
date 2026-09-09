@@ -1,24 +1,25 @@
 <?php
 
-use Lunar\Core\Pipelines\Order\Creation\CleanUpOrderLines;
-use Lunar\Core\Pipelines\Order\Creation\CreateOrderAddresses;
-use Lunar\Core\Pipelines\Order\Creation\CreateOrderLines;
-use Lunar\Core\Pipelines\Order\Creation\CreateShippingLine;
-use Lunar\Core\Pipelines\Order\Creation\FillOrderFromCart;
-use Lunar\Core\Pipelines\Order\Creation\MapDiscountBreakdown;
-use Modules\Inventory\Pipelines\DecrementStock;
+use Lunar\Core\Validation\Cart\ValidateCartForOrderCreation;
+use Modules\Inventory\Validation\CartStockAtOrderCreation;
 
+/**
+ * Module-local overrides for Lunar's `lunar.cart` config.
+ *
+ * Kept here (not in config/lunar/cart.php) so `vendor:publish --tag=lunar
+ * --force` can never wipe them — InventoryServiceProvider re-applies them at
+ * boot. Only the key we change is listed.
+ *
+ * NOTE: `validators` is a LIST, so LunarConfigOverride replaces it wholesale.
+ * Lunar's own entry is restated first. If Lunar adds a validator to this hook,
+ * add it here too.
+ */
 return [
-    'pipelines' => [
-        'creation' => [
-            FillOrderFromCart::class,
-            CreateOrderLines::class,
-            CreateOrderAddresses::class,
-            CreateShippingLine::class,
-            CleanUpOrderLines::class,
-            MapDiscountBreakdown::class,
-            // Ours: reserve stock once the order + lines exist.
-            DecrementStock::class,
+    'validators' => [
+        'order_create' => [
+            ValidateCartForOrderCreation::class,
+            // Ours: the stock a line was added with may be gone by checkout.
+            CartStockAtOrderCreation::class,
         ],
     ],
 ];

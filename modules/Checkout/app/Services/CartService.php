@@ -9,7 +9,7 @@ use Lunar\Core\Models\Cart;
 use Lunar\Core\Models\CartLine;
 use Lunar\Core\Models\Discount;
 use Lunar\Core\Models\Product;
-use Modules\Catalog\Models\ProductSku;
+use Lunar\Core\Models\ProductVariant;
 
 /**
  * Thin wrapper over Lunar's CartSession (inherited — not reimplemented).
@@ -56,8 +56,8 @@ class CartService
     protected function pruneMissingLines(Cart $cart): bool
     {
         $missing = $cart->lines()
-            ->where('purchasable_type', (new ProductSku)->getMorphClass())
-            ->whereNotIn('purchasable_id', ProductSku::query()->select('id'))
+            ->where('purchasable_type', (new ProductVariant)->getMorphClass())
+            ->whereNotIn('purchasable_id', ProductVariant::query()->select('id'))
             ->pluck('id');
 
         if ($missing->isEmpty()) {
@@ -79,7 +79,7 @@ class CartService
     public function products(): Collection
     {
         $cart = $this->current()->loadMissing(
-            'lines.purchasable.product.skus',
+            'lines.purchasable.product.variants',
             'lines.purchasable.product.thumbnail',
         );
 
@@ -102,7 +102,7 @@ class CartService
      */
     public function add(int $skuId, int $quantity = 1): Cart
     {
-        $sku = ProductSku::findOrFail($skuId);
+        $sku = ProductVariant::findOrFail($skuId);
         $cart = $this->mutableCart();
 
         // A disabled SKU must never enter the cart, no matter how the request
@@ -128,7 +128,7 @@ class CartService
 
         // This path had no guard at all: PATCH quantity=999 on a SKU stocked
         // at 3 was accepted, and only blew up at checkout.
-        if ($line && $line->purchasable instanceof ProductSku) {
+        if ($line && $line->purchasable instanceof ProductVariant) {
             $this->guardStatus($line->purchasable);
             $this->guardStock($line->purchasable, $quantity);
         }
@@ -142,7 +142,7 @@ class CartService
     protected function quantityInCart(Cart $cart, int $skuId): int
     {
         return (int) $cart->lines
-            ->where('purchasable_type', (new ProductSku)->getMorphClass())
+            ->where('purchasable_type', (new ProductVariant)->getMorphClass())
             ->where('purchasable_id', $skuId)
             ->sum('quantity');
     }
@@ -157,14 +157,14 @@ class CartService
      *
      * @throws ValidationException
      */
-    protected function guardStock(ProductSku $sku, int $quantity): void
+    protected function guardStock(ProductVariant $sku, int $quantity): void
     {
         if ($quantity < 1) {
             return;
         }
 
-        $fresh = ProductSku::query()
-            ->select(['quantity', 'committed', 'status'])
+        $fresh = ProductVariant::query()
+            ->select(['id', 'stock_on_hand', 'stock_committed', 'stock_available', 'selling_policy', 'backorder', 'enabled'])
             ->whereKey($sku->getKey())
             ->first();
 
@@ -173,7 +173,7 @@ class CartService
         // `quantity` here lets them into a second cart, and the rejection then
         // surfaces from Lunar's own cart validator as an unhandled CartException
         // (a 500) instead of this 422.
-        $available = $fresh && $fresh->status !== 'disabled' ? $fresh->getTotalInventory() : 0;
+        $available = $fresh && $fresh->enabled ? $fresh->getTotalInventory() : 0;
 
         if ($quantity > $available) {
             throw ValidationException::withMessages([
@@ -187,7 +187,7 @@ class CartService
      * the storefront hides such SKUs, but hiding a button is not a guard
      * (§17.4): a direct API call must still be rejected here.
      *
-     * Delegates to ProductSku::isPurchasable(), the contract method Lunar 1.5
+     * Delegates to ProductVariant::isPurchasable(), the contract method Lunar 1.5
      * added to Purchasable, so this guard and Lunar's own CartLineAvailability
      * validator can never disagree. It also widens what used to be checked: the
      * old inline test only read the SKU's own `status`, so a SKU whose parent
@@ -195,12 +195,12 @@ class CartService
      *
      * @throws ValidationException
      */
-    protected function guardStatus(ProductSku $sku): void
+    protected function guardStatus(ProductVariant $sku): void
     {
         // Re-read fresh: on updateLine the SKU comes off the cached cart line,
         // which can be stale if the admin disabled it — or retired its product —
         // meanwhile. A soft-deleted SKU resolves to null here and is refused too.
-        $fresh = ProductSku::with('product')->find($sku->getKey());
+        $fresh = ProductVariant::with('product')->find($sku->getKey());
 
         if (! $fresh || ! $fresh->isPurchasable()) {
             throw ValidationException::withMessages([

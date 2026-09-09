@@ -17,7 +17,7 @@ use Modules\Order\Support\OrderStatus;
  * CollectionStrategy fallback. Cheap: one aggregate query, and the outer
  * RecommendationService caches the resolved ids.
  *
- * order_lines.purchasable is a ProductSku → sku.product_id gives the product;
+ * order_lines.purchasable is a ProductVariant → sku.product_id gives the product;
  * we join through SKUs so co-purchase is counted at product level.
  */
 class CoPurchaseStrategy implements RecommendationStrategy
@@ -37,12 +37,12 @@ class CoPurchaseStrategy implements RecommendationStrategy
     {
         // Orders (paid) that contain the source product.
         $orderIds = DB::table('lunar_order_lines as ol')
-            ->join('lunar_product_skus as ps', function ($join) {
-                $join->on('ps.id', '=', 'ol.purchasable_id')
-                    ->where('ol.purchasable_type', '=', 'product_sku');
+            ->join('lunar_product_variants as pv', function ($join) {
+                $join->on('pv.id', '=', 'ol.purchasable_id')
+                    ->where('ol.purchasable_type', '=', 'product_variant');
             })
             ->join('lunar_orders as o', 'o.id', '=', 'ol.order_id')
-            ->where('ps.product_id', $product->id)
+            ->where('pv.product_id', $product->id)
             ->whereRaw($this->paidOrderSql())
             ->distinct()
             ->pluck('ol.order_id');
@@ -53,16 +53,16 @@ class CoPurchaseStrategy implements RecommendationStrategy
 
         // Other products in those orders, ranked by how often they co-occur.
         $productIds = DB::table('lunar_order_lines as ol')
-            ->join('lunar_product_skus as ps', function ($join) {
-                $join->on('ps.id', '=', 'ol.purchasable_id')
-                    ->where('ol.purchasable_type', '=', 'product_sku');
+            ->join('lunar_product_variants as pv', function ($join) {
+                $join->on('pv.id', '=', 'ol.purchasable_id')
+                    ->where('ol.purchasable_type', '=', 'product_variant');
             })
             ->whereIn('ol.order_id', $orderIds)
-            ->where('ps.product_id', '!=', $product->id)
-            ->groupBy('ps.product_id')
+            ->where('pv.product_id', '!=', $product->id)
+            ->groupBy('pv.product_id')
             ->orderByRaw('COUNT(DISTINCT ol.order_id) DESC')
             ->limit($limit)
-            ->pluck('ps.product_id');
+            ->pluck('pv.product_id');
 
         if ($productIds->isEmpty()) {
             return collect();

@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Lunar\Core\Models\Order;
 use Lunar\Core\Models\Product;
-use Modules\Catalog\Models\ProductSku;
+use Lunar\Core\Models\ProductVariant;
 use Modules\Core\Support\Settings;
 use Modules\Order\Support\OrderStatus;
 
@@ -21,24 +21,24 @@ class InventoryService
      */
     public function availabilityFor(Product $product): array
     {
-        $skus = $product->relationLoaded('skus')
-            ? $product->skus
-            : $product->skus()->get();
+        $variants = $product->relationLoaded('variants')
+            ? $product->variants
+            : $product->variants()->get();
 
         return [
-            'in_stock' => $skus->contains(fn (ProductSku $s) => $s->canBeFulfilledAtQuantity(1)),
-            'total_quantity' => (int) $skus->sum(fn (ProductSku $s) => max(0, (int) $s->getTotalInventory())),
+            'in_stock' => $variants->contains(fn (ProductVariant $s) => $s->canBeFulfilledAtQuantity(1)),
+            'total_quantity' => (int) $variants->sum(fn (ProductVariant $s) => max(0, (int) $s->getTotalInventory())),
         ];
     }
 
     /**
-     * Get stock level for a SKU.
+     * Get on-hand stock for a variant.
      */
-    public function stock(int $skuId): int
+    public function stock(int $variantId): int
     {
-        $sku = ProductSku::find($skuId);
+        $variant = ProductVariant::find($variantId);
 
-        return $sku?->quantity ?? 0;
+        return (int) ($variant?->stock_on_hand ?? 0);
     }
 
     /** Orders paid this long ago but still undispatched are flagged as stale. */
@@ -48,9 +48,9 @@ class InventoryService
      * Units physically in the stockroom, including those already sold but not
      * yet dispatched. This is the number a stock-take should match.
      */
-    public function onHand(int $skuId): int
+    public function onHand(int $variantId): int
     {
-        return $this->stock($skuId);
+        return $this->stock($variantId);
     }
 
     /**
@@ -68,7 +68,10 @@ class InventoryService
         $days ??= self::STALE_COMMITMENT_DAYS;
 
         return OrderStatus::scopePaid(Order::query())
-            ->whereNull('dispatched_at')
+            // "Not dispatched" is the fulfilment rollup now, not an order
+            // column: an order can ship in several parcels, which one
+            // `dispatched_at` timestamp could never describe honestly.
+            ->whereNotIn('fulfilment_status', ['fulfilled', 'returned'])
             ->whereNull('stock_released_at')
             ->where('placed_at', '<=', now()->subDays($days))
             ->orderBy('placed_at')
@@ -78,34 +81,34 @@ class InventoryService
     /**
      * Units sold but not yet dispatched — reserved, still on the shelf.
      */
-    public function committed(int $skuId): int
+    public function committed(int $variantId): int
     {
-        return (int) (ProductSku::find($skuId)?->committed ?? 0);
+        return (int) (ProductVariant::find($variantId)?->stock_committed ?? 0);
     }
 
     /**
-     * Total inventory available to purchase for a SKU (its on-hand quantity).
+     * Total inventory available to purchase for a variant.
      */
-    public function available(int $skuId): int
+    public function available(int $variantId): int
     {
-        $sku = ProductSku::find($skuId);
+        $variant = ProductVariant::find($variantId);
 
-        return $sku?->getTotalInventory() ?? 0;
+        return $variant?->getTotalInventory() ?? 0;
     }
 
     /**
-     * Check if a SKU can be purchased at the requested quantity. This is the
+     * Check if a variant can be purchased at the requested quantity. This is the
      * oversell gate the storefront should consult before adding to cart.
      */
-    public function inStock(int $skuId, int $quantity = 1): bool
+    public function inStock(int $variantId, int $quantity = 1): bool
     {
-        $sku = ProductSku::find($skuId);
+        $variant = ProductVariant::find($variantId);
 
-        return $sku?->canBeFulfilledAtQuantity($quantity) ?? false;
+        return $variant?->canBeFulfilledAtQuantity($quantity) ?? false;
     }
 
     /**
-     * Whether a SKU can still be bought. Matches the storefront's
+     * Whether a variant can still be bought. Matches the storefront's
      * "in stock / Hết hàng" display and drives back-in-stock eligibility
      * (a sold-out SKU should let a shopper subscribe).
      *
@@ -114,9 +117,9 @@ class InventoryService
      * showing them as available invites an oversell the guard then rejects at
      * checkout — the worst possible moment to find out.
      */
-    public function hasPhysicalStock(int $skuId): bool
+    public function hasPhysicalStock(int $variantId): bool
     {
-        return $this->available($skuId) > 0;
+        return $this->available($variantId) > 0;
     }
 
     /** Default "low stock" threshold when the admin hasn't set one. */
@@ -166,9 +169,9 @@ class InventoryService
         $threshold ??= $this->lowStockThreshold();
 
         // Low on SELLABLE stock — that is what determines whether the shop can
-        // keep taking orders. A SKU with a full shelf but everything committed
+        // keep taking orders. A variant with a full shelf but everything committed
         // needs restocking just as urgently as an empty one.
-        return ProductSku::whereRaw('quantity - committed < ?', [$threshold])
+        return ProductVariant::where('stock_available', '<', $threshold)
             ->whereRaw('quantity - committed > 0')
             ->with('product')
             ->get();
@@ -179,7 +182,7 @@ class InventoryService
      */
     public function outOfStock()
     {
-        return ProductSku::whereRaw('quantity - committed <= 0')
+        return ProductVariant::where('stock_available', '<=', 0)
             ->with('product')
             ->get();
     }
@@ -189,7 +192,7 @@ class InventoryService
     /** All SKUs track stock. */
     protected function tracked(): Builder
     {
-        return ProductSku::query();
+        return ProductVariant::query();
     }
 
     /** Count of tracked SKUs. */
@@ -227,8 +230,8 @@ class InventoryService
     public function inventoryValueMinor(): int
     {
         return (int) $this->tracked()
-            ->where('quantity', '>', 0)
-            ->selectRaw('COALESCE(SUM(quantity * cost_price), 0) as value')
+            ->where('stock_on_hand', '>', 0)
+            ->selectRaw('COALESCE(SUM(stock_on_hand * cost_price), 0) as value')
             ->value('value');
     }
 }

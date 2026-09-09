@@ -63,9 +63,9 @@ Mỗi pha để lại app chạy được và test xanh. **Không gộp pha.**
 | # | Pha | Kết quả kiểm chứng được |
 |---|---|---|
 | A | ✅ **Xong** — dựng lại được môi trường dev, sửa lỗi hai không gian id | xem §5 |
-| B | Chuyển 648 SKU → variant (dữ liệu) | Mỗi SKU có đúng một variant, ánh xạ id ghi lại được |
-| C | Chuyển sổ kho sang `StockLevel` / `StockMovement` | `stock_on_hand` khớp `quantity` cũ từng dòng |
-| D | Đổi purchasable trong code | 560 test xanh với `ProductVariant` |
+| B | ✅ **Xong** — chuyển 648 SKU → variant (dữ liệu) | 0 dòng lệch tồn kho; xem §6 |
+| C | ✅ **Xong** (gộp vào B) — tồn kho sang `StockLevel` | `stock_on_hand` khớp `quantity` cũ từng dòng |
+| D | ✅ **Xong** — đổi purchasable trong code | xem §6 |
 | E | Bộ chọn biến thể storefront đọc option value | Trang sản phẩm giữ nguyên hành vi |
 | F | Gỡ `ProductSku`, `SkuBuilderService`, sổ kho cũ | Không còn tham chiếu; bảng cũ drop ở migration riêng |
 
@@ -180,3 +180,117 @@ Phủ bởi `LookbookShopTheSetTest` (có mutation-check).
 - Seeder thôi tạo variant rời (`Demo50ProductsSeeder`, `DemoCatalogSeeder`,
   `MultiSizeProductsSeeder`), thay bằng: ma trận variant sinh từ cùng dữ liệu mà
   `ProductSkuMatrixSeeder` đang dùng để sinh SKU.
+
+
+---
+
+## 6. Nhật ký pha B–D
+
+Chạy trong một lượt: pha B chuyển dữ liệu thì **giá rời khỏi SKU ngay lập tức**,
+nên code phải đi cùng. Không tách được, và điều đó đáng ghi ra vì nó cũng có
+nghĩa là **test suite không nhìn thấy được lỗi này**: DB test dựng từ migration
+trên nền rỗng, không có SKU nào để chuyển, nên migration là no-op và mọi test
+vẫn xanh trong khi site dev đã mất giá. Kiểm bằng site thật, không bằng suite.
+
+### 6.1 Số liệu nghiệm thu
+
+| Kiểm | Kết quả |
+|---|---|
+| SKU → variant | 648 → 648, ánh xạ đầy đủ trong `sku_variant_map` |
+| Tồn kho lệch **từng dòng** | 0 |
+| Tồn kho tổng | 10.216 = 10.216 |
+| Morph đã trỏ lại | prices, cart_lines, order_lines, discountables |
+| Option value mỗi variant | 648/648 có đúng 2 (Color + Size) |
+
+### 6.2 Hai thứ dọn được nhờ đi qua đây
+
+- **12 dòng giá mồ côi** trỏ vào SKU id 1–12 chưa từng tồn tại (bảng SKU bắt đầu
+  từ 13). Rác có sẵn từ trước, do `SkuBuilderService` lưu theo kiểu xoá-và-tạo-lại
+  nên id đổi mỗi lần lưu sản phẩm. Vô hại khi không ai phân giải chúng — nhưng
+  variant tái sử dụng id từ 1, nên nó sắp hết vô hại.
+- **66 variant demo** do seeder tạo song song, giờ nằm cùng sản phẩm với variant
+  thật. Xoá, kèm giá và tồn kho của chúng; migration từ chối xoá bất cứ dòng nào
+  có đơn hàng hay giỏ trỏ tới.
+
+### 6.3 Cái giữ lại có chủ đích
+
+**`images` vẫn là danh sách Asset id**, thêm làm cột trên `lunar_product_variants`
+chứ không chuyển thành media của variant. 1.945 tham chiếu trong catalog phân giải
+về **162 asset** — biến chúng thành media riêng sẽ nhân bản cùng một file mười hai
+lần và vứt bỏ đúng cái thư viện dùng chung mà module Assets sinh ra để làm.
+
+**Vị trí trên trục vẫn là số thứ tự.** Bộ chọn của storefront (SSR lẫn
+`enhance/product-variant.js`) định địa chỉ variant theo vị trí: trục 0 giá trị 1 →
+`"1-0"`. Trước đây vị trí được LƯU (`products.variables` + `ProductSku.variants`);
+nay nó được SUY RA trong `Modules\Catalog\Support\VariantAxes` từ thứ tự option
+của sản phẩm. Cùng một hợp đồng, một nguồn sự thật, và **client không phải sửa một
+dòng nào** — JS không bao giờ biết có id tồn tại.
+
+### 6.4 Code xoá được
+
+Lunar 2.0 nối sẵn toàn bộ tồn kho vào vòng đời đơn hàng:
+
+```
+OrderPlaced / OrderCancelled  → SyncStockForOrder            (commit / release)
+FulfilmentCreated             → AllocateStockForFulfilment
+chuyển trạng thái fulfilment  → ApplyStockForFulfilmentTransition
+                                (`shipped` lấy hàng khỏi kệ, `returned` trả lại)
+```
+
+Nên những thứ sau **biến mất khỏi `modules/`**, không phải viết lại:
+
+| Xoá | Bản chính chủ |
+|---|---|
+| `ProductSku` (325 dòng) | `Lunar\Core\Models\ProductVariant` |
+| `SkuBuilderService` (390) | `GenerateProductVariants` |
+| `StockLedger` (264) | `RecordStockMovement` + `RecomputeStockRollup` |
+| `StockReleaser` (117), `StockSettler` (87) | các listener ở trên |
+| `DecrementStock` pipeline (67) | `SyncStockForOrder` |
+| `ProductSkuObserver` (53) | `AdjustStock` (+ observer nhỏ cho back-in-stock) |
+| `StockMovement` model + `StockMovementType` enum | của Lunar |
+| `MigrateVariantsToSkus` command | việc đã xong, và nay ngược chiều |
+| `cart-eager-load-overrides.php` | không cần: override đó tồn tại **chỉ vì** `ProductSku` không có quan hệ `values`; `ProductVariant` có |
+
+Ba điểm cải thiện thật, không chỉ là đổi chỗ:
+
+1. `stock_committed` được **suy ra từ sổ đơn hàng** chứ không phải bộ đếm ứng dụng
+   tự cộng trừ — không thể lệch. Đúng cái mà cột `stock_before`/`stock_after` của
+   sổ cũ sinh ra để phát hiện *sau khi đã lệch*.
+2. Huỷ giao và trả hàng đưa tồn kho **quay lại**; sổ cũ chỉ biết đưa đi.
+3. Tồn kho **theo địa điểm**, thứ shop trước đây không có cách nào diễn đạt.
+
+
+### 6.5 Ba bất biến ĐỔI, không phải mất
+
+Hợp nhất không chỉ là đổi chỗ code — ba lời hứa của shop đổi nghĩa. Ghi ra để
+không ai coi là hồi quy:
+
+1. **Hoàn tiền không còn tự động nhập kho lại.** Mô hình cũ gộp hai việc: hoàn
+   tiền bất kỳ là trả hàng về kệ. 2.0 tách tiền khỏi hàng — tồn kho quay lại khi
+   **fulfilment** được đánh dấu `returned`, tức lúc kiện hàng thật sự về. Một đơn
+   đã hoàn tiền mà hàng còn ở chỗ khách **không được** thổi phồng tồn kho.
+2. **Giữ hàng không ghi movement nào.** Sổ cũ ghi một dòng `sale` lúc tạo đơn với
+   `stock_before == stock_after` — một bản ghi *chuyển động* mô tả thứ không hề
+   chuyển động. Sổ của Lunar chỉ chứa chuyển động vật lý, nên
+   `sum(movements) == on_hand` là bất biến chứ không phải nguyện vọng.
+3. **Không còn cái kẹp (clamp) chống nhả hai lần.** `committed` cũ là bộ đếm code
+   tự cộng trừ, nhả hai lần sẽ âm và **bịa ra tồn kho**; phải có clamp. 2.0 TÍNH
+   LẠI committed từ sổ đơn hàng mỗi lần, nên không có bộ đếm nào để nhả hai lần.
+   Kẹp biến mất vì chế độ hỏng biến mất.
+
+Cộng thêm một thứ tự nó hết: **`SkuBuilderService` lưu theo kiểu xoá-và-tạo-lại
+nên id đổi mỗi lần lưu sản phẩm** — nguồn gốc của 12 dòng giá mồ côi ở §6.2, và
+lý do `getIdentifier()` phải dùng chuỗi `sku` thay vì id. `GenerateProductVariants`
+so sánh tổ hợp rồi chỉ thêm/bớt phần chênh, nên id ổn định và cả lớp lỗi đó không
+còn.
+
+### 6.6 Test: xoá cái kiểm nội bộ, giữ cái kiểm lời hứa
+
+Ba file test biến mất cùng code chúng phủ (`SkuBuilderTest`, `StockLedgerTest`,
+`StockCommitmentIntegrityTest`) — chúng gọi thẳng API của service đã xoá, và kiểm
+nội bộ của vendor không phải việc của dự án.
+
+`StockCommitmentTest` thì **giữ, chỉ trỏ sang cơ chế mới**. Uỷ thác một lời hứa
+cho dependency không đồng nghĩa với hết cần lời hứa đó: đây là những gì shop hứa
+với khách, và đúng là thứ sẽ hỏng im lặng ở lần nâng Lunar kế tiếp. Chúng nay
+kiểm **kết quả** đi qua checkout, không kiểm ruột của bên tạo ra kết quả.

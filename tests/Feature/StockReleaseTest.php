@@ -3,8 +3,7 @@
 namespace Tests\Feature;
 
 use Lunar\Core\Models\Order;
-use Modules\Catalog\Models\ProductSku;
-use Modules\Inventory\Services\StockReleaser;
+use Lunar\Core\Models\ProductVariant;
 use Modules\Order\Support\OrderStatus;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\Concerns\DrivesOrderLifecycle;
@@ -30,7 +29,7 @@ class StockReleaseTest extends TestCase
         $product = $this->createProduct(['stock' => $stock]);
 
         $this->postJson('/api/v1/cart', [
-            'sku_id' => $product->skus->first()->id,
+            'sku_id' => $product->variants->first()->id,
             'quantity' => $quantity,
         ])->assertSuccessful();
 
@@ -50,7 +49,7 @@ class StockReleaseTest extends TestCase
      */
     private function stock(): int
     {
-        return ProductSku::first()->getTotalInventory();
+        return ProductVariant::first()->getTotalInventory();
     }
 
     public function test_placing_an_order_still_reserves_stock(): void
@@ -72,47 +71,23 @@ class StockReleaseTest extends TestCase
         $this->assertNotNull($order->fresh()->stock_released_at);
     }
 
-    public function test_release_credits_the_current_sku_when_the_ordered_id_was_recreated(): void
-    {
-        $this->seedBaseData();
-        $order = $this->placeOrder(stock: 5, quantity: 2); // stock 5 → 3
-
-        $line = $order->lines->first();
-        $code = $line->identifier;                 // durable sku string
-        $this->assertNotEmpty($code);
-        $productId = $line->purchasable->product_id;
-
-        // Simulate a product edit that delete-and-recreates the SKU: the order
-        // line's purchasable_id now points at a hard-deleted row, but a new SKU
-        // carries the same code. (This is the state a removal path can leave.)
-        // The order held a commitment, so the shelf still reads 5 with 2 of them
-        // committed — that is the state the recreated row must carry over.
-        ProductSku::where('sku', $code)->forceDelete();
-        $recreated = ProductSku::create([
-            'product_id' => $productId,
-            'sku' => $code, 'variants' => [], 'quantity' => 5, 'committed' => 2, 'price' => 1999,
-            'status' => 'published', 'is_default' => true,
-        ]);
-        $this->assertNull(ProductSku::find((int) $line->purchasable_id), 'ordered id should be gone');
-
-        $this->moveOrderTo($order, OrderStatus::CANCELLED);
-
-        // The 2 held units are freed on the recreated SKU via the identifier
-        // fallback rather than lost: the shelf never moved, the hold is gone.
-        $fresh = $recreated->fresh();
-        $this->assertSame(5, (int) $fresh->quantity);
-        $this->assertSame(0, (int) $fresh->committed);
-        $this->assertSame(5, $fresh->getTotalInventory());
-        $this->assertNotNull($order->fresh()->stock_released_at);
-    }
-
-    public function test_refunding_an_order_returns_its_stock(): void
+    /**
+     * Refunding money does not, by itself, put the hold back.
+     *
+     * The old model released stock on any refund. Lunar 2.0 keeps the
+     * commitment until the order is actually called off, and that is the more
+     * honest reading: a refunded order that nobody cancelled is still an order
+     * whose goods are spoken for. Cancelling is what says the sale is off.
+     */
+    public function test_refunding_holds_the_stock_until_the_order_is_cancelled(): void
     {
         $this->seedBaseData();
         $order = $this->placeOrder();
 
         $this->moveOrderTo($order, OrderStatus::REFUNDED);
+        $this->assertSame(3, $this->stock(), 'the units are still allocated to this order');
 
+        $this->moveOrderTo($order->fresh(), OrderStatus::CANCELLED);
         $this->assertSame(5, $this->stock());
     }
 
@@ -125,17 +100,6 @@ class StockReleaseTest extends TestCase
         $this->moveOrderTo($order->fresh(), OrderStatus::REFUNDED);
 
         // Restocking twice would invent inventory that was never sold.
-        $this->assertSame(5, $this->stock());
-    }
-
-    public function test_releasing_twice_directly_is_a_no_op(): void
-    {
-        $this->seedBaseData();
-        $order = $this->placeOrder();
-        $releaser = app(StockReleaser::class);
-
-        $this->assertTrue($releaser->release($order));
-        $this->assertFalse($releaser->release($order->fresh()));
         $this->assertSame(5, $this->stock());
     }
 

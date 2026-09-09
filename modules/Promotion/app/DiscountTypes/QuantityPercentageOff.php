@@ -10,9 +10,9 @@ use Lunar\Core\DiscountTypes\PercentageOff;
 use Lunar\Core\Models\Cart;
 use Lunar\Core\Models\CartLine;
 use Lunar\Core\Models\Product;
+use Lunar\Core\Models\ProductVariant;
 use Lunar\Core\ValueObjects\Cart\DiscountBreakdown;
 use Lunar\Core\ValueObjects\Cart\DiscountBreakdownLine;
-use Modules\Catalog\Models\ProductSku;
 
 /**
  * "Buy N or more, get X% off" — an AUTOMATIC quantity-threshold percentage
@@ -129,7 +129,7 @@ class QuantityPercentageOff extends AbstractDiscountType
                 return true;
             }
 
-            if ($item->discountable_type == (new ProductSku)->getMorphClass()
+            if ($item->discountable_type == (new ProductVariant)->getMorphClass()
                 && $item->discountable_id == $line->purchasable->id) {
                 return true;
             }

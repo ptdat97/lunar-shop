@@ -39,19 +39,16 @@ class SearchSizeTest extends TestCase
 
     public function test_size_filter_matches_values_on_the_size_axis_only(): void
     {
+        // A decoy whose COLOUR is "M" — filtering the axis and the value
+        // independently would match this for `size=M`.
         $this->createProduct([
             'name' => 'Size S, colour M',
-            'variables' => [
-                ['name' => ['en' => 'Size'], 'values' => [['name' => ['en' => 'S']]]],
-                ['name' => ['en' => 'Color'], 'values' => [['name' => ['en' => 'M']]]],
-            ],
+            'options' => ['Size' => 'S', 'Color' => 'M'],
         ]);
+
         $matching = $this->createProduct([
             'name' => 'Size M',
-            'variables' => [
-                ['name' => ['en' => 'Size'], 'values' => [['name' => ['en' => 'M']]]],
-                ['name' => ['en' => 'Color'], 'values' => [['name' => ['en' => 'Black']]]],
-            ],
+            'options' => ['Size' => 'M', 'Color' => 'Black'],
         ]);
 
         $result = app(SearchEngine::class)->search(

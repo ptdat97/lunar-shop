@@ -143,7 +143,7 @@ class RecommendationService
             // Full product-card relation set (price + url + promotion eligibility)
             // so recommendation grids render flat, not N+1.
             ->with([
-                'skus' => fn ($skus) => $skus->where('status', 'published')->with('prices'),
+                'variants' => fn ($variants) => $variants->where('enabled', true)->with('prices')->chaperone(),
                 'brand', 'defaultUrl', 'collections', 'media',
             ])
             ->get();

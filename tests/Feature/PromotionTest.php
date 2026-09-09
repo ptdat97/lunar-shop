@@ -105,7 +105,7 @@ class PromotionTest extends TestCase
         $product = $this->createProduct(['price' => 5000]);
 
         $cartService = app(CartService::class);
-        $cartService->add($product->skus->first()->id, 1);
+        $cartService->add($product->variants->first()->id, 1);
 
         // Apply the working SAVE10 (10% of 50.00 = 5.00 off).
         $cart = $cartService->applyCoupon('SAVE10');

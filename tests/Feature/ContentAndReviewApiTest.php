@@ -96,7 +96,6 @@ class ContentAndReviewApiTest extends TestCase
 
         Banner::create([
             'title' => 'Summer sale',
-            'position' => 'home-hero',
             'image' => 'banners/summer.jpg',
             'button_text' => 'Shop',
             'button_url' => '/collections/sale',

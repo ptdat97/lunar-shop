@@ -10,18 +10,16 @@ use Lunar\Core\Models\Collection as LunarCollection;
 use Lunar\Core\Models\Product;
 use Lunar\Core\Models\ProductOption;
 use Lunar\Core\Models\ProductOptionValue;
-use Modules\Catalog\Console\Commands\MigrateVariantsToSkus;
+use Lunar\Core\Models\ProductVariant;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Drivers\DatabaseSearchEngine;
 use Modules\Catalog\Models\ProductMaterial;
-use Modules\Catalog\Models\ProductSku;
 use Modules\Catalog\Models\SizeChart;
 use Modules\Catalog\Services\PricingService;
 use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Services\RecommendationService;
 use Modules\Catalog\Services\ReviewService;
 use Modules\Core\Casts\FilledTranslations;
-use Modules\Core\Support\LunarConfigOverride;
 use Modules\Core\Support\Settings;
 
 class CatalogServiceProvider extends ServiceProvider
@@ -68,12 +66,6 @@ class CatalogServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Re-apply the cart eager-load override on top of Lunar's published
-        // config/lunar/cart.php — survives `lunar:install` / `vendor:publish
-        // --force`. Drops `lines.purchasable.values`, which ProductSku (our
-        // purchasable) does not define. See config/cart-eager-load-overrides.php.
-        LunarConfigOverride::applyFrom('lunar.cart', __DIR__.'/../../config/cart-eager-load-overrides.php');
-
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'catalog-admin');
 
@@ -81,14 +73,9 @@ class CatalogServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../../routes/api.php');
 
         $this->registerSizeRelationships();
-        $this->registerSkuRelationships();
+        $this->registerVariantExtensions();
         $this->composeThemePrices();
 
-        if ($this->app->runningInConsole()) {
-            $this->commands([
-                MigrateVariantsToSkus::class,
-            ]);
-        }
     }
 
     /**
@@ -154,39 +141,34 @@ class CatalogServiceProvider extends ServiceProvider
      *    (Lunar snake-cases model basenames for its own morph aliases, so this
      *    matches that convention). Relation::morphMap MERGES, so Lunar's own
      *    aliases are preserved.
-     *  - Product::skus  hasMany the SKU rows for a product.
      *
      * Registered without touching the vendor Product class (plan principle #1).
      */
-    protected function registerSkuRelationships(): void
+    protected function registerVariantExtensions(): void
     {
-        Relation::morphMap([
-            'product_sku' => ProductSku::class,
-        ]);
+        // `images` is the shop's own column on Lunar's variant: a list of Media
+        // Library Asset ids, not media the variant owns. The catalogue holds
+        // 1,945 references resolving to 162 distinct assets, so owning them
+        // would copy the same files twelve times over and defeat the shared
+        // library the Assets module exists for. `addCasts()` is the seam 2.0
+        // leaves for exactly this — see docs/guides/migrate-skus-to-variants.md.
+        ProductVariant::addCasts(['images' => 'array']);
 
-        // Cast the free-form `variables` JSON on every Product without
-        // subclassing the vendor model (Lunar exposes no cast extension point).
-        // mergeCasts is per-instance and idempotent. Apply it both on read
-        // (retrieved) AND before write (saving) — without the write-side cast an
-        // array assigned to `variables` is not JSON-encoded and silently drops.
+        // `products.variables` is the shop's old free-form axis definition. It is
+        // being retired in favour of the shared ProductOption links the variants
+        // now carry, but the storefront picker still reads it until that swap
+        // lands, and an uncast JSON column would silently hand back a string.
         $castVariables = fn (Product $product) => $product->mergeCasts(['variables' => 'array']);
         Product::retrieved($castVariables);
         Product::saving($castVariables);
 
-        // chaperone(): every loaded SKU gets its `product` relation pointed back
-        // at the parent that loaded it. Without it, anything a SKU reads off its
-        // product — optionPairs() (the `variables` blob) and ProductSkuResource's
-        // image ids (the product's media) — lazy-loads that product once per SKU,
-        // so a single product page or a 24-card grid fires dozens of duplicate
-        // `lunar_products` + `media` queries. Set here, at the one place the
-        // relation is defined, so every eager-load path is covered rather than
-        // each caller having to remember.
-        Product::resolveRelationUsing(
-            'skus',
-            fn (Product $product) => $product->hasMany(ProductSku::class, 'product_id')
-                ->orderBy('position')
-                ->chaperone(),
-        );
+        // NOT a `resolveRelationUsing('variants', …)` override: Laravel only
+        // consults a dynamic relation when the model has no such method, and
+        // Lunar's Product defines `variants()` — so an override there is
+        // silently ignored, which is exactly how the chaperone below went
+        // missing once already. Lunar 2.0 also removed model replacement, so the
+        // relation cannot be redefined at all. Callers add `->chaperone()` in
+        // their eager-load closure instead; see ProductService.
     }
 
     /**

@@ -39,7 +39,7 @@ class MoMoPaymentTest extends TestCase
     private function placeMoMoOrder(): Order
     {
         $product = $this->createProduct(['price' => 5000]);
-        CartSession::add($product->skus->first(), 1);
+        CartSession::add($product->variants->first(), 1);
         $cart = CartSession::current();
         $address = $this->shippingPayload(['postcode' => '00000']);
         $cart->setShippingAddress($address);

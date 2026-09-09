@@ -206,7 +206,7 @@ class AssetsServiceProvider extends ServiceProvider
 
             if ($skuImageIds->isNotEmpty()) {
                 // Resolve through the ASSET ids, exactly as
-                // ProductSkuResource::galleryImages() does for the hydration
+                // ProductVariantResource::galleryImages() does for the hydration
                 // payload. Looking them up in $product->media instead — which is
                 // what this used to do — only found pictures that also happened to
                 // hang off the product, so a photo picked from the library for one

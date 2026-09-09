@@ -6,6 +6,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
+use Lunar\Core\Exceptions\Carts\CartException;
 use Lunar\Core\Facades\Payments;
 use Lunar\Core\Facades\ShippingManifest;
 use Lunar\Core\Models\Cart;
@@ -252,12 +253,20 @@ class CheckoutService
         // "has not paid the gateway yet" — both are payment-pending. The payment
         // type is what separates them (see OrderStatus::isPaidOnDelivery), so an
         // order without one would be unclassifiable.
-        $authorize = Payments::driver(
-            config("lunar.payments.types.{$paymentType}.driver", 'offline')
-        )->cart($cart)->withData([
-            'authorized' => config("lunar.payments.types.{$paymentType}.authorized"),
-            'meta' => ['payment_type' => $paymentType],
-        ])->authorize();
+        // Lunar refuses an uncreatable cart by throwing, which would surface as
+        // a 500 — the worst possible answer to "somebody bought the last one
+        // while you were deciding". Every reason it throws for is something the
+        // shopper can act on, so it is a 422 with the reason kept.
+        try {
+            $authorize = Payments::driver(
+                config("lunar.payments.types.{$paymentType}.driver", 'offline')
+            )->cart($cart)->withData([
+                'authorized' => config("lunar.payments.types.{$paymentType}.authorized"),
+                'meta' => ['payment_type' => $paymentType],
+            ])->authorize();
+        } catch (CartException $e) {
+            abort(422, $e->getMessage());
+        }
 
         abort_unless($authorize->success, 422, 'Payment could not be authorized.');
 

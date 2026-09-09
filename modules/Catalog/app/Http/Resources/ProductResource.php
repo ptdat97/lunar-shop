@@ -68,15 +68,17 @@ class ProductResource extends JsonResource
             // the JS-rendered grid matches the SSR card (product-card.blade.php).
             'hover_thumbnail' => $this->whenLoaded('media', fn () => $this->hoverThumbnailUrl()),
             'brand' => $this->whenLoaded('brand', fn () => $this->brand?->name),
-            // Flexible SKUs (one per variant combination). `variants` is kept as
-            // a backward-compatible alias of the same payload for older clients.
-            'skus' => ProductSkuResource::collection($this->whenLoaded('skus')),
-            'variants' => ProductSkuResource::collection($this->whenLoaded('skus')),
-            // The flexible variant definitions (Color/Size + values) so a client
-            // can render the option picker without deriving it from the SKUs.
+            // One entry per option combination. `skus` is kept as a
+            // backward-compatible alias of the same payload: the shop's
+            // purchasable used to be its own `ProductSku` model and the public
+            // API named it so, which clients still depend on.
+            'skus' => ProductVariantResource::collection($this->whenLoaded('variants')),
+            'variants' => ProductVariantResource::collection($this->whenLoaded('variants')),
+            // The option definitions (Color/Size + values) so a client can render
+            // the picker without deriving it from the variants.
             'options' => app(ProductService::class)->optionGroups($this->resource),
             // Product-level gallery images — the default the storefront gallery
-            // shows, and the fallback when a chosen SKU has no own images.
+            // shows, and the fallback when a chosen variant has no own images.
             'images' => $this->whenLoaded('media', fn () => MediaImageResource::collection($this->media)),
             // Opt-in extras (?include=…) — absent unless explicitly attached.
             'size_chart' => $this->when($this->sizeChart !== null, fn () => $this->sizeChart),

@@ -26,7 +26,7 @@ class CartController extends Controller
      * POST /api/v1/cart  { sku_id, quantity }
      *
      * Accepts `variant_id` as a backward-compatible alias for `sku_id` so
-     * existing headless clients keep working; both now carry a ProductSku id.
+     * existing headless clients keep working; both now carry a ProductVariant id.
      */
     public function store(Request $request): CartResource
     {

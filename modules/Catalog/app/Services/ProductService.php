@@ -4,12 +4,14 @@ namespace Modules\Catalog\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use Lunar\Core\Enums\ProductOptionType;
 use Lunar\Core\Models\Product;
+use Lunar\Core\Models\ProductVariant;
 use Modules\Assets\Services\MediaLibraryService;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Data\SearchResult;
-use Modules\Catalog\Models\ProductSku;
+use Modules\Catalog\Support\VariantAxes;
 
 /**
  * Single source of product read-logic. Both the Storefront controller and the
@@ -19,6 +21,7 @@ class ProductService
 {
     public function __construct(
         protected SearchEngine $search,
+        protected VariantAxes $axes,
     ) {}
 
     /**
@@ -49,11 +52,14 @@ class ProductService
             })
             ->where('lunar_urls.slug', $slug)
             ->with([
-                // Disabled SKUs are excluded from the storefront everywhere. The
-                // colour/size picker is derived from the product's `variables`
-                // blob (§optionGroups), so no option/value relations to load.
-                'skus' => fn ($q) => $q->where('status', 'published')
-                    ->with(['prices.currency']),
+                // Disabled variants are excluded from the storefront everywhere.
+                // The picker is derived from the product's shared options, so
+                // both sides of that (the variant's values, and the product's
+                // option list) are loaded here — VariantAxes joins them.
+                'variants' => fn ($q) => $q->where('enabled', true)
+                    ->with(['prices.currency', 'values'])
+                    ->chaperone(),
+                'productOptions.values',
                 'thumbnail', 'brand', 'collections.defaultUrl', 'defaultUrl', 'media',
             ])
             ->first();
@@ -90,10 +96,9 @@ class ProductService
     }
 
     /**
-     * Option groups derived straight from the product's flexible `variables`
-     * definition, in definition order, for the SSR option buttons. Keys are the
-     * localised variable names; each group carries the per-value swatch data
-     * (an image when the variable is flagged `isImage`, else a plain label):
+     * Option groups for the SSR option buttons, in axis order. Keys are the
+     * localised option names; each group carries the per-value swatch data
+     * (a colour or an image when the option says so, else a plain label):
      *
      *   ['Color' => ['handle' => 'color', 'display_type' => 'image'|'text', 'values' => [
      *       ['label' => 'Black', 'color' => null, 'image' => '…'], ...
@@ -103,21 +108,21 @@ class ProductService
      */
     public function optionGroups(Product $product): array
     {
-        $locale = app()->getLocale();
         $groups = [];
 
-        foreach ($product->variables ?? [] as $variable) {
-            $optName = $this->localised($variable['name'] ?? [], $locale) ?: 'Option';
-            $displayType = $this->displayType($variable);
+        foreach ($this->axes->axes($product) as $axis) {
+            $option = $axis['option'];
+            $optName = (string) $option->translate('name') ?: 'Option';
+            $displayType = $this->displayType($option->type);
 
             $groups[$optName] = [
-                'handle' => Str::slug($optName),
+                'handle' => $option->handle ?: Str::slug($optName),
                 'display_type' => $displayType,
-                'values' => collect($variable['values'] ?? [])
+                'values' => $axis['values']
                     ->map(fn ($value) => [
-                        'label' => $this->localised($value['name'] ?? [], $locale),
-                        'color' => $displayType === 'color' ? ($value['color'] ?? null) : null,
-                        'image' => $displayType === 'image' ? $this->swatchImageUrl($value['image'] ?? null) : null,
+                        'label' => (string) $value->translate('name'),
+                        'color' => $displayType === 'color' ? data_get($value->meta, 'colour') : null,
+                        'image' => $displayType === 'image' ? $this->swatchImageUrl(data_get($value->meta, 'image')) : null,
                     ])
                     ->filter(fn ($v) => $v['label'] !== '')
                     ->values()
@@ -129,33 +134,22 @@ class ProductService
     }
 
     /**
-     * The selected SKU's option values keyed by (localised) variable name — the
+     * The selected variant's option values keyed by option name — the
      * same keys optionGroups() emits — for the SSR "active" button state.
      *
      * @return array<string, string>
      */
-    public function selectedOptionValues(?ProductSku $sku): array
+    public function selectedOptionValues(?ProductVariant $variant): array
     {
-        if (! $sku) {
+        if (! $variant) {
             return [];
         }
 
-        $locale = app()->getLocale();
-        $variables = $sku->product->variables ?? [];
-        $indexes = $sku->variants ?? [];
         $selected = [];
 
-        foreach ($variables as $i => $variable) {
-            $valueIndex = $indexes[$i] ?? null;
-            if ($valueIndex === null) {
-                continue;
-            }
-
-            $optName = $this->localised($variable['name'] ?? [], $locale) ?: 'Option';
-            $valName = $this->localised($variable['values'][$valueIndex]['name'] ?? [], $locale);
-
-            if ($valName !== '') {
-                $selected[$optName] = $valName;
+        foreach ($this->axes->pairs($variant->product, $variant) as $pair) {
+            if ($pair['value'] !== '') {
+                $selected[$pair['option']] = $pair['value'];
             }
         }
 
@@ -174,9 +168,9 @@ class ProductService
      *
      * @param  array<string, mixed>  $query  request()->query()
      */
-    public function resolveSelectedVariant(Product $product, array $query): ?ProductSku
+    public function resolveSelectedVariant(Product $product, array $query): ?ProductVariant
     {
-        $first = $product->skus->first();
+        $first = $product->variants->first();
 
         $queryOptions = collect($query)
             ->mapWithKeys(fn ($v, $k) => [strtolower((string) $k) => strtolower((string) $v)]);
@@ -185,11 +179,10 @@ class ProductService
             return $first;
         }
 
-        $locale = app()->getLocale();
         $selectedIndexes = [];
 
-        foreach ($product->variables ?? [] as $axis => $variable) {
-            $optionName = $this->localised($variable['name'] ?? [], $locale) ?: 'Option';
+        foreach ($this->axes->axes($product) as $axis => $definition) {
+            $optionName = (string) $definition['option']->translate('name') ?: 'Option';
             $rawValue = $queryOptions->get(strtolower($optionName))
                 ?? $queryOptions->get(Str::slug($optionName));
 
@@ -197,8 +190,8 @@ class ProductService
                 continue;
             }
 
-            $valueIndex = collect($variable['values'] ?? [])
-                ->search(fn ($value) => strtolower($this->localised($value['name'] ?? [], $locale)) === $rawValue);
+            $valueIndex = $definition['values']
+                ->search(fn ($value) => strtolower((string) $value->translate('name')) === $rawValue);
 
             if ($valueIndex === false) {
                 return $first;
@@ -211,8 +204,8 @@ class ProductService
             return $first;
         }
 
-        return $product->skus->first(function (ProductSku $sku) use ($selectedIndexes) {
-            $indexes = $sku->variants ?? [];
+        return $product->variants->first(function (ProductVariant $variant) use ($product, $selectedIndexes) {
+            $indexes = $this->axes->indexes($product, $variant);
 
             foreach ($selectedIndexes as $axis => $valueIndex) {
                 if ((int) ($indexes[$axis] ?? -1) !== $valueIndex) {
@@ -225,36 +218,22 @@ class ProductService
     }
 
     /**
-     * Pull a localised string out of a {locale: string} map, falling back to
-     * the first available translation so a missing locale never blanks a label.
-     *
-     * @param  mixed  $names
-     */
-    protected function localised($names, string $locale): string
-    {
-        if (! is_array($names)) {
-            return (string) $names;
-        }
-
-        return (string) ($names[$locale] ?? reset($names) ?: '');
-    }
-
-    /**
      * How an axis's values are rendered on the storefront: 'text' | 'color' |
-     * 'image'. Reads the explicit `display_type` set in the variant builder,
-     * falling back to the legacy boolean `isImage` flag (old data / imports).
+     * 'image'.
      *
-     * @param  array<string, mixed>  $variable
+     * Lunar 2.0 owns this now — `ProductOption.type`, an indexed column backed
+     * by `ProductOptionType`. It spells the two non-text cases differently
+     * (en-GB `colour`, and `swatch` for an image), so this translates the
+     * first-party vocabulary into the one the storefront payload and JS already
+     * speak, rather than changing both.
      */
-    protected function displayType(array $variable): string
+    protected function displayType(?string $optionType): string
     {
-        $type = $variable['display_type'] ?? null;
-
-        if (in_array($type, ['text', 'color', 'image'], true)) {
-            return $type;
-        }
-
-        return ! empty($variable['isImage']) ? 'image' : 'text';
+        return match (ProductOptionType::tryFrom((string) $optionType)) {
+            ProductOptionType::Colour => 'color',
+            ProductOptionType::Swatch => 'image',
+            default => 'text',
+        };
     }
 
     /**
@@ -288,7 +267,8 @@ class ProductService
         $products = Product::query()
             ->where('status', 'published')
             ->whereHas('urls', fn ($u) => $u->whereIn('slug', $slugs))
-            ->with(['skus' => fn ($q) => $q->where('status', 'published')->with('prices'), 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media'])
+            ->with(['variants' => fn ($q) => $q->where('enabled', true)->with(['prices', 'values'])->chaperone(),
+                'productOptions.values', 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media'])
             ->get();
 
         // Re-order to match the requested slug order (DB returns arbitrary order).
@@ -320,7 +300,8 @@ class ProductService
         $products = Product::query()
             ->where('status', 'published')
             ->whereIn('id', $ids)
-            ->with(['skus' => fn ($q) => $q->where('status', 'published')->with('prices'), 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media'])
+            ->with(['variants' => fn ($q) => $q->where('enabled', true)->with(['prices', 'values'])->chaperone(),
+                'productOptions.values', 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media'])
             ->get();
 
         $order = array_flip($ids);
@@ -346,7 +327,8 @@ class ProductService
         // once. Direct callers can still request ready-to-render card models.
         if ($withCardRelations) {
             $query->with([
-                'skus' => fn ($q) => $q->where('status', 'published')->with('prices'),
+                'variants' => fn ($q) => $q->where('enabled', true)->with(['prices', 'values'])->chaperone(),
+                'productOptions.values',
                 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media',
             ]);
         }

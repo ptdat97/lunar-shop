@@ -8,7 +8,7 @@ use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use Modules\Catalog\Models\ProductSku;
+use Lunar\Core\Models\ProductVariant;
 use Modules\Core\Support\Queues;
 
 /**
@@ -25,7 +25,7 @@ class BackInStockMail extends Mailable implements ShouldQueue
     public array $backoff = [10, 60, 300];
 
     public function __construct(
-        public ProductSku $sku,
+        public ProductVariant $variant,
         public string $productName,
         public ?string $url = null,
     ) {

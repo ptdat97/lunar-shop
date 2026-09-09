@@ -27,7 +27,7 @@ class CartStockGuardTest extends TestCase
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 3]);
 
-        $this->addLine($product->skus->first()->id, 4)
+        $this->addLine($product->variants->first()->id, 4)
             ->assertStatus(422)
             ->assertJsonValidationErrorFor('quantity');
     }
@@ -36,7 +36,7 @@ class CartStockGuardTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 3]);
-        $variantId = $product->skus->first()->id;
+        $variantId = $product->variants->first()->id;
 
         foreach (range(1, 3) as $i) {
             $this->addLine($variantId)->assertSuccessful();
@@ -55,7 +55,7 @@ class CartStockGuardTest extends TestCase
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 3]);
 
-        $line = $this->addLine($product->skus->first()->id)
+        $line = $this->addLine($product->variants->first()->id)
             ->assertSuccessful()
             ->json('data.lines.0.id');
 
@@ -71,7 +71,7 @@ class CartStockGuardTest extends TestCase
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 3]);
 
-        $line = $this->addLine($product->skus->first()->id)
+        $line = $this->addLine($product->variants->first()->id)
             ->assertSuccessful()
             ->json('data.lines.0.id');
 
@@ -84,7 +84,7 @@ class CartStockGuardTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 1]);
-        $variant = $product->skus->first();
+        $variant = $product->variants->first();
 
         // No backorder mode: adding beyond stock is refused outright, and a
         // later quantity bump past stock is refused too.
@@ -100,13 +100,13 @@ class CartStockGuardTest extends TestCase
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 3]);
 
-        $line = $this->addLine($product->skus->first()->id, 3)
+        $line = $this->addLine($product->variants->first()->id, 3)
             ->assertSuccessful()
             ->json('data.lines.0.id');
 
         // Stock later drops below what is already in the cart; the shopper must
         // still be able to take some out.
-        $product->skus->first()->update(['quantity' => 1]);
+        $this->setStock($product->variants->first(), 1);
 
         $this->patchJson("/api/v1/cart/lines/{$line}", ['quantity' => 1])->assertSuccessful();
     }
@@ -118,12 +118,12 @@ class CartStockGuardTest extends TestCase
         // bumping the quantity past the real level must be rejected.
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 10]);
-        $sku = $product->skus->first();
+        $sku = $product->variants->first();
 
         $line = $this->addLine($sku->id, 2)->assertSuccessful()->json('data.lines.0.id');
 
         // Someone else buys almost all of it: only 3 remain now.
-        $sku->update(['quantity' => 3]);
+        $this->setStock($sku, 3);
 
         $this->patchJson("/api/v1/cart/lines/{$line}", ['quantity' => 8])
             ->assertStatus(422)

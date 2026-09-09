@@ -7,7 +7,7 @@ use Lunar\Core\Facades\Pricing;
 use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Price;
 use Lunar\Core\Models\Product;
-use Modules\Catalog\Models\ProductSku;
+use Lunar\Core\Models\ProductVariant;
 
 class PricingService
 {
@@ -55,7 +55,7 @@ class PricingService
      * product-card, price component, and product page composers resolves
      * in O(1) after the first call.
      */
-    public function matchedPrice(ProductSku $sku): ?Price
+    public function matchedPrice(ProductVariant $sku): ?Price
     {
         $skuId = (int) $sku->id;
 
@@ -110,22 +110,22 @@ class PricingService
      * relation when present (filtering out any disabled rows a broad eager-load
      * may have pulled in), else queries.
      *
-     * @return Collection<int, ProductSku>
+     * @return Collection<int, ProductVariant>
      */
     protected function publishedSkus(Product $product): Collection
     {
-        if ($product->relationLoaded('skus')) {
-            return $product->skus->where('status', 'published')->sortBy('position')->values();
+        if ($product->relationLoaded('variants')) {
+            return $product->variants->where('status', 'published')->sortBy('position')->values();
         }
 
-        return $product->skus()->where('status', 'published')->orderBy('position')->get();
+        return $product->variants()->where('status', 'published')->orderBy('position')->get();
     }
 
     /**
      * Formatted display price for a specific SKU (e.g. a deep-linked variant
      * on the product page). Null when the SKU can't be priced.
      */
-    public function displayPriceForVariant(?ProductSku $sku): ?string
+    public function displayPriceForVariant(?ProductVariant $sku): ?string
     {
         return $sku ? (string) $this->matchedPrice($sku)?->unitFormat('price') : null;
     }
@@ -146,7 +146,7 @@ class PricingService
     public function lowestPriceAmount(Product $product): ?float
     {
         return $this->publishedSkus($product)
-            ->map(fn (ProductSku $sku) => $this->matchedPrice($sku)?->unitDecimal('price'))
+            ->map(fn (ProductVariant $sku) => $this->matchedPrice($sku)?->unitDecimal('price'))
             ->filter()
             ->min();
     }
@@ -156,7 +156,7 @@ class PricingService
      */
     public function variantPrice(int $skuId, ?int $currencyId = null): ?Price
     {
-        $query = Price::where('priceable_type', (new ProductSku)->getMorphClass())
+        $query = Price::where('priceable_type', (new ProductVariant)->getMorphClass())
             ->where('priceable_id', $skuId);
 
         if ($currencyId) {
@@ -171,7 +171,7 @@ class PricingService
      */
     public function hasTieredPricing(int $skuId): bool
     {
-        return Price::where('priceable_type', (new ProductSku)->getMorphClass())
+        return Price::where('priceable_type', (new ProductVariant)->getMorphClass())
             ->where('priceable_id', $skuId)
             ->where('min_quantity', '>', 1)
             ->exists();
@@ -182,7 +182,7 @@ class PricingService
      */
     public function customerGroupPrices(int $skuId, int $customerGroupId)
     {
-        return Price::where('priceable_type', (new ProductSku)->getMorphClass())
+        return Price::where('priceable_type', (new ProductVariant)->getMorphClass())
             ->where('priceable_id', $skuId)
             ->where('customer_group_id', $customerGroupId)
             ->get();

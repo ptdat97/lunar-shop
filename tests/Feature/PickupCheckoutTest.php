@@ -46,7 +46,7 @@ class PickupCheckoutTest extends TestCase
         $product = $this->createProduct(['stock' => 10]);
 
         $this->postJson('/api/v1/cart', [
-            'sku_id' => $product->skus->first()->id,
+            'sku_id' => $product->variants->first()->id,
             'quantity' => 1,
         ])->assertSuccessful();
     }

@@ -89,7 +89,7 @@ class AnalyticsTest extends TestCase
     public function test_top_products_ranks_by_units_sold(): void
     {
         $product = $this->createProduct(['name' => 'Hot Tee', 'stock' => 100]);
-        $variant = $product->skus->first();
+        $variant = $product->variants->first();
 
         $order = $this->order(6000, 'payment-received');
         OrderLine::factory()->create([

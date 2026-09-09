@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use Lunar\Core\Models\Order;
-use Modules\Catalog\Models\ProductSku;
+use Lunar\Core\Models\ProductVariant;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -23,7 +23,7 @@ class CheckoutDoubleSubmitTest extends TestCase
         $product = $this->createProduct(['stock' => $stock]);
 
         $this->postJson('/api/v1/cart', [
-            'sku_id' => $product->skus->first()->id,
+            'sku_id' => $product->variants->first()->id,
             'quantity' => 2,
         ])->assertSuccessful();
 
@@ -54,7 +54,7 @@ class CheckoutDoubleSubmitTest extends TestCase
         $this->postJson('/api/v1/checkout', ['payment_type' => 'cod'])->assertStatus(422);
 
         // 10 − 2, once.
-        $this->assertSame(8, ProductSku::first()->getTotalInventory());
+        $this->assertSame(8, ProductVariant::first()->getTotalInventory());
     }
 
     public function test_checking_out_an_empty_cart_is_refused(): void

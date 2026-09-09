@@ -69,11 +69,11 @@ class CollectionService
     {
         $query = $collection->products()
             ->where('status', 'published')
-            // ProductSku is the shop's purchasable, so catalog cards must
+            // ProductVariant is the shop's purchasable, so catalog cards must
             // never load Lunar's legacy variants. Keep disabled SKUs out and
             // load their prices for ProductResource in one pass.
             ->with([
-                'skus' => fn ($skus) => $skus->where('status', 'published')->with('prices'),
+                'variants' => fn ($variants) => $variants->where('enabled', true)->with('prices')->chaperone(),
                 'brand', 'collections', 'defaultUrl', 'media',
             ]);
 
@@ -104,14 +104,14 @@ class CollectionService
      */
     protected function applyPriceSort($query, string $direction)
     {
-        $minPrice = DB::table('lunar_product_skus as ps')
+        $minPrice = DB::table('lunar_product_variants as pv')
             ->join('lunar_prices as pr', function ($join) {
-                $join->on('pr.priceable_id', '=', 'ps.id')
-                    ->where('pr.priceable_type', '=', 'product_sku');
+                $join->on('pr.priceable_id', '=', 'pv.id')
+                    ->where('pr.priceable_type', '=', 'product_variant');
             })
-            ->where('ps.status', 'published')
-            ->selectRaw('ps.product_id, MIN(pr.price) as min_price')
-            ->groupBy('ps.product_id');
+            ->where('pv.enabled', true)
+            ->selectRaw('pv.product_id, MIN(pr.price) as min_price')
+            ->groupBy('pv.product_id');
 
         return $query
             ->leftJoinSub($minPrice, 'product_prices', 'product_prices.product_id', '=', 'lunar_products.id')

@@ -32,7 +32,7 @@ class DatabaseSearchEngine implements SearchEngine
                 // Only published SKUs feed the card price / availability / API —
                 // a disabled variant must never leak its price, stock or sku code
                 // into the listing (every other read path filters the same way).
-                'skus' => fn ($q) => $q->where('status', 'published')->with('prices'),
+                'variants' => fn ($q) => $q->where('enabled', true)->with('prices')->chaperone(),
                 'brand',
                 'defaultUrl',
                 'collections',
@@ -112,7 +112,7 @@ class DatabaseSearchEngine implements SearchEngine
 
         $builder->where(function ($q) use ($name, $needle, $term) {
             $q->whereRaw("LOWER({$name}) LIKE ?", [$needle])
-                ->orWhereHas('skus', fn ($v) => $v->where('sku', 'like', "%{$term}%"));
+                ->orWhereHas('variants', fn ($v) => $v->where('sku', 'like', "%{$term}%"));
         });
     }
 
@@ -159,14 +159,14 @@ class DatabaseSearchEngine implements SearchEngine
      */
     protected function applyPriceSort(Builder $builder, string $direction): void
     {
-        $minPrice = DB::table('lunar_product_skus as ps')
+        $minPrice = DB::table('lunar_product_variants as pv')
             ->join('lunar_prices as pr', function ($join) {
-                $join->on('pr.priceable_id', '=', 'ps.id')
-                    ->where('pr.priceable_type', '=', 'product_sku');
+                $join->on('pr.priceable_id', '=', 'pv.id')
+                    ->where('pr.priceable_type', '=', 'product_variant');
             })
-            ->where('ps.status', 'published')
-            ->selectRaw('ps.product_id, MIN(pr.price) as min_price')
-            ->groupBy('ps.product_id');
+            ->where('pv.enabled', true)
+            ->selectRaw('pv.product_id, MIN(pr.price) as min_price')
+            ->groupBy('pv.product_id');
 
         $builder
             ->leftJoinSub($minPrice, 'product_prices', 'product_prices.product_id', '=', 'lunar_products.id')
@@ -189,18 +189,26 @@ class DatabaseSearchEngine implements SearchEngine
                 continue;
             }
 
-            // A value must belong to the requested axis. Two independent
-            // JSON_SEARCH calls would incorrectly match e.g. "Size: S" +
-            // "Color: M" for a `size=M` filter. JSON_CONTAINS checks one
-            // complete variable object, keeping the name/value pair together.
-            $builder->where(function ($axis) use ($values, $optionName) {
-                foreach ($values as $value) {
-                    $axis->orWhereRaw(
-                        'JSON_CONTAINS(lunar_products.variables, ?)',
-                        [$this->optionValueNeedle($optionName, (string) $value)]
-                    );
-                }
-            });
+            // The value has to belong to the requested AXIS: filtering the two
+            // independently would match a product with "Size: S" and "Color: M"
+            // for `size=M`. Joining value → option keeps the pair together, which
+            // the old JSON_CONTAINS against the product's `variables` blob had to
+            // simulate by matching a whole encoded object.
+            $builder->whereHas(
+                'variants',
+                fn ($variant) => $variant->whereHas(
+                    'values',
+                    fn ($value) => $value
+                        ->whereIn(
+                            DB::raw("JSON_UNQUOTE(JSON_EXTRACT(lunar_product_option_values.name, '$.en'))"),
+                            $values,
+                        )
+                        ->whereHas(
+                            'option',
+                            fn ($option) => $option->whereJsonContains('name->en', $optionName),
+                        ),
+                ),
+            );
         }
 
         // Brand facet — filter by brand name (the value shown in the sidebar).
@@ -219,24 +227,11 @@ class DatabaseSearchEngine implements SearchEngine
         // only products with at least one in-stock, published SKU (quantity > 0).
         $availability = array_filter((array) ($filters['availability'] ?? []));
         if (in_array('in_stock', $availability, true)) {
-            $builder->whereHas('skus', fn ($v) => $v->where('status', 'published')->where('quantity', '>', 0));
+            $builder->whereHas('variants', fn ($v) => $v->where('enabled', true)->where('stock_available', '>', 0));
         }
 
         // Price range — filters['price'] = ['min' => x, 'max' => y] in major units.
         $this->applyPriceFilter($builder, (array) ($filters['price'] ?? []));
-    }
-
-    /**
-     * A JSON_CONTAINS candidate for one option axis and one of its values.
-     * Lunar's flexible variables are localized maps; the filter UI currently
-     * uses the canonical English size/color values, just like facets do.
-     */
-    protected function optionValueNeedle(string $optionName, string $value): string
-    {
-        return json_encode([
-            'name' => ['en' => $optionName],
-            'values' => [['name' => ['en' => $value]]],
-        ], JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR);
     }
 
     /**
@@ -254,7 +249,7 @@ class DatabaseSearchEngine implements SearchEngine
             return;
         }
 
-        $builder->whereHas('skus.prices', function ($q) use ($min, $max) {
+        $builder->whereHas('variants.prices', function ($q) use ($min, $max) {
             if ($min !== null) {
                 $q->where('price', '>=', $min);
             }
@@ -355,12 +350,12 @@ class DatabaseSearchEngine implements SearchEngine
      */
     protected function availabilityFacet($productIds): array
     {
-        $inStock = DB::table('lunar_product_skus as ps')
-            ->whereIn('ps.product_id', $productIds)
-            ->where('ps.status', 'published')
-            ->where('ps.quantity', '>', 0)
+        $inStock = DB::table('lunar_product_variants as pv')
+            ->whereIn('pv.product_id', $productIds)
+            ->where('pv.enabled', true)
+            ->where('pv.stock_available', '>', 0)
             ->distinct()
-            ->count('ps.product_id');
+            ->count('pv.product_id');
 
         return $inStock > 0
             ? [['value' => 'in_stock', 'count' => (int) $inStock]]
@@ -387,13 +382,13 @@ class DatabaseSearchEngine implements SearchEngine
             ->all();
 
         // Get min/max price
-        $row = DB::table('lunar_product_skus as ps')
+        $row = DB::table('lunar_product_variants as pv')
             ->join('lunar_prices as pr', function ($join) {
-                $join->on('pr.priceable_id', '=', 'ps.id')
-                    ->where('pr.priceable_type', '=', 'product_sku');
+                $join->on('pr.priceable_id', '=', 'pv.id')
+                    ->where('pr.priceable_type', '=', 'product_variant');
             })
-            ->where('ps.status', 'published')
-            ->whereIn('ps.product_id', $productIds)
+            ->where('pv.enabled', true)
+            ->whereIn('pv.product_id', $productIds)
             ->selectRaw('MIN(pr.price) as min_price, MAX(pr.price) as max_price')
             ->first();
 

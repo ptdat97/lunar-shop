@@ -21,14 +21,12 @@
         // them on the first gallery image instead so they aren't lost.
         $fallbackImageId = (! $cover && $images->isNotEmpty()) ? $images->first()->id : null;
 
-        // "Shop the set" adds one line per product, so these must be the ids the
-        // cart endpoint resolves — SKU ids. It used to read `$p->variants`, which
-        // is Lunar's own variant relation and a DIFFERENT id space: the endpoint
-        // looked each id up as a SKU, found an unrelated product's SKU with the
-        // same number, and added that instead. Silently — the button reported
-        // success because the request succeeded.
+        // "Shop the set" adds one line per product, so these must be ids the cart
+        // endpoint resolves. It once read a different id space entirely and
+        // silently added unrelated products; the test that pins this is
+        // LookbookShopTheSetTest.
         $setSkuIds = $products
-            ->map(fn ($p) => $p->skus->firstWhere('status', 'published')?->id)
+            ->map(fn ($p) => $p->variants->firstWhere('enabled', true)?->id)
             ->filter()
             ->values();
     @endphp

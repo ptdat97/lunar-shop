@@ -5,8 +5,9 @@ namespace Tests\Feature;
 use Lunar\Core\Models\Collection;
 use Lunar\Core\Models\CollectionGroup;
 use Lunar\Core\Models\Language;
+use Lunar\Core\Models\ProductVariant;
+use Lunar\Core\Models\TaxClass;
 use Lunar\Core\Models\Url;
-use Modules\Catalog\Models\ProductSku;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -21,12 +22,11 @@ class CollectionApiTest extends TestCase
         $collection = $this->createCollection($expensive, $cheap);
 
         // An admin-disabled SKU must never be exposed in a public listing.
-        ProductSku::create([
+        ProductVariant::create([
             'product_id' => $expensive->id,
             'sku' => 'DISABLED-'.uniqid(),
-            'quantity' => 99,
-            'price' => 1,
-            'status' => 'disabled',
+            'tax_class_id' => TaxClass::getDefault()?->id,
+            'enabled' => false,
         ]);
 
         $this->getJson('/api/v1/collections/'.$collection->defaultUrl->slug.'?sort=price-high-low')

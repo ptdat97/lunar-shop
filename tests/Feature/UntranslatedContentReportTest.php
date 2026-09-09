@@ -177,7 +177,6 @@ class UntranslatedContentReportTest extends TestCase
             'handle' => 'care_label',
             'name' => 'Care label',
             'type' => FieldTypeEnum::Text->value,
-            'position' => 50,
         ]);
         $attribute->models()->create(['model_type' => Product::morphName()]);
 

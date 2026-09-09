@@ -177,7 +177,7 @@ class ContentServiceProvider extends ServiceProvider
                     // PricingService primes price->currency from its per-request
                     // currency map, so `prices` alone is enough here; media
                     // powers the hover image.
-                    ->with(['skus.prices', 'thumbnail', 'brand', 'media'])
+                    ->with(['variants.prices', 'thumbnail', 'brand', 'media'])
                     ->get()
                     ->keyBy('id');
 

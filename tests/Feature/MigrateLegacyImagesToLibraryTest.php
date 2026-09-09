@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Lunar\Core\Models\Asset;
+use Lunar\Core\Models\TaxClass;
 use Modules\Content\Models\Banner;
 use Modules\Content\Models\Menu;
 use Modules\Content\Models\MenuItem;
@@ -151,10 +152,9 @@ class MigrateLegacyImagesToLibraryTest extends TestCase
         $product = $this->createProduct();
         $media = $product->addMedia(UploadedFile::fake()->image('front.png', 300, 300))->toMediaCollection('images');
 
-        $sku = $product->skus()->create([
-            'variants' => [], 'position' => 0, 'images' => [$media->id],
-            'sku' => 'MIG-1', 'price' => 1000, 'quantity' => 5, 'status' => 'published', 'is_default' => true,
-        ]);
+        $sku = $product->variants()->create(['images' => [$media->id],
+            'sku' => 'MIG-1', 'tax_class_id' => TaxClass::getDefault()?->id,
+            'enabled' => true, ]);
 
         $this->artisan('assets:migrate-legacy-images')->assertSuccessful();
 

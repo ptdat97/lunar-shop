@@ -4,36 +4,44 @@ namespace Modules\Catalog\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Lunar\Core\Models\ProductVariant;
 use Modules\Assets\Services\MediaUrl;
-use Modules\Catalog\Models\ProductSku;
 use Modules\Catalog\Services\PricingService;
+use Modules\Catalog\Support\VariantAxes;
 
 /**
- * SKU JSON contract, including resolved price via the Pricing service (wraps
- * Lunar's Pricing engine — invoked in one place, no reimplementation).
+ * Variant JSON contract, including resolved price via the Pricing service
+ * (wraps Lunar's Pricing engine — invoked in one place, no reimplementation).
  *
- * A SKU is one Cartesian combination of the product's flexible `variables`;
- * `options` is the localised label list ("Size: M", "Color: Black") the variant
- * picker builds its matrix from, derived positionally from the parent product's
- * `variables` blob (no option/value tables to join).
+ * A variant is one combination of the product's option values; `options` is the
+ * localised label list ("Size: M", "Color: Black") the picker builds its matrix
+ * from, and `variant_indexes` is the positional encoding of that same
+ * combination. The picker addresses variants positionally, so {@see VariantAxes}
+ * derives the position from the product's option order rather than the payload
+ * carrying option ids the client would have to understand.
  *
- * @mixin ProductSku
+ * @mixin ProductVariant
  */
-class ProductSkuResource extends JsonResource
+class ProductVariantResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
         $price = app(PricingService::class)->matchedPrice($this->resource);
+        $axes = app(VariantAxes::class);
+        $indexes = $axes->indexes($this->product, $this->resource);
 
         return [
             'id' => $this->id,
             'sku' => $this->sku,
-            // Public stock is the sellable figure. `quantity` is on-hand stock;
-            // committed units are already sold and must not be offered again.
+            // Public stock is the sellable figure. `stock_on_hand` is what is in
+            // the stockroom; committed units are already sold and must not be
+            // offered again. Both are Lunar's rollups since the purchasable moved
+            // to ProductVariant — derived from the order book, not counters this
+            // application maintains.
             'stock' => $this->getTotalInventory(),
-            'on_hand' => $this->quantity,
-            'committed' => (int) $this->committed,
-            'status' => $this->status,
+            'on_hand' => (int) $this->stock_on_hand,
+            'committed' => (int) $this->stock_committed,
+            'status' => $this->enabled ? 'published' : 'disabled',
             // `matchedPrice()` returns the Price MODEL since Lunar 2.0, so the
             // money helpers take the column name and are unit-quantity aware.
             'price' => [
@@ -44,23 +52,24 @@ class ProductSkuResource extends JsonResource
             // Option name→value pairs (e.g. {option:"Color",value:"Black"}) so
             // the variant picker can build its matrix from the shared payload —
             // no extra fetch. This is the exact shape product-variant.js groups on.
-            'options' => $this->optionPairs(),
-            // Raw value-index combination into the product's `variables`, so a
-            // client can map a picker selection back to this SKU without labels.
-            'variant_indexes' => $this->variants ?? [],
-            'variant_key' => $this->variantKey(),
+            'options' => $axes->pairs($this->product, $this->resource),
+            // Positional encoding of the same combination, so a client can map a
+            // picker selection back to this variant without labels.
+            'variant_indexes' => $indexes,
+            'variant_key' => VariantAxes::key($indexes),
             // Per-SKU images, resolved to the same {small,large,zoom,width,height}
             // shape as the product-level gallery so the storefront can swap one
             // for the other without knowing where the images came from. Empty
-            // when the SKU has no own media — the gallery then falls back to the
+            // when the variant has none — the gallery then falls back to the
             // product-level images.
             'images' => $this->galleryImages(),
         ];
     }
 
     /**
-     * Resolve the SKU's `images` JSON column (a list of Media Library Asset ids,
-     * picked via MediaPicker — modules/Assets) into the gallery image shape.
+     * Resolve the variant's `images` JSON column (a list of Media Library Asset
+     * ids picked from the shared library — modules/Assets) into the gallery
+     * shape.
      *
      * The column holds Asset ids rather than URLs so conversions stay resolvable
      * after a library file is replaced, and the serialization lives in one place
@@ -68,7 +77,7 @@ class ProductSkuResource extends JsonResource
      *
      * Resolution goes through MediaUrl::assetMedia(), which memoizes per Asset
      * id on the scoped MediaUrl instance — a product page rendering dozens of
-     * SKUs costs at most one query per distinct Asset id across the whole page.
+     * variants costs at most one query per distinct Asset id across the page.
      *
      * @return array<int, array<string, mixed>>
      */

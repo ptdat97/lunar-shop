@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use Lunar\Core\Models\Order;
-use Modules\Catalog\Models\ProductSku;
+use Lunar\Core\Models\ProductVariant;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -23,7 +23,7 @@ class OversellGuardTest extends TestCase
     {
         $this->seedBaseData();
 
-        $sku = $this->createProduct(['stock' => 5])->skus->first();
+        $sku = $this->createProduct(['stock' => 5])->variants->first();
 
         $this->assertTrue($sku->canBeFulfilledAtQuantity(5));
         $this->assertFalse($sku->canBeFulfilledAtQuantity(6));
@@ -33,13 +33,13 @@ class OversellGuardTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 2]);
-        $variant = $product->skus->first();
+        $variant = $product->variants->first();
 
         // The cart refuses the quantity outright.
         $this->postJson('/api/v1/cart', ['sku_id' => $variant->id, 'quantity' => 10])
             ->assertStatus(422);
 
-        $this->assertSame(2, (int) ProductSku::find($variant->id)->quantity);
+        $this->assertSame(2, (int) ProductVariant::find($variant->id)->stock_on_hand);
         $this->assertSame(0, Order::count());
     }
 
@@ -47,7 +47,7 @@ class OversellGuardTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 2]);
-        $variant = $product->skus->first();
+        $variant = $product->variants->first();
 
         $this->postJson('/api/v1/cart', ['sku_id' => $variant->id, 'quantity' => 2])->assertSuccessful();
         $this->postJson('/api/v1/checkout/addresses', ['shipping' => $this->shippingPayload()])->assertSuccessful();
@@ -56,29 +56,29 @@ class OversellGuardTest extends TestCase
 
         // Buying the last units leaves nothing sellable, even though they are
         // still physically on the shelf until the order is dispatched.
-        $fresh = ProductSku::find($variant->id);
+        $fresh = ProductVariant::find($variant->id);
         $this->assertSame(0, $fresh->getTotalInventory());
-        $this->assertSame(2, (int) $fresh->committed);
+        $this->assertSame(2, (int) $fresh->stock_committed);
     }
 
     public function test_the_pipeline_still_guards_when_stock_vanishes_after_the_cart_check(): void
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 2]);
-        $variant = $product->skus->first();
+        $variant = $product->variants->first();
 
         $this->postJson('/api/v1/cart', ['sku_id' => $variant->id, 'quantity' => 2])->assertSuccessful();
         $this->postJson('/api/v1/checkout/addresses', ['shipping' => $this->shippingPayload()])->assertSuccessful();
         $this->postJson('/api/v1/checkout/shipping', ['identifier' => 'standard'])->assertSuccessful();
 
         // Someone else bought the last units while this cart sat there.
-        $variant->update(['quantity' => 0]);
+        $this->setStock($variant, 0);
 
         $this->postJson('/api/v1/checkout', ['payment_type' => 'cod'])->assertStatus(422);
 
         // The conditional UPDATE in DecrementStock is the last line of defence,
         // and order creation rolls back with it.
-        $this->assertSame(0, (int) ProductSku::find($variant->id)->quantity);
+        $this->assertSame(0, (int) ProductVariant::find($variant->id)->stock_on_hand);
         $this->assertSame(0, Order::count());
     }
 
@@ -86,13 +86,13 @@ class OversellGuardTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 1]);
-        $variant = $product->skus->first();
+        $variant = $product->variants->first();
 
         // No backorder mode in the SKU model: the cart refuses the quantity.
         $this->postJson('/api/v1/cart', ['sku_id' => $variant->id, 'quantity' => 5])->assertStatus(422);
         $this->assertSame(0, Order::count());
 
         // Stock is untouched.
-        $this->assertSame(1, (int) ProductSku::find($variant->id)->quantity);
+        $this->assertSame(1, (int) ProductVariant::find($variant->id)->stock_on_hand);
     }
 }

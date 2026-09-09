@@ -7,8 +7,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Lunar\Core\Models\Asset;
 use Lunar\Core\Models\Product;
+use Lunar\Core\Models\ProductVariant;
 use Modules\Assets\Services\MediaLibraryService;
-use Modules\Catalog\Models\ProductSku;
 use Modules\Content\Models\Banner;
 use Modules\Content\Models\Menu;
 use Modules\Content\Models\Page;
@@ -55,7 +55,7 @@ class MigrateLegacyImagesToLibrary extends Command
         $this->migratePageSections();
         $this->migrateThemeSettings();
         $this->migrateProductVariables();
-        $this->migrateProductSkuImages();
+        $this->migrateVariantImages();
 
         $this->info(($this->dryRun ? '[dry-run] ' : '')."Done. {$this->created} new library asset(s) created.");
 
@@ -230,10 +230,10 @@ class MigrateLegacyImagesToLibrary extends Command
         });
     }
 
-    protected function migrateProductSkuImages(): void
+    protected function migrateVariantImages(): void
     {
-        ProductSku::query()->withTrashed()->chunkById(200, function ($skus) {
-            foreach ($skus as $sku) {
+        ProductVariant::query()->chunkById(200, function ($variants) {
+            foreach ($variants as $sku) {
                 $ids = collect($sku->images ?? []);
                 $rewritten = $ids->map(fn ($id) => $this->mediaIdToAsset($id) ?? $id)->all();
 

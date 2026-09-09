@@ -4,30 +4,47 @@ namespace Modules\Inventory\Providers;
 
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
-use Modules\Catalog\Models\ProductSku;
+use Lunar\Core\Events\Orders\OrderCancelled;
+use Lunar\Core\Models\ProductVariant;
 use Modules\Core\Support\LunarConfigOverride;
 use Modules\Inventory\Console\ExpireAbandonedOrders;
-use Modules\Inventory\Listeners\ReleaseStockOnOrderClosed;
-use Modules\Inventory\Listeners\SettleStockOnDispatch;
-use Modules\Inventory\Observers\ProductSkuObserver;
-use Modules\Order\Events\OrderStatusUpdated;
+use Modules\Inventory\Listeners\StampStockReleased;
+use Modules\Inventory\Observers\BackInStockObserver;
 
+/**
+ * Inventory is now mostly Lunar's.
+ *
+ * Lunar 2.0 ships the whole stock machinery this module used to carry, and
+ * wires it to the order lifecycle itself:
+ *
+ *   OrderPlaced / OrderCancelled  → SyncStockForOrder      (commit / release)
+ *   FulfilmentCreated             → AllocateStockForFulfilment
+ *   fulfilment state transition   → ApplyStockForFulfilmentTransition
+ *                                   (a `shipped` movement takes the units off
+ *                                   the shelf, `returned` puts them back)
+ *
+ * So `DecrementStock`, `StockLedger`, `StockSettler`, `StockReleaser` and the
+ * two listeners that drove them are gone. Their replacement is better in three
+ * ways worth naming, because they were real gaps:
+ *
+ *  - `stock_committed` is DERIVED from the order book rather than being a
+ *    counter this application incremented, so it cannot drift from reality —
+ *    the failure the old ledger's `stock_before` / `stock_after` columns existed
+ *    to detect after the fact.
+ *  - un-shipping and returns move stock back; ours only moved it out.
+ *  - stock is per location, which the shop had no way to express at all.
+ *
+ * What stays is what Lunar does not do: telling a shopper their size is back.
+ */
 class InventoryServiceProvider extends ServiceProvider
 {
-    /**
-     * Register module bindings.
-     */
     public function register(): void {}
 
-    /**
-     * Bootstrap module: routes, migrations, views, stock pipeline + observer.
-     */
     public function boot(): void
     {
-        // Append our DecrementStock pipeline to Lunar's order-creation pipeline
-        // (reserve stock + oversell guard). Re-applied here so it survives
-        // `vendor:publish --tag=lunar --force`.
-        LunarConfigOverride::applyFrom('lunar.orders', __DIR__.'/../../config/overrides.php');
+        // The last-line oversell guard, on Lunar's own validator hook. Re-applied
+        // here so it survives `vendor:publish --tag=lunar --force`.
+        LunarConfigOverride::applyFrom('lunar.cart', __DIR__.'/../../config/overrides.php');
 
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'inventory');
@@ -35,17 +52,14 @@ class InventoryServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
         $this->loadRoutesFrom(__DIR__.'/../../routes/api.php');
 
-        // Back-in-stock: notify subscribers when a variant is restocked.
-        ProductSku::observe(ProductSkuObserver::class);
+        // Back-in-stock: notify subscribers when a variant becomes sellable
+        // again. An observer is right here — unlike the order rollups, Lunar
+        // writes the stock rollup with a plain `save()`, so model events fire.
+        ProductVariant::observe(BackInStockObserver::class);
 
-        // Stock is reserved when the order row is created — before payment, for
-        // a gateway order. Give it back when the order is cancelled or refunded,
-        // or those units are destroyed for good.
-        Event::listen(OrderStatusUpdated::class, ReleaseStockOnOrderClosed::class);
-
-        // Dispatch settles the commitment: the units physically leave the shelf,
-        // so `quantity` falls here rather than at order creation.
-        Event::listen(OrderStatusUpdated::class, SettleStockOnDispatch::class);
+        // Lunar releases the stock on cancel but keeps no timestamp for it; the
+        // stale-commitment warning and the abandoned-order sweep both need one.
+        Event::listen(OrderCancelled::class, StampStockReleased::class);
 
         if ($this->app->runningInConsole()) {
             $this->commands([ExpireAbandonedOrders::class]);

@@ -6,7 +6,7 @@ use Illuminate\Support\Collection;
 use Lunar\Core\DiscountTypes\PercentageOff;
 use Lunar\Core\Models\Discount;
 use Lunar\Core\Models\Product;
-use Modules\Catalog\Models\ProductSku;
+use Lunar\Core\Models\ProductVariant;
 use Modules\Promotion\DiscountTypes\ComboPercentageOff;
 use Modules\Promotion\DiscountTypes\QuantityPercentageOff;
 
@@ -31,7 +31,7 @@ class PromotionTargetResolver
      */
     public function appliesToProduct(Discount $discount, Product $product): bool
     {
-        $product->loadMissing(['collections', 'skus']);
+        $product->loadMissing(['collections', 'variants']);
 
         if ($discount->type === ComboPercentageOff::class) {
             $groups = collect(($discount->data ?? [])['combo_collections'] ?? [])
@@ -194,8 +194,8 @@ class PromotionTargetResolver
      */
     protected function productInDiscountables(Collection $discountables, Product $product): bool
     {
-        $skuIds = $product->skus->pluck('id');
-        $skuMorph = (new ProductSku)->getMorphClass();
+        $skuIds = $product->variants->pluck('id');
+        $skuMorph = (new ProductVariant)->getMorphClass();
 
         return $discountables->contains(function ($item) use ($product, $skuIds, $skuMorph) {
             if ($item->discountable_type === Product::morphName()) {

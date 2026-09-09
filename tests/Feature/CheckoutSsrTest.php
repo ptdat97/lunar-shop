@@ -38,7 +38,7 @@ class CheckoutSsrTest extends TestCase
         $this->seedBaseData();
         $this->seedLocations();
         $product = $this->createProduct();
-        $this->postJson('/api/v1/cart', ['sku_id' => $product->skus->first()->id, 'quantity' => 1]);
+        $this->postJson('/api/v1/cart', ['sku_id' => $product->variants->first()->id, 'quantity' => 1]);
 
         // Shopify-style two-column SSR checkout: Contact + Delivery + Shipping +
         // Payment on the left, grey order summary on the right.
@@ -57,7 +57,7 @@ class CheckoutSsrTest extends TestCase
         $this->seedBaseData();
         $this->seedLocations();
         $product = $this->createProduct(['price' => 5000]);
-        $this->postJson('/api/v1/cart', ['sku_id' => $product->skus->first()->id, 'quantity' => 1]);
+        $this->postJson('/api/v1/cart', ['sku_id' => $product->variants->first()->id, 'quantity' => 1]);
 
         $response = $this->post('/checkout', $this->checkoutForm());
 
@@ -73,7 +73,7 @@ class CheckoutSsrTest extends TestCase
         $this->seedBaseData();
         $this->seedLocations();
         $product = $this->createProduct();
-        $this->postJson('/api/v1/cart', ['sku_id' => $product->skus->first()->id, 'quantity' => 1]);
+        $this->postJson('/api/v1/cart', ['sku_id' => $product->variants->first()->id, 'quantity' => 1]);
 
         $this->post('/checkout', $this->checkoutForm(['line_one' => '']))
             ->assertSessionHasErrors('line_one');

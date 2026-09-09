@@ -31,7 +31,7 @@ class HeadlessCartTest extends TestCase
 
     private function variantId(): int
     {
-        return $this->createProduct()->skus->first()->id;
+        return $this->createProduct()->variants->first()->id;
     }
 
     private function addToCart(array $headers, int $variantId, int $qty = 1)

@@ -14,7 +14,7 @@ use Tests\TestCase;
  * point, so a direct API call must be refused too.
  *
  * "Can no longer be bought" widened with Lunar 1.5: guardStatus now delegates to
- * ProductSku::isPurchasable(), so a retired PARENT PRODUCT counts as well. The
+ * ProductVariant::isPurchasable(), so a retired PARENT PRODUCT counts as well. The
  * old inline check only read the SKU's own `status`, which let a variant of an
  * unpublished or soft-deleted product straight into the cart.
  *
@@ -34,8 +34,8 @@ class CartVariantStatusGuardTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 100]);
-        $variant = $product->skus->first();
-        $variant->update(['status' => 'disabled']);
+        $variant = $product->variants->first();
+        $variant->update(['enabled' => false]);
 
         // Plenty of stock — the only reason to reject is the disabled status.
         $this->addLine($variant->id)
@@ -49,8 +49,8 @@ class CartVariantStatusGuardTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 100]);
-        $variant = $product->skus->first();
-        $variant->update(['status' => 'published']);
+        $variant = $product->variants->first();
+        $variant->update(['enabled' => true]);
 
         $this->addLine($variant->id)
             ->assertSuccessful()
@@ -61,17 +61,17 @@ class CartVariantStatusGuardTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 100]);
-        $variant = $product->skus->first();
+        $variant = $product->variants->first();
         // Published so the line can be created, then disabled in the DB before a
         // fresh request updates it — the update request reloads the line, so its
         // purchasable reflects the disabled status.
-        $variant->update(['status' => 'published']);
+        $variant->update(['enabled' => true]);
 
         $line = $this->addLine($variant->id)
             ->assertSuccessful()
             ->json('data.lines.0.id');
 
-        $variant->update(['status' => 'disabled']);
+        $variant->update(['enabled' => false]);
 
         $this->patchJson("/api/v1/cart/lines/{$line}", ['quantity' => 2])
             ->assertStatus(422)
@@ -82,7 +82,7 @@ class CartVariantStatusGuardTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 100]);
-        $variant = $product->skus->first();
+        $variant = $product->variants->first();
 
         // The SKU itself stays published — the only reason to reject is that its
         // product went back to draft.
@@ -105,7 +105,7 @@ class CartVariantStatusGuardTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 100]);
-        $variant = $product->skus->first();
+        $variant = $product->variants->first();
 
         $product->update(['status' => 'archived']);
 
@@ -126,7 +126,7 @@ class CartVariantStatusGuardTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 100]);
-        $variant = $product->skus->first();
+        $variant = $product->variants->first();
 
         $variant->delete();
 
@@ -139,7 +139,7 @@ class CartVariantStatusGuardTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 100]);
-        $variant = $product->skus->first();
+        $variant = $product->variants->first();
 
         $line = $this->addLine($variant->id)
             ->assertSuccessful()
@@ -166,7 +166,7 @@ class CartVariantStatusGuardTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 100]);
-        $variant = $product->skus->first();
+        $variant = $product->variants->first();
         $product->update(['status' => 'draft']);
 
         $cart = CartSession::current();

@@ -30,7 +30,7 @@ class ShippingZoneTest extends TestCase
         });
 
         $product = $this->createProduct(['price' => $price, 'stock' => 50]);
-        $this->postJson('/api/v1/cart', ['sku_id' => $product->skus->first()->id, 'quantity' => 1]);
+        $this->postJson('/api/v1/cart', ['sku_id' => $product->variants->first()->id, 'quantity' => 1]);
         $this->postJson('/api/v1/checkout/addresses', [
             'shipping' => $this->shippingPayload(['country_id' => $country->id, 'state' => $state]),
         ])->assertSuccessful();

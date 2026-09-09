@@ -55,7 +55,7 @@ class CollectionController extends Controller
         $result = $this->search->search(SearchQuery::fromRequest($request));
         // `media` powers the product-card hover (second) image; eager-load it so
         // the grid composer stays N+1-free.
-        $result->items->loadMissing(['skus', 'thumbnail', 'brand', 'media']);
+        $result->items->loadMissing(['variants', 'thumbnail', 'brand', 'media']);
 
         // Same contract as GET /api/v1/search — one shape for SSR + island.
         $state = SearchResultResource::toState($result, $request);

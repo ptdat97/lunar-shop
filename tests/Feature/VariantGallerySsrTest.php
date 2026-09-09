@@ -12,7 +12,7 @@ use Tests\TestCase;
  * same way.
  *
  * They did not. The payload went through the Lunar Asset ids
- * (ProductSkuResource::galleryImages), while the SSR view composer looked those
+ * (ProductVariantResource::galleryImages), while the SSR view composer looked those
  * ids up in `$product->media` — so a picture picked from the library for one SKU,
  * and never attached to the product itself, was silently filtered out of the
  * server-rendered gallery.
@@ -51,7 +51,7 @@ class VariantGallerySsrTest extends TestCase
         $product = $this->createProduct(['stock' => 5]);
         $asset = $this->libraryAsset('variant-only.png');
 
-        $sku = $product->skus->first();
+        $sku = $product->variants->first();
         $sku->update(['images' => [$asset->id]]);
 
         $slug = $product->defaultUrl->slug;
@@ -80,7 +80,7 @@ class VariantGallerySsrTest extends TestCase
         $product = $this->createProduct(['stock' => 5]);
         $asset = $this->libraryAsset('agree.png');
 
-        $product->skus->first()->update(['images' => [$asset->id]]);
+        $product->variants->first()->update(['images' => [$asset->id]]);
 
         $slug = $product->defaultUrl->slug;
         $html = $this->get("/products/{$slug}")->assertOk()->getContent();
@@ -113,7 +113,7 @@ class VariantGallerySsrTest extends TestCase
         $this->seedBaseData();
 
         $product = $this->createProduct(['stock' => 5]);
-        $product->skus->first()->update(['images' => []]);
+        $product->variants->first()->update(['images' => []]);
 
         $slug = $product->defaultUrl->slug;
 

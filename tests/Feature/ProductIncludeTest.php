@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use Lunar\Core\Models\ProductVariant;
+use Lunar\Core\Models\TaxClass;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -30,9 +32,35 @@ class ProductIncludeTest extends TestCase
     public function test_variant_payload_uses_sellable_stock_and_exposes_variant_key(): void
     {
         $this->seedBaseData();
-        $product = $this->createProduct(['stock' => 2, 'variant_indexes' => [0, 1]]);
-        $sku = $product->skus()->first();
-        $sku->update(['committed' => 2]);
+        // Two axes, so the positional key the picker jumps by has two parts.
+        // The variant takes the FIRST colour and the SECOND size, i.e. "0-1".
+        $product = $this->createProduct([
+            'stock' => 2,
+            'options' => ['Color' => 'Black', 'Size' => 'M'],
+        ]);
+
+        // A second variant on size S. The axis only lists values some variant
+        // uses — offering a swatch that resolves to nothing is worse than not
+        // offering it — so without this, M would be the only size and index 0.
+        $small = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'INC-S-'.uniqid(),
+            'tax_class_id' => TaxClass::getDefault()?->id,
+            'enabled' => true,
+        ]);
+        $sizeS = $this->optionValue($product, 'Size', 'S');
+        $small->values()->syncWithoutDetaching([
+            $this->optionValue($product, 'Color', 'Black')->id,
+            $sizeS->id,
+        ]);
+
+        // Sizes run S, M — the axis is ordered by the value's own position, so
+        // the M variant sits at index 1 and its key reads "0-1".
+        $sizeS->forceFill(['position' => 1])->save();
+        $this->optionValue($product, 'Size', 'M')->forceFill(['position' => 2])->save();
+
+        $sku = $product->variants()->first();
+        $sku->forceFill(['stock_committed' => 2, 'stock_available' => (int) $sku->stock_on_hand - 2])->save();
         $slug = $product->defaultUrl->slug;
 
         $this->getJson("/api/v1/products/{$slug}")

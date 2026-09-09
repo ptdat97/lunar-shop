@@ -3,33 +3,29 @@
 namespace Tests\Feature;
 
 use Illuminate\Http\UploadedFile;
+use Lunar\Core\Enums\ProductOptionType;
 use Lunar\Core\Models\Asset;
+use Lunar\Core\Models\ProductVariant;
 use Modules\Catalog\Services\ProductService;
-use Modules\Catalog\Services\SkuBuilderService;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
 /**
- * Variant image-swatches and per-SKU images are picked from the shared Media
- * Library (modules/Assets) via MediaPicker — the builder posts Lunar Asset
- * ids directly, never a raw upload path. SkuBuilderService therefore has no
- * ingest/hydrate step for these fields any more: it persists whatever Asset
- * id the form posts, as-is.
+ * Swatches: what the storefront picker renders next to an option value.
+ *
+ * Lunar 2.0 owns this now — `ProductOption.type` says how a value is rendered
+ * (`text` / `colour` / `swatch`) and the value's own `meta` carries the payload.
+ * The storefront keeps its own vocabulary (`text` / `color` / `image`), so these
+ * tests pin the translation between the two as well as the payload itself.
+ *
+ * Per-variant images stay a list of Media Library Asset ids picked from the
+ * shared library (modules/Assets) rather than media the variant owns: the
+ * catalogue reuses 162 assets across 1,945 references, so owning them would copy
+ * the same files over and over.
  */
 class VariantSwatchTest extends TestCase
 {
     use CreatesStorefrontData;
-
-    /** @return array{0: SkuBuilderService, 1: callable} */
-    private function builder(): array
-    {
-        $svc = app(SkuBuilderService::class);
-        $skus = fn (array $variables) => collect($svc->combinations($variables))
-            ->map(fn ($c, $i) => ['variants' => $c, 'sku' => 'SW-'.$i.uniqid(), 'price' => 1000, 'quantity' => 5, 'status' => 'published'])
-            ->all();
-
-        return [$svc, $skus];
-    }
 
     /** A library Asset with a real image file attached. */
     private function libraryAsset(string $name = 'stripe.png'): Asset
@@ -45,32 +41,30 @@ class VariantSwatchTest extends TestCase
     public function test_option_groups_expose_text_color_and_image_display_types(): void
     {
         $this->seedBaseData();
-        $product = $this->createProduct();
+        $product = $this->createProduct(['options' => ['Size' => 'S']]);
+        $variant = $product->variants->first();
 
-        // Image swatch: a library Asset id (picked via MediaPicker).
         $asset = $this->libraryAsset();
 
-        $variables = [
-            ['name' => ['en' => 'Color'], 'display_type' => 'color', 'values' => [
-                ['name' => ['en' => 'Black'], 'color' => '#111111'],
-            ]],
-            ['name' => ['en' => 'Pattern'], 'display_type' => 'image', 'values' => [
-                ['name' => ['en' => 'Stripe'], 'image' => $asset->id],
-            ]],
-            ['name' => ['en' => 'Size'], 'display_type' => 'text', 'values' => [
-                ['name' => ['en' => 'S']],
-            ]],
-        ];
-        [$svc, $skus] = $this->builder();
-        $svc->save($product, $variables, $skus($variables));
+        $colour = $this->optionValue($product, 'Color', 'Black');
+        $colour->option->forceFill(['type' => ProductOptionType::Colour->value])->save();
+        $colour->forceFill(['meta' => ['colour' => '#111111']])->save();
 
-        $groups = app(ProductService::class)->optionGroups($product->fresh());
+        $pattern = $this->optionValue($product, 'Pattern', 'Stripe');
+        $pattern->option->forceFill(['type' => ProductOptionType::Swatch->value])->save();
+        $pattern->forceFill(['meta' => ['image' => $asset->id]])->save();
 
+        $variant->values()->syncWithoutDetaching([$colour->id, $pattern->id]);
+
+        $groups = app(ProductService::class)->optionGroups($product->fresh(['variants.values', 'productOptions.values']));
+
+        // en-GB `colour` on the option becomes the storefront's `color`.
         $this->assertSame('color', $groups['Color']['display_type']);
         $this->assertSame('#111111', $groups['Color']['values'][0]['color']);
         $this->assertNull($groups['Color']['values'][0]['image']);
 
-        // Image swatch resolves to the small `thumb` conversion, not the original.
+        // `swatch` becomes `image`, resolved to the small conversion rather than
+        // the heavy original.
         $this->assertSame('image', $groups['Pattern']['display_type']);
         $this->assertStringContainsString('-thumb.', $groups['Pattern']['values'][0]['image']);
 
@@ -79,93 +73,69 @@ class VariantSwatchTest extends TestCase
         $this->assertNull($groups['Size']['values'][0]['image']);
     }
 
-    public function test_saved_swatch_asset_id_is_persisted_as_is(): void
-    {
-        $this->seedBaseData();
-        $product = $this->createProduct();
-        $asset = $this->libraryAsset('temp.png');
-
-        [$svc, $skus] = $this->builder();
-        $variables = [
-            ['name' => ['en' => 'Pattern'], 'display_type' => 'image', 'values' => [
-                ['name' => ['en' => 'Stripe'], 'image' => $asset->id],
-            ]],
-        ];
-        $svc->save($product, $variables, $skus($variables));
-
-        $this->assertSame($asset->id, $product->fresh()->variables[0]['values'][0]['image']);
-    }
-
+    /** A swatch whose library Asset was deleted must degrade, not break. */
     public function test_deleting_the_library_asset_makes_the_swatch_resolve_to_null(): void
     {
         $this->seedBaseData();
         $product = $this->createProduct();
-        $asset = $this->libraryAsset('s.png');
+        $variant = $product->variants->first();
 
-        [$svc, $skus] = $this->builder();
-        $variables = [['name' => ['en' => 'P'], 'display_type' => 'image', 'values' => [['name' => ['en' => 'S'], 'image' => $asset->id]]]];
-        $svc->save($product, $variables, $skus($variables));
+        $asset = $this->libraryAsset();
 
-        // The library Asset is NOT owned by the product — SkuBuilderService
-        // must never delete it just because a value is blanked or re-saved.
-        $blank = [['name' => ['en' => 'P'], 'display_type' => 'image', 'values' => [['name' => ['en' => 'S'], 'image' => null]]]];
-        $svc->save($product->fresh(), $blank, $skus($blank));
+        $pattern = $this->optionValue($product, 'Pattern', 'Stripe');
+        $pattern->option->forceFill(['type' => ProductOptionType::Swatch->value])->save();
+        $pattern->forceFill(['meta' => ['image' => $asset->id]])->save();
+        $variant->values()->syncWithoutDetaching([$pattern->id]);
 
-        $this->assertNull($product->fresh()->variables[0]['values'][0]['image']);
-        $this->assertNotNull(Asset::find($asset->id), 'the library asset must survive a value being blanked');
+        $asset->delete();
+
+        $groups = app(ProductService::class)->optionGroups($product->fresh(['variants.values', 'productOptions.values']));
+
+        $this->assertNull($groups['Pattern']['values'][0]['image']);
     }
 
-    // ---- per-SKU images ---------------------------------------------------
-
-    public function test_a_skus_images_are_persisted_as_the_posted_asset_ids(): void
+    /**
+     * A variant's images are stored exactly as posted — Asset ids, in order.
+     *
+     * The picker posts library ids, so there is no ingest step to get wrong; the
+     * risk is the opposite, that something helpfully "resolves" them on save and
+     * the reference stops surviving a file replacement.
+     */
+    public function test_a_variants_images_are_persisted_as_the_posted_asset_ids(): void
     {
         $this->seedBaseData();
         $product = $this->createProduct();
-        $asset = $this->libraryAsset('front.png');
 
-        [$svc, $skus] = $this->builder();
-        $variables = [['name' => ['en' => 'Size'], 'display_type' => 'text', 'values' => [
-            ['name' => ['en' => 'S']],
-        ]]];
-        $rows = $skus($variables);
-        $rows[0]['images'] = [$asset->id];
-        $svc->save($product, $variables, $rows);
+        $first = $this->libraryAsset('one.png');
+        $second = $this->libraryAsset('two.png');
 
-        $sku = $product->fresh()->skus()->first();
-        $this->assertSame([$asset->id], $sku->images);
+        $variant = $product->variants->first();
+        $variant->update(['images' => [$second->id, $first->id]]);
+
+        $this->assertSame([$second->id, $first->id], $variant->fresh()->images);
     }
 
-    public function test_a_skus_asset_is_kept_and_not_deleted_when_dropped_from_another_sku(): void
+    /** Dropping an image from one variant must not delete the shared asset. */
+    public function test_an_asset_is_kept_when_dropped_from_one_variant(): void
     {
         $this->seedBaseData();
         $product = $this->createProduct();
-        $asset = $this->libraryAsset('shared.png');
+        $asset = $this->libraryAsset();
 
-        [$svc, $skus] = $this->builder();
-        $variables = [['name' => ['en' => 'Size'], 'display_type' => 'text', 'values' => [
-            ['name' => ['en' => 'S']], ['name' => ['en' => 'M']],
-        ]]];
-        $rows = $skus($variables);
-        $rows[0]['images'] = [$asset->id];
-        $rows[1]['images'] = [$asset->id];
-        $svc->save($product, $variables, $rows);
+        $a = $product->variants->first();
+        $a->update(['images' => [$asset->id]]);
 
-        $product = $product->fresh();
-        $this->assertSame([$asset->id], $product->skus()->where('sku', $rows[0]['sku'])->first()->images);
-        $this->assertSame([$asset->id], $product->skus()->where('sku', $rows[1]['sku'])->first()->images);
+        $b = ProductVariant::create([
+            'product_id' => $product->id,
+            'sku' => 'SW-B-'.uniqid(),
+            'images' => [$asset->id],
+            'tax_class_id' => $a->tax_class_id,
+            'enabled' => true,
+        ]);
 
-        // Re-save with the image removed from one SKU only — the shared library
-        // Asset must survive, since Catalog never owns or deletes it.
-        $rows2 = $skus($variables);
-        $rows2[0]['sku'] = $rows[0]['sku'];
-        $rows2[1]['sku'] = $rows[1]['sku'];
-        $rows2[0]['images'] = [];
-        $rows2[1]['images'] = [$asset->id];
-        $svc->save($product->fresh(), $variables, $rows2);
+        $a->update(['images' => []]);
 
-        $product = $product->fresh();
-        $this->assertSame([], $product->skus()->where('sku', $rows[0]['sku'])->first()->images);
-        $this->assertSame([$asset->id], $product->skus()->where('sku', $rows[1]['sku'])->first()->images);
-        $this->assertNotNull(Asset::find($asset->id), 'shared library asset must not be deleted');
+        $this->assertSame([$asset->id], $b->fresh()->images);
+        $this->assertNotNull(Asset::find($asset->id), 'the library keeps the file for everyone else');
     }
 }

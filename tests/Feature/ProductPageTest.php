@@ -58,7 +58,14 @@ class ProductPageTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct(['stock' => 2]);
-        $product->skus()->first()->update(['committed' => 2]);
+        // `stock_committed` is a rollup Lunar derives from the order book, so a
+        // test that wants a committed figure without an order writes it and the
+        // matching available figure directly.
+        $variant = $product->variants()->first();
+        $variant->forceFill([
+            'stock_committed' => 2,
+            'stock_available' => (int) $variant->stock_on_hand - 2,
+        ])->save();
         $slug = $product->defaultUrl->slug;
 
         $this->get("/products/{$slug}")

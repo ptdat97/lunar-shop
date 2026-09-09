@@ -13,7 +13,7 @@ class CartTest extends TestCase
     public function test_add_to_cart(): void
     {
         $product = $this->createProduct(['price' => 2000]);
-        $variantId = $product->skus->first()->id;
+        $variantId = $product->variants->first()->id;
 
         $this->postJson('/api/v1/cart', ['sku_id' => $variantId, 'quantity' => 2])
             ->assertSuccessful()
@@ -30,7 +30,7 @@ class CartTest extends TestCase
     public function test_update_and_remove_line(): void
     {
         $product = $this->createProduct(['price' => 1000]);
-        $variantId = $product->skus->first()->id;
+        $variantId = $product->variants->first()->id;
 
         $this->postJson('/api/v1/cart', ['sku_id' => $variantId, 'quantity' => 1]);
         $lineId = $this->getJson('/api/v1/cart')->json('data.lines.0.id');
@@ -48,7 +48,7 @@ class CartTest extends TestCase
     {
         $this->seed(DemoCouponSeeder::class);
         $product = $this->createProduct(['price' => 10000]); // $100
-        $variantId = $product->skus->first()->id;
+        $variantId = $product->variants->first()->id;
         $this->postJson('/api/v1/cart', ['sku_id' => $variantId, 'quantity' => 1]);
 
         // Coupon is accepted and recorded on the cart. (The discount *amount*
@@ -66,7 +66,7 @@ class CartTest extends TestCase
     public function test_invalid_coupon_is_rejected(): void
     {
         $product = $this->createProduct();
-        $this->postJson('/api/v1/cart', ['sku_id' => $product->skus->first()->id, 'quantity' => 1]);
+        $this->postJson('/api/v1/cart', ['sku_id' => $product->variants->first()->id, 'quantity' => 1]);
 
         $this->postJson('/api/v1/cart/coupon', ['code' => 'NOPE-INVALID'])
             ->assertStatus(422);

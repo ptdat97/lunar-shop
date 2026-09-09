@@ -2,7 +2,7 @@
 
 namespace Modules\Inventory\Services;
 
-use Modules\Catalog\Models\ProductSku;
+use Lunar\Core\Models\ProductVariant;
 use Modules\Inventory\Models\StockNotification;
 
 /**
@@ -25,12 +25,12 @@ class StockNotificationService
      * existing pending row (and resets it to pending if it was already notified
      * but has since sold out again).
      */
-    public function subscribe(int $skuId, string $email): StockNotification
+    public function subscribe(int $variantId, string $email): StockNotification
     {
-        $sku = ProductSku::findOrFail($skuId);
+        $variant = ProductVariant::findOrFail($variantId);
 
         abort_if(
-            $this->inventory->hasPhysicalStock($sku->id),
+            $this->inventory->hasPhysicalStock($variant->id),
             422,
             'This item is already in stock.',
         );
@@ -38,7 +38,7 @@ class StockNotificationService
         $email = mb_strtolower(trim($email));
 
         return StockNotification::updateOrCreate(
-            ['product_sku_id' => $sku->id, 'email' => $email],
+            ['product_variant_id' => $variant->id, 'email' => $email],
             ['notified_at' => null],
         );
     }
@@ -46,10 +46,10 @@ class StockNotificationService
     /**
      * Number of shoppers waiting on a SKU.
      */
-    public function pendingCount(ProductSku $sku): int
+    public function pendingCount(ProductVariant $variant): int
     {
         return StockNotification::query()
-            ->where('product_sku_id', $sku->id)
+            ->where('product_variant_id', $variant->id)
             ->pending()
             ->count();
     }

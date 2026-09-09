@@ -8,7 +8,7 @@ use Illuminate\Support\Collection;
 use Lunar\Core\Models\Order;
 use Lunar\Core\Models\OrderLine;
 use Lunar\Core\Models\Product;
-use Modules\Catalog\Models\ProductSku;
+use Lunar\Core\Models\ProductVariant;
 use Modules\Order\Support\OrderStatus;
 
 /**
@@ -161,7 +161,7 @@ class AnalyticsService
      */
     public function topProducts(int $limit = 5): Collection
     {
-        $skuMorph = (new ProductSku)->getMorphClass();
+        $skuMorph = (new ProductVariant)->getMorphClass();
 
         return OrderLine::query()
             ->select('purchasable_id')
@@ -173,7 +173,7 @@ class AnalyticsService
             ->limit($limit)
             ->get()
             ->map(function ($line) {
-                $sku = ProductSku::with('product')->find($line->purchasable_id);
+                $sku = ProductVariant::with('product')->find($line->purchasable_id);
 
                 return [
                     'product_id' => $sku?->product?->id,

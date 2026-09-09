@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\Event;
 use Lunar\Core\Facades\CartSession;
 use Lunar\Core\Facades\ShippingManifest;
 use Lunar\Core\Models\Order;
+use Lunar\Core\Models\ProductVariant;
 use Lunar\Core\Models\Transaction;
-use Modules\Catalog\Models\ProductSku;
 use Modules\Checkout\Services\CheckoutService;
 use Modules\Checkout\Services\GatewayReconciler;
 use Modules\Checkout\Services\VNPayGateway;
@@ -47,8 +47,8 @@ class PaymentHardeningTest extends TestCase
     private function placeVNPayOrder(int $price = 5000, int $stock = 10): Order
     {
         $product = $this->createProduct(['price' => $price]);
-        $product->skus->first()->update(['quantity' => $stock]);
-        CartSession::add($product->skus->first(), 1);
+        $this->setStock($product->variants->first(), $stock);
+        CartSession::add($product->variants->first(), 1);
         $cart = CartSession::current();
         $address = $this->shippingPayload(['postcode' => '00000']);
         $cart->setShippingAddress($address);
@@ -129,7 +129,7 @@ class PaymentHardeningTest extends TestCase
     {
         Event::fake([OrderPaid::class]);
         $order = $this->placeVNPayOrder(stock: 10);
-        $variant = ProductSku::find($order->lines->first()->purchasable_id);
+        $variant = ProductVariant::find($order->lines->first()->purchasable_id);
         $this->assertSame(9, $variant->fresh()->getTotalInventory(), 'reserved at order creation');
 
         // Abandoned: cancelled, stock returned by ReleaseStockOnOrderClosed.

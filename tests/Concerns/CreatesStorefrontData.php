@@ -3,16 +3,20 @@
 namespace Tests\Concerns;
 
 use App\Models\User;
+use Illuminate\Support\Str;
+use Lunar\Core\Contracts\Actions\Products\AdjustsStock;
 use Lunar\Core\Models\Country;
 use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Language;
 use Lunar\Core\Models\Price;
 use Lunar\Core\Models\Product;
+use Lunar\Core\Models\ProductOption;
+use Lunar\Core\Models\ProductOptionValue;
 use Lunar\Core\Models\ProductType;
+use Lunar\Core\Models\ProductVariant;
 use Lunar\Core\Models\TaxClass;
 use Lunar\Core\Models\Url;
 use Modules\Catalog\Database\Seeders\BaseDataSeeder;
-use Modules\Catalog\Models\ProductSku;
 use Modules\Catalog\Models\SizeChart;
 use Modules\Customer\Models\Province;
 
@@ -63,31 +67,45 @@ trait CreatesStorefrontData
 
         $product = Product::create([
             'product_type_id' => ProductType::first()?->id ?? ProductType::create(['name' => 'General'])->id,
+            // Products carry a `status` state; `enabled` is the VARIANT flag.
+            // Leaving this out silently creates a draft product, which then
+            // fails every purchasability check downstream.
             'status' => 'published',
             'name' => $names,
         ]);
 
-        // Lunar's Product is fully $guarded, so `variables` can't be mass-assigned
-        // — set it directly (the Product::saving cast serialises it) and re-save.
-        $product->variables = $attributes['variables'] ?? [];
-        $product->save();
-
-        $sku = ProductSku::create([
+        $variant = ProductVariant::create([
             'product_id' => $product->id,
             'sku' => $attributes['sku'] ?? 'SKU-'.strtoupper(substr(uniqid(), -6)),
-            'variants' => $attributes['variant_indexes'] ?? [],
-            'quantity' => $stock,
-            'price' => $price,
-            'is_default' => true,
-            'status' => 'published',
+            'unit_quantity' => 1,
+            'shippable' => true,
+            'selling_policy' => 'in_stock',
+            'enabled' => true,
             'tax_class_id' => TaxClass::getDefault()?->id,
         ]);
+
+        // Stock goes in through Lunar's action so the level, the rollup and the
+        // movement ledger agree — the same path production takes. Writing
+        // `stock_on_hand` directly would leave the ledger empty and the next
+        // recompute would zero it.
+        if ($stock !== 0) {
+            app(AdjustsStock::class)->execute($variant, $stock, 'test fixture');
+        }
+
+        // Option axes, when the test asks for them. Values are matched by name
+        // so a test can name the same colour twice and get one shared value —
+        // which is what a real catalogue does.
+        foreach ($attributes['options'] ?? [] as $optionName => $valueName) {
+            $variant->values()->syncWithoutDetaching([
+                $this->optionValue($product, (string) $optionName, (string) $valueName)->id,
+            ]);
+        }
 
         Price::create([
             'price' => $price,
             'currency_id' => Currency::getDefault()->id,
-            'priceable_type' => $sku->getMorphClass(),
-            'priceable_id' => $sku->id,
+            'priceable_type' => $variant->getMorphClass(),
+            'priceable_id' => $variant->id,
         ]);
 
         Url::create([
@@ -98,7 +116,53 @@ trait CreatesStorefrontData
             'language_id' => Language::getDefault()->id,
         ]);
 
-        return $product->fresh(['skus', 'urls']);
+        return $product->fresh(['variants.values', 'productOptions.values', 'urls']);
+    }
+
+    /**
+     * Set a variant's on-hand stock to an absolute figure.
+     *
+     * Goes through Lunar's `AdjustStock` by delta, because `stock_on_hand` is a
+     * ROLLUP of the per-location levels — writing it directly leaves the level
+     * and the ledger untouched, and the next recompute silently reverts it.
+     * That is the same class of trap as writing an order's `payment_status` by
+     * hand (docs/guides/upgrade-lunar-2.0.md §9.6).
+     */
+    protected function setStock(ProductVariant $variant, int $quantity): ProductVariant
+    {
+        $delta = $quantity - (int) $variant->stock_on_hand;
+
+        if ($delta !== 0) {
+            app(AdjustsStock::class)->execute($variant, $delta, 'test fixture');
+        }
+
+        return $variant->refresh();
+    }
+
+    /**
+     * A shared option value by name, creating the option and the value if this
+     * is the first test to ask for them, and attaching the option to the product
+     * so the picker can find its axes.
+     */
+    protected function optionValue(Product $product, string $optionName, string $valueName): ProductOptionValue
+    {
+        $option = ProductOption::query()->whereJsonContains('name->en', $optionName)->first()
+            ?? ProductOption::create([
+                'name' => ['en' => $optionName],
+                'label' => ['en' => $optionName],
+                'handle' => Str::slug($optionName).'-'.uniqid(),
+                'shared' => true,
+                'type' => 'text',
+            ]);
+
+        $product->productOptions()->syncWithoutDetaching([
+            $option->id => ['position' => $product->productOptions()->count() + 1],
+        ]);
+
+        return $option->values()->whereJsonContains('name->en', $valueName)->first()
+            ?? $option->values()->create([
+                'name' => ['en' => $valueName],
+            ]);
     }
 
     /**

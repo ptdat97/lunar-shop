@@ -56,7 +56,7 @@ class PromotionAdvancedTest extends TestCase
     public function test_quantity_discount_applies_only_once_threshold_is_met(): void
     {
         $product = $this->createProduct(['price' => 10000]);
-        $variant = $product->skus->first();
+        $variant = $product->variants->first();
 
         $discount = Discount::create([
             'name' => 'Buy 2, Get 10% Off',
@@ -113,14 +113,14 @@ class PromotionAdvancedTest extends TestCase
 
         // Only a top in the cart → combo not satisfied → no discount.
         $cart = $this->makeCart();
-        $cart->add($top->skus->first(), 1);
+        $cart->add($top->variants->first(), 1);
         $cart->calculate();
         $this->assertSame(0, $cart->discountTotal?->value ?? 0);
 
         // Top + bottom → 15% off one of each: 1500 + 3000 = 4500.
         $cart = $this->makeCart();
-        $cart->add($top->skus->first(), 1);
-        $cart->add($bottom->skus->first(), 1);
+        $cart->add($top->variants->first(), 1);
+        $cart->add($bottom->variants->first(), 1);
         $cart->calculate();
         $this->assertSame(4500, $cart->discountTotal->value);
     }
@@ -256,7 +256,7 @@ class PromotionAdvancedTest extends TestCase
         $this->enableForAll($discount);
 
         $cart = $this->makeCart();
-        $cart->add($product->skus->first(), 1);
+        $cart->add($product->variants->first(), 1);
         $cart->calculate();
 
         $applied = app(PromotionService::class)->appliedTo($cart);

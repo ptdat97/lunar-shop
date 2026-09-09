@@ -210,20 +210,26 @@ class FitHistoryService
     }
 
     /**
-     * The index of the product's "Size" variable within its flexible
-     * `variables` definition, or null when the product has no size axis. A
-     * variable is the size axis when its localised name equals "size"
-     * (case-insensitive, any locale) — the same handle the old option carried.
+     * The id of the product's Size option, if it has one.
+     *
+     * The size axis used to be found positionally in the product's own
+     * `variables` blob. Variants carry shared `ProductOption`s now, so the axis
+     * is an option row — matched on handle or on a name reading "size" in any
+     * locale, the same tolerance as before.
      */
-    protected function sizeAxisIndex(Product $product): ?int
+    protected function sizeOptionId(Product $product): ?int
     {
-        foreach ($product->variables ?? [] as $i => $variable) {
-            $names = $variable['name'] ?? [];
-            $names = is_array($names) ? $names : [$names];
+        foreach ($product->productOptions as $option) {
+            if (strtolower((string) $option->handle) === 'size') {
+                return (int) $option->id;
+            }
+
+            $names = $option->name;
+            $names = is_iterable($names) ? $names : [$names];
 
             foreach ($names as $name) {
                 if (strtolower(trim((string) $name)) === 'size') {
-                    return (int) $i;
+                    return (int) $option->id;
                 }
             }
         }
@@ -242,17 +248,27 @@ class FitHistoryService
      */
     protected function history(Customer $customer, Product $product): array
     {
-        // The purchased size now lives positionally in the SKU's `variants`
-        // index into the product's flexible `variables` (no option-value pivot
-        // to join). Pull the raw order lines + return reason per SKU, then
-        // resolve each SKU's Size label in PHP against the product definition.
+        $sizeOptionId = $this->sizeOptionId($product);
+
+        if ($sizeOptionId === null) {
+            return [];
+        }
+
+        // The purchased size comes off the variant's option values now, so it is
+        // a join rather than a positional lookup resolved in PHP afterwards —
+        // the label arrives with the row.
         $rows = DB::table('lunar_order_lines as ol')
-            ->join('lunar_product_skus as ps', function ($join) {
-                $join->on('ps.id', '=', 'ol.purchasable_id')
-                    ->where('ol.purchasable_type', '=', 'product_sku');
+            ->join('lunar_product_variants as pv', function ($join) {
+                $join->on('pv.id', '=', 'ol.purchasable_id')
+                    ->where('ol.purchasable_type', '=', 'product_variant');
             })
             ->join('lunar_orders as o', 'o.id', '=', 'ol.order_id')
-            ->where('ps.product_id', $product->id)
+            ->join('lunar_product_option_value_product_variant as pvv', 'pvv.variant_id', '=', 'pv.id')
+            ->join('lunar_product_option_values as ov', function ($join) use ($sizeOptionId) {
+                $join->on('ov.id', '=', 'pvv.value_id')
+                    ->where('ov.product_option_id', '=', $sizeOptionId);
+            })
+            ->where('pv.product_id', $product->id)
             ->where('o.customer_id', $customer->id)
             ->whereRaw(OrderStatus::paidSql('o'))
             // A size return against this exact order line, if any.
@@ -262,34 +278,20 @@ class FitHistoryService
                     ->whereIn('rr.reason', [self::REASON_TOO_SMALL, self::REASON_TOO_LARGE, self::REASON_WRONG_SIZE])
                     ->where('rr.status', '!=', ReturnStatus::REJECTED);
             })
-            ->select('ps.variants as variant_indexes', 'rr.reason')
+            ->select('ov.name as size_name', 'rr.reason')
             ->get();
-
-        // Which variable in this product is the Size axis (handle 'size', or a
-        // name equal to "size" in any locale)? Its index selects the size label.
-        $sizeAxis = $this->sizeAxisIndex($product);
-
-        if ($sizeAxis === null) {
-            return [];
-        }
-
-        $variables = $product->variables ?? [];
 
         // Aggregate per size label: kept once ⇒ kept; else the (possibly
         // conflicting) return direction.
         $bySize = [];
 
         foreach ($rows as $row) {
-            $indexes = json_decode((string) $row->variant_indexes, true) ?: [];
-            $valueIndex = $indexes[$sizeAxis] ?? null;
-            if ($valueIndex === null) {
-                continue;
-            }
+            $names = json_decode((string) $row->size_name, true);
+            $size = is_array($names)
+                ? ($names['en'] ?? $names[app()->getLocale()] ?? reset($names) ?: null)
+                : (string) $row->size_name;
 
-            $size = $variables[$sizeAxis]['values'][$valueIndex]['name']['en']
-                ?? $variables[$sizeAxis]['values'][$valueIndex]['name'][app()->getLocale()]
-                ?? null;
-            if ($size === null) {
+            if (! $size) {
                 continue;
             }
 
