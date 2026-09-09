@@ -6,10 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
-use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Modules\Core\Panel\Field;
+use Modules\Core\Panel\InputNormaliser;
 use Modules\Core\Panel\PanelResource;
 use Modules\Core\Panel\RowAction;
 use Modules\Core\Panel\ResourceRegistry;
@@ -252,44 +252,7 @@ class ResourceController extends Controller
         // page section is validated against the branch it actually submitted.
         $data = $request->validate($resource->validationRules($record, $request->all()));
 
-        foreach ($resource->fieldsFor($request->all()) as $field) {
-            $type = $field->toArray()['type'];
-
-            if ($type === 'tags') {
-                $raw = (string) (data_get($data, $field->name) ?? '');
-
-                data_set($data, $field->name, array_values(array_filter(
-                    array_map('trim', explode(',', $raw)),
-                    fn (string $tag) => $tag !== '',
-                )));
-
-                continue;
-            }
-
-            if ($type !== 'json') {
-                continue;
-            }
-
-            // data_get/data_set, not array access: a field name may be a path
-            // into a JSON column rather than a key of its own.
-            $raw = data_get($data, $field->name);
-
-            if (blank($raw)) {
-                data_set($data, $field->name, null);
-
-                continue;
-            }
-
-            $decoded = json_decode((string) $raw, true);
-
-            if (json_last_error() !== JSON_ERROR_NONE) {
-                throw ValidationException::withMessages([
-                    $field->name => __('panel.invalid_json'),
-                ]);
-            }
-
-            data_set($data, $field->name, $decoded);
-        }
+        $data = InputNormaliser::apply($resource->fieldsFor($request->all()), $data);
 
         return $resource->mutate($data, $record);
     }

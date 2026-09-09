@@ -12,6 +12,15 @@
  */
 import ResourceIndex from '../pages/shop/resource/Index.vue';
 import ResourceForm from '../pages/shop/resource/Form.vue';
+import SettingsEdit from '../pages/shop/settings/Edit.vue';
+
+// The panel's page resolver auto-applies its shell layout to add-on pages, but
+// only when the page declares none (`layout ??=`). A settings page brings its
+// own full-page chrome via SettingsShell, so it declares this passthrough to
+// keep the sidebar from being nested inside itself.
+const Bare = { render() { return this.$slots.default?.(); } };
+
+SettingsEdit.layout = Bare;
 
 // The names ResourceController renders. Each is the component's own path under
 // resources/js/pages — the convention Inertia's page finder follows — so a
@@ -22,4 +31,5 @@ import ResourceForm from '../pages/shop/resource/Form.vue';
 window.LunarPanel.registerPages({
     'shop/resource/Index': ResourceIndex,
     'shop/resource/Form': ResourceForm,
+    'shop/settings/Edit': SettingsEdit,
 });

@@ -7,9 +7,11 @@ use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Core\Facades\Discounts;
 use Modules\Content\Services\SectionRenderer;
+use Modules\Core\Panel\SettingsRegistry;
 use Modules\Order\Events\OrderPaid;
 use Modules\Promotion\Console\BackfillMembershipTiers;
 use Modules\Promotion\Http\Resources\PromotionResource;
+use Modules\Promotion\Panel\MembershipSettings;
 use Modules\Promotion\Services\MembershipService;
 use Modules\Promotion\Services\PromotionService;
 
@@ -33,6 +35,9 @@ class PromotionServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Nhóm cài đặt của module trên panel Lunar.
+        $this->app->make(SettingsRegistry::class)->add(new MembershipSettings);
+
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'promotion-admin');
 

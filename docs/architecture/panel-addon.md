@@ -144,6 +144,34 @@ này biến việc đổi tên file thành test đỏ thay vì trang trắng.
 | Vùng vận chuyển | trường phẳng + `tags` |
 | Bảng size | `hasMany` cho các dòng size |
 | Đăng ký báo hàng về | chỉ đọc, cột tính toán + eager load |
+| 8 trang cài đặt cũ | một màn hình `SettingsGroup`, mỗi nhóm một tab |
+
+## Cài đặt tính năng
+
+Song song với resource là `SettingsGroup`: cùng bộ trường, nhưng đọc/ghi
+key-value chứ không phải bảng. Tám trang Filament cũ nay là tám nhóm khai báo,
+chung một trang Vue.
+
+Mỗi nhóm **tự giữ kho của nó**. Phần lớn ghi vào `app_settings` qua `Settings`
+(dùng `StoredSettingsGroup`), nhưng theme có bảng riêng và thông tin đăng nhập
+gửi mail/SMS đi qua wrapper biết cách giữ bí mật. Ép tất cả về một kho chỉ tạo
+ra một đợt di dữ liệu không đổi lại được gì.
+
+Ba điều đáng nhớ:
+
+**`Settings::put()` thay cả nhóm.** Quên một key không phải là để nguyên nó —
+là xoá nó. `StoredSettingsGroup::payload()` dựng lại payload từ schema chính vì
+vậy: mọi key nhóm sở hữu đều được ghi ở mỗi lần lưu.
+
+**`Field::secret()` là một chiều.** Không bao giờ gửi ra trình duyệt, và để
+trống lúc lưu nghĩa là "giữ nguyên" chứ không phải "xoá". Trang thanh toán cũ
+làm ngược lại — nó đọc thẳng `hash_secret` và `secret_key` vào form, tức là mỗi
+lần mở trang cài đặt là một lần đẩy credential sống ra trình duyệt. Form vẫn
+hiện "đã lưu — để trống nếu giữ nguyên" để ô rỗng không bị hiểu là chưa cấu hình.
+
+**Mỗi nhóm một route có tên.** `NavigationItem` dựng URL bằng `route($name)`
+không tham số, nên route kiểu `{group}` sẽ lặng lẽ ra null và mục sidebar không
+đi đâu cả.
 
 ## Thao tác theo dòng
 

@@ -12,6 +12,7 @@ use Modules\Core\Console\ScheduleHeartbeat;
 use Lunar\Panel\Facades\Panel;
 use Modules\Core\Listeners\RecordScheduledRun;
 use Modules\Core\Panel\ResourceRegistry;
+use Modules\Core\Panel\SettingsRegistry;
 use Modules\Core\Panel\ShopSection;
 use Modules\Core\Support\Settings;
 
@@ -38,6 +39,10 @@ class CoreServiceProvider extends ServiceProvider
         // Singleton so every module's provider adds to the same registry; the
         // panel reads it once, when it processes sections after boot.
         $this->app->singleton(ResourceRegistry::class);
+
+        // Same reason: every module adds its settings groups to one registry,
+        // which the panel reads once sections are processed.
+        $this->app->singleton(SettingsRegistry::class);
     }
 
     public function boot(): void

@@ -5,8 +5,10 @@ namespace Modules\Shipping\Providers;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Core\Modifiers\ShippingModifiers;
 use Modules\Core\Panel\ResourceRegistry;
+use Modules\Core\Panel\SettingsRegistry;
 use Modules\Shipping\Modifiers\FlatRateShippingModifier;
 use Modules\Shipping\Modifiers\PickupShippingModifier;
+use Modules\Shipping\Panel\ShippingSettings;
 use Modules\Shipping\Panel\ShippingZoneResource;
 
 class ShippingServiceProvider extends ServiceProvider
@@ -24,6 +26,9 @@ class ShippingServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Nhóm cài đặt của module trên panel Lunar.
+        $this->app->make(SettingsRegistry::class)->add(new ShippingSettings);
+
         // Màn hình admin của module trên panel Lunar.
         $this->app->make(ResourceRegistry::class)->add(new ShippingZoneResource);
 

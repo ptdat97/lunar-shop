@@ -109,6 +109,24 @@ class Field
     }
 
     /**
+     * A stored credential. Never sent to the browser, and a blank submission
+     * means "unchanged" rather than "clear it" — so opening a settings screen
+     * and saving it cannot silently wipe a working API key.
+     */
+    public static function secret(string $name, string $label): static
+    {
+        $field = new static($name, $label, 'secret');
+        $field->meta['secret'] = true;
+
+        return $field;
+    }
+
+    public function isSecret(): bool
+    {
+        return (bool) ($this->meta['secret'] ?? false);
+    }
+
+    /**
      * A list of short strings edited as one comma-separated line — province
      * names on a shipping zone, say. Stored as a JSON array, which is what the
      * column holds and what the code reading it expects.

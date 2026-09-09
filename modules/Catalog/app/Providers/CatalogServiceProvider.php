@@ -15,6 +15,7 @@ use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Drivers\DatabaseSearchEngine;
 use Modules\Catalog\Models\ProductMaterial;
 use Modules\Catalog\Models\SizeChart;
+use Modules\Catalog\Panel\CatalogSettings;
 use Modules\Catalog\Panel\SizeChartResource;
 use Modules\Catalog\Services\PricingService;
 use Modules\Catalog\Services\ProductService;
@@ -22,6 +23,7 @@ use Modules\Catalog\Services\RecommendationService;
 use Modules\Catalog\Services\ReviewService;
 use Modules\Core\Casts\FilledTranslations;
 use Modules\Core\Panel\ResourceRegistry;
+use Modules\Core\Panel\SettingsRegistry;
 use Modules\Core\Support\Settings;
 
 class CatalogServiceProvider extends ServiceProvider
@@ -68,6 +70,9 @@ class CatalogServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Nhóm cài đặt của module trên panel Lunar.
+        $this->app->make(SettingsRegistry::class)->add(new CatalogSettings);
+
         // Màn hình admin của module trên panel Lunar.
         $this->app->make(ResourceRegistry::class)->add(new SizeChartResource);
 

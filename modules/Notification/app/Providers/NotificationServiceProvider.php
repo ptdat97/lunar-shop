@@ -4,12 +4,14 @@ namespace Modules\Notification\Providers;
 
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Panel\SettingsRegistry;
 use Modules\Notification\Contracts\PushSender;
 use Modules\Notification\Contracts\SmsSender;
 use Modules\Notification\Drivers\NullPushSender;
 use Modules\Notification\Drivers\NullSmsSender;
 use Modules\Notification\Listeners\SendOrderStatusNotification;
 use Modules\Notification\Listeners\SendOrderStatusSms;
+use Modules\Notification\Panel\NotificationSettings;
 use Modules\Notification\Support\MailSettings;
 use Modules\Order\Events\OrderStatusUpdated;
 
@@ -36,6 +38,9 @@ class NotificationServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Nhóm cài đặt của module trên panel Lunar.
+        $this->app->make(SettingsRegistry::class)->add(new NotificationSettings);
+
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->loadRoutesFrom(__DIR__.'/../../routes/api.php');
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'notification');

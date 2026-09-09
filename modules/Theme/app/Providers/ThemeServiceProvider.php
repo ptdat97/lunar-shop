@@ -5,9 +5,11 @@ namespace Modules\Theme\Providers;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Modules\Core\Panel\SettingsRegistry;
 use Modules\Theme\Http\Middleware\InitStorefrontSession;
 use Modules\Theme\Http\Middleware\SetApiLocale;
 use Modules\Theme\Http\Middleware\SetStorefrontLocale;
+use Modules\Theme\Panel\ThemeSettings as ThemeSettingsPanel;
 use Modules\Theme\Services\LocaleService;
 use Modules\Theme\Services\ThemeSettings;
 
@@ -33,6 +35,9 @@ class ThemeServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Nhóm cài đặt của module trên panel Lunar.
+        $this->app->make(SettingsRegistry::class)->add(new ThemeSettingsPanel);
+
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
 
         $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');

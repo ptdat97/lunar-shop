@@ -6,12 +6,14 @@ use Illuminate\Support\ServiceProvider;
 use Lunar\Core\Contracts\CartSession;
 use Lunar\Core\Facades\Payments;
 use Lunar\Core\Managers\CartSessionManager;
+use Modules\Checkout\Panel\PaymentSettings;
 use Modules\Checkout\PaymentTypes\MoMoPayment;
 use Modules\Checkout\PaymentTypes\VNPayPayment;
 use Modules\Checkout\Services\CartService;
 use Modules\Checkout\Services\MoMoGateway;
 use Modules\Checkout\Services\TokenAwareCartSession;
 use Modules\Checkout\Services\VNPayGateway;
+use Modules\Core\Panel\SettingsRegistry;
 use Modules\Core\Support\LunarConfigOverride;
 
 class CheckoutServiceProvider extends ServiceProvider
@@ -34,6 +36,9 @@ class CheckoutServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Nhóm cài đặt của module trên panel Lunar.
+        $this->app->make(SettingsRegistry::class)->add(new PaymentSettings);
+
         $this->registerCartSession();
 
         // Re-apply cart_session override (auto_create) on top of Lunar's

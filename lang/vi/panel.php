@@ -21,6 +21,8 @@ return [
 
     'action_done' => 'Đã :name',
 
+    'secret_kept' => 'Đã lưu — để trống nếu giữ nguyên.',
+
     'saved' => 'Đã lưu :name',
     'deleted' => 'Đã xoá :name',
     'invalid_json' => 'Nội dung không phải JSON hợp lệ.',

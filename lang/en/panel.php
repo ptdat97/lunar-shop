@@ -22,6 +22,8 @@ return [
 
     'action_done' => ':name done',
 
+    'secret_kept' => 'Stored — leave blank to keep it.',
+
     'saved' => ':name saved',
     'deleted' => ':name deleted',
     'invalid_json' => 'This is not valid JSON.',

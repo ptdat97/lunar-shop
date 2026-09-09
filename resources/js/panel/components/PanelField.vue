@@ -47,6 +47,17 @@ const selected = computed({
         />
 
         <TextInput
+            v-else-if="field.type === 'secret'"
+            :id="field.name"
+            v-model="value"
+            type="password"
+            autocomplete="new-password"
+            :placeholder="field.placeholder"
+            :invalid="!!error"
+            :data-field="field.name"
+        />
+
+        <TextInput
             v-else-if="field.type === 'number'"
             :id="field.name"
             v-model="value"

@@ -7,10 +7,12 @@ use Illuminate\Support\ServiceProvider;
 use Lunar\Core\Events\Orders\OrderCancelled;
 use Lunar\Core\Models\ProductVariant;
 use Modules\Core\Panel\ResourceRegistry;
+use Modules\Core\Panel\SettingsRegistry;
 use Modules\Core\Support\LunarConfigOverride;
 use Modules\Inventory\Console\ExpireAbandonedOrders;
 use Modules\Inventory\Listeners\StampStockReleased;
 use Modules\Inventory\Observers\BackInStockObserver;
+use Modules\Inventory\Panel\InventorySettings;
 use Modules\Inventory\Panel\StockNotificationResource;
 
 /**
@@ -44,6 +46,9 @@ class InventoryServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Nhóm cài đặt của module trên panel Lunar.
+        $this->app->make(SettingsRegistry::class)->add(new InventorySettings);
+
         // Màn hình admin của module trên panel Lunar.
         $this->app->make(ResourceRegistry::class)->add(new StockNotificationResource);
 

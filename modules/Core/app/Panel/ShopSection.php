@@ -3,6 +3,7 @@
 namespace Modules\Core\Panel;
 
 use Closure;
+use Lunar\Panel\Navigation\NavigationItem;
 use Lunar\Panel\Navigation\NavigationRegistry;
 use Lunar\Panel\Sections\Section;
 
@@ -20,7 +21,10 @@ use Lunar\Panel\Sections\Section;
  */
 class ShopSection extends Section
 {
-    public function __construct(protected ResourceRegistry $registry) {}
+    public function __construct(
+        protected ResourceRegistry $registry,
+        protected SettingsRegistry $settings,
+    ) {}
 
     public function key(): string
     {
@@ -37,7 +41,7 @@ class ShopSection extends Section
         $registry->group('shop-content', __('panel.section'), priority: 30);
 
         foreach ($this->registry->forSection($this->key()) as $resource) {
-            $registry->addItem('shop-content', new \Lunar\Panel\Navigation\NavigationItem(
+            $registry->addItem('shop-content', new NavigationItem(
                 key: $resource->key(),
                 label: $resource->label(),
                 icon: $resource->icon(),
@@ -47,9 +51,36 @@ class ShopSection extends Section
         }
     }
 
+    /**
+     * The shop's feature settings, in the panel's own settings sidebar rather
+     * than the main navigation — an admin looking for "where do I change the
+     * payment keys" looks there, next to Lunar's own settings.
+     */
+    public function settingsNavigation(NavigationRegistry $registry): void
+    {
+        $registry->group('shop-settings', __('panel.section'), priority: 60);
+
+        foreach ($this->settings->all() as $group) {
+            $registry->addItem('shop-settings', new NavigationItem(
+                key: 'shop-settings-'.$group->key(),
+                label: $group->label(),
+                icon: $group->icon(),
+                route: 'panel.shop.settings.'.$group->key().'.edit',
+                permission: $group->permission(),
+                priority: $group->priority(),
+            ));
+        }
+    }
+
     public function routes(): ?Closure
     {
-        return $this->registry->routesFor($this->key());
+        $resources = $this->registry->routesFor($this->key());
+        $settings = $this->settings->routes();
+
+        return function () use ($resources, $settings): void {
+            $resources();
+            $settings();
+        };
     }
 
     /**
