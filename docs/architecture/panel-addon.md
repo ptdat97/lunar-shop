@@ -308,3 +308,55 @@ Nhãn trường/cột vẫn lấy từ `lang/{locale}/admin.php` — nguyên v�
 Filament, không phải dịch lại. Phần khung mà engine vẽ (nút, xác nhận, trạng
 thái rỗng) nằm ở `lang/{locale}/panel.php` và được gửi xuống trong prop
 `resource`, nên một màn hình admin chỉ có một chỗ để dịch chứ không phải hai.
+
+## Đăng nhập chỉ cần mật khẩu
+
+Lunar 2.0 **không có** đường đăng nhập chỉ-mật-khẩu và không có config nào tắt:
+*"Every staff login is a two-step challenge"* — TOTP nếu nhân viên đã ghép app
+xác thực, không thì mã sáu số gửi email
+([access-control](https://docs.lunarphp.com/2.x/admin/access-control)). Nên đây
+là quyết định của dự án áp từ bên ngoài package, không phải một tuỳ chọn có sẵn.
+
+Công tắc: `config/staff.php` → `require_two_factor` (`PANEL_REQUIRE_TWO_FACTOR`).
+Mặc định `false` cho cửa hàng đơn một tài khoản.
+
+### Cách làm — và vì sao không làm cách khác
+
+Route đăng nhập của panel **giữ nguyên tuyệt đối**. Nó vẫn kiểm mật khẩu, vẫn
+giới hạn số lần thử, vẫn ghi id nhân viên đang chờ vào session rồi chuyển hướng
+sang màn hình thử thách. `SkipPanelTwoFactor` đứng thay cho *điểm đến* đó và
+hoàn tất đăng nhập — đúng bốn dòng mà controller thử thách chạy sau khi mã hợp
+lệ, bao gồm `session()->regenerate()`.
+
+Ghi đè hẳn route đăng nhập thì phải viết lại bước mật khẩu — credential, rate
+limiter, session key — và viết lại sai còn tệ hơn nhiều so với một middleware
+chỉ chạy **sau khi mật khẩu đã được chấp nhận**. Mật khẩu sai không bao giờ tới
+được đây, vì mật khẩu sai không bao giờ ghi id vào session.
+
+Đăng nhập vì thế là hai chặng HTTP (POST → 302 → GET → dashboard). Vô hình với
+người dùng, và đó là cái giá để giữ nguyên bước mật khẩu của package.
+
+`UnusedEmailTwoFactor` bind đè lên `EmailTwoFactor` khi công tắc tắt: panel gửi
+mã **trước** khi chuyển hướng, nên không có nó thì mỗi lần đăng nhập lại gửi một
+email không ai dùng.
+
+### Bám vào nội bộ upstream — và hỏng về phía nào
+
+Middleware dựa vào ba thứ nội bộ: tên route `panel.two-factor.challenge` và hai
+session key `panel.login.id` / `panel.login.remember`. Upstream đổi tên bất kỳ
+cái nào thì middleware **ngừng khớp** và đăng nhập hai bước của panel quay lại.
+Đó là hướng hỏng an toàn, và là lý do điều kiện viết theo kiểu "nhận ra màn hình
+thử thách rồi hoàn tất nó" chứ không phải "cho qua tất cả".
+
+### Đánh đổi
+
+Giữ được: xác thực mật khẩu, giới hạn số lần thử, chống session fixation, phân
+quyền, màn hình Bảo mật trong tài khoản, và bí mật TOTP đã ghép (bật lại là có
+hiệu lực ngay, không phải ghép lại).
+
+Mất đi: **mật khẩu bị lộ là vào được panel.** Với nhiều nhân viên hoặc panel mở
+ra Internet công cộng thì để `true`.
+
+Công tắc nằm ở config chứ không phải `app_settings` là có chủ ý: một nút tắt xác
+thực hai lớp mà sửa được từ chính panel là đường leo thang đặc quyền — chiếm
+được một phiên admin là tắt luôn lớp bảo vệ cho mọi lần sau.

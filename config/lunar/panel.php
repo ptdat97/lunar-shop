@@ -3,6 +3,25 @@
 return [
     /*
     |--------------------------------------------------------------------------
+    | Route middleware
+    |--------------------------------------------------------------------------
+    |
+    | Áp cho CẢ route đã đăng nhập lẫn route xác thực (login, thử thách hai lớp,
+    | đặt lại mật khẩu) — xem PanelServiceProvider::registerRoutes.
+    |
+    | `lunar.panel` là nhóm mặc định của package, giữ nguyên. SkipPanelTwoFactor
+    | là bổ sung của dự án: biến đăng nhập hai bước của panel thành chỉ-mật-khẩu
+    | khi `staff.require_two_factor` tắt. Nó chỉ chạy SAU khi mật khẩu đã được
+    | chấp nhận — xem chính class đó.
+    |
+    */
+    'route_middleware' => [
+        'lunar.panel',
+        \Modules\Core\Http\Middleware\SkipPanelTwoFactor::class,
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Enable Variants
     |--------------------------------------------------------------------------
     |

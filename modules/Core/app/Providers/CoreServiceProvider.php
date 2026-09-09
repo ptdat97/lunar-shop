@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Modules\Core\Console\ReportUntranslatedContent;
 use Modules\Core\Console\ScheduleHeartbeat;
+use Lunar\Panel\Auth\EmailTwoFactor;
 use Lunar\Panel\Facades\Panel;
+use Modules\Core\Auth\UnusedEmailTwoFactor;
 use Modules\Core\Listeners\RecordScheduledRun;
 use Modules\Core\Panel\ResourceRegistry;
 use Modules\Core\Panel\SettingsRegistry;
@@ -39,6 +41,15 @@ class CoreServiceProvider extends ServiceProvider
         // Singleton so every module's provider adds to the same registry; the
         // panel reads it once, when it processes sections after boot.
         $this->app->singleton(ResourceRegistry::class);
+
+        // While panel login is password-only, the emailed six-digit code is
+        // never asked for — so it is never sent. Resolved through a closure
+        // rather than a straight alias so flipping `staff.require_two_factor`
+        // takes effect without rebuilding the container. `build()` skips this
+        // binding, which is what stops it resolving itself.
+        $this->app->bind(EmailTwoFactor::class, fn ($app) => config('staff.require_two_factor')
+            ? $app->build(EmailTwoFactor::class)
+            : $app->build(UnusedEmailTwoFactor::class));
 
         // Same reason: every module adds its settings groups to one registry,
         // which the panel reads once sections are processed.
