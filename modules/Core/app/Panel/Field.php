@@ -93,7 +93,23 @@ class Field
      */
     public static function image(string $name, string $label): static
     {
-        return (new static($name, $label, 'image'))->rules('string', 'max:2048');
+        $field = new static($name, $label, 'image');
+
+        // The picker's own chrome, shipped with the field so its strings live
+        // with every other admin string rather than in the bundle.
+        $field->meta['mediaLabels'] = [
+            'pick' => __('admin.media.browse'),
+            'search' => __('admin.media.search_placeholder'),
+            'allFolders' => __('admin.media.all_folders'),
+            'upload' => __('admin.media.upload'),
+            'empty' => __('admin.media.empty'),
+            'missing' => __('admin.media.missing'),
+        ];
+
+        // The column holds a Lunar Asset id. `string` rather than `integer`
+        // because the same columns still carry legacy paths on rows nobody has
+        // re-picked yet, and MediaUrl resolves both.
+        return $field->rules('string', 'max:2048');
     }
 
     /**

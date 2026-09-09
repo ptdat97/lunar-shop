@@ -147,6 +147,26 @@ này biến việc đổi tên file thành test đỏ thay vì trang trắng.
 | 8 trang cài đặt cũ | một màn hình `SettingsGroup`, mỗi nhóm một tab |
 | Báo cáo bán hàng | **một** widget dashboard (phần còn lại panel đã có) |
 | Size & Fit của sản phẩm | một `Slot` gắn vào trang sửa sản phẩm chính chủ |
+| Thư viện ảnh | `Field::image()` là bộ chọn, không phải ô text |
+
+## Trường ảnh
+
+`Field::image()` render bộ chọn thư viện, không phải ô nhập. Đây là chuyện đúng
+sai chứ không phải tiện tay: **các cột này lưu id Asset của Lunar**, không phải
+đường dẫn (`banner.image`, `page.featured_image`, `lookbook.cover_image`,
+`settings.slides.*.image`…). Ô text nghĩa là admin gõ id trong vô định, và ảnh
+xem trước bên cạnh không bao giờ resolve được.
+
+`MediaUrl::imageUrl()` chấp nhận cả id lẫn đường dẫn, nên các hàng cũ chưa chọn
+lại vẫn chạy — vì thế rule vẫn là `string` chứ không phải `integer`.
+
+Bộ chọn **tự gọi endpoint lấy preview theo id** thay vì bắt payload mang sẵn
+preview đã resolve. Lý do: một trường ảnh có thể nằm ở bất kỳ độ sâu nào (slide
+của hero, ảnh lookbook, banner mega menu), và luồn preview xuống qua các repeater
+lồng nhau nghĩa là mọi controller đều phải biết về media.
+
+Thư viện có route riêng (`panel/shop/media`) do `AssetsSection` đăng ký, không có
+mục điều hướng — nó chỉ được mở từ trong một form.
 
 ## Slot — chèn vào màn hình chính chủ
 

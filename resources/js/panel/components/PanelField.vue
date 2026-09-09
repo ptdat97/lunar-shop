@@ -1,6 +1,7 @@
 <script setup>
 import { computed } from 'vue';
 import { TextInput, Textarea, Select, Toggle, FieldLabel } from '@lunarphp/panel';
+import MediaPicker from './MediaPicker.vue';
 
 const props = defineProps({
     field: { type: Object, required: true },
@@ -18,7 +19,7 @@ const value = computed({
 // PHP sends select options as an object so JSON keeps their declared order.
 const options = computed(() => Object.entries(props.field.options ?? {}));
 
-const isTextLike = computed(() => ['text', 'image', 'slug', 'tags'].includes(props.field.type));
+const isTextLike = computed(() => ['text', 'slug', 'tags'].includes(props.field.type));
 const isMultiline = computed(() => ['textarea', 'html', 'json'].includes(props.field.type));
 
 // A multi-value select posts a list. The panel has no multi-select component,
@@ -37,8 +38,18 @@ const selected = computed({
     <div :style="{ gridColumn: `span ${field.columns} / span ${field.columns}` }">
         <FieldLabel :for="field.name" :required="field.required">{{ field.label }}</FieldLabel>
 
+        <!-- An image column holds a Lunar Asset id, not a path — a free text
+             box here meant typing an id blind, and the preview below it could
+             never resolve. -->
+        <MediaPicker
+            v-if="field.type === 'image'"
+            :model-value="value"
+            :labels="field.mediaLabels ?? {}"
+            @update:model-value="value = $event"
+        />
+
         <TextInput
-            v-if="isTextLike"
+            v-else-if="isTextLike"
             :id="field.name"
             v-model="value"
             :placeholder="field.placeholder"
@@ -104,14 +115,6 @@ const selected = computed({
         <div v-else-if="field.type === 'toggle'" class="flex items-center h-[30px]">
             <Toggle :on="!!value" :data-field="field.name" @toggle="value = !value" />
         </div>
-
-        <img
-            v-if="field.type === 'image' && value"
-            :src="value"
-            alt=""
-            class="mt-2 rounded-md border border-line"
-            style="height: 6rem; width: auto; object-fit: cover"
-        />
 
         <p v-if="field.help" class="mt-1 text-[11px] text-ink-500">{{ field.help }}</p>
         <p v-if="error" class="mt-1 text-[11px] text-danger" :data-error="field.name">{{ error }}</p>

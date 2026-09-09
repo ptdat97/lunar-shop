@@ -6,7 +6,9 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Horizon\Horizon;
+use Lunar\Panel\Facades\Panel;
 use Modules\Assets\Console\Commands\MigrateLegacyImagesToLibrary;
+use Modules\Assets\Panel\AssetsSection;
 use Modules\Assets\Services\ConversionGenerator;
 use Modules\Assets\Services\HorizonSettings;
 use Modules\Assets\Services\MediaLibraryService;
@@ -38,6 +40,9 @@ class AssetsServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Thư viện ảnh cho các trường ảnh trên panel (không có mục điều hướng).
+        Panel::section(new AssetsSection);
+
         // Re-apply our media definition overrides on top of Lunar's published
         // config/lunar/media.php — safe against `vendor:publish --force`.
         LunarConfigOverride::applyFrom('lunar.media', __DIR__.'/../../config/overrides.php');
