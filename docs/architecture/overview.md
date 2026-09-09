@@ -1,12 +1,18 @@
 # SME Fashion Ecommerce — Laravel 12 + LunarPHP
 
 > Tài liệu này mô tả **hiện trạng thực tế** của dự án: một storefront fashion cho
-> SME (single-store) trên Laravel 12 (PHP 8.4) + LunarPHP 1.5, admin Filament 4
-> (native của Lunar), storefront **100% Blade SSR + vanilla JS** (không Vue).
-> Chỉ ghi những gì đã có trong code.
+> SME (single-store) trên Laravel 12 (PHP 8.4) + LunarPHP **2.0.0-alpha.6**
+> (`lunarphp/core` + `lunarphp/panel`), storefront **100% Blade SSR + vanilla JS**
+> (không Vue). Chỉ ghi những gì đã có trong code.
 >
-> Cập nhật lần cuối: **2026-08-05** — 13 module nghiệp vụ (layout nwidart v13),
-> 63 route `api/v1`, 506 test xanh.
+> Cập nhật lần cuối: **2026-09-09** — 13 module nghiệp vụ (layout nwidart v13),
+> 64 route `api/v1`, 560 test xanh.
+>
+> ⚠️ **Admin đang dở dang.** Fase 3 của [đợt nâng 2.0](../guides/upgrade-lunar-2.0.md)
+> đã gỡ toàn bộ admin Filament và cài `lunarphp/panel` (Inertia + Vue); panel phục
+> vụ 370 route của chính nó, nhưng **các trang riêng của dự án chưa được viết lại**
+> (Fase 4). Mục nói về Filament bên dưới đã đổi theo, nhưng đừng đọc chúng như
+> "đang chạy".
 >
 > **Lunar là composer package `lunarphp/lunar` trong `vendor/`** — bản fork trong repo
 > đã được gỡ (2026-07-20). Đừng sửa `vendor/`; xem
@@ -61,7 +67,8 @@ Ecommerce fashion cho SME single-store:
   business logic. Nền tảng sẵn sàng cho app/headless dùng lại backend.
 - Storefront render **Blade SSR** cho mọi nội dung công khai (SEO), vanilla JS chỉ
   *enhance* markup đã có.
-- Admin dùng **Filament 4** của Lunar — kế thừa & mở rộng, không build lại.
+- Admin dùng **`lunarphp/panel`** (Inertia + Vue) của Lunar — kế thừa & mở rộng,
+  không build lại. Các trang riêng của dự án đang chờ Fase 4.
 
 ## Nguyên tắc kiến trúc cốt lõi
 
@@ -70,8 +77,9 @@ Ecommerce fashion cho SME single-store:
 
 1. **Không dựng lại tính năng Lunar đã có — chỉ kế thừa và mở rộng.** Cách mở rộng
    theo thứ tự ưu tiên: cấu hình `config/lunar/*` → điểm mở rộng chính chủ của Lunar
-   (bind model, pipelines cart/checkout, custom field/attribute, Filament hook,
-   events) → wrap bằng service trong module → **cuối cùng** mới là composer patch.
+   (pipelines cart/checkout, custom field/attribute, cast/scope trên model core,
+   section/slot của panel, events) → wrap bằng service trong module → **cuối cùng**
+   mới là composer patch.
    Lunar nằm trong `vendor/` nên **không sửa trực tiếp** — mỗi patch là một thứ có
    thể vỡ khi nâng cấp, phải tự bảo trì. Hiện **không còn patch nào** (xem § dưới).
 2. **Lunar là source of truth** cho catalog, cart, pricing, order, customer. Bọc qua
@@ -79,7 +87,8 @@ Ecommerce fashion cho SME single-store:
 3. **Một service là nguồn logic duy nhất**, cả Storefront controller lẫn API
    controller đều gọi nó.
 4. **Storefront SSR bằng Blade**; vanilla JS enhance các phần tương tác. **Không dùng
-   Vue, không Livewire** cho storefront (Filament admin dùng Livewire nội bộ).
+   Vue cho storefront** (panel admin là Vue, nhưng là stack tách hẳn — xem
+   [../guides/upgrade-lunar-2.0.md](../guides/upgrade-lunar-2.0.md) §1).
 5. **Quy mô: single-store SME, tối giản.** Không platform/plugin SDK, không hook
    engine — cross-module gọi service trực tiếp.
 
@@ -99,10 +108,11 @@ qua package auto-discovery.
 | | Cách làm hiện tại |
 |---|---|
 | Core engine (`Lunar\`) | `vendor/lunarphp/core` — **không sửa** |
-| Admin panel (`Lunar\Admin\`) | `vendor/lunarphp/admin` — subclass + `$swaps` trong `ModulesServiceProvider` |
+| Admin panel (`Lunar\Panel\`) | `vendor/lunarphp/panel` — `Panel::section()` / slot (Fase 4 chưa viết) |
 | Thêm quan hệ vào model core | `Model::resolveRelationUsing()` |
-| Thay hẳn model core | `ModelManifest::replace()` — ví dụ `ProductOption` (thêm `display_type`) |
-| Thay hẳn model core chỉ để đổi một method của trait | `ModelManifest::replace()` + trait của mình — ví dụ `SkipsEmptyTranslations` |
+| Thêm/đổi cast trên model core | `Model::addCasts()` — ví dụ `FilledTranslations` |
+| Thêm scope | `Model::addLocalScope()` |
+| ~~Thay hẳn model core~~ | **Không còn.** Lunar 2.0 gỡ `ModelManifest::replace()`; core gọi thẳng class cụ thể |
 | Sửa thứ không có extension point | **composer patch** — bậc cuối, hiện không dùng |
 
 **Hệ quả cần nhớ:**
@@ -111,11 +121,12 @@ qua package auto-discovery.
 * **Không sửa `vendor/`.** Muốn đổi hành vi thì leo thang mở rộng dưới đây. Hiện
   **không còn patch nào** — `cweagans/composer-patches` đã gỡ khỏi `composer.json`
   (2026-08-27).
-* **Trait của core cũng swap được.** Patch cuối cùng (fix locale fallback trong
-  `HasTranslations`) từng được biện minh bằng "nó là trait nên `ModelManifest` không
-  swap được". Sai ở chỗ: không swap được *trait*, nhưng swap được *model dùng trait*.
-  Nay là `SkipsEmptyTranslations` gắn lên 4 model qua `ModelManifest::replace()` —
-  xem [../upstream/README.md](../upstream/README.md).
+* **Không swap được model nữa — vá xuống tầng dữ liệu.** Bản vá locale fallback
+  trong `HasTranslations` đã đi ba chặng: composer patch → trait gắn qua
+  `ModelManifest::replace()` (1.5) → cast `FilledTranslations` cài bằng
+  `addCasts()` (2.0, vì `replace()` biến mất). Bài học giữ nguyên qua cả ba: khi
+  không sửa được hàm đọc, hãy sửa **dữ liệu nó đọc** — lọc locale rỗng lúc decode
+  thì hàm của upstream trở thành đúng. Xem [../upstream/README.md](../upstream/README.md).
 * **Trước khi viết patch, hỏi lại câu đó.** Patch làm `composer update` fail cứng mỗi
   khi upstream đụng vào method; một subclass thì không.
 * **Config có hai bản:** default trong package (`mergeConfigFrom`) và `config/lunar/*.php`
@@ -138,15 +149,16 @@ Cần ĐỔI hành vi Lunar có sẵn?
 
 Cần THÊM lên model core (Product, Customer, Order…)?
 ├─ Chỉ thêm quan hệ?                     → (3) Model::resolveRelationUsing()
-└─ Thêm method / cast / scope / override? → (4) ModelManifest::replace (subclass)
+└─ Thêm cast / scope?                     → (4) Model::addCasts() / addLocalScope()
+   (Đổi hẳn một METHOD của model core: 2.0 không còn đường — vá xuống tầng dữ
+    liệu, xem (4).)
 
 Cần PHẢN ỨNG khi có sự kiện?             → (5) Event::listen(LunarEvent)
-Cần đổi ADMIN (Filament)?                → (6) ResourceExtension / *PageExtension
-                                           (hoặc reuse action native của Lunar)
+Cần đổi ADMIN?                           → (6) Panel Section / Slot / TableExtension
 
 Không cách nào ở trên chạm tới được?     → (7) composer patch — BẬC CUỐI, hiện KHÔNG dùng:
-                                           trước khi tới đây, kiểm tra lại xem model
-                                           mang trait đó có swap được không
+                                           trước khi tới đây, hỏi xem có vá được ở
+                                           tầng dữ liệu mà hàm đó đọc không
 ```
 
 ## (1) Config / pipeline override — nhẹ nhất, không cần code
@@ -214,20 +226,28 @@ Customer::resolveRelationUsing(
 );
 ```
 
-## (4) Model replace — thay hẳn bằng subclass của mình
-
-Khi cần **override method / thêm cast, scope, accessor** trên chính model core (vượt quá
-một relation). Tạo subclass `extends` model Lunar rồi:
+## (4) `addCasts()` / `addLocalScope()` — thêm cast, scope lên model core
 
 ```php
 // trong register()
-app(\Lunar\Base\ModelManifestInterface::class)
-    ->replace(\Lunar\Models\Contracts\Product::class, \Modules\Catalog\Models\CustomProduct::class);
+Product::addCasts(['variables' => 'array']);
+Product::addLocalScope('featured', fn (Builder $q) => $q->where(...));
 ```
 
-Subclass kế thừa toàn bộ hành vi Lunar → không phải đụng vào core. ⚪ **Chưa dùng** — hiện
-`resolveRelationUsing` + service wrap là đủ; chỉ leo lên mức này khi thực sự cần đổi
-method của model core.
+✅ **Đang dùng:** `FilledTranslations` cài lên `Product`, `Collection`, `Brand`,
+`ProductOption`, `ProductOptionValue` (`CatalogServiceProvider::guardEmptyTranslations()`).
+
+> **Lunar 2.0 gỡ hẳn `ModelManifest::replace()`.** 1.x cho phép thay cả model bằng
+> subclass của mình — dự án dùng nó cho bốn model. 2.0 gọi thẳng class cụ thể ở
+> khắp core và `ModelManifest` chỉ còn route binding + morph map, nên **không còn
+> cách nào override một method của model core**.
+>
+> Hệ quả thực tế: khi cần đổi hành vi một method, hãy **vá xuống tầng dữ liệu mà
+> method đó đọc**. Ví dụ có thật: `HasTranslations::translate()` trả về chuỗi rỗng
+> khi khoá locale tồn tại nhưng rỗng. Không sửa được hàm — nhưng một cast lọc
+> locale rỗng ngay lúc decode JSON khiến tình huống đó **không xảy ra được**, và
+> hàm của upstream trở thành đúng như đang viết. Rộng hơn cách cũ: mọi model đọc
+> cột đó đều được vá, không chỉ những model ta nhớ mà subclass.
 
 ## (5) Events — hook không đồng bộ, coupling lỏng
 
@@ -247,22 +267,32 @@ module cùng nghe một event, không biết nhau.
 
 > ⚠️ Event phải có **ngữ nghĩa rõ**. `OrderPaid` = *"được tính là đã thanh toán"* (chi tiêu
 > + doanh thu), **không** phải *"đã nhận được tiền"* — COD bắn `OrderPaid` lúc đặt hàng
-> nhưng khách trả khi giao. Listener cần "tiền đã về tay" phải tự kiểm `status ===
-> 'payment-received'`.
+> nhưng khách trả khi giao. Listener cần "tiền đã về tay" phải tự kiểm
+> `OrderStatus::of($order) === OrderStatus::PAYMENT_RECEIVED`.
 
-## (6) Filament admin — Extension classes (không fork resource)
+## (6) Panel admin — Section / Slot / TableExtension
 
-Lunar cho phép mở rộng resource/page admin qua `Support/Extending/*` mà không copy resource:
-`ResourceExtension`, `EditPageExtension`, `CreatePageExtension`, `ViewPageExtension`,
-`ListPageExtension`, `RelationPageExtension`, `RelationManagerExtension`.
+⚠️ **Chưa dùng — Fase 4 chưa bắt đầu.** Mục này ghi API sẵn có để lúc viết không
+phải khảo sát lại.
 
-- ✅ **Đang dùng:** `ProductSizeExtension extends ResourceExtension` (thêm tab "Size & Fit"
-  + swap tab variants vào Lunar `ProductResource`), đăng ký:
-  `LunarPanel::extensions([ProductResource::class => ProductSizeExtension::class])`.
-- ✅ **Reuse action native:** nút **Refund** dùng thẳng `ManageOrder::getRefundAction()`
-  của Lunar (nó gọi `$transaction->refund()` → driver ta viết) — không cần extension.
-- Trang/resource **mới** (Lunar không có) thì build trong module + đóng góp qua
-  `Modules\Core\Support\AdminPages::add()/addResource()` (không phải extend, là add mới).
+`lunarphp/panel` (Inertia + Vue) mở rộng qua `Lunar\Panel\Facades\Panel`:
+
+| Việc | API |
+|---|---|
+| Thêm cả một khu vực (nav + route + slot) | `Panel::section(new MySection)` |
+| Chèn UI vào trang có sẵn | `PageZone` / `Panel::slots()` |
+| Thêm cột / filter / bulk action vào bảng | `Panel::extendTable($tableId, $class)` |
+| Thêm nút vào header trang | `Panel::addPageAction($pageId, $class)` |
+| Widget dashboard | `Panel::widget($class)` |
+| Chuỗi ngôn ngữ của addon | `Section::langNamespaces()` |
+
+Thứ tự mọi thứ (nav, cột, action) dùng `Lunar\Panel\Support\Position`:
+`priority(int)` hoặc `before(key)` / `after(key)`.
+
+> **Món nợ đã trả tự động:** admin Filament cần reflection để hoán đổi
+> `Panel::$resources` và `$navigationGroups` (xem [1.5 §13.1–13.2](../guides/upgrade-lunar-1.5.md)).
+> Panel mới có `section()` chính thức nên `ModulesServiceProvider` — vốn chỉ tồn
+> tại để làm việc đó — đã bị xoá.
 
 ## Chốt: nơi đăng ký & thứ tự
 
@@ -270,13 +300,13 @@ Lunar cho phép mở rộng resource/page admin qua `Support/Extending/*` mà kh
 |---|---|---|
 | Config / pipeline override | `boot()` | qua `LunarConfigOverride::applyFrom()` |
 | `Payments::extend`, `ShippingModifiers->add` | `boot()` | facade cần app booted |
-| `Discounts::addType` | `register()` | Filament đọc type sớm |
+| `Discounts::addType` | `register()` | admin đọc type sớm |
 | `resolveRelationUsing` | `boot()` | model đã load |
-| `ModelManifest::replace` | `register()` | trước khi model được dùng |
+| `Model::addCasts` / `addLocalScope` | `register()` | trước khi model được dùng |
 | `Event::listen` | `boot()` | |
-| Filament `AdminPages::add*` | `register()` | `ModulesServiceProvider` gom trong register-phase |
+| `Panel::section()` | `boot()` | facade cần app booted (Fase 4) |
 
-> **Core (`Modules\Core`) đăng ký đầu tiên** → `Settings`, `AdminPages`,
+> **Core (`Modules\Core`) đăng ký đầu tiên** → `Settings`,
 > `LunarConfigOverride`, `Queues` sẵn sàng cho mọi module. Core **chỉ hạ tầng**, tuyệt
 > đối không chứa business logic hay điểm mở rộng domain-specific.
 
@@ -288,14 +318,14 @@ Lunar cho phép mở rộng resource/page admin qua `Support/Extending/*` mà kh
 |---|---|
 | Backend | Laravel 12 (PHP 8.4) |
 | Kiến trúc | Modular monolith (`modules/`) |
-| Commerce core | LunarPHP 1.5 |
-| Admin | Filament 4 (qua Lunar) |
+| Commerce core | LunarPHP 2.0.0-alpha.6 (`lunarphp/core`) |
+| Admin | `lunarphp/panel` — Inertia v3 + Vue 3 + Tailwind 4 (asset biên dịch sẵn của vendor) |
 | Storefront render | Blade (SSR) |
 | Storefront JS | Vanilla JS + Bootstrap 5 — **không Vue, không jQuery** |
 | Build | Vite 7 + Laravel Vite Plugin |
 | HTTP client (JS) | Axios |
 | CSS (storefront) | Bootstrap 5 + SCSS (`themes/fashion/css`, entry `app.scss`) — **không Tailwind** |
-| CSS (admin) | Tailwind 4, chỉ cho panel Filament (`resources/css/filament/lunar/theme.css`) — **tách hẳn khỏi storefront** |
+| CSS (admin) | Tailwind 4 — **nằm trong asset dựng sẵn của panel**, dự án không build (đã gỡ Tailwind khỏi `package.json`) |
 | API auth | Laravel Sanctum (token PAT + cookie SPA) |
 | DB | MySQL 8 |
 | Search | Driver `database` (MySQL) sau interface `SearchEngine` |
@@ -312,7 +342,6 @@ riêng. Theme chỉ render view.
 
 ```text
 app/
- ├── Providers/ModulesServiceProvider.php   # CHỈ dựng Lunar panel (module do nwidart nạp)
  └── Models/User.php                         # auth user (Lunar customer riêng)
 
 config/modules.php                           # cấu hình nwidart (paths.modules → base_path('modules'))
@@ -331,24 +360,25 @@ cộng **1 module `Core`** chứa hạ tầng dùng chung.
 
 **Core** — hạ tầng cross-cutting, **không chứa business logic** (đăng ký đầu tiên nên
 mọi module khác dùng được): `Support\Settings` (DB settings store key→JSON + fallback
-config/env), `Support\Queues` (tên queue tập trung), `Support\AdminPages` (gom Filament
-page/resource module đóng góp), `Support\LunarConfigOverride` (re-apply override lên
-`config/lunar/*`), migration `app_settings`.
+config/env), `Support\Queues` (tên queue tập trung), `Casts\FilledTranslations` (vá lỗi locale
+fallback của Lunar, xem [../upstream/README.md](../upstream/README.md)),
+`Support\LunarConfigOverride` (re-apply override lên `config/lunar/*`),
+`Support\UntranslatedContentReport`, migration `app_settings`.
 
 | Module | Gộp từ | Trách nhiệm | Nội dung chính |
 |---|---|---|---|
-| **Catalog** | Catalog + Product + Pricing + Review + Recommend + Search + Collection | Toàn bộ hiển thị/truy vấn sản phẩm | Services: `ProductService`, `PricingService`, `ReviewService`, `RecommendationService`, `CollectionService`, `SitemapService`, `SizeChartService`, `SizeRecommender`, `FitHistoryService`. Models: `ProductMaterial`, `SizeChart`, `SizeChartRow`, `Review`. Contracts/Drivers: `SearchEngine` + `DatabaseSearchEngine`. Strategies: `Association`, `Collection`. 7 file Filament (SizeChartResource + ProductSizeExtension). Home/sitemap/health + seeders demo. |
-| **Content** | CMS + SectionBuilder + Menu | Nội dung storefront admin-managed | Models: `Page`, `Banner`, `Lookbook`(+Image/Item), `Redirect`, `PageSection`, `Menu`(+Item). Services: `ContentService`, `SectionRenderer`, `MenuRenderer`, `MenuTree`. 20 file Filament (6 resource: Page/Banner/Lookbook/Redirect/PageSection/Menu). |
-| **Assets** | Media + FileManager | Ảnh/file | Services: `MediaUrl`, `ConversionGenerator`, `MediaRegenerator`, `MediaSettings`, `MediaLibraryService`. On-demand conversion + media library. 6 file Filament (3 page: MediaImageSizes, MediaLibrary, QueueWorkers + 3 form: `MediaPicker`/`MediaPickerField`/`MediaBrowser`). |
+| **Catalog** | Catalog + Product + Pricing + Review + Recommend + Search + Collection | Toàn bộ hiển thị/truy vấn sản phẩm | Services: `ProductService`, `PricingService`, `ReviewService`, `RecommendationService`, `CollectionService`, `SitemapService`, `SizeChartService`, `SizeRecommender`, `FitHistoryService`. Models: `ProductMaterial`, `SizeChart`, `SizeChartRow`, `Review`. Contracts/Drivers: `SearchEngine` + `DatabaseSearchEngine`. Strategies: `Association`, `Collection`. Admin: chờ Fase 4. Home/sitemap/health + seeders demo. |
+| **Content** | CMS + SectionBuilder + Menu | Nội dung storefront admin-managed | Models: `Page`, `Banner`, `Lookbook`(+Image/Item), `Redirect`, `PageSection`, `Menu`(+Item). Services: `ContentService`, `SectionRenderer`, `MenuRenderer`, `MenuTree`. Admin: chờ Fase 4. |
+| **Assets** | Media + FileManager | Ảnh/file | Services: `MediaUrl`, `ConversionGenerator`, `MediaRegenerator`, `MediaSettings`, `MediaLibraryService`. On-demand conversion + media library. Admin: chờ Fase 4. |
 | **Checkout** | Checkout + Cart + Payment | Luồng cart → checkout → payment | Services: `CartService`, `CheckoutService`, `TokenAwareCartSession`, `RefundService`. Gateway: `VNPayGateway`/`MoMoGateway` + `*PaymentProcessor` kế thừa **`GatewayReconciler`** (nơi duy nhất giữ luật callback: chữ ký → số tiền → đơn đã đóng → khoá chống race). PaymentTypes: `VNPayPayment`, `MoMoPayment`. Config override `cart-overrides.php` + `payment-overrides.php`. |
 | **Customer** | Customer + Location | Khách, địa chỉ, auth, wishlist, địa giới VN | Services: `CustomerResolver`, `AuthService`, `TokenIssuer`, `WishlistService`, `RecentlyViewedService`, `CountryService`. Models: `WishlistItem`, `Province`, `Ward`. Auth web + Sanctum (cookie + PAT), address book, order history, VN provinces/wards API + seeder dataset. |
 | **Order** | — | Order, trạng thái, email giao dịch, RMA | Services: `OrderService`, `OrderMailer`, `ReturnService`, `InvoiceService`, `OrderTimeline`. Support: `OrderStatus` (**một nguồn** cho status handle, nhãn i18n, `PAID`/`CLOSED`/`RETURNABLE`). Events: `OrderPaid`, `OrderStatusUpdated`. 4 mailable queued + observer/listeners. |
 | **Promotion** | — | Discount nâng cao hiển thị storefront | Services: `PromotionService` (facade: queries + coupon + memoization), `PromotionTargetResolver` (targeting/eligibility), `SaleBadgeService` (badge/banner/describe), `MembershipService`. Custom discount types + flash sale + membership. |
-| **Inventory** | — | Stock per-variant, reserve **+ release**, notify-me | Services: `InventoryService`, `StockReleaser`, `StockNotificationService`, `BackInStockNotifier`. Pipeline `DecrementStock`. Command `orders:expire-abandoned`. Model `StockNotification`. Filament page Stock Overview. |
-| **Shipping** | — | Zone/rate DB-backed | Services: `ShippingService`, `ShippingZoneResolver`. Model `ShippingZone`. Filament resource. |
-| **Notification** | — | In-app inbox + push cho mobile | Notification `OrderStatusChanged` (channel `database` + `PushChannel`). Contract `PushSender` + `NullPushSender`. Models `DeviceToken`. Service `DeviceRegistry`. Support `PushSettings` (kill-switch push, admin). Filament page Notifications. API inbox + device registry. **Không** đụng 4 mailable đang chạy. |
-| **Analytics** | — | Dashboard bán hàng | `AnalyticsService` + Filament Sales Dashboard. |
-| **Theme** | — | Active theme, locale, view namespace | Services: `LocaleService`, `ThemeSettings`. 11 file Filament (Theme settings + resource swaps). Middleware storefront/locale. |
+| **Inventory** | — | Stock per-variant, reserve **+ release**, notify-me | Services: `InventoryService`, `StockReleaser`, `StockNotificationService`, `BackInStockNotifier`. Pipeline `DecrementStock`. Command `orders:expire-abandoned`. Model `StockNotification`. Admin: chờ Fase 4. |
+| **Shipping** | — | Zone/rate DB-backed | Services: `ShippingService`, `ShippingZoneResolver`. Model `ShippingZone`. Admin: chờ Fase 4. |
+| **Notification** | — | In-app inbox + push cho mobile | Notification `OrderStatusChanged` (channel `database` + `PushChannel`). Contract `PushSender` + `NullPushSender`. Models `DeviceToken`. Service `DeviceRegistry`. Support `PushSettings` (kill-switch push, admin). API inbox + device registry. **Không** đụng 4 mailable đang chạy. |
+| **Analytics** | — | Dashboard bán hàng | `AnalyticsService`. Admin: chờ Fase 4. |
+| **Theme** | — | Active theme, locale, view namespace | Services: `LocaleService`, `ThemeSettings`. Admin: chờ Fase 4. Middleware storefront/locale. |
 
 > Cấu hình hệ thống (Channels, Languages, Taxes, Staff) dùng thẳng Settings của Lunar.
 
@@ -381,7 +411,6 @@ modules/<Name>/
  │   ├── Pipelines/                              # stage chèn vào pipeline Lunar (DecrementStock)
  │   ├── DiscountTypes/ | PaymentTypes/ | Modifiers/ | Strategies/ | Drivers/
  │   ├── Console/                                # artisan command của module
- │   ├── Filament/
  │   └── Providers/<Name>ServiceProvider.php
  ├── config/
  ├── database/{migrations,seeders}/
@@ -399,10 +428,11 @@ của từng module (merge-plugin gom lại) — **không** còn dòng `"Modules
 binding của module kia — `Notification` phải sau `Order` vì nghe domain event của nó.
 Đổi thứ tự = sửa `priority`, không sửa code.
 
-`app/Providers/ModulesServiceProvider` **không còn quét/đăng ký module** — nó chỉ còn
-`registerLunarPanel()`, gom Filament page/resource các module đóng góp (qua
-`Core\Support\AdminPages`) rồi dựng Lunar panel. Nó vẫn chạy sau mọi module vì provider
-của nwidart được package auto-discovery nạp trước `bootstrap/providers.php`.
+`app/Providers/ModulesServiceProvider` **đã bị xoá** ở đợt nâng 2.0. Nó tồn tại chỉ
+để dựng panel Filament — gom page/resource các module đóng góp rồi hoán đổi
+`Panel::$resources` bằng reflection. Panel mới có `Panel::section()` chính thức nên
+mỗi module tự đăng ký phần admin của mình trong provider của chính nó; không còn
+chỗ tập trung nào phải chạy sau tất cả.
 
 `modules_statuses.json` (bật/tắt module) **phải commit**: nwidart coi module không có
 tên trong file là *disabled*, nên thiếu file thì clone mới boot ra zero module.
@@ -548,7 +578,7 @@ theo session không cần crawl (cart drawer/page, wishlist).
 - **Lookbook shoppable** — hotspot pins (dot pulse + popover add-to-cart) + "Shop the set".
 - **i18n EN/VI** — lang files `lang/{en,vi}/storefront.php`, `LocaleService` +
   `SetStorefrontLocale` middleware + language switcher; cấu hình ngôn ngữ bật/mặc định
-  qua Filament Theme Settings. Single-market: bật 1 ngôn ngữ → khoá locale, ẩn switcher.
+  qua trang Theme Settings (chờ Fase 4; backend `ThemeSettings` vẫn chạy). Single-market: bật 1 ngôn ngữ → khoá locale, ẩn switcher.
 
 ## Quy ước JS
 
@@ -611,7 +641,7 @@ theo session không cần crawl (cart drawer/page, wishlist).
   endpoint vẫn public: guest → `null` + 200; resolve user qua guard `sanctum` nên nhận cả
   cookie SPA lẫn Bearer token).
 - **Media (Assets):** on-demand conversion (`MediaUrl`/`ConversionGenerator` sinh size
-  khi request), sizes cấu hình qua Filament (`MediaSettings`), responsive `<picture>`
+  khi request), sizes cấu hình qua `MediaSettings`, responsive `<picture>`
   + width-srcset (WebP) ở product card + gallery LCP (`fetchpriority`, dimensions chống
   CLS).
 - **MediaPicker (2026-08-05):** picker **hiện ảnh thật** (thumbnail của file đã chọn,
@@ -648,20 +678,41 @@ theo session không cần crawl (cart drawer/page, wishlist).
   payment-received). VNPay chỉ nhận VND.
 
 ## Order & Email
-- Order history + order detail + **timeline** (`OrderTimeline` đọc `activity_log` của Lunar,
-  **không** tạo bảng riêng; chỉ lấy event `status-update`, vì cùng bảng đó chứa row `updated`
-  với full column diff — không được lộ ra).
-- **`OrderStatus` là một nguồn duy nhất** cho status handle, nhãn i18n (`label()`), và các
-  tập `PAID` / `CLOSED` / `RETURNABLE`. Trước đây mảng "đã thanh toán" bị copy-paste ra
-  5 service và đã trôi khỏi nhau (COD tính doanh thu nhưng không lên hạng).
+
+> **Trạng thái đơn hàng là PHÁI SINH, không phải một cột.** Lunar 2.0 xoá
+> `lunar_orders.status` và cố ý không mô hình hoá vòng đời do người vận hành tự
+> bấm; thay bằng hai rollup dẫn xuất (`payment_status` từ sổ giao dịch,
+> `fulfilment_status` từ fulfilment) cộng `closed_at` / `cancelled_at`. Bảy handle
+> của shop vẫn còn nhưng là **khung nhìn** trên bốn sự thật đó — `OrderStatus::of()`.
+> **Không nơi nào set status:** ghi lại sự thật (một transaction, một fulfilment,
+> `cancel()`, `close()`) rồi status tự theo. Chi tiết + bốn cái bẫy:
+> [../guides/upgrade-lunar-2.0.md](../guides/upgrade-lunar-2.0.md) §9.6.
+
+- Order history + order detail + **timeline** (`OrderTimeline` đọc `activity_log`,
+  **không** tạo bảng riêng; chỉ lấy event `status-update`, vì cùng bảng đó chứa row
+  `updated` với full column diff — không được lộ ra). 1.x có entry đó do Lunar ghi;
+  2.0 không còn cột status nên `RecordOrderStatusHistory` tự ghi, đúng shape cũ.
+- **`OrderStatus` là một nguồn duy nhất** cho status handle, nhãn i18n (`label()`),
+  các tập `PAID` / `CLOSED` / `RETURNABLE`, phép suy `of()` và **vị từ SQL**
+  (`scopePaid()` / `paidSql()` — không còn cột để `whereIn`). Trước đây mảng "đã
+  thanh toán" bị copy-paste ra 5 service và đã trôi khỏi nhau (COD tính doanh thu
+  nhưng không lên hạng).
+- **`meta.payment_type` ghi cho MỌI đơn.** Đây là thứ duy nhất phân biệt
+  `payment-offline` (COD — đã bán, thu tiền khi giao) với `awaiting-payment` (cổng
+  thanh toán bỏ dở, hoặc chuyển khoản chưa về): cả hai đều payment-pending. Danh
+  sách "trả khi nhận" đọc từ `lunar.payments.types.*.authorized`, không chép lại.
 - **4 mailable queued** (`OrderConfirmationMail`, `OrderPaidMail`, `OrderStatusUpdatedMail`,
   `ReturnStatusMail`) + markdown templates + `OrderMailer` (locale-aware).
   Wiring: confirm qua `PaymentAttemptEvent`, paid qua event `OrderPaid` (gateway callback
   **và** COD qua `DispatchOrderPaidForOfflineOrder` — gate theo `OrderStatus::paid()` nên
   bank-transfer/gateway lúc authorize không bắn; `SendOrderPaidEmail` chỉ gửi khi
   `payment-received` vì khách COD chưa trả tiền lúc đặt),
-  status-update qua `OrderObserver` (bắn `OrderStatusUpdated` cho **mọi** transition; email
-  vẫn giữ skip-list riêng).
+  status-update qua `SendOrderStatusEmail` — một listener của `OrderStatusUpdated`
+  như mọi consumer khác, giữ skip-list riêng. **Không** để trong observer được:
+  `RecomputeOrderStatus` ghi rollup bằng `saveQuietly()` nên observer không bao giờ
+  thấy hai chuyển trạng thái quan trọng nhất; `OrderStatusUpdated` vì thế dựng từ
+  chính năm sự kiện của Lunar (payment/fulfilment status, cancelled, closed,
+  reopened) trong `RaiseOrderStatusUpdated`.
 
 ## Đổi/trả (RMA)
 - `ReturnRequest` + `ReturnRequestLine` (line-level qty), staff approve/reject/refund.
@@ -760,7 +811,8 @@ thanh toán quá `STALE_COMMITMENT_DAYS` (3) mà chưa `dispatched` sẽ giữ h
   `$sku->save()` — `save()` bắn event `updated` khiến `ProductSkuObserver` ghi thêm một
   dòng `edit`, tức **đếm đôi** cùng một thay đổi. Observer chỉ để bắt sửa tay qua editor.
   Kiểm nhanh tính đúng: `stock_after` của dòng cuối mỗi SKU phải bằng `quantity` hiện tại.
-- **Mặc định `purchasable = in_stock`** (migration đổi default của Lunar, vốn là `always`).
+- **Mặc định `selling_policy = in_stock`** (migration đổi default của Lunar, vốn là
+  `always`; cột tên `purchasable` cho tới Lunar 1.x).
   ⚠️ Trước 2026-07-10 mọi variant đều `always` nên **guard chống oversell chưa từng chạy**
   (đo được: stock=2, đặt 10 → checkout 200, stock **−8**). Admin vẫn chọn backorder/always
   cho từng variant khi muốn bán trước.
@@ -769,7 +821,8 @@ thanh toán quá `STALE_COMMITMENT_DAYS` (3) mà chưa `dispatched` sẽ giữ h
   Idempotent qua cột `lunar_orders.stock_released_at`.
 - Đơn gateway giữ stock **trước khi** khách trả tiền → command `orders:expire-abandoned`
   (scheduler 10'/lần) huỷ đơn quá hạn và trả stock. Quét **hai** loại:
-  (a) đơn gateway bỏ ngang (`status = awaiting-payment` + `meta.payment_type`);
+  (a) đơn gateway bỏ ngang (`payment_status = pending` + `meta.payment_type` là một
+  cổng thanh toán);
   (b) **đơn mồ côi** `placed_at IS NULL`. Bank-transfer cũng ở `awaiting-payment` nhưng
   thu tay và **có** `placed_at`, nên không bị timer đụng tới.
 - **Vì sao có đơn mồ côi:** `Lunar\Actions\Carts\CreateOrder` bọc `DB::transaction` (order
@@ -782,38 +835,39 @@ thanh toán quá `STALE_COMMITMENT_DAYS` (3) mà chưa `dispatched` sẽ giữ h
   — cart đã có `completedOrder` thì `createOrder()` ném `CartException`.)
 - `InsufficientStockException` trả **422** (không phải 500): người khác lấy mất units cuối
   là chuyện của người mua, không phải lỗi server.
-- Notify-me back-in-stock (model + API `/inventory/notify-me` + email queued khi restock).
-  Filament page Stock Overview.
+- Notify-me back-in-stock (model + API `/inventory/notify-me` + email queued khi restock). Admin: chờ Fase 4.
 
 ## Shipping
 - Zone/rate DB-backed (`ShippingZone`: country + states → rate + free-threshold,
   most-specific-wins) qua `ShippingZoneResolver` + `FlatRateShippingModifier`, fallback
-  config. Filament Shipping Zones resource.
+  config. Trang Shipping Zones: chờ Fase 4.
 
 ## Analytics
 - `AnalyticsService` (revenue/orders/AOV/monthly/top-products, MySQL-portable, đếm đúng
-  paid statuses) + Filament **Sales Dashboard** (KPI + trend 6 tháng + recent orders +
+  paid statuses) + **Sales Dashboard** (chờ Fase 4: KPI + trend 6 tháng + recent orders +
   best-sellers).
 
 ---
 
-# Admin (Filament 4 — native Lunar)
+# Admin (`lunarphp/panel` — Inertia + Vue)
 
-Panel Lunar đã có sẵn resource cho Catalog (Products/Brands/Collections/Options/Types/
-Variants/Tags/AttributeGroups), Sales (Orders/Discounts), Customers (+Groups), Settings
-(Channels/Currencies/Languages/Taxes/Staff/Activities) — **kế thừa, không build lại**.
+Panel Lunar có sẵn trang cho Catalog, Sales, Customers, Settings — **kế thừa, không
+build lại**. Phục vụ 370 route dưới `/panel`; asset là bản biên dịch sẵn của vendor,
+publish bằng `lunar:panel:install` (đã gắn vào `post-autoload-dump`).
 
-Resource build mới (Lunar không có), đóng góp qua `AdminPages`/`AdminPages::addResource`:
-- **Content:** Pages, Banners, Lookbooks, Redirects, Page Sections, Menus.
-- **Catalog:** Size Charts (+ ProductSizeExtension gắn Size Chart/Material vào product
-  editor).
-- **Assets:** Media Image Sizes, Media Library.
-- **Inventory:** Stock Overview. **Shipping:** Shipping Zones. **Analytics:** Sales
-  Dashboard. **Theme:** Theme Settings (+ swap một số Lunar resource cho subclass để
-  re-group navigation + fix label locale).
-
-`ModulesServiceProvider` reset navigation groups của panel (Catalog/Sales/Content/
-Settings) với label dịch được, và gắn resource/page do module đóng góp.
+> ⚠️ **Phần admin riêng của dự án hiện KHÔNG có.** Fase 3 của
+> [đợt nâng 2.0](../guides/upgrade-lunar-2.0.md) đã xoá 64 file PHP + 17 blade
+> Filament; Fase 4 sẽ viết lại chúng bằng Vue. Danh sách phải dựng lại, theo thứ
+> tự rủi ro giảm dần (§6 của runbook):
+>
+> 1. **MediaPicker / MediaBrowser** — 14 call site phụ thuộc.
+> 2. **ManageProductVariants** (SKU builder) — phức tạp nhất, đã từng có 2 bug thật.
+> 3. **9 trang cấu hình** — backend `Settings` giữ nguyên, chỉ thiếu UI.
+> 4. **6 resource Nội dung**: Pages, Banners, Lookbooks, Redirects, Page Sections, Menus.
+> 5. **RMA, Shipping Zones, Size Charts, Stock Overview, Media Library, Queue Workers.**
+> 6. **Analytics Sales Dashboard → widget.**
+>
+> Ảnh chụp 49 màn hình admin cũ được giữ ngoài repo để đối chiếu khi viết lại.
 
 ---
 
@@ -914,6 +968,7 @@ sau quyết định bằng dữ kiện chứ không bằng cảm tính.
 | 23 | 2026-08-05 | **MediaPicker thành picker ảnh thật** — trước đó chọn ảnh là một `Select` chỉ hiện *tên file* (admin phải nhớ tên mới biết mình chọn đúng ảnh chưa), và nút "mở thư viện" `->url(..., newTab: true)` **ném admin sang tab khác**, rời khỏi form đang sửa dở. Nay: thumbnail thật + nút bỏ chọn/đổi thứ tự ngay trên field, và thư viện mở **trong modal** (lưới ảnh + tìm theo tên + lọc thư mục + phân trang + upload tại chỗ, upload xong tự chọn). Tách `MediaPickerField` (hiển thị) + `MediaBrowser` (lưới modal), `MediaPicker` giữ nguyên chữ ký factory nên **0 callsite phải sửa** (14 chỗ ở Content/Catalog/Theme). Query lưới + folder gom về `MediaLibraryService::browse()/folders()/preview()` — trang Media Library dùng chung, hết copy query | +15 test (506 tổng); mutation-check 2 guard: bỏ reset-page khi đổi filter → đỏ, bỏ lọc `type` → đỏ. **State không đổi** (vẫn là Asset id) nên VariantSwatch/VariantGallery/MigrateLegacyImages xanh nguyên trạng |
 | 24 | 2026-08-27 | **Nâng Lunar 1.3 → 1.5 + Filament v3 → v4**, rồi dọn nợ đi kèm. Hai lỗi tìm ra là của upstream: migration đổi tên cột 2FA không chuyển mã giá trị (**khoá mọi staff bật 2FA ra khỏi admin**, mà khoá bằng cách 500 chứ không báo mã sai), và `translate()` trả chuỗi rỗng khi key locale tồn tại nhưng blank. **Gỡ được composer patch cuối cùng**: lý do cũ ("`HasTranslations` là trait nên `ModelManifest` không swap được") sai — không swap được *trait*, nhưng swap được *model dùng trait*. Nay là `SkipsEmptyTranslations` trên đúng 4 model có cột `name` JSON. `composer.json` bỏ 12 gói mà `lunarphp/lunar` tự kéo, giữ lại 5 gói code mình import trực tiếp | 544 test (baseline trước nâng cấp 506); `patches/` biến mất, `composer audit` 0 advisory |
 | 25 | 2026-08-30 | **Bốn năng lực từ đợt rà soát nền tảng.** (a) *Nhận tại cửa hàng* — năng lực giao hàng duy nhất không cần hợp đồng hãng vận chuyển, nên gỡ được phần lớn giá trị của P0.5 đang bị chặn; Lunar bắt buộc có địa chỉ giao nên đơn mang địa chỉ CỬA HÀNG mà giữ tên + điện thoại khách. (b) *Dây bảo hiểm cho cron* — `orders:expire-abandoned` ngừng chạy thì tồn kho khoá vĩnh viễn, mà im lặng trông y hệt "không có đơn quá hạn". (c) *Điều hướng đáy + bộ lọc bottom-sheet* — không phải THÊM nav mà DỜI nav: header mobile từ 6 điểm chạm còn hamburger + logo; bất biến chống trùng lặp là **ghép cặp breakpoint**, không phải "mỗi đích đến một link" (SSR buộc render cả hai bộ). (d) *Báo cáo nội dung thiếu bản dịch* — locale rỗng là lỗi im lặng, không ném lỗi cũng không ghi log | 582 test (từ 544); chạy thử báo cáo phát hiện ngay 13 bản ghi thiếu tiếng Việt |
+| 26 | 2026-09-09 | **Nâng Lunar 1.5 → 2.0.0-alpha.6, bỏ Filament, sang `lunarphp/panel`** (Fase 0→3; Fase 4 viết lại admin bằng Vue chưa bắt đầu — **hiện không có giao diện quản trị**). Ba thứ kế hoạch không lường được. (a) *`ModelManifest::replace()` biến mất, không có cái thay thế* — bản vá locale phải **hạ xuống tầng dữ liệu**: lọc locale rỗng lúc decode JSON thì `translate()` của upstream trở thành đúng, và vá rộng hơn cách cũ. (b) *`lunar:upgrade` ghi lại ledger đánh dấu toàn bộ baseline v2 là đã chạy* — nên cột nào 19 data migration bỏ sót thì **không bao giờ** được tạo nữa; tìm ra 3 cột thiếu bằng cách dựng baseline vào DB nháp rồi diff `information_schema`, cả 3 đều có code 2.0 đang đọc. (c) *`orders.status` bị xoá* — vòng đời 7 trạng thái thành **phái sinh** từ hai rollup + hai timestamp; không nơi nào set status nữa, và cái duy nhất bốn sự thật không phân biệt được (COD vs cổng thanh toán bỏ dở) phải đọc từ `meta.payment_type`, ghi cho mọi đơn + backfill đơn cũ | 560 test (baseline trước nâng cấp 597 — chênh lệch là test canh Filament đã xoá); panel phục vụ 370 route |
 
 > **Quy tắc cho mọi refactor:** giải thích *why* trước khi viết code · composer patch
 > là **bậc cuối** (thử hết extension point trước; nếu patch thì kèm PR upstream)
