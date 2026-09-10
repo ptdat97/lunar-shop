@@ -4,6 +4,14 @@ Ecommerce fashion cho SME single-store. Laravel 12 + [Lunar](https://lunarphp.io
 làm commerce core, storefront Blade SSR. Admin đang trong quá trình viết lại
 trên `lunarphp/panel` (Inertia + Vue) — xem [guides/upgrade-lunar-2.0.md](guides/upgrade-lunar-2.0.md).
 
+> ## ⭐ Đọc câu này trước mọi thứ khác
+>
+> ### Laravel application layer xây trên Lunar Commerce Kernel, với business logic riêng chỉ xuất hiện khi Lunar không cung cấp.
+>
+> Đây là phép thử quyết định một đoạn code có được phép tồn tại hay không, không
+> phải một lời khuyên phong cách. Thứ tự hỏi và bốn ca đã trả giá thật:
+> [architecture/overview.md § Nguyên tắc kiến trúc cốt lõi](architecture/overview.md#nguyên-tắc-kiến-trúc-cốt-lõi).
+
 ---
 
 ## Bắt đầu từ đâu

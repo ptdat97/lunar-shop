@@ -73,6 +73,44 @@ Ecommerce fashion cho SME single-store:
 
 ## Nguyên tắc kiến trúc cốt lõi
 
+> ## ⭐ Nguyên tắc số 0 — bao trùm mọi nguyên tắc còn lại
+>
+> ### **Laravel application layer xây trên Lunar Commerce Kernel, với business logic riêng chỉ xuất hiện khi Lunar không cung cấp.**
+>
+> Đây không phải một lời khuyên phong cách. Nó là **phép thử để quyết định một
+> đoạn code có được phép tồn tại hay không**, và năm nguyên tắc đánh số bên dưới
+> chỉ là hệ quả của nó.
+>
+> **Trước khi viết bất kỳ logic thương mại nào, hỏi theo đúng thứ tự này:**
+>
+> 1. Lunar đã có chưa? → Dùng. Kể cả khi nó khác cách mình định làm 10%.
+> 2. Lunar có **điểm mở rộng** cho việc này không? → Dùng điểm đó
+>    (`config/lunar/*`, action contract, pipeline, event, section/slot của panel).
+> 3. Chỉ khi cả hai đều không → mới viết logic riêng, **và ghi lại vì sao**.
+>
+> **Cái giá của việc bỏ qua phép thử này không phải là "code hơi thừa" — nó là
+> lỗi im lặng.** Bốn ca có thật trong repo này, tất cả đều chạy đúng cho tới
+> ngày không đúng nữa:
+>
+> | Đã tự viết | Lunar đã có | Mất gì |
+> | --- | --- | --- |
+> | `MediaThumbnails` dựng `thumbnail` từ `media` bằng PHP | Quan hệ `thumbnail()` (MorphOne, lọc collection **và** `primary`) | Bản tự viết bỏ mất bộ lọc collection → chọn nhầm ảnh swatch làm ảnh đại diện. Chưa nổ vì chưa ai gắn `primary` cho swatch |
+> | `$customer->addresses()->create()` | `CreatesCustomerAddress` | Mất `activity log` — mọi thay đổi địa chỉ từ storefront vô hình với nhân viên |
+> | `$user->customers()->attach()` | `LinkCustomerUser` | `attach()` không bất biến (hai request đồng thời tạo hai dòng pivot) + mất dấu vết |
+> | *(định tự viết)* hệ giao hàng | 15 action Fulfilment + đủ UI trong panel | Suýt dựng lại thứ đã hoàn chỉnh, gồm cả bảng lưu mã vận đơn mà roadmap còn ghi là "còn thiếu, phải thêm" |
+>
+> **Chiều ngược lại cũng là một cái bẫy.** Áp dụng nguyên tắc quá tay — cố nhét
+> mọi thứ vào một cơ chế của Lunar — cũng sai. Trang chi tiết lookbook **cố ý
+> không** dùng `ProductService::cardRelations()`: nó render Blade, không serialise
+> nhóm option, và nhét bộ quan hệ chung vào làm trang **tăng** 14 → 17 truy vấn.
+> Tiêu chí luôn là *thứ này có thật sự cùng một việc không*, không phải *có gọi
+> tên giống nhau không*.
+>
+> **Cách kiểm nhanh khi nghi ngờ:** đọc code của Lunar trong `vendor/` xem nó lấy
+> quyết định từ đâu. Gần như mọi lỗi thuộc lớp này trong dự án được tìm ra bằng
+> cách đó, chứ không phải bằng cách đọc code của mình — vì code của mình *trông
+> vẫn đúng*.
+
 > Chuẩn code chi tiết ở
 > [../guides/coding-standards.md](../guides/coding-standards.md).
 

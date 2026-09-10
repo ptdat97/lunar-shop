@@ -14,6 +14,20 @@
 
 ## 0. Nguyên tắc cốt lõi
 
+> ⭐ **Nguyên tắc số 0, bao trùm cả năm mục dưới:**
+>
+> **Laravel application layer xây trên Lunar Commerce Kernel, với business logic
+> riêng chỉ xuất hiện khi Lunar không cung cấp.**
+>
+> Phép thử trước khi viết bất kỳ logic thương mại nào — theo đúng thứ tự:
+> Lunar đã có chưa? → Lunar có điểm mở rộng không? → chỉ khi cả hai đều không,
+> mới viết riêng **và ghi lại vì sao**.
+>
+> Bỏ qua phép thử này không cho ra "code hơi thừa" mà cho ra **lỗi im lặng**: bản
+> tự viết luôn thiếu một điều kiện mà bản của Lunar có, và nó chạy đúng cho tới
+> ngày không đúng nữa. Bốn ca có thật kèm cái giá cụ thể:
+> [../architecture/overview.md § Nguyên tắc kiến trúc cốt lõi](../architecture/overview.md#nguyên-tắc-kiến-trúc-cốt-lõi).
+
 1. **Inherit Lunar, đừng dựng lại** — Lunar là source of truth cho catalog, cart,
    pricing, order, customer, discount, media, payment. Kiểm tra `vendor/lunarphp/` trước;
    có → extend, không → mới build (xem §5).
