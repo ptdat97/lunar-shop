@@ -131,6 +131,26 @@ class CheckoutService
     }
 
     /**
+     * Stamp the shopper's current language onto the cart.
+     *
+     * Written with `withoutTimestamps` so it cannot disturb `updated_at`: the
+     * abandoned-cart sweep measures staleness from that column, and a write
+     * here would make every cart look freshly active.
+     */
+    protected function rememberLocale(Cart $cart): void
+    {
+        $meta = (array) ($cart->meta ?? []);
+
+        if (($meta['locale'] ?? null) === app()->getLocale()) {
+            return;
+        }
+
+        $meta['locale'] = app()->getLocale();
+
+        Cart::withoutTimestamps(fn () => $cart->forceFill(['meta' => $meta])->saveQuietly());
+    }
+
+    /**
      * Set shipping + billing addresses on the cart.
      *
      * @param  array<string, mixed>  $shipping
@@ -146,6 +166,13 @@ class CheckoutService
         // doesn't silently clear the selection → "Missing Shipping Option" at
         // order time.
         $previousOption = $cart->shippingAddress?->shipping_option;
+
+        // Ghi ngôn ngữ khách đang xem vào giỏ. Đây là điểm duy nhất biết chắc
+        // khách đang thanh toán VÀ vẫn còn trong một request (có locale thật).
+        // Email nhắc giỏ bỏ quên chạy từ cron, nơi locale là mặc định của app
+        // chứ không phải của khách — không có dấu vết này thì lời nhắc luôn gửi
+        // bằng ngôn ngữ mặc định, kể cả cho khách đang xem tiếng Anh.
+        $this->rememberLocale($cart);
 
         // VN 2-tier addresses (state=province, city=ward) carry no postcode, but
         // Lunar requires one for order creation — default it so checkout works.
@@ -295,7 +322,10 @@ class CheckoutService
                 config("lunar.payments.types.{$paymentType}.driver", 'offline')
             )->cart($cart)->withData([
                 'authorized' => config("lunar.payments.types.{$paymentType}.authorized"),
-                'meta' => ['payment_type' => $paymentType],
+                // `locale` đi kèm `payment_type` vì cùng một lý do: email gửi
+                // SAU này (xin đánh giá, chạy từ cron) không còn request nào để
+                // đọc ngôn ngữ của khách.
+                'meta' => ['payment_type' => $paymentType, 'locale' => app()->getLocale()],
             ])->authorize();
         } catch (CartException $e) {
             abort(422, $e->getMessage());

@@ -273,7 +273,7 @@
     @include('theme::partials.reviews', [
         'reviews' => $reviews,
         'reviewSummary' => $reviewSummary,
-        'slug' => $slug,
+        'product' => $product,
     ])
 
     @include('theme::partials.recently-viewed', ['currentSlug' => $slug])

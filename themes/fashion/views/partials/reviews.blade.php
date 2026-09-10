@@ -38,7 +38,11 @@
          không rời trang. --}}
     <form class="mt-4 row g-2 align-items-end"
           data-review-form
-          action="{{ url('/api/v1/products/'.$slug.'/reviews') }}"
+          {{-- ID, KHÔNG phải slug: route `products/{product}` bind theo khoá route
+               của model, và Product khoá theo `id`. Dùng slug thì mọi lượt gửi
+               đánh giá đều 404 — và một form chỉ được kiểm "có mặt trong HTML"
+               sẽ không phát hiện ra điều đó. --}}
+          action="{{ url('/api/v1/products/'.$product->id.'/reviews') }}"
           method="post">
         <div class="col-12 col-sm-4">
             <label class="form-label" for="review-author">{{ __('storefront.product.reviews_your_name') }}</label>

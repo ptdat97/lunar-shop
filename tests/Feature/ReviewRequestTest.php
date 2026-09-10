@@ -167,6 +167,38 @@ class ReviewRequestTest extends TestCase
         $this->assertStringContainsString('data-review-form', $html);
     }
 
+    /**
+     * The form must actually submit.
+     *
+     * Asserting the form exists in the HTML proves the markup rendered, not
+     * that it works — and it did not: the action was built from the slug while
+     * the route binds `{product}` on the id, so every submission 404'd. This
+     * pulls the action out of the rendered page and posts to it, which is the
+     * only version of this test that could have caught that.
+     */
+    public function test_the_rendered_form_actually_accepts_a_review(): void
+    {
+        $this->seedBaseData();
+        $product = $this->createProduct(['slug' => 'ao-so-mi']);
+
+        $html = $this->get(route('storefront.product', $product->defaultUrl->slug))->getContent();
+
+        preg_match('/data-review-form[^>]*action="([^"]+)"/', $html, $m);
+
+        $this->assertNotEmpty($m[1] ?? '', 'Không lấy được action của form đánh giá.');
+
+        $this->postJson($m[1], [
+            'author' => 'Mai',
+            'rating' => 5,
+            'body' => 'Vừa vặn, vải đẹp.',
+        ])->assertCreated();
+
+        $this->assertDatabaseHas('product_reviews', [
+            'product_id' => $product->id,
+            'author' => 'Mai',
+        ]);
+    }
+
     /** Reading reviews must not depend on JavaScript — that is the part that sells. */
     public function test_the_review_list_is_server_rendered(): void
     {
@@ -180,6 +212,41 @@ class ReviewRequestTest extends TestCase
 
         $this->assertStringContainsString('Hùng', $html);
         $this->assertStringContainsString('Đúng size.', $html);
+    }
+
+    /**
+     * The email must arrive in the shopper's language, not the scheduler's.
+     *
+     * This one is only wrong from cron. Every other order email is sent inside
+     * the request that caused it, where the active locale IS the shopper's — so
+     * a review request going out days later was the first mail in the shop with
+     * no request to read the language from, and it silently used the app
+     * default for everyone.
+     */
+    public function test_the_email_uses_the_language_recorded_at_checkout(): void
+    {
+        $this->seedBaseData();
+        $this->enable();
+
+        app()->setLocale('en');
+        $order = $this->deliveredOrder();
+
+        $this->assertSame(
+            'en',
+            $order->meta['locale'] ?? null,
+            'Checkout không ghi lại ngôn ngữ của khách lên đơn.',
+        );
+
+        // Cron chạy ở ngôn ngữ mặc định của shop, không phải của khách.
+        app()->setLocale('vi');
+
+        Mail::fake();
+        Artisan::call('orders:request-reviews');
+
+        Mail::assertQueued(
+            ReviewRequestMail::class,
+            fn ($mail) => $mail->locale === 'en',
+        );
     }
 
     /** The service's bounds are the contract; the panel form must not outrank them. */

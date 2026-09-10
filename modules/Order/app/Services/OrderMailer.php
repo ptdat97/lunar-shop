@@ -27,9 +27,29 @@ class OrderMailer
             return false;
         }
 
-        Mail::to($email)->locale($this->locale())->send($mailable);
+        Mail::to($email)->locale($this->localeFor($order))->send($mailable);
 
         return true;
+    }
+
+    /**
+     * The locale this order's emails belong in.
+     *
+     * Prefers the language stamped on the order at checkout. That matters for
+     * mail sent from CRON rather than from a request — the review request goes
+     * out days later, and by then the "currently active locale" is whatever the
+     * scheduler booted with, not the shopper's. Order emails sent during the
+     * request itself land on the same answer either way.
+     */
+    protected function localeFor(Order $order): string
+    {
+        $stamped = $order->meta['locale'] ?? null;
+
+        if (is_string($stamped) && app(LocaleService::class)->isSupported($stamped)) {
+            return $stamped;
+        }
+
+        return $this->locale();
     }
 
     /**
