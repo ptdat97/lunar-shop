@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
 use Lunar\Core\Facades\CartSession;
 use Lunar\Core\Facades\ShippingManifest;
+use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Order;
 use Modules\Checkout\Services\CheckoutService;
 use Modules\Checkout\Services\MoMoGateway;
@@ -25,6 +26,12 @@ class MoMoPaymentTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Cổng VNPay/MoMo chỉ settle VND, nên một đơn tính bằng loại tiền khác
+        // là cấu hình bất khả thi — GatewayReconciler từ chối đúng như tài liệu
+        // tích hợp thanh toán của Lunar yêu cầu. Seeder gốc tạo USD, nên test
+        // cổng phải nói rõ tiền tệ thay vì mượn mặc định.
+        Currency::query()->update(['code' => 'VND', 'decimal_places' => 0]);
+
         config([
             'payment.momo.partner_code' => 'MOMOTEST',
             'payment.momo.access_key' => 'ACCESSKEY',

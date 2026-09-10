@@ -236,6 +236,8 @@ return [
         'bank_transfer_hint' => 'Giao hàng sau khi xác nhận thanh toán.',
         'vnpay_hint' => 'Bạn sẽ được chuyển tới VNPay để hoàn tất thanh toán an toàn.',
         'momo_hint' => 'Bạn sẽ được chuyển tới MoMo để hoàn tất thanh toán an toàn.',
+        'cannot_place_order' => 'Chưa đặt được đơn này. Vui lòng tải lại trang giỏ hàng rồi thử lại.',
+        'cart_changed' => 'Giỏ hàng đã thay đổi kể từ lúc bạn xem. Vui lòng kiểm tra lại rồi đặt hàng.',
     ],
 
     'wishlist' => [

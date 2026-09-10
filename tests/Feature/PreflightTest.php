@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use Illuminate\Support\Facades\Artisan;
+use Lunar\Core\Models\Currency;
 use Tests\TestCase;
 
 /**
@@ -14,6 +15,27 @@ use Tests\TestCase;
  */
 class PreflightTest extends TestCase
 {
+    /**
+     * Give the shop a default currency.
+     *
+     * PreflightTest cố ý không seed dữ liệu storefront, nên KHÔNG có dòng
+     * currency nào — `update()` ở đây sẽ tác động 0 dòng và phép kiểm tiền tệ
+     * bị bỏ qua, khiến test xanh vì lý do sai.
+     */
+    private function shopCurrency(string $code, int $decimals): void
+    {
+        Currency::query()->delete();
+
+        Currency::create([
+            'code' => $code,
+            'name' => $code,
+            'exchange_rate' => 1,
+            'decimal_places' => $decimals,
+            'default' => true,
+            'enabled' => true,
+        ]);
+    }
+
     /** Pretend to be production without touching the real environment. */
     private function asProduction(array $config = []): int
     {
@@ -57,6 +79,10 @@ class PreflightTest extends TestCase
 
     public function test_a_live_endpoint_passes(): void
     {
+        // Một cấu hình cổng "đã lên production" hoàn chỉnh phải gồm cả tiền tệ
+        // settle được — VNPay chỉ nhận VND.
+        $this->shopCurrency('VND', 0);
+
         $exit = $this->asProduction([
             'payment.vnpay.tmn_code' => 'LIVECODE',
             'payment.vnpay.hash_secret' => 'live-secret',
@@ -97,6 +123,40 @@ class PreflightTest extends TestCase
 
         $this->assertSame(1, $exit);
         $this->assertStringContainsString('PII', Artisan::output());
+    }
+
+    /**
+     * A gateway that cannot settle the shop's currency takes the customer's
+     * money and leaves the order unpaid — the reconciler refuses the callback,
+     * correctly, but only after the shopper has already paid.
+     */
+    public function test_a_gateway_that_cannot_settle_the_shop_currency_blocks(): void
+    {
+        $this->shopCurrency('USD', 2);
+
+        $exit = $this->asProduction([
+            'payment.vnpay.tmn_code' => 'LIVECODE',
+            'payment.vnpay.hash_secret' => 'live-secret',
+            'payment.vnpay.payment_url' => 'https://pay.vnpay.vn/vpcpay.html',
+            'payment.vnpay.api_url' => 'https://merchant.vnpay.vn/merchant_webapi/api/transaction',
+        ]);
+
+        $this->assertSame(1, $exit);
+        $this->assertStringContainsString('VND', Artisan::output());
+    }
+
+    public function test_a_matching_gateway_currency_passes(): void
+    {
+        $this->shopCurrency('VND', 0);
+
+        $exit = $this->asProduction([
+            'payment.vnpay.tmn_code' => 'LIVECODE',
+            'payment.vnpay.hash_secret' => 'live-secret',
+            'payment.vnpay.payment_url' => 'https://pay.vnpay.vn/vpcpay.html',
+            'payment.vnpay.api_url' => 'https://merchant.vnpay.vn/merchant_webapi/api/transaction',
+        ]);
+
+        $this->assertSame(0, $exit);
     }
 
     public function test_a_missing_error_tracker_only_warns(): void

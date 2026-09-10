@@ -52,6 +52,17 @@ abstract class GatewayReconciler
     abstract protected function cardType(array $payload): string;
 
     /**
+     * The ISO code this gateway can actually settle in.
+     *
+     * Tài liệu tích hợp thanh toán của Lunar yêu cầu driver đối chiếu cả *số
+     * tiền* LẪN *tiền tệ* với đơn trước khi đặt. Phần số tiền đã có; phần tiền
+     * tệ thì chưa, và thiếu nó thì chính phép so số tiền mất nghĩa: so một số
+     * VND với một tổng đơn tính bằng USD là so hai đại lượng khác đơn vị, và
+     * kết quả gần như luôn "đã trả đủ".
+     */
+    abstract protected function settlementCurrency(): string;
+
+    /**
      * Reconcile one callback (return URL or IPN).
      *
      * @param  array<string, mixed>  $payload
@@ -104,6 +115,28 @@ abstract class GatewayReconciler
                 Log::warning('Payment landed on a closed order.', [
                     'order_id' => $order->id,
                     'status' => OrderStatus::of($order),
+                    'driver' => $this->driver(),
+                    'reference' => $reference,
+                    'amount' => $amount,
+                ]);
+
+                return $this->outcome(verified: true, paid: false, order: $order);
+            }
+
+            // Tiền tệ phải khớp trước, vì mọi phép so bên dưới đều tính bằng đơn
+            // vị nhỏ nhất của đơn. Cổng chỉ settle được đúng một loại tiền (VNPay
+            // và MoMo đều chỉ VND), nên một đơn tính bằng loại khác nghĩa là cấu
+            // hình đã sai ở đâu đó — và im lặng đi tiếp sẽ ghi nhận "đã thanh
+            // toán" cho một đơn chưa nhận đủ tiền.
+            $orderCurrency = (string) ($order->currency?->code ?? '');
+
+            if ($success && $orderCurrency !== $this->settlementCurrency()) {
+                $this->recordTransaction($order, $payload, $reference, $amount, success: false);
+
+                Log::error('Gateway callback currency does not match the order.', [
+                    'order_id' => $order->id,
+                    'order_currency' => $orderCurrency,
+                    'gateway_currency' => $this->settlementCurrency(),
                     'driver' => $this->driver(),
                     'reference' => $reference,
                     'amount' => $amount,

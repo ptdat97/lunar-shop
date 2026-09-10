@@ -7,10 +7,12 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
 use Lunar\Core\Exceptions\Carts\CartException;
+use Lunar\Core\Exceptions\FingerprintMismatchException;
 use Lunar\Core\Facades\Payments;
 use Lunar\Core\Facades\ShippingManifest;
 use Lunar\Core\Models\Cart;
 use Lunar\Core\Models\Order;
+use Lunar\Core\Validation\Cart\ValidateCartForOrderCreation;
 use Modules\Core\Support\Settings;
 use Modules\Customer\Services\CustomerResolver;
 use Modules\Shipping\Services\PickupLocation;
@@ -263,7 +265,7 @@ class CheckoutService
      * request wait, and by the time it runs the first has consumed the cart
      * (forget()), so it hits the empty-cart guard with a clean 422.
      */
-    public function placeOrder(string $paymentType = 'cod'): Order
+    public function placeOrder(string $paymentType = 'cod', ?string $fingerprint = null): Order
     {
         $cart = $this->carts->current();
 
@@ -276,13 +278,48 @@ class CheckoutService
 
         // block() waits up to 10s for a concurrent placement to finish rather
         // than erroring immediately; the loser then sees the consumed cart.
-        return $lock->block(10, fn () => $this->doPlaceOrder($paymentType));
+        return $lock->block(10, fn () => $this->doPlaceOrder($paymentType, $fingerprint));
+    }
+
+    /**
+     * Turn Lunar's cart validation failures into per-field form errors.
+     *
+     * `canCreateOrder()` answers yes/no without throwing, so the reasons have to
+     * be collected by running the same validators and catching what they say.
+     */
+    protected function failWithCartErrors(Cart $cart): never
+    {
+        $errors = [];
+
+        // Chạy ĐÚNG danh sách validator mà `canCreateOrder()` chạy, đọc từ cùng
+        // một khoá config — không chép cứng lớp nào ở đây, để shop thêm
+        // validator riêng thì lỗi của nó cũng ra tới form.
+        $validators = config('lunar.cart.validators.order_create', [
+            ValidateCartForOrderCreation::class,
+        ]);
+
+        foreach ($validators as $action) {
+            try {
+                app($action)->using(cart: $cart)->validate();
+            } catch (CartException $e) {
+                $errors = array_merge_recursive($errors, $e->errors()->toArray());
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+
+        // canCreateOrder() nói không nhưng chạy lại validator thì không lỗi nào
+        // nổi lên — đó là mâu thuẫn của hệ thống chứ không phải khách nhập sai,
+        // nên đừng giả vờ chỉ vào một ô nào cả.
+        abort(422, __('storefront.checkout.cannot_place_order'));
     }
 
     /**
      * The actual place flow, run while holding the per-cart lock.
      */
-    protected function doPlaceOrder(string $paymentType): Order
+    protected function doPlaceOrder(string $paymentType, ?string $fingerprint = null): Order
     {
         // Re-read the cart INSIDE the lock: a request that was blocked waiting
         // for the winner now sees the empty cart the winner left behind.
@@ -290,6 +327,26 @@ class CheckoutService
 
         if ($cart->lines->isEmpty()) {
             abort(422, 'Your cart is empty.');
+        }
+
+        // Giỏ có đổi kể từ lúc khách nhìn thấy trang không?
+        //
+        // Fingerprint của Lunar phủ dòng hàng, số lượng, tạm tính từng dòng, mã
+        // giảm giá và tiền tệ — đúng những thứ quyết định SỐ TIỀN khách nghĩ họ
+        // sắp trả. Một tab khác đổi số lượng, một khuyến mãi vừa hết hạn, một
+        // dòng hàng bị gỡ vì hết kho: tất cả đều làm tổng tiền khác đi giữa lúc
+        // xem và lúc bấm đặt.
+        //
+        // Kiểm TRONG lock, sau khi đã đọc lại giỏ — kiểm bên ngoài là kiểm một
+        // bản chụp có thể đã cũ ngay khi vừa đọc.
+        if ($fingerprint !== null && $fingerprint !== '') {
+            try {
+                $cart->checkFingerprint($fingerprint);
+            } catch (FingerprintMismatchException) {
+                throw ValidationException::withMessages([
+                    'fingerprint' => __('storefront.checkout.cart_changed'),
+                ]);
+            }
         }
 
         // Link the cart to the logged-in user's customer so the order shows up
@@ -301,10 +358,23 @@ class CheckoutService
 
         $cart = $cart->calculate();
 
-        // Guard the common recoverable cause of order-creation failure with a
-        // clear message (otherwise Lunar throws a CartException → generic 500).
+        // Hỏi Lunar xem giỏ đã đặt được chưa, thay vì tự đoán từng lý do một.
+        //
+        // Trước đây chỗ này chỉ tự kiểm ĐÚNG MỘT nguyên nhân (thiếu phương thức
+        // vận chuyển) rồi để mọi lý do còn lại rơi vào CartException. Nhưng
+        // `canCreateOrder()` chạy toàn bộ pipeline `lunar.cart.validators.
+        // order_create` — thiếu địa chỉ, giỏ rỗng, dòng hàng không mua được, và
+        // bất kỳ validator nào shop thêm sau này. Tự liệt kê là một danh sách
+        // chắc chắn sẽ lệch khỏi Lunar.
+        //
+        // Vẫn giữ thông điệp riêng cho ca thiếu vận chuyển vì đó là ca khách tự
+        // sửa được, và câu tóm tắt của Lunar không nói họ phải làm gì.
         if ($cart->isShippable() && ! $cart->getShippingOption()) {
             abort(422, 'Please choose a shipping method before placing your order.');
+        }
+
+        if (! $cart->canCreateOrder()) {
+            $this->failWithCartErrors($cart);
         }
 
         // `meta.payment_type` is recorded for EVERY order, not just the
@@ -328,7 +398,11 @@ class CheckoutService
                 'meta' => ['payment_type' => $paymentType, 'locale' => app()->getLocale()],
             ])->authorize();
         } catch (CartException $e) {
-            abort(422, $e->getMessage());
+            // `errors()` là MessageBag theo từng trường; `getMessage()` chỉ là
+            // câu tóm tắt "lỗi đầu tiên (và N lỗi nữa)". Ném thành
+            // ValidationException để form checkout chỉ được đúng ô hỏng, thay vì
+            // hiện một dòng chung chung cho cả trang.
+            throw ValidationException::withMessages($e->errors()->toArray());
         }
 
         abort_unless($authorize->success, 422, 'Payment could not be authorized.');

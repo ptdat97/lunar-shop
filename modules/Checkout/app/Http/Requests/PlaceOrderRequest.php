@@ -44,6 +44,11 @@ class PlaceOrderRequest extends FormRequest
             'contact_phone' => ['required', 'string', 'max:32'],
             'shipping_option' => ['required', 'string'],
             'payment_type' => ['required', 'string', Rule::in($checkout->paymentMethods())],
+            // Dấu vân tay của giỏ lúc trang được render. `nullable` chứ không
+            // `required`: client API hiện có chưa gửi nó, và bắt buộc ngay sẽ
+            // làm hỏng app đang chạy. Gửi thì được kiểm; không gửi thì mất lớp
+            // bảo vệ này chứ không mất khả năng đặt hàng.
+            'fingerprint' => ['nullable', 'string', 'max:64'],
         ];
     }
 

@@ -58,6 +58,11 @@ class CheckoutController extends Controller
             'provinces' => $this->locations->provinces(),
             'shippingOptions' => $shippingOptions,
             'old' => session()->getOldInput(),
+            // Dấu vân tay của giỏ TẠI THỜI ĐIỂM render. Form gửi lại nó khi đặt
+            // hàng; nếu giỏ đã đổi giữa chừng (tab khác sửa số lượng, khuyến mãi
+            // hết hạn, một dòng bị gỡ vì hết kho) thì khách được báo thay vì bị
+            // tính một số tiền khác số họ vừa nhìn thấy.
+            'cartFingerprint' => $cart->fingerprint(),
             // vnpayEnabled / momoEnabled / defaultPayment
             ...$this->checkout->paymentContext(),
         ]);
@@ -86,7 +91,7 @@ class CheckoutController extends Controller
                 $this->checkout->setAddresses($request->addressData());
                 $this->checkout->setShipping($data['shipping_option']);
             }
-            $order = $this->checkout->placeOrder($data['payment_type']);
+            $order = $this->checkout->placeOrder($data['payment_type'], $data['fingerprint'] ?? null);
         } catch (ValidationException $e) {
             throw $e;
         } catch (\Throwable $e) {

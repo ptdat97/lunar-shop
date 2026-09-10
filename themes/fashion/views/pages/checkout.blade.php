@@ -13,6 +13,9 @@
 <form method="POST" action="{{ route('storefront.checkout.place') }}" class="checkout"
       data-checkout-form data-wards-url="{{ url('/api/v1/locations/provinces') }}">
     @csrf
+    {{-- Giỏ tại thời điểm trang này được render. CheckoutService đối chiếu lại
+         lúc đặt hàng, bên trong lock — xem placeOrder(). --}}
+    <input type="hidden" name="fingerprint" value="{{ $cartFingerprint ?? '' }}">
 
     <div class="checkout__main">
         <div class="checkout__form">

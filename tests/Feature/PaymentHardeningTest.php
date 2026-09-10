@@ -6,6 +6,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Event;
 use Lunar\Core\Facades\CartSession;
 use Lunar\Core\Facades\ShippingManifest;
+use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Order;
 use Lunar\Core\Models\ProductVariant;
 use Lunar\Core\Models\Transaction;
@@ -36,6 +37,12 @@ class PaymentHardeningTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // Cổng VNPay/MoMo chỉ settle VND, nên một đơn tính bằng loại tiền khác
+        // là cấu hình bất khả thi — GatewayReconciler từ chối đúng như tài liệu
+        // tích hợp thanh toán của Lunar yêu cầu. Seeder gốc tạo USD, nên test
+        // cổng phải nói rõ tiền tệ thay vì mượn mặc định.
+        Currency::query()->update(['code' => 'VND', 'decimal_places' => 0]);
+
         config([
             'payment.vnpay.tmn_code' => 'TESTCODE',
             'payment.vnpay.hash_secret' => self::SECRET,
@@ -78,14 +85,31 @@ class PaymentHardeningTest extends TestCase
         return $q;
     }
 
+    /**
+     * VNPay quotes the amount ×100 of the MAJOR unit, so the wire value depends
+     * on how many decimal places the order's currency has. Expressing test
+     * amounts in the order's minor unit and converting here keeps these tests
+     * true for a 0-decimal currency (VND) and a 2-decimal one alike — the old
+     * versions hardcoded the USD arithmetic and broke the moment the shop's
+     * gateway currency was stated explicitly.
+     */
+    private function vnpAmount(Order $order, int $minor): string
+    {
+        $decimals = $order->currency->decimal_places ?? 0;
+
+        return (string) (int) round($minor / (10 ** $decimals) * 100);
+    }
+
     public function test_underpaid_callback_does_not_mark_order_paid(): void
     {
         Event::fake([OrderPaid::class]);
         $order = $this->placeVNPayOrder();
 
-        // Genuinely signed, but for 1.00 instead of the order total.
+        // Có chữ ký hợp lệ, nhưng chỉ trả một phần nhỏ so với tổng đơn.
+        $underpaid = max(1, intdiv((int) $order->total, 2));
+
         $result = VNPayPaymentProcessor::make()->reconcile(
-            $this->signedCallback($order, ['vnp_Amount' => '100'])
+            $this->signedCallback($order, ['vnp_Amount' => $this->vnpAmount($order, $underpaid)])
         );
 
         $this->assertTrue($result->verified, 'signature is valid');
@@ -96,7 +120,7 @@ class PaymentHardeningTest extends TestCase
         // The money is still recorded — an unexplained payment must never vanish.
         $tx = Transaction::where('order_id', $order->id)->sole();
         $this->assertFalse((bool) $tx->success);
-        $this->assertSame(100, (int) $tx->amount);
+        $this->assertSame($underpaid, (int) $tx->amount);
     }
 
     public function test_exact_amount_marks_order_paid(): void
@@ -114,10 +138,10 @@ class PaymentHardeningTest extends TestCase
     public function test_overpaid_callback_still_marks_order_paid(): void
     {
         $order = $this->placeVNPayOrder();
-        $over = (string) (((int) $order->total) + 1000);
+        $over = ((int) $order->total) + 1000;
 
         $result = VNPayPaymentProcessor::make()->reconcile(
-            $this->signedCallback($order, ['vnp_Amount' => $over])
+            $this->signedCallback($order, ['vnp_Amount' => $this->vnpAmount($order, $over)])
         );
 
         // Refusing the goods to a customer who overpaid helps nobody; it is logged.

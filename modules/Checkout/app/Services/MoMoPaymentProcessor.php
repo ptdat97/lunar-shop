@@ -37,6 +37,12 @@ class MoMoPaymentProcessor extends GatewayReconciler
         );
     }
 
+    /** MoMo chỉ settle VND. */
+    protected function settlementCurrency(): string
+    {
+        return 'VND';
+    }
+
     protected function driver(): string
     {
         return 'momo';

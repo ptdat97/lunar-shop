@@ -236,6 +236,8 @@ return [
         'bank_transfer_hint' => 'Transfer to our bank account; we ship after payment is confirmed.',
         'vnpay_hint' => 'You will be redirected to VNPay to complete payment securely.',
         'momo_hint' => 'You will be redirected to MoMo to complete payment securely.',
+        'cannot_place_order' => 'This order cannot be placed. Please reload your cart and try again.',
+        'cart_changed' => 'Your cart changed since you reviewed it. Please check it and place the order again.',
     ],
 
     'wishlist' => [

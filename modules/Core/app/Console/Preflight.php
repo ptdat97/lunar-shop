@@ -4,6 +4,7 @@ namespace Modules\Core\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
+use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Staff;
 use Modules\Core\Support\Settings;
 
@@ -53,6 +54,7 @@ class Preflight extends Command
 
         $this->checkApp($production);
         $this->checkPayments($settings, $production);
+        $this->checkGatewayCurrency($settings, $production);
         $this->checkInfrastructure($production);
 
         if (! $this->option('env-only')) {
@@ -134,6 +136,48 @@ class Preflight extends Command
                     "`{$key}` vẫn trỏ sandbox ở production: {$url} — khách sẽ 'thanh toán' bằng tiền test.",
                 );
             }
+        }
+    }
+
+    /**
+     * A gateway that can only settle one currency, on a shop priced in another.
+     *
+     * VNPay and MoMo settle VND and nothing else. If the shop's default currency
+     * is something else, GatewayReconciler refuses every callback — correctly,
+     * because comparing a VND figure against a total in another unit is
+     * meaningless. But the shopper still gets sent to the gateway and still
+     * pays; the money lands and the order never turns green.
+     *
+     * Better to say so before traffic than to discover it from a customer.
+     */
+    private function checkGatewayCurrency(Settings $settings, bool $production): void
+    {
+        $shopCurrency = (string) (Currency::getDefault()?->code ?? '');
+
+        // Chưa có tiền tệ mặc định là một sự cố khác hẳn (shop chưa migrate/seed
+        // xong), và báo nó ở đây dưới dạng "lệch tiền tệ cổng thanh toán" chỉ
+        // làm người đọc đi sai hướng.
+        if ($shopCurrency === '') {
+            return;
+        }
+
+        $gateways = [
+            'VNPay' => ['credential' => 'payment.vnpay.tmn_code', 'settles' => 'VND'],
+            'MoMo' => ['credential' => 'payment.momo.partner_code', 'settles' => 'VND'],
+        ];
+
+        foreach ($gateways as $name => $spec) {
+            if (blank($settings->get($spec['credential']))) {
+                continue;
+            }
+
+            $this->assert(
+                ! $production || $shopCurrency === $spec['settles'],
+                "{$name} × tiền tệ",
+                "Shop tính tiền bằng {$shopCurrency} nhưng {$name} chỉ settle {$spec['settles']}. "
+                    .'Khách vẫn bị đẩy sang cổng và vẫn trả tiền, nhưng mọi callback sẽ bị từ chối '
+                    .'và đơn không bao giờ chuyển sang đã thanh toán.',
+            );
         }
     }
 

@@ -37,6 +37,12 @@ class VNPayPaymentProcessor extends GatewayReconciler
         );
     }
 
+    /** VNPay chỉ settle VND (`vnp_CurrCode` luôn là VND). */
+    protected function settlementCurrency(): string
+    {
+        return 'VND';
+    }
+
     protected function driver(): string
     {
         return 'vnpay';

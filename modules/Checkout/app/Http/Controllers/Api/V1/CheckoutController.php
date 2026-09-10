@@ -95,9 +95,11 @@ class CheckoutController extends Controller
     {
         $data = $request->validate([
             'payment_type' => ['nullable', 'string', Rule::in($this->checkout->paymentMethods())],
+            // Không bắt buộc: client hiện có chưa gửi. Gửi thì được kiểm.
+            'fingerprint' => ['nullable', 'string', 'max:64'],
         ]);
 
-        $order = $this->checkout->placeOrder($data['payment_type'] ?? 'cod');
+        $order = $this->checkout->placeOrder($data['payment_type'] ?? 'cod', $data['fingerprint'] ?? null);
 
         // Eager-load what OrderResource exposes; its whenLoaded() guards would
         // otherwise silently drop the addresses from the placed-order payload.
