@@ -2,7 +2,6 @@
 
 namespace Modules\Catalog\Providers;
 
-use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Core\Models\Brand;
