@@ -3,6 +3,7 @@
 namespace Modules\Customer\Services;
 
 use App\Models\User;
+use Lunar\Core\Contracts\Actions\Customers\LinksCustomerUser;
 use Lunar\Core\Models\Customer;
 
 /**
@@ -30,7 +31,13 @@ class CustomerResolver
             'last_name' => $last,
         ]);
 
-        $user->customers()->attach($customer->id);
+        // Lunar's action rather than `attach()`, for two reasons. It links with
+        // `syncWithoutDetaching`, so a second call cannot leave a duplicate
+        // pivot row — the `first()` check above guards the common case, but two
+        // concurrent requests for a brand-new user both pass it. And it logs a
+        // `user-linked` entry against the customer, which is what the panel's
+        // customer timeline reads; `attach()` leaves staff no record of it.
+        app(LinksCustomerUser::class)->execute($customer, $user->email);
 
         return $customer;
     }

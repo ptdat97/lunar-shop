@@ -108,14 +108,15 @@ class AddressBookTest extends TestCase
     }
 
     /**
-     * Every address write must reach the customer's activity timeline.
+     * Every customer write must reach the customer's activity timeline.
      *
-     * The panel's customer page reads that timeline, so a storefront address
-     * change that skips it is invisible to staff. This is the reason the
-     * service calls Lunar's actions instead of writing the model directly —
-     * assert the log, not the call, so the test survives a refactor.
+     * The panel's customer page reads that timeline, so a storefront change
+     * that skips it is invisible to staff — the link to the user account
+     * included. This is the reason CustomerResolver and AddressService call
+     * Lunar's actions instead of writing the models directly; assert the log,
+     * not the call, so the test survives a refactor.
      */
-    public function test_address_writes_reach_the_customer_timeline(): void
+    public function test_customer_writes_reach_the_timeline(): void
     {
         $user = $this->createUser();
         $customer = app(CustomerResolver::class)->forUser($user);
@@ -136,7 +137,7 @@ class AddressBookTest extends TestCase
             ->pluck('event')
             ->all();
 
-        foreach (['address-created', 'address-updated', 'address-deleted'] as $event) {
+        foreach (['user-linked', 'address-created', 'address-updated', 'address-deleted'] as $event) {
             $this->assertContains($event, $events, "Timeline của khách thiếu [{$event}].");
         }
     }
