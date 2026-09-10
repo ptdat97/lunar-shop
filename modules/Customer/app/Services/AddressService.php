@@ -4,6 +4,9 @@ namespace Modules\Customer\Services;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Lunar\Core\Contracts\Actions\Customers\CreatesCustomerAddress;
+use Lunar\Core\Contracts\Actions\Customers\DeletesCustomerAddress;
+use Lunar\Core\Contracts\Actions\Customers\UpdatesCustomerAddress;
 use Lunar\Core\Models\Address;
 use Lunar\Core\Models\Customer;
 
@@ -11,6 +14,15 @@ use Lunar\Core\Models\Customer;
  * Customer address book — the single write path for addresses (web + API),
  * including ownership checks and the one-default-per-type invariant
  * (standards §4 — business rules live in services, not controllers).
+ *
+ * The writes themselves go through Lunar's own actions rather than touching
+ * the model: each one logs an `address-created`/`-updated`/`-deleted` activity
+ * entry against the customer, which is what the panel's customer timeline
+ * reads. Writing `$customer->addresses()->create()` here saved nothing and
+ * left every storefront address change invisible to staff.
+ *
+ * What stays ours is what Lunar does not do: the ownership check (a customer
+ * may only touch their own address) and the one-default-per-type invariant.
  */
 class AddressService
 {
@@ -36,7 +48,7 @@ class AddressService
         // transaction a failure between them leaves the customer with two
         // defaults, and checkout then picks one arbitrarily.
         return DB::transaction(function () use ($customer, $data) {
-            $address = $customer->addresses()->create($data);
+            $address = app(CreatesCustomerAddress::class)->execute($customer, $data);
             $this->syncDefaults($customer, $address, $data);
 
             return $address->refresh();
@@ -52,7 +64,7 @@ class AddressService
     {
         return DB::transaction(function () use ($customer, $addressId, $data) {
             $address = $this->owned($customer, $addressId);
-            $address->update($data);
+            app(UpdatesCustomerAddress::class)->execute($address, $data);
             $this->syncDefaults($customer, $address, $data);
 
             return $address->refresh();
@@ -64,7 +76,7 @@ class AddressService
      */
     public function delete(Customer $customer, int $addressId): void
     {
-        $this->owned($customer, $addressId)->delete();
+        app(DeletesCustomerAddress::class)->execute($this->owned($customer, $addressId));
     }
 
     /**

@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\DB;
 use Lunar\Core\Models\Address;
 use Modules\Customer\Services\AddressService;
 use Modules\Customer\Services\CustomerResolver;
+use Spatie\Activitylog\Models\Activity;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -104,6 +105,40 @@ class AddressBookTest extends TestCase
 
         $this->assertSame($before, Address::count(), 'the half-written address must be rolled back');
         $this->assertDatabaseHas('lunar_addresses', ['id' => $existing->id, 'shipping_default' => true]);
+    }
+
+    /**
+     * Every address write must reach the customer's activity timeline.
+     *
+     * The panel's customer page reads that timeline, so a storefront address
+     * change that skips it is invisible to staff. This is the reason the
+     * service calls Lunar's actions instead of writing the model directly —
+     * assert the log, not the call, so the test survives a refactor.
+     */
+    public function test_address_writes_reach_the_customer_timeline(): void
+    {
+        $user = $this->createUser();
+        $customer = app(CustomerResolver::class)->forUser($user);
+
+        $id = $this->actingAs($user)
+            ->postJson('/api/v1/customer/addresses', $this->shippingPayload())
+            ->json('data.id');
+
+        $this->actingAs($user)
+            ->patchJson("/api/v1/customer/addresses/{$id}", $this->shippingPayload(['city' => 'Hanoi']))
+            ->assertOk();
+
+        $this->actingAs($user)->deleteJson("/api/v1/customer/addresses/{$id}")->assertOk();
+
+        $events = Activity::query()
+            ->where('subject_type', $customer->getMorphClass())
+            ->where('subject_id', $customer->id)
+            ->pluck('event')
+            ->all();
+
+        foreach (['address-created', 'address-updated', 'address-deleted'] as $event) {
+            $this->assertContains($event, $events, "Timeline của khách thiếu [{$event}].");
+        }
     }
 
     public function test_cannot_touch_another_users_address(): void
