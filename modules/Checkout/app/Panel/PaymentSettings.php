@@ -50,6 +50,13 @@ class PaymentSettings extends StoredSettingsGroup
             Field::secret('vnpay.hash_secret', 'VNPay — Hash Secret')->width(6),
             Field::text('vnpay.payment_url', 'VNPay — '.__('admin.payment.payment_url'))->rules('url')->width(6),
             Field::text('vnpay.return_url', 'VNPay — '.__('admin.payment.return_url'))->rules('url')->width(6),
+            // Endpoint HOÀN TIỀN / tra cứu giao dịch. Trước đây KHÔNG có trường
+            // này: admin chuyển thanh toán sang production qua panel, còn hoàn
+            // tiền vẫn nằm ở mặc định — tức là SANDBOX. Tiền vào thật, hoàn thì
+            // gọi vào môi trường thử.
+            Field::text('vnpay.api_url', 'VNPay — '.__('admin.payment.api_url'))
+                ->help(__('admin.payment.api_url_help'))
+                ->rules('url')->width(6),
 
             Field::text('momo.partner_code', 'MoMo — Partner Code')->width(4),
             Field::text('momo.access_key', 'MoMo — Access Key')->width(4),
@@ -57,6 +64,10 @@ class PaymentSettings extends StoredSettingsGroup
             Field::text('momo.endpoint', 'MoMo — '.__('admin.payment.endpoint'))->rules('url')->width(4),
             Field::text('momo.return_url', 'MoMo — '.__('admin.payment.return_url'))->rules('url')->width(4),
             Field::text('momo.ipn_url', 'MoMo — '.__('admin.payment.ipn_url'))->rules('url')->width(4),
+            // Cùng lý do như vnpay.api_url.
+            Field::text('momo.refund_url', 'MoMo — '.__('admin.payment.refund_url'))
+                ->help(__('admin.payment.api_url_help'))
+                ->rules('url')->width(4),
         ];
     }
 

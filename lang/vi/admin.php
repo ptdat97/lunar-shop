@@ -120,6 +120,9 @@ return [
     ],
 
     'payment' => [
+        'api_url' => 'URL hoàn tiền / tra cứu giao dịch',
+        'refund_url' => 'URL hoàn tiền',
+        'api_url_help' => 'Đổi cùng lúc với URL thanh toán khi lên production. Để nguyên là hoàn tiền gọi vào môi trường thử trong khi tiền khách trả là tiền thật.',
         'title' => 'Cấu hình thanh toán',
         'default' => 'Phương thức mặc định ở checkout',
         'default_help' => 'Tùy chọn thanh toán được chọn sẵn ở trang thanh toán.',

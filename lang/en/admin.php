@@ -120,6 +120,9 @@ return [
     ],
 
     'payment' => [
+        'api_url' => 'Refund / transaction query URL',
+        'refund_url' => 'Refund URL',
+        'api_url_help' => 'Change this at the same time as the payment URL when going live. Left behind, refunds call the sandbox while the money customers paid is real.',
         'title' => 'Payment Settings',
         'default' => 'Default method at checkout',
         'default_help' => 'The payment option pre-selected on the checkout page.',
