@@ -148,4 +148,36 @@ class InventorySettingsTest extends TestCase
         $this->assertSame(InventoryService::MIN_HOLD_MINUTES, app(InventoryService::class)->holdMinutes());
     }
 
+    /**
+     * The low-stock threshold has to reach the card that actually uses it.
+     *
+     * Lunar's own LowStockWidget is what shows low stock on the dashboard, and
+     * it reads `lunar.panel.dashboard.low_stock_threshold` — a different key
+     * from where this shop stores the setting. Until the two were wired
+     * together the settings field was decoration: an admin set 5 and the
+     * dashboard went on using Lunar's default of 10.
+     *
+     * The widget itself is left alone on purpose. It already knows to skip
+     * variants sold regardless of stock and to ignore invisible products;
+     * rebuilding that would be duplicating upstream work for nothing.
+     */
+    public function test_the_configured_threshold_feeds_lunars_low_stock_widget(): void
+    {
+        app(Settings::class)->put('inventory', [
+            'low_stock_threshold' => 4,
+            'hold_minutes' => InventoryService::DEFAULT_HOLD_MINUTES,
+        ]);
+
+        // Put Lunar's own default back so a pass cannot come from a value the
+        // provider set before this test saved anything.
+        config(['lunar.panel.dashboard.low_stock_threshold' => 10]);
+
+        // Re-run the provider. Its hook is registered on `booted()`, and the
+        // app is already booted here, so it fires straight away — the same code
+        // path a real request takes.
+        $this->app->register(\Modules\Inventory\Providers\InventoryServiceProvider::class, force: true);
+
+        $this->assertSame(4, (int) config('lunar.panel.dashboard.low_stock_threshold'));
+        $this->assertSame(4, app(InventoryService::class)->lowStockThreshold());
+    }
 }

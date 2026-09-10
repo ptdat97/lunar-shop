@@ -37,18 +37,6 @@ class SettingsRegistry
         return $groups;
     }
 
-    /** The first group the current user may see, or null if none. */
-    public function firstVisible(): ?SettingsGroup
-    {
-        foreach ($this->all() as $group) {
-            if (auth(config('lunar.panel.guard', 'staff'))->user()?->can($group->permission())) {
-                return $group;
-            }
-        }
-
-        return null;
-    }
-
     public function routes(): Closure
     {
         return function (): void {

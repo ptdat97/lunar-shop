@@ -16,6 +16,8 @@ use Modules\Inventory\Observers\BackInStockObserver;
 use Modules\Inventory\Panel\InventorySection;
 use Modules\Inventory\Panel\InventorySettings;
 use Modules\Inventory\Panel\StockNotificationResource;
+use Modules\Inventory\Services\InventoryService;
+use Throwable;
 
 /**
  * Inventory is now mostly Lunar's.
@@ -51,6 +53,8 @@ class InventoryServiceProvider extends ServiceProvider
         // Thẻ cảnh báo đơn giữ hàng quá lâu trên dashboard panel.
         Panel::section(new InventorySection);
 
+        $this->feedLunarsLowStockThreshold();
+
         // Nhóm cài đặt của module trên panel Lunar.
         $this->app->make(SettingsRegistry::class)->add(new InventorySettings);
 
@@ -79,5 +83,33 @@ class InventoryServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([ExpireAbandonedOrders::class]);
         }
+    }
+
+    /**
+     * Point Lunar's own low-stock widget at this shop's configured threshold.
+     *
+     * The widget is first-party and stays that way — it already knows to skip
+     * variants sold regardless of stock and to ignore invisible products, and
+     * rebuilding that would be duplicating upstream work. What it cannot know
+     * is that this shop lets staff set the threshold from the panel.
+     *
+     * Without this the settings field was decoration: an admin set 5, and the
+     * dashboard went on using Lunar's default of 10.
+     *
+     * Deferred to `booted()` and wrapped, because `Settings` reads a table:
+     * during `migrate` on an empty database there is nothing to read, and the
+     * right answer then is Lunar's default rather than a fatal.
+     */
+    protected function feedLunarsLowStockThreshold(): void
+    {
+        $this->app->booted(function (): void {
+            try {
+                $threshold = $this->app->make(InventoryService::class)->lowStockThreshold();
+            } catch (Throwable) {
+                return;
+            }
+
+            config(['lunar.panel.dashboard.low_stock_threshold' => $threshold]);
+        });
     }
 }

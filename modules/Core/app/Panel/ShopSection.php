@@ -47,6 +47,7 @@ class ShopSection extends Section
                 icon: $resource->icon(),
                 route: $resource->routeName('index'),
                 permission: $resource->permission(),
+                badge: $resource->navigationBadge(),
             ));
         }
     }

@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use Inertia\Testing\AssertableInertia;
 use Lunar\Core\Models\Staff;
 use Modules\Catalog\Models\Review;
+use Modules\Catalog\Panel\ReviewResource;
 use Modules\Catalog\Services\ReviewService;
 use Modules\Core\Support\Settings;
 use Tests\Concerns\CreatesStorefrontData;
@@ -150,5 +151,64 @@ class PanelReviewModerationTest extends TestCase
             ->assertRedirect();
 
         $this->assertSame(1, app(ReviewService::class)->forProduct($product->id)->total());
+    }
+
+    /**
+     * A queue nobody looks at is a queue that does not work, and nobody opens a
+     * screen on the off-chance — so the count reaches the navigation as a badge.
+     *
+     * Asserted on the resource rather than on a rendered navigation array: the
+     * panel builds its NavigationItems once, while processing sections at boot,
+     * and bakes the badge into a readonly property. Under PHP-FPM that is once
+     * per request, so the number a staff member sees is current. Were this app
+     * ever moved to Octane the item would outlive the request and the badge
+     * would go stale — the thing to change then is `NavigationItem`, not this.
+     */
+    public function test_the_navigation_badge_counts_what_is_waiting(): void
+    {
+        $this->review(approved: false);
+        $this->review(approved: false);
+        $this->review(approved: true);
+
+        $this->assertSame('2', app(ReviewResource::class)->navigationBadge());
+    }
+
+    /** An idle shop carries no nagging badge. */
+    public function test_there_is_no_badge_when_nothing_is_waiting(): void
+    {
+        $this->review(approved: true);
+
+        $this->assertNull(app(ReviewResource::class)->navigationBadge());
+    }
+
+    /** And the panel does carry a badge slot for it to land in. */
+    public function test_the_reviews_navigation_entry_exposes_a_badge_slot(): void
+    {
+        $nav = $this->get(route('panel.dashboard'))
+            ->assertOk()
+            ->viewData('page')['props']['navigation'] ?? [];
+
+        $find = function (array $nodes) use (&$find): ?array {
+            foreach ($nodes as $node) {
+                if (! is_array($node)) {
+                    continue;
+                }
+
+                if (($node['key'] ?? null) === 'reviews') {
+                    return $node;
+                }
+
+                if ($hit = $find($node)) {
+                    return $hit;
+                }
+            }
+
+            return null;
+        };
+
+        $entry = $find($nav);
+
+        $this->assertNotNull($entry, 'Mục Đánh giá không có trong điều hướng.');
+        $this->assertArrayHasKey('badge', $entry);
     }
 }

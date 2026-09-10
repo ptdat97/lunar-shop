@@ -85,6 +85,19 @@ abstract class PanelResource
         return true;
     }
 
+    /**
+     * A count to show beside this resource in the navigation, or null.
+     *
+     * A queue nobody looks at is a queue that does not work — the badge is what
+     * makes "3 reviews waiting" visible without opening the screen. Resolved
+     * when the navigation is built, so it must stay cheap: a count, not a
+     * report.
+     */
+    public function navigationBadge(): ?string
+    {
+        return null;
+    }
+
     /** Lucide icon name for the navigation item. */
     public function icon(): string
     {

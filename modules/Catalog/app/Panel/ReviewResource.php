@@ -59,6 +59,20 @@ class ReviewResource extends PanelResource
         return 'catalog:manage-products';
     }
 
+    /**
+     * How many reviews are waiting on a decision.
+     *
+     * Moderation only works if somebody knows there is something to moderate,
+     * and nobody opens a screen on the off-chance. Null when the queue is
+     * empty, so an idle shop carries no nagging badge.
+     */
+    public function navigationBadge(): ?string
+    {
+        $pending = app(ReviewService::class)->pendingCount();
+
+        return $pending > 0 ? (string) $pending : null;
+    }
+
     public function canCreate(): bool
     {
         return false;
