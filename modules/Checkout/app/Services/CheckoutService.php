@@ -32,6 +32,16 @@ class CheckoutService
     protected const DEFAULT_PAYMENT_METHODS = ['cod', 'bank-transfer', 'vnpay', 'momo'];
 
     /**
+     * Online gateways, mapped to the setting whose presence means "this gateway
+     * is set up". Offline methods (cod, bank-transfer) need no credentials and
+     * are always on.
+     */
+    protected const GATEWAY_KEYS = [
+        'vnpay' => 'payment.vnpay.tmn_code',
+        'momo' => 'payment.momo.partner_code',
+    ];
+
+    /**
      * Available shipping options for the current cart.
      */
     public function shippingOptions(): Collection
@@ -41,14 +51,36 @@ class CheckoutService
 
     /**
      * The payment method identifiers offered at checkout — the single source for
-     * both the storefront and API validation rules. Passed through the
-     * Single source of allowed methods, used by checkout validation.
+     * both the storefront and API validation rules.
+     *
+     * A gateway with no credentials is NOT offered. This used to return the
+     * built-in list unfiltered while `paymentContext()` computed enablement
+     * separately for the UI, so the two disagreed: the checkout page correctly
+     * hid an unconfigured VNPay, but the API happily accepted
+     * `payment_type: vnpay` for it. The order was then placed with no payment
+     * step at all — `paymentRedirectUrl()` returns null for an unconfigured
+     * gateway, so the shopper landed on the confirmation page having paid
+     * nothing, and the stock sat committed until the abandoned-order sweep.
      *
      * @return list<string>
      */
     public function paymentMethods(): array
     {
-        return self::DEFAULT_PAYMENT_METHODS;
+        return array_values(array_filter(
+            self::DEFAULT_PAYMENT_METHODS,
+            fn (string $method) => $this->gatewayIsUsable($method),
+        ));
+    }
+
+    /**
+     * Whether a method can actually take money right now. Offline methods
+     * always can; a gateway needs its credentials.
+     */
+    protected function gatewayIsUsable(string $method): bool
+    {
+        $settingKey = self::GATEWAY_KEYS[$method] ?? null;
+
+        return $settingKey === null || filled($this->settings->get($settingKey));
     }
 
     /**
@@ -66,8 +98,9 @@ class CheckoutService
     public function paymentContext(): array
     {
         return [
-            'vnpayEnabled' => filled($this->settings->get('payment.vnpay.tmn_code')),
-            'momoEnabled' => filled($this->settings->get('payment.momo.partner_code')),
+            // Same predicate as paymentMethods(), not a second copy of it.
+            'vnpayEnabled' => $this->gatewayIsUsable('vnpay'),
+            'momoEnabled' => $this->gatewayIsUsable('momo'),
             'defaultPayment' => (string) $this->settings->get('payment.default', 'cod'),
             'pickup' => $this->pickup->toArray(),
         ];
