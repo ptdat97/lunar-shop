@@ -21,11 +21,36 @@ class OrderService
     }
 
     /**
-     * Find an order by its public reference (e.g. the confirmation page).
+     * Find an order by its human-facing reference — the number a customer
+     * quotes to support. NOT for URLs: `reference` is the zero-padded primary
+     * key, so a URL keyed on it is enumerable. Use findPlacedByPublicId().
      */
     public function findByReference(string $reference): ?Order
     {
         return Order::where('reference', $reference)
+            ->with('lines')
+            ->first();
+    }
+
+    /**
+     * Find a PLACED order by its public handle, for the confirmation page.
+     *
+     * `public_id` is a ULID that Lunar mints for exactly this — its own docblock
+     * calls it "the outward-facing handle". The confirmation page used to key on
+     * `reference`, which is the zero-padded primary key (`00000001`,
+     * `00000002`, …): anyone could count upwards and read what every customer of
+     * this shop had bought and what they paid.
+     *
+     * Draft orders are excluded because a draft is not a purchase. Lunar's
+     * checkout guide is explicit: an order is only placed once `placed_at` has a
+     * value, and a gateway that creates the draft then loses the shopper leaves
+     * a row that never became anything. Showing that as "thank you for your
+     * order" tells someone they bought something they did not.
+     */
+    public function findPlacedByPublicId(string $publicId): ?Order
+    {
+        return Order::where('public_id', $publicId)
+            ->whereNotNull('placed_at')
             ->with('lines')
             ->first();
     }

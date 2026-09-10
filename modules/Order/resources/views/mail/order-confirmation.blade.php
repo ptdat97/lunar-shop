@@ -20,7 +20,7 @@
 {{ $order->shippingAddress->city }}@if($order->shippingAddress->state), {{ $order->shippingAddress->state }}@endif
 @endif
 
-@component('mail::button', ['url' => url('/checkout/confirmation/'.$order->reference)])
+@component('mail::button', ['url' => url('/checkout/confirmation/'.$order->public_id)])
 {{ __('mail.view_order') }}
 @endcomponent
 

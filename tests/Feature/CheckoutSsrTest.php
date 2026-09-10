@@ -63,7 +63,9 @@ class CheckoutSsrTest extends TestCase
 
         $order = Order::latest('id')->first();
         $this->assertNotNull($order, 'order should be created');
-        $response->assertRedirectContains('/checkout/confirmation/'.$order->reference);
+        // `public_id` (ULID), không phải `reference`: reference là khoá chính
+        // đệm số 0 nên URL khoá theo nó là đếm lên đọc được đơn người khác.
+        $response->assertRedirectContains('/checkout/confirmation/'.$order->public_id);
 
         $this->assertSame(OrderStatus::PAYMENT_OFFLINE, OrderStatus::of($order));
     }

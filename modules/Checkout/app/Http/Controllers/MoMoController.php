@@ -42,7 +42,7 @@ class MoMoController extends Controller
                 ->with('error', 'Payment was not completed.');
         }
 
-        return redirect()->route('storefront.checkout.confirmation', $result->order->reference);
+        return redirect()->route('storefront.checkout.confirmation', $result->order->public_id);
     }
 
     /**

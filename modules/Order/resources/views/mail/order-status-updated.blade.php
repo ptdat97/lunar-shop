@@ -7,7 +7,7 @@
 {{ __('mail.status.status_line', ['status' => $statusLabel]) }}
 @endcomponent
 
-@component('mail::button', ['url' => url('/checkout/confirmation/'.$order->reference)])
+@component('mail::button', ['url' => url('/checkout/confirmation/'.$order->public_id)])
 {{ __('mail.view_order') }}
 @endcomponent
 

@@ -15,7 +15,7 @@
 
 {{ __('mail.paid.preparing') }}
 
-@component('mail::button', ['url' => url('/checkout/confirmation/'.$order->reference)])
+@component('mail::button', ['url' => url('/checkout/confirmation/'.$order->public_id)])
 {{ __('mail.view_order') }}
 @endcomponent
 

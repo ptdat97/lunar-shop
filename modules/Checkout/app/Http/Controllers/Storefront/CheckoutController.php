@@ -97,21 +97,30 @@ class CheckoutController extends Controller
         try {
             $payUrl = $this->checkout->paymentRedirectUrl($order, $data['payment_type'], (string) $request->ip());
         } catch (\Throwable $e) {
-            return redirect()->route('storefront.checkout.confirmation', $order->reference)
+            return redirect()->route('storefront.checkout.confirmation', $order->public_id)
                 ->with('error', $e->getMessage());
         }
 
         return $payUrl
             ? redirect()->away($payUrl)
-            : redirect()->route('storefront.checkout.confirmation', $order->reference);
+            : redirect()->route('storefront.checkout.confirmation', $order->public_id);
     }
 
     /**
      * Order confirmation page.
      */
-    public function confirmation(string $reference): View
+    public function confirmation(string $publicId): View
     {
-        $order = $this->orders->findByReference($reference);
+        // Khoá theo `public_id` (ULID Lunar mint sẵn cho đúng việc này), KHÔNG
+        // phải `reference` — reference là khoá chính đệm số 0 (`00000001`,
+        // `00000002`…), ai cũng đếm lên được để đọc đơn của người khác: mua gì,
+        // số lượng bao nhiêu, trả bao nhiêu tiền.
+        //
+        // findPlacedByPublicId cũng loại đơn nháp: một cổng thanh toán tạo draft
+        // rồi mất dấu khách sẽ để lại dòng chưa từng thành đơn, và hiện nó dưới
+        // dạng "cảm ơn bạn đã đặt hàng" là báo với người ta rằng họ đã mua thứ
+        // họ chưa mua.
+        $order = $this->orders->findPlacedByPublicId($publicId);
 
         abort_if($order === null, 404);
 

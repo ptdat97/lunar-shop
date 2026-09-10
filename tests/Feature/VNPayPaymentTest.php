@@ -148,7 +148,7 @@ class VNPayPaymentTest extends TestCase
         $callback = $this->signedCallback($order);
 
         $this->get('/payment/vnpay/return?'.http_build_query($callback))
-            ->assertRedirect(route('storefront.checkout.confirmation', $order->fresh()->reference));
+            ->assertRedirect(route('storefront.checkout.confirmation', $order->fresh()->public_id));
     }
 
     public function test_ipn_route_responses(): void
