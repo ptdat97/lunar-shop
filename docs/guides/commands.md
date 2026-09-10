@@ -63,10 +63,27 @@ Task đang lên lịch trong dự án:
 
 | Lịch | Lệnh |
 | --- | --- |
+| Mỗi phút | `lunar:stock:release-expired` ⟵ *Lunar tự đăng ký* |
 | Mỗi 5 phút | `horizon:snapshot` |
 | Mỗi 10 phút | `orders:expire-abandoned` |
+| Mỗi giờ | `schedule:heartbeat --quiet-ok` |
 | Hằng ngày 0h | `sanctum:prune-expired --hours=24` |
+| Hằng ngày 0h | `lunar:prune:carts` ⟵ *Lunar tự đăng ký* |
+| Hằng ngày 3h30 | `lunar:stock:reconcile` |
 | Chủ nhật 0h | `queue:prune-failed --hours=168` |
+
+⚠️ Ba dòng đánh dấu *Lunar tự đăng ký* **không** nằm trong `routes/console.php`.
+`LunarServiceProvider` tự thêm chúng vào scheduler; `lunar:prune:carts` chỉ được
+thêm khi `lunar.cart.prune_tables.enabled` bật (đã bật ở
+`config/lunar/cart.php`). Viết lại chúng trong `routes/console.php` sẽ khiến
+lệnh chạy hai lần — luôn `php artisan schedule:list` để xem lịch THẬT trước khi
+thêm gì.
+
+`lunar:stock:reconcile` thì Lunar đăng ký lệnh nhưng **không** lên lịch, nên nó
+nằm ở `routes/console.php`. Nó dựng lại `on_hand` từ sổ cái chuyển động và
+`committed` từ đơn còn mở — lưới an toàn cho trường hợp con số trôi khỏi sổ cái.
+Lúc bật đã kiểm: 648 dòng tồn kho, 0 dòng lệch, tức hôm nay nó là no-op. Đó là
+trạng thái mong muốn; ngày nó bắt đầu sửa số là ngày có thứ khác đã hỏng.
 
 ## 🗄️ Database
 

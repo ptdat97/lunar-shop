@@ -130,7 +130,11 @@ return [
     */
     'prune_tables' => [
 
-        'enabled' => false,
+        // Bật: giỏ bỏ quên tích tụ vĩnh viễn nếu không dọn. Ba pipeline dưới đây
+        // là hàng rào — chỉ giỏ quá `prune_interval` ngày, CHƯA thành đơn, và
+        // không phải giỏ đã gộp mới bị xoá. Lệnh dọn chạy hằng tuần
+        // (routes/console.php); không bật cờ này thì lệnh chạy mà không xoá gì.
+        'enabled' => true,
 
         'pipelines' => [
             PruneAfter::class,
