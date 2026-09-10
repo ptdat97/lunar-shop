@@ -54,7 +54,11 @@ class VNPayPayment extends AbstractPayment
         $result = app(RefundService::class)
             ->refund($transaction->order, $amount > 0 ? $amount : null, (string) ($notes ?? 'admin'));
 
-        return new PaymentRefund($result->success, $result->message);
+        // The transaction is the third argument on purpose: Lunar's RefundOrder
+        // uses it to write RefundLines and bump `refunded_quantity`. Omit it and
+        // the refund still happens, but the panel's line picker goes on offering
+        // items that were already refunded.
+        return new PaymentRefund($result->success, $result->message, $result->transaction);
     }
 
     public function capture(Transaction $transaction, $amount = 0): PaymentCapture

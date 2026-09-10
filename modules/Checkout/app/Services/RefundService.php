@@ -52,7 +52,7 @@ class RefundService
             return new RefundResult(success: false, message: $result['message'], driver: $driver);
         }
 
-        Transaction::create([
+        $refundTransaction = Transaction::create([
             'order_id' => $order->id,
             'parent_transaction_id' => $capture->id,
             'success' => true,
@@ -74,7 +74,13 @@ class RefundService
         // reads the lifecycle off that, so a partial refund correctly leaves the
         // sale standing.
 
-        return new RefundResult(success: true, message: $result['message'], driver: $driver, amount: $amount);
+        return new RefundResult(
+            success: true,
+            message: $result['message'],
+            driver: $driver,
+            amount: $amount,
+            transaction: $refundTransaction,
+        );
     }
 
     /**

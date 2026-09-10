@@ -196,4 +196,64 @@ class RefundHardeningTest extends TestCase
             $this->assertStringStartsWith("refund-{$order->id}-", $ref);
         }
     }
+
+    /**
+     * The refund transaction has to travel back to Lunar.
+     *
+     * `PaymentRefund`'s third argument is the row the driver created, and
+     * Lunar's RefundOrder uses it to write RefundLines and bump each order
+     * line's `refunded_quantity`. Its docblock is explicit that a null
+     * transaction means "recorded, but not attributable" — so omitting it does
+     * not fail, it just silently produces no line-level bookkeeping, and the
+     * panel's refund composer goes on offering items already refunded.
+     */
+    public function test_the_payment_type_hands_the_refund_transaction_back(): void
+    {
+        Http::fake(['*' => Http::response(['vnp_ResponseCode' => '00', 'vnp_TransactionNo' => 'RF'], 200)]);
+
+        $order = $this->paidOrder();
+        $capture = $order->transactions()->where('type', 'capture')->first();
+
+        $refund = app(\Modules\Checkout\PaymentTypes\VNPayPayment::class)
+            ->refund($capture, 50000, 'test');
+
+        $this->assertTrue($refund->success);
+        $this->assertNotNull(
+            $refund->transaction,
+            'PaymentRefund không mang transaction — Lunar sẽ không ghi được phân bổ theo dòng.',
+        );
+        $this->assertSame('refund', $refund->transaction->type);
+        $this->assertSame(50000, (int) $refund->transaction->amount);
+    }
+
+    /** The service itself is the source of that transaction. */
+    public function test_the_refund_service_returns_the_transaction_it_recorded(): void
+    {
+        Http::fake(['*' => Http::response(['vnp_ResponseCode' => '00', 'vnp_TransactionNo' => 'RF'], 200)]);
+
+        $order = $this->paidOrder();
+
+        $result = app(RefundService::class)->refund($order, 25000);
+
+        $this->assertTrue($result->success);
+        $this->assertNotNull($result->transaction);
+        $this->assertTrue(
+            $result->transaction->is($order->transactions()->where('type', 'refund')->latest('id')->first()),
+            'Transaction trả về không phải dòng vừa ghi.',
+        );
+    }
+
+    /** A failed refund records nothing, so it carries no transaction either. */
+    public function test_a_failed_refund_carries_no_transaction(): void
+    {
+        Http::fake(['*' => Http::response(['vnp_ResponseCode' => '99'], 200)]);
+
+        $order = $this->paidOrder();
+
+        $result = app(RefundService::class)->refund($order, 25000);
+
+        $this->assertFalse($result->success);
+        $this->assertNull($result->transaction);
+        $this->assertSame(0, $order->transactions()->where('type', 'refund')->count());
+    }
 }
