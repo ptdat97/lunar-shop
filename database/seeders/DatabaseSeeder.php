@@ -15,6 +15,7 @@ use Modules\Content\Database\Seeders\CmsDemoSeeder;
 use Modules\Content\Database\Seeders\FooterMenuSeeder;
 use Modules\Content\Database\Seeders\HeaderMenuSeeder;
 use Modules\Content\Database\Seeders\HomeSectionsSeeder;
+use Modules\Core\Database\Seeders\DemoStaffSeeder;
 use Modules\Customer\Database\Seeders\VnLocationSeeder;
 use Modules\Inventory\Database\Seeders\StockHistorySeeder;
 use Modules\Promotion\Database\Seeders\DemoCouponSeeder;
@@ -31,6 +32,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             BaseDataSeeder::class,            // channel/currency/language/tax/type
+            DemoStaffSeeder::class,           // tài khoản đăng nhập /panel (chỉ local/testing)
             VnLocationSeeder::class,          // VN provinces + wards (address dropdowns)
             Demo50ProductsSeeder::class,      // products + options + collections + media
             DemoOptionsSeeder::class,         // ensure size/color assigned to base variants

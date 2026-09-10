@@ -216,3 +216,21 @@ php artisan dusk --filter=<TestName>
 
 Chạy tay, **không có trong CI**. Khi nào nên dùng, bốn cái bẫy hay sập, và cách
 viết assert không bị false green: [e2e-testing.md](e2e-testing.md).
+
+## Dựng lại DB dev
+
+```sh
+php artisan migrate:fresh --seed
+```
+
+Seeder tạo sẵn **tài khoản đăng nhập panel** (`DemoStaffSeeder`) — nếu không,
+máy vừa dựng lại sẽ không mở được `/panel` vì không có ai để đăng nhập. Mặc định
+`admin@lunar-shop.test` / `password`, đổi bằng `DEMO_STAFF_EMAIL` /
+`DEMO_STAFF_PASSWORD`.
+
+Seeder **tự từ chối chạy** ngoài `local` / `testing`: một tài khoản admin có mật
+khẩu ai cũng biết mà lọt lên shop thật thì đó là cửa hậu.
+
+> Test Dusk của panel đăng nhập bằng tài khoản này. Không có nó chúng **tự skip**
+> chứ không đỏ — nên suite vẫn báo xanh trong khi chẳng canh gì cả. Đó chính là
+> chuyện đã xảy ra một lần.
