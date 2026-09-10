@@ -76,6 +76,7 @@ return [
         'coupon_invalid' => 'Invalid or expired coupon.',
         'coupon_removed' => 'Coupon removed.',
         'coupon_remove_failed' => 'Could not remove coupon.',
+        'recovery_expired' => 'That cart is no longer available — you may have already bought it, or the link has expired.',
     ],
 
     'product' => [

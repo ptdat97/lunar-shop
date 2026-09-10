@@ -3,12 +3,19 @@
 use Illuminate\Support\Facades\Route;
 use Modules\Checkout\Http\Controllers\MoMoController;
 use Modules\Checkout\Http\Controllers\Storefront\CartController;
+use Modules\Checkout\Http\Controllers\Storefront\CartRecoveryController;
 use Modules\Checkout\Http\Controllers\Storefront\CheckoutController;
 use Modules\Checkout\Http\Controllers\VNPayController;
 
 // Storefront (Blade) routes for the Checkout module (cart → checkout → payment).
 Route::middleware('storefront')->group(function (): void {
     Route::get('cart', CartController::class)->name('storefront.cart');
+
+    // Link trong email nhắc giỏ bỏ quên. Khoá theo `public_token` (handle mờ
+    // Lunar vốn đã mint cho mỗi giỏ) chứ không phải id — id thì ai cộng thêm 1
+    // cũng mở được giỏ người khác. Xem CartRecoveryController để biết đánh đổi.
+    Route::get('cart/khoi-phuc/{token}', CartRecoveryController::class)
+        ->name('storefront.cart.recover');
 
     Route::get('checkout', [CheckoutController::class, 'index'])->name('storefront.checkout');
     Route::post('checkout', [CheckoutController::class, 'place'])->name('storefront.checkout.place');

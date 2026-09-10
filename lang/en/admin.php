@@ -402,4 +402,11 @@ return [
         'trend' => 'Six-month trend',
     ],
 
+    'checkout_settings' => [
+        'title' => 'Checkout & cart',
+        'abandoned_cart_enabled' => 'Abandoned cart reminder',
+        'abandoned_cart_enabled_help' => 'Send ONE reminder email per abandoned cart. Turning this on means the first sweep emails every cart already in the table — run `php artisan carts:remind-abandoned --dry-run` first.',
+        'abandoned_cart_minutes' => 'Wait before reminding (minutes)',
+        'abandoned_cart_minutes_help' => 'Measured from the last time the shopper touched the cart. Too short and they get chased while still browsing.',
+    ],
 ];

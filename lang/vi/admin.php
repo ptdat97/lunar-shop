@@ -402,4 +402,11 @@ return [
         'trend' => 'Xu hướng 6 tháng',
     ],
 
+    'checkout_settings' => [
+        'title' => 'Thanh toán & giỏ hàng',
+        'abandoned_cart_enabled' => 'Nhắc giỏ hàng bỏ quên',
+        'abandoned_cart_enabled_help' => 'Gửi MỘT email nhắc cho mỗi giỏ bị bỏ quên. Bật lên là lượt quét đầu tiên sẽ gửi cho mọi giỏ đang có sẵn — chạy `php artisan carts:remind-abandoned --dry-run` xem trước rồi hãy bật.',
+        'abandoned_cart_minutes' => 'Chờ bao lâu rồi mới nhắc (phút)',
+        'abandoned_cart_minutes_help' => 'Tính từ lần cuối khách đụng vào giỏ. Ngắn quá thì khách còn đang xem hàng đã bị nhắc.',
+    ],
 ];

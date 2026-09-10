@@ -33,6 +33,16 @@ Schedule::command('orders:expire-abandoned')
     ->everyTenMinutes()
     ->withoutOverlapping();
 
+// Nhắc giỏ hàng bỏ quên — MỘT email mỗi giỏ. Lệnh tự thoát sớm khi tính năng
+// còn TẮT (Cài đặt → Thanh toán & giỏ hàng), nên để ở đây từ đầu là an toàn:
+// bật cờ trong panel là chạy, không phải đụng vào server.
+//
+// Mười phút một lượt chứ không phải mỗi phút: ngưỡng chờ tính bằng giờ, nên
+// quét dày hơn chỉ tốn truy vấn mà không nhắc sớm hơn được phút nào.
+Schedule::command('carts:remind-abandoned')
+    ->everyTenMinutes()
+    ->withoutOverlapping();
+
 // Lưới an toàn của Lunar cho kho: dựng lại `on_hand` từ sổ cái chuyển động và
 // `committed` từ các đơn còn mở, rồi làm mới rollup. Không thay lệnh nào ở trên
 // — `orders:expire-abandoned` xử lý NGUYÊN NHÂN (đơn treo giữ hàng), lệnh này xử

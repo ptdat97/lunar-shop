@@ -62,4 +62,13 @@ return [
         'total' => 'Total',
         'thank_you' => 'Thank you for your purchase!',
     ],
+
+    'abandoned_cart' => [
+        'subject' => 'You left something in your cart',
+        'heading' => 'Your cart is still waiting',
+        'intro' => 'These items are still in your cart. We kept them for you.',
+        'item_fallback' => 'Item',
+        'button' => 'Back to my cart',
+        'outro' => 'If you have already bought them or changed your mind, just ignore this email.',
+    ],
 ];

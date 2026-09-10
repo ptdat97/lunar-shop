@@ -6,6 +6,8 @@ use Illuminate\Support\ServiceProvider;
 use Lunar\Core\Contracts\CartSession;
 use Lunar\Core\Facades\Payments;
 use Lunar\Core\Managers\CartSessionManager;
+use Modules\Checkout\Console\RemindAbandonedCarts;
+use Modules\Checkout\Panel\CheckoutSettings;
 use Modules\Checkout\Panel\PaymentSettings;
 use Modules\Checkout\PaymentTypes\MoMoPayment;
 use Modules\Checkout\PaymentTypes\VNPayPayment;
@@ -38,6 +40,7 @@ class CheckoutServiceProvider extends ServiceProvider
     {
         // Nhóm cài đặt của module trên panel Lunar.
         $this->app->make(SettingsRegistry::class)->add(new PaymentSettings);
+        $this->app->make(SettingsRegistry::class)->add(new CheckoutSettings);
 
         $this->registerCartSession();
 
@@ -51,6 +54,12 @@ class CheckoutServiceProvider extends ServiceProvider
 
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'checkout-admin');
+
+        // Template email dưới namespace `checkout::` (khác `checkout-admin::`
+        // vốn là màn hình quản trị của module).
+        $this->loadViewsFrom(__DIR__.'/../../resources/views', 'checkout');
+
+        $this->commands([RemindAbandonedCarts::class]);
 
         $this->loadRoutesFrom(__DIR__.'/../../routes/web.php');
         $this->loadRoutesFrom(__DIR__.'/../../routes/api.php');

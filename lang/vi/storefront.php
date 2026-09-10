@@ -76,6 +76,7 @@ return [
         'coupon_invalid' => 'Mã không hợp lệ hoặc đã hết hạn.',
         'coupon_removed' => 'Đã gỡ mã giảm giá.',
         'coupon_remove_failed' => 'Không gỡ được mã giảm giá.',
+        'recovery_expired' => 'Giỏ hàng trong liên kết đó không còn nữa — có thể bạn đã mua rồi hoặc liên kết đã cũ.',
     ],
 
     'product' => [

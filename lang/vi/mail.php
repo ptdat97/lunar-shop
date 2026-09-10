@@ -62,4 +62,13 @@ return [
         'total' => 'Tổng cộng',
         'thank_you' => 'Cảm ơn bạn đã mua hàng!',
     ],
+
+    'abandoned_cart' => [
+        'subject' => 'Bạn còn sản phẩm trong giỏ hàng',
+        'heading' => 'Giỏ hàng vẫn đang chờ bạn',
+        'intro' => 'Chào bạn, những sản phẩm dưới đây vẫn còn trong giỏ. Chúng tôi giữ lại để bạn quay lại xem tiếp.',
+        'item_fallback' => 'Sản phẩm',
+        'button' => 'Xem lại giỏ hàng',
+        'outro' => 'Nếu bạn đã mua rồi hoặc không cần nữa thì bỏ qua email này nhé.',
+    ],
 ];
