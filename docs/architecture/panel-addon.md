@@ -144,6 +144,9 @@ này biến việc đổi tên file thành test đỏ thay vì trang trắng.
 | Vùng vận chuyển | trường phẳng + `tags` |
 | Bảng size | `hasMany` cho các dòng size |
 | Đăng ký báo hàng về | chỉ đọc, cột tính toán + eager load |
+| Hàng đợi duyệt đánh giá | `rowActions()` duyệt/gỡ, không cho sửa lời khách |
+| Nhật ký scheduler | chỉ đọc, lỗi xếp lên đầu |
+| Kích thước ảnh | `SettingsGroup`, trường sinh từ `MediaSettings::keys()` |
 | 8 trang cài đặt cũ | một màn hình `SettingsGroup`, mỗi nhóm một tab |
 | Báo cáo bán hàng | **một** widget dashboard (phần còn lại panel đã có) |
 | Size & Fit của sản phẩm | một `Slot` gắn vào trang sửa sản phẩm chính chủ |
@@ -207,7 +210,12 @@ theo ngày. Một shop thời trang bán theo mùa cần nhìn thấy cả mùa.
 duy nhất `LifetimeWidget` tồn tại, và test canh đúng chuyện đó — nó khẳng định
 shop chỉ đóng góp **một** widget.
 
-Widget đi qua Section riêng của module Analytics chứ không gắn vào section của
+Thẻ thứ hai — **đơn giữ hàng quá lâu** — cũng vậy: Lunar có `LowStockWidget` trả
+lời "cái gì sắp hết", còn cái này trả lời "cái gì đang bị giữ mà không bao giờ
+giao". Hai lỗi khác nhau, và cái sau im lặng hơn: kệ ngừng bán mà không có gì
+hiện ra.
+
+Widget đi qua Section riêng của module chứ không gắn vào section của
 shop: Core không có việc gì phải import từ một module tính năng, và `widgets()`
 là seam có tài liệu cho đúng chuyện này. Component Vue của nó vẫn nằm trong
 bundle add-on duy nhất — một bundle phục vụ nhiều section.

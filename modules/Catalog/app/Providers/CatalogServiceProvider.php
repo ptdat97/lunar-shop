@@ -18,6 +18,7 @@ use Modules\Catalog\Models\ProductMaterial;
 use Modules\Catalog\Models\SizeChart;
 use Modules\Catalog\Panel\CatalogSection;
 use Modules\Catalog\Panel\CatalogSettings;
+use Modules\Catalog\Panel\ReviewResource;
 use Modules\Catalog\Panel\SizeChartResource;
 use Modules\Catalog\Services\PricingService;
 use Modules\Catalog\Services\ProductService;
@@ -77,6 +78,7 @@ class CatalogServiceProvider extends ServiceProvider
 
         // Nhóm cài đặt của module trên panel Lunar.
         $this->app->make(SettingsRegistry::class)->add(new CatalogSettings);
+        $this->app->make(ResourceRegistry::class)->add(new ReviewResource);
 
         // Màn hình admin của module trên panel Lunar.
         $this->app->make(ResourceRegistry::class)->add(new SizeChartResource);

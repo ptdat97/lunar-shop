@@ -22,7 +22,7 @@ class PanelDashboardWidgetTest extends TestCase
 {
     use CreatesStorefrontData;
 
-    public function test_the_shop_contributes_exactly_one_widget(): void
+    public function test_the_shop_contributes_only_what_lunar_lacks(): void
     {
         $staff = Staff::factory()->create(['admin' => true]);
 
@@ -33,11 +33,20 @@ class PanelDashboardWidgetTest extends TestCase
 
         $ours = array_values(array_filter($keys, fn (string $key) => str_starts_with($key, 'shop-')));
 
-        $this->assertSame(['shop-lifetime'], $ours);
+        // Two, and each answers a question Lunar's own dashboard does not:
+        //  - lifetime: a horizon longer than 90 days, which its ranges cap at.
+        //  - stale commitments: stock held by orders that never ship, which its
+        //    LowStockWidget (what is running out) says nothing about.
+        // The assertion is exact so that rebuilding a first-party card here
+        // fails rather than quietly duplicating upstream's work.
+        sort($ours);
 
-        // And it sits alongside the first-party cards rather than replacing them.
-        $this->assertContains('kpis', $keys);
-        $this->assertContains('revenue-chart', $keys);
+        $this->assertSame(['shop-lifetime', 'shop-stale-commitments'], $ours);
+
+        // And they sit alongside the first-party cards rather than replacing them.
+        foreach (['kpis', 'revenue-chart', 'recent-orders', 'top-products', 'low-stock'] as $firstParty) {
+            $this->assertContains($firstParty, $keys);
+        }
     }
 
     /**

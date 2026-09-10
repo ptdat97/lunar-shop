@@ -221,10 +221,36 @@ return [
         'limit_help' => 'Số sản phẩm đã xem gần đây hiển thị trong dải (1–12).',
     ],
 
+    'scheduled_runs' => [
+        'label' => 'Lần chạy định kỳ',
+        'plural' => 'Tác vụ định kỳ',
+        'command' => 'Lệnh',
+        'ok' => 'Thành công',
+        'failure' => 'Lỗi',
+        'ran_at' => 'Chạy lúc',
+        'runtime' => 'Thời gian',
+    ],
+    'stale_commitments' => [
+        'title' => 'Đơn giữ hàng quá lâu',
+        'description' => 'Đơn đã thanh toán quá :days ngày mà chưa giao xong — hàng vẫn bị giữ.',
+        'none' => 'Không có đơn nào đang giữ hàng quá lâu.',
+        'held_since' => 'đơn đang giữ hàng',
+    ],
     'review' => [
         'section' => 'Đánh giá',
         'auto_approve' => 'Tự động duyệt đánh giá',
         'auto_approve_help' => 'Bật: đánh giá được đăng ngay. Tắt: chờ admin duyệt.',
+            'label' => 'Đánh giá',
+        'plural' => 'Đánh giá',
+        'author' => 'Người viết',
+        'rating' => 'Số sao',
+        'approved' => 'Đã duyệt',
+        'body' => 'Nội dung',
+        'approve' => 'Duyệt',
+        'unapprove' => 'Gỡ khỏi trang',
+        'product' => 'Sản phẩm',
+        'submitted_at' => 'Gửi lúc',
+        'pending' => 'Chờ duyệt',
     ],
 
     'returns' => [

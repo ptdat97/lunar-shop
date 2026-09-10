@@ -14,6 +14,7 @@ use Lunar\Panel\Facades\Panel;
 use Modules\Core\Auth\UnusedEmailTwoFactor;
 use Modules\Core\Listeners\RecordScheduledRun;
 use Modules\Core\Panel\ResourceRegistry;
+use Modules\Core\Panel\ScheduledRunResource;
 use Modules\Core\Panel\SettingsRegistry;
 use Modules\Core\Panel\ShopSection;
 use Modules\Core\Support\Settings;
@@ -78,6 +79,9 @@ class CoreServiceProvider extends ServiceProvider
         // PanelManager warns (and ignores the section) once it has processed
         // sections, which happens after every provider has booted — feature
         // modules add their resources to the registry in their own boot.
+        // Nhật ký scheduler — trước đây chỉ đọc được qua `schedule:heartbeat`.
+        $this->app->make(ResourceRegistry::class)->add(new ScheduledRunResource);
+
         Panel::section($this->app->make(ShopSection::class));
     }
 }

@@ -232,6 +232,20 @@ class PanelRoutesSmokeTest extends TestCase
                 'product_variant_id' => $this->createProduct()->variants->first()->id,
                 'email' => 'khach@example.com',
             ]),
+            'reviews' => $resource->model()::create([
+                'product_id' => $this->createProduct()->id,
+                'author' => 'Smoke',
+                'rating' => 5,
+                'body' => 'Ổn.',
+                'approved' => false,
+            ]),
+            'scheduled-runs' => $resource->model()::create([
+                'command' => 'smoke:test',
+                'started_at' => now(),
+                'finished_at' => now(),
+                'runtime_ms' => 10,
+                'ok' => true,
+            ]),
             'returns' => $resource->model()::create([
                 'order_id' => \Lunar\Core\Models\Order::factory()->create([
                     'channel_id' => \Lunar\Core\Models\Channel::getDefault()->id,

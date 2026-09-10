@@ -109,4 +109,43 @@ class ReviewService
 
         return $review;
     }
+
+    /**
+     * Publish a review.
+     *
+     * Moderation lives here rather than in the panel controller because this
+     * service owns what a review's approval means to the rest of the app — the
+     * summary counts a product's rating from approved rows only, and its memo
+     * has to drop in the same request or a staff member who approves and then
+     * looks at the product sees the old average.
+     */
+    public function approve(Review $review): Review
+    {
+        return $this->setApproval($review, true);
+    }
+
+    /** Take a review back off the storefront without deleting what was written. */
+    public function unapprove(Review $review): Review
+    {
+        return $this->setApproval($review, false);
+    }
+
+    protected function setApproval(Review $review, bool $approved): Review
+    {
+        if ($review->approved === $approved) {
+            return $review;
+        }
+
+        $review->update(['approved' => $approved]);
+
+        $this->forgetSummary($review->product_id);
+
+        return $review->refresh();
+    }
+
+    /** How many reviews are waiting on a decision. */
+    public function pendingCount(): int
+    {
+        return Review::where('approved', false)->count();
+    }
 }

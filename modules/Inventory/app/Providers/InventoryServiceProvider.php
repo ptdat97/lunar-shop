@@ -6,12 +6,14 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Core\Events\Orders\OrderCancelled;
 use Lunar\Core\Models\ProductVariant;
+use Lunar\Panel\Facades\Panel;
 use Modules\Core\Panel\ResourceRegistry;
 use Modules\Core\Panel\SettingsRegistry;
 use Modules\Core\Support\LunarConfigOverride;
 use Modules\Inventory\Console\ExpireAbandonedOrders;
 use Modules\Inventory\Listeners\StampStockReleased;
 use Modules\Inventory\Observers\BackInStockObserver;
+use Modules\Inventory\Panel\InventorySection;
 use Modules\Inventory\Panel\InventorySettings;
 use Modules\Inventory\Panel\StockNotificationResource;
 
@@ -46,6 +48,9 @@ class InventoryServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Thẻ cảnh báo đơn giữ hàng quá lâu trên dashboard panel.
+        Panel::section(new InventorySection);
+
         // Nhóm cài đặt của module trên panel Lunar.
         $this->app->make(SettingsRegistry::class)->add(new InventorySettings);
 

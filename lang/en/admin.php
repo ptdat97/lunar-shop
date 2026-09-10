@@ -219,10 +219,36 @@ return [
         'limit_help' => 'How many recently-viewed products to display in the strip (1–12).',
     ],
 
+    'scheduled_runs' => [
+        'label' => 'Scheduled run',
+        'plural' => 'Scheduled tasks',
+        'command' => 'Command',
+        'ok' => 'Succeeded',
+        'failure' => 'Failure',
+        'ran_at' => 'Ran at',
+        'runtime' => 'Runtime',
+    ],
+    'stale_commitments' => [
+        'title' => 'Orders holding stock',
+        'description' => 'Paid more than :days days ago and still not fulfilled — their stock is still held.',
+        'none' => 'No orders are holding stock too long.',
+        'held_since' => 'orders holding stock',
+    ],
     'review' => [
         'section' => 'Reviews',
         'auto_approve' => 'Auto-approve reviews',
         'auto_approve_help' => 'When on, submitted reviews are published immediately. When off, they wait for admin approval.',
+            'label' => 'Review',
+        'plural' => 'Reviews',
+        'author' => 'Author',
+        'rating' => 'Rating',
+        'approved' => 'Approved',
+        'body' => 'Body',
+        'approve' => 'Approve',
+        'unapprove' => 'Unpublish',
+        'product' => 'Product',
+        'submitted_at' => 'Submitted',
+        'pending' => 'Pending',
     ],
 
     'returns' => [

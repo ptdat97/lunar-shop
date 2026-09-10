@@ -840,10 +840,10 @@ product option, attribute group, customer group, tag, thuế. Phần còn lại 
 
 | Cách | Dùng cho |
 | --- | --- |
-| Engine resource khai báo | 10 màn hình CRUD (Nội dung, RMA, vùng ship, bảng size, báo hàng về) |
-| `SettingsGroup` | 8 trang cài đặt cũ → một màn hình, 8 tab |
+| Engine resource khai báo | 12 màn hình CRUD (Nội dung, RMA, vùng ship, bảng size, báo hàng về, duyệt đánh giá, nhật ký scheduler) |
+| `SettingsGroup` | 8 trang cài đặt cũ + kích thước ảnh → một màn hình, 9 tab |
 | `Slot` | Size & Fit chèn vào trang sửa sản phẩm chính chủ |
-| `widgets()` | một thẻ dashboard (phần còn lại panel đã có) |
+| `widgets()` | hai thẻ dashboard: luỹ kế 6 tháng, đơn giữ hàng quá lâu |
 | Không làm | QueueWorkers → Horizon; MediaImageSizes → `media-library:regenerate` |
 
 Chi tiết và các hợp đồng của panel: [panel-addon.md](panel-addon.md).
