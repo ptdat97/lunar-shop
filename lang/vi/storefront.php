@@ -107,6 +107,16 @@ return [
         'size_need_measurement' => 'Nhập ít nhất một số đo (ví dụ vòng ngực, vòng eo, vòng mông).',
         'size_finding' => 'Đang tìm…',
         'size_failed' => 'Chưa lấy được gợi ý. Vui lòng thử lại.',
+        'reviews_title' => 'Đánh giá từ khách hàng',
+        'reviews_count' => ':count đánh giá',
+        'reviews_rating' => ':rating trên 5 sao',
+        'reviews_rating_label' => 'Số sao',
+        'reviews_empty' => 'Chưa có đánh giá nào. Bạn là người đầu tiên nhé.',
+        'reviews_your_name' => 'Tên của bạn',
+        'reviews_body' => 'Cảm nhận của bạn',
+        'reviews_submit' => 'Gửi đánh giá',
+        'reviews_thanks' => 'Cảm ơn bạn đã đánh giá.',
+        'reviews_failed' => 'Chưa gửi được đánh giá. Vui lòng thử lại.',
     ],
 
     'promotion' => [

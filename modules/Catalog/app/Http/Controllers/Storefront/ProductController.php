@@ -9,6 +9,7 @@ use Illuminate\Routing\Controller;
 use Modules\Catalog\Http\Resources\ProductResource;
 use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Services\RecommendationService;
+use Modules\Catalog\Services\ReviewService;
 use Modules\Catalog\Services\SizeChartService;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -18,6 +19,7 @@ class ProductController extends Controller
         protected ProductService $products,
         protected SizeChartService $sizeChart,
         protected RecommendationService $recommend,
+        protected ReviewService $reviews,
     ) {}
 
     /**
@@ -65,6 +67,12 @@ class ProductController extends Controller
             // "You may also like" — curated associations first, collection fallback.
             'related' => $this->recommend->forProduct($product),
             'sizeChart' => $this->sizeChart->for($product),
+            // SSR trước (§8): trang render sẵn đánh giá đã duyệt và tóm tắt sao,
+            // JS chỉ lo gửi form. Trước đây đánh giá chỉ tồn tại ở API và màn
+            // hình duyệt trong panel — storefront KHÔNG hiển thị ở đâu cả, nên
+            // khách không có chỗ nào để đọc hay để viết.
+            'reviews' => $this->reviews->forProduct($product->id, perPage: 10),
+            'reviewSummary' => $this->reviews->summaryFor($product->id),
         ]);
     }
 }

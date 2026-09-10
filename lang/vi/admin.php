@@ -403,6 +403,10 @@ return [
     ],
 
     'checkout_settings' => [
+        'review_request_enabled' => 'Xin đánh giá sau mua',
+        'review_request_enabled_help' => 'Gửi MỘT email xin đánh giá cho mỗi đơn đã giao. Bật lên là lượt chạy đầu tiên gửi cho mọi đơn cũ đủ điều kiện — chạy `php artisan orders:request-reviews --dry-run` xem trước.',
+        'review_request_days' => 'Chờ bao nhiêu ngày sau khi giao',
+        'review_request_days_help' => 'Tính từ lúc kiện hàng được gửi đi (shipped_at của fulfilment). Đơn đã trả hàng hoặc đã hoàn tiền không bao giờ bị hỏi.',
         'title' => 'Thanh toán & giỏ hàng',
         'abandoned_cart_enabled' => 'Nhắc giỏ hàng bỏ quên',
         'abandoned_cart_enabled_help' => 'Gửi MỘT email nhắc cho mỗi giỏ bị bỏ quên. Bật lên là lượt quét đầu tiên sẽ gửi cho mọi giỏ đang có sẵn — chạy `php artisan carts:remind-abandoned --dry-run` xem trước rồi hãy bật.',

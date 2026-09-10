@@ -43,6 +43,13 @@ Schedule::command('carts:remind-abandoned')
     ->everyTenMinutes()
     ->withoutOverlapping();
 
+// Xin đánh giá cho đơn đã giao. Hằng ngày chứ không phải mỗi mười phút: ngưỡng
+// chờ tính bằng NGÀY, quét dày hơn chỉ tốn truy vấn mà không hỏi ai sớm hơn.
+// Cũng tự thoát sớm khi tính năng còn tắt.
+Schedule::command('orders:request-reviews')
+    ->dailyAt('09:00')
+    ->withoutOverlapping();
+
 // Lưới an toàn của Lunar cho kho: dựng lại `on_hand` từ sổ cái chuyển động và
 // `committed` từ các đơn còn mở, rồi làm mới rollup. Không thay lệnh nào ở trên
 // — `orders:expire-abandoned` xử lý NGUYÊN NHÂN (đơn treo giữ hàng), lệnh này xử

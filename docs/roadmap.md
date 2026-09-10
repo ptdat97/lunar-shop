@@ -214,20 +214,32 @@ cho giảm giá theo hạng. Khách không có việc gì để làm, nên khôn
   (hoàn đơn thì thu lại điểm đã cộng và trả lại điểm đã tiêu), và huỷ đơn. Làm sau mục
   11 để lúc đó đã có sẵn khái niệm "thưởng sau khi hết hạn đổi/trả".
 
-### 17. Ba việc làm trước mục 13–16
+### 17. Ba việc làm trước mục 13–16 — ✅ **XONG 2026-09-10**
 
-- ⬜ **Việt hoá chuỗi JS storefront** — storefront **không có cơ chế i18n cho JS**, nên
+- ✅ **Việt hoá chuỗi JS storefront** — storefront **không có cơ chế i18n cho JS**, nên
   ~30 chuỗi nằm cứng trong code, rơi đúng vào lúc khách sẵn sàng mua nhất: giỏ hàng
   (*"Add 250.000 ₫ more for free shipping."*), áp mã giảm giá (*"Coupon applied."*),
   hạng thành viên (*"Spend … more to reach …"*), size finder, báo hàng về, và 12 chuỗi
   trong `account.js`. Đây là lỗi đang chảy máu tiền, không phải việc đánh bóng.
-- ⬜ **Cứu giỏ hàng bỏ quên** — đòn bẩy chuyển đổi lớn nhất còn thiếu, và hạ tầng đã có
-  ~80%: giỏ persist qua `TokenAwareCartSession`, `OrderMailer` + queue + Horizon đã
-  chạy, scheduler đã có, `orders:expire-abandoned` vốn đã đi tìm giỏ/đơn treo. Chỉ thiếu
-  đúng cú nhắc. Nhắm giỏ đã qua bước nhập địa chỉ (nên có email).
-- ⬜ **Xin đánh giá sau mua** — hệ thống đánh giá đã có nhưng **không có gì đi xin**. Với
-  thời trang, đánh giá kèm ảnh thật là thứ thuyết phục nhất. Vòng lặp: nhiều đánh giá →
-  chuyển đổi cao hơn → nhiều đơn → nhiều đánh giá.
+- ✅ **Cứu giỏ hàng bỏ quên** — `carts:remind-abandoned`, một email mỗi giỏ, **tắt mặc
+  định** (Cài đặt → Thanh toán & giỏ hàng). Đánh dấu TRƯỚC khi gửi: mất một lời nhắc còn
+  hơn gửi hai. Không kèm mã giảm giá — email cứu giỏ luôn tặng coupon là dạy khách bỏ giỏ
+  có chủ đích. Link khôi phục khoá theo `public_token`, chết theo giỏ (đã mua/đã gộp/quá
+  7 ngày).
+- ✅ **Xin đánh giá sau mua** — `orders:request-reviews`, mốc tính từ
+  `lunar_fulfilments.shipped_at` (2.0 đã bỏ `orders.dispatched_at`, vòng đời là phái
+  sinh). Đơn đã trả hàng hoặc hoàn tiền **không bao giờ** bị hỏi.
+
+  ⚠️ **Phát hiện giữa chừng:** storefront **chưa từng hiển thị đánh giá ở đâu cả** —
+  đánh giá chỉ tồn tại ở API và màn hình duyệt trong panel. Email xin đánh giá mà không
+  có chỗ để đánh giá thì tệ hơn không gửi, nên phần hiển thị + form đã được dựng cùng
+  lượt này (`partials/reviews.blade.php`, neo `#danh-gia` — chính là neo email trỏ tới,
+  đổi tên là hỏng mọi link đã gửi). SSR trước: đọc đánh giá KHÔNG phụ thuộc JS.
+
+  ⬜ **Còn lại: đánh giá kèm ảnh.** Bảng `product_reviews` hiện không có `user_id`,
+  `order_id` hay media — nên chưa có "đã mua hàng xác thực" và chưa có ảnh. Với thời
+  trang thì ảnh thật của khách là thứ thuyết phục nhất, nhưng đó là thay đổi schema +
+  giao diện tải ảnh, tách riêng khỏi việc "đi xin".
 
 ### Cân nhắc rồi CỐ Ý chưa làm
 

@@ -403,6 +403,10 @@ return [
     ],
 
     'checkout_settings' => [
+        'review_request_enabled' => 'Post-purchase review request',
+        'review_request_enabled_help' => 'Send ONE review request per delivered order. Turning this on means the first run emails every eligible past order — run `php artisan orders:request-reviews --dry-run` first.',
+        'review_request_days' => 'Days to wait after shipping',
+        'review_request_days_help' => "Measured from the fulfilment's shipped_at. Returned or refunded orders are never asked.",
         'title' => 'Checkout & cart',
         'abandoned_cart_enabled' => 'Abandoned cart reminder',
         'abandoned_cart_enabled_help' => 'Send ONE reminder email per abandoned cart. Turning this on means the first sweep emails every cart already in the table — run `php artisan carts:remind-abandoned --dry-run` first.',

@@ -107,6 +107,16 @@ return [
         'size_need_measurement' => 'Enter at least one measurement (e.g. bust, waist, hip).',
         'size_finding' => 'Finding…',
         'size_failed' => 'Could not get a recommendation. Please try again.',
+        'reviews_title' => 'Customer reviews',
+        'reviews_count' => ':count reviews',
+        'reviews_rating' => ':rating out of 5 stars',
+        'reviews_rating_label' => 'Rating',
+        'reviews_empty' => 'No reviews yet. Be the first.',
+        'reviews_your_name' => 'Your name',
+        'reviews_body' => 'Your review',
+        'reviews_submit' => 'Submit review',
+        'reviews_thanks' => 'Thanks for your review.',
+        'reviews_failed' => 'Could not send your review. Please try again.',
     ],
 
     'promotion' => [

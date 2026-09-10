@@ -71,4 +71,12 @@ return [
         'button' => 'Back to my cart',
         'outro' => 'If you have already bought them or changed your mind, just ignore this email.',
     ],
+
+    'review_request' => [
+        'subject' => 'How was your order?',
+        'heading' => 'How did it work out?',
+        'intro' => 'Order :reference reached you a little while ago. If you have a minute, a few words would help the next shopper — especially about fit.',
+        'button' => 'Review :product',
+        'outro' => 'It takes a minute, and it really helps.',
+    ],
 ];

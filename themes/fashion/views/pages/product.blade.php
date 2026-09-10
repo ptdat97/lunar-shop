@@ -270,6 +270,12 @@
     {{-- Recently viewed — personalised (localStorage), so it's an enhancer that
          records this product then renders the rest. Records `$slug`; the strip
          excludes the current product. Hidden until JS finds ≥1 other item. --}}
+    @include('theme::partials.reviews', [
+        'reviews' => $reviews,
+        'reviewSummary' => $reviewSummary,
+        'slug' => $slug,
+    ])
+
     @include('theme::partials.recently-viewed', ['currentSlug' => $slug])
   </div>
 @endsection

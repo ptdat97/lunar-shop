@@ -15,6 +15,7 @@ use Lunar\Core\Facades\OrderNotifications;
 use Lunar\Core\Models\Order;
 use Modules\Core\Panel\ResourceRegistry;
 use Modules\Order\Actions\NotifyCustomerWithUserFallback;
+use Modules\Order\Console\RequestReviews;
 use Modules\Order\Events\OrderPaid;
 use Modules\Order\Events\OrderStatusUpdated;
 use Modules\Order\Listeners\DispatchOrderPaidForOfflineOrder;
@@ -106,5 +107,7 @@ class OrderServiceProvider extends ServiceProvider
         // moves the order from nothing to awaiting-payment / payment-offline by
         // writing `placed_at` and `meta.payment_type` on an ordinary save.
         Order::observe(OrderObserver::class);
+
+        $this->commands([RequestReviews::class]);
     }
 }

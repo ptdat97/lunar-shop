@@ -71,4 +71,12 @@ return [
         'button' => 'Xem lại giỏ hàng',
         'outro' => 'Nếu bạn đã mua rồi hoặc không cần nữa thì bỏ qua email này nhé.',
     ],
+
+    'review_request' => [
+        'subject' => 'Sản phẩm bạn mua thế nào?',
+        'heading' => 'Bạn thấy sản phẩm thế nào?',
+        'intro' => 'Đơn :reference đã tới tay bạn ít lâu rồi. Nếu tiện, bạn để lại vài dòng cho những khách sau nhé — nhất là phần lên dáng và độ vừa vặn.',
+        'button' => 'Đánh giá :product',
+        'outro' => 'Chỉ mất một phút, và rất có ích cho người mua sau.',
+    ],
 ];

@@ -73,6 +73,10 @@ class StorefrontI18n
             'notify.subscribed' => __('storefront.product.notify_subscribed'),
             'notify.failed' => __('storefront.product.notify_failed'),
 
+            // enhance/review-form.js
+            'review.thanks' => __('storefront.product.reviews_thanks'),
+            'review.failed' => __('storefront.product.reviews_failed'),
+
             // enhance/size-finder.js
             'size.use_this_size' => __('storefront.product.size_use_this'),
             'size.no_match' => __('storefront.product.size_no_match'),
