@@ -175,4 +175,65 @@ class ReturnRequestTest extends TestCase
             ])
             ->assertNotFound();
     }
+
+    /**
+     * An RMA refund has to be attributable to the lines it paid back.
+     *
+     * The money always moved correctly, but the refund went through as a flat
+     * amount — so Lunar's `refunded_quantity` rollup stayed at zero and the
+     * panel's own refund composer went on offering items a return had already
+     * paid for. Routing the gateway call through Lunar's RefundOrder fixes the
+     * bookkeeping without this shop writing any of it: the amount comes from
+     * the identical per-unit formula either way.
+     */
+    public function test_a_gateway_refund_is_recorded_against_the_returned_lines(): void
+    {
+        Http::fake(['*' => Http::response(['vnp_ResponseCode' => '00', 'vnp_TransactionNo' => 'RF'], 200)]);
+        Mail::fake();
+        $this->seedBaseData();
+
+        $order = $this->paidOrder();
+        $line = $order->lines->first();
+
+        $service = app(ReturnService::class);
+        $request = $service->open($order, [['order_line_id' => $line->id, 'quantity' => 1]], 'wrong-size');
+
+        $service->approve($request, refund: true);
+
+        $this->assertSame(ReturnRequest::REFUNDED, $request->fresh()->status);
+
+        // 1 of 2 units of a 100000 line.
+        $this->assertSame(50000, (int) $request->fresh()->refund_amount);
+
+        // The rollup the panel's line picker reads.
+        $this->assertSame(1, (int) $line->fresh()->refunded_quantity);
+
+        $refundLine = \Lunar\Core\Models\RefundLine::query()
+            ->where('order_line_id', $line->id)
+            ->first();
+
+        $this->assertNotNull($refundLine, 'Không có RefundLine — hoàn tiền không quy được về dòng nào.');
+        $this->assertSame(1, (int) $refundLine->quantity);
+        $this->assertSame(50000, (int) $refundLine->amount);
+    }
+
+    /**
+     * And the panel then knows that unit is spoken for: refunding the same line
+     * again must be refused on quantity, not merely capped on total.
+     */
+    public function test_the_returned_quantity_is_no_longer_refundable(): void
+    {
+        Http::fake(['*' => Http::response(['vnp_ResponseCode' => '00', 'vnp_TransactionNo' => 'RF'], 200)]);
+        Mail::fake();
+        $this->seedBaseData();
+
+        $order = $this->paidOrder();
+        $line = $order->lines->first();
+
+        $service = app(ReturnService::class);
+        $first = $service->open($order, [['order_line_id' => $line->id, 'quantity' => 1]], 'wrong-size');
+        $service->approve($first, refund: true);
+
+        $this->assertSame(1, (int) $line->fresh()->refundableQuantity());
+    }
 }

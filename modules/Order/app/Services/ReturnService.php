@@ -5,7 +5,12 @@ namespace Modules\Order\Services;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Lunar\Core\Contracts\Actions\Orders\RefundsOrder;
+use Lunar\Core\DataObjects\RefundRequest as LunarRefundRequest;
+use Lunar\Core\Exceptions\OrderActionException;
 use Lunar\Core\Models\Order;
+use Lunar\Core\Models\Transaction;
+use Modules\Checkout\Data\RefundResult;
 use Modules\Checkout\Services\RefundService;
 use Modules\Order\Mail\ReturnStatusMail;
 use Modules\Order\Models\ReturnRequest;
@@ -161,8 +166,8 @@ class ReturnService
         // Gateway call stays *outside* the transaction (§4: no un-rollbackable
         // side effects inside). Only call it when there's a capture to refund;
         // COD/bank orders are settled by hand.
-        if ($refundService->captureTransaction($order)) {
-            $result = $refundService->refund($order, $amount, 'return:'.$request->reference);
+        if ($capture = $refundService->captureTransaction($order)) {
+            $result = $this->issueGatewayRefund($request, $order, $capture, $amount);
 
             if (! $result->success) {
                 // Release the claim so staff can retry once the gateway recovers.
@@ -207,6 +212,70 @@ class ReturnService
      * *same* request being refunded twice. {@see self::refund()} owns that, by
      * claiming the request under a lock before any side effect runs.
      */
+    /**
+     * Put the refund through Lunar's own RefundOrder when the request's lines
+     * are being refunded at full value.
+     *
+     * Lunar prices a refund from `round(orderLine.total / quantity) * quantity`
+     * — the identical formula {@see refundableAmount()} uses — so the money
+     * moved is the same either way. What routing through it adds is the
+     * bookkeeping this shop should not be writing itself: a `RefundLine` per
+     * order line and the `refunded_quantity` rollup that the panel's own refund
+     * composer reads to know what is still refundable. Without it staff are
+     * offered items that a return already paid back.
+     *
+     * The gateway call is unchanged — RefundOrder dispatches through the
+     * transaction's payment driver, which is this shop's VNPay/MoMo type, which
+     * still goes through RefundService.
+     *
+     * Falls back to the flat-amount path when {@see cappedRefund()} reduced the
+     * figure below the lines' value. That only happens when earlier returns on
+     * the same order have already used up its total, and Lunar would rightly
+     * refuse to refund lines worth more than what is left — refusing there would
+     * block a refund this shop has decided to make, so the reduced amount goes
+     * through as before and simply is not attributable to lines.
+     *
+     * `notify: false` because the RMA sends its own ReturnStatusMail; letting
+     * Lunar notify as well would tell the customer twice.
+     */
+    protected function issueGatewayRefund(
+        ReturnRequest $request,
+        Order $order,
+        Transaction $capture,
+        int $amount,
+    ): RefundResult {
+        $lines = $request->loadMissing('lines')->lines
+            ->filter(fn ($line) => $line->order_line_id && $line->quantity > 0)
+            ->map(fn ($line) => [
+                'order_line_id' => (int) $line->order_line_id,
+                'quantity' => (int) $line->quantity,
+            ])
+            ->values()
+            ->all();
+
+        if ($lines === [] || $amount !== $this->refundableAmount($request)) {
+            return app(RefundService::class)->refund($order, $amount, 'return:'.$request->reference);
+        }
+
+        try {
+            $refund = app(RefundsOrder::class)->execute($order, new LunarRefundRequest(
+                transactionId: $capture->id,
+                lines: $lines,
+                notes: 'return:'.$request->reference,
+                notify: false,
+            ));
+        } catch (OrderActionException $e) {
+            return new RefundResult(success: false, message: $e->getMessage());
+        }
+
+        return new RefundResult(
+            success: $refund->success,
+            message: (string) ($refund->message ?? ''),
+            amount: $amount,
+            transaction: $refund->transaction,
+        );
+    }
+
     protected function cappedRefund(ReturnRequest $request, Order $order): int
     {
         $orderTotal = (int) ($order->total ?? 0);
