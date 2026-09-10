@@ -20,6 +20,17 @@ class RedirectResource extends PanelResource
         return 'shop';
     }
 
+    /** Chuyển hướng chỉ đụng khi đổi URL. */
+    public function navigationGroup(): string
+    {
+        return 'shop-content';
+    }
+
+    public function navigationPriority(): int
+    {
+        return 60;
+    }
+
     public function key(): string
     {
         return 'redirects';

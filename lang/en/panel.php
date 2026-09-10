@@ -11,6 +11,12 @@
 return [
     'section' => 'Shop content',
 
+    'nav' => [
+        'operations' => 'Operations',
+        'content' => 'Content',
+        'system' => 'System',
+    ],
+
     'new' => 'New :name',
     'save' => 'Save',
     'back' => 'Back',

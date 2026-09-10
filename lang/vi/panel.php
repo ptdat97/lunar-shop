@@ -10,6 +10,16 @@
 return [
     'section' => 'Nội dung shop',
 
+    /*
+     * Nhãn nhóm điều hướng sidebar. `section` ở trên vẫn dùng cho sidebar cài
+     * đặt; ba khoá dưới là ba nhóm ShopSection sở hữu trên thanh chính.
+     */
+    'nav' => [
+        'operations' => 'Vận hành',
+        'content' => 'Nội dung',
+        'system' => 'Hệ thống',
+    ],
+
     'new' => 'Thêm :name',
     'save' => 'Lưu',
     'back' => 'Quay lại',

@@ -36,17 +36,43 @@ class ShopSection extends Section
         return __('panel.section');
     }
 
+    /**
+     * Groups this section owns, with the order they appear in the sidebar.
+     *
+     * Sales (10) and Catalog (20) are Lunar's, placed by NavigationOrder before
+     * Lunar creates them; these sit under both because that is the shape of the
+     * work. A shop opens the panel to look at orders, then at products —
+     * content and configuration are the occasional visit.
+     *
+     * @var array<string, array{label: string, priority: int}>
+     */
+    private const GROUPS = [
+        'shop-operations' => ['label' => 'panel.nav.operations', 'priority' => 30],
+        'shop-content' => ['label' => 'panel.nav.content', 'priority' => 40],
+        // Deliberately far down and alone: read-only diagnostics nobody opens
+        // unless something is already wrong.
+        'shop-system' => ['label' => 'panel.nav.system', 'priority' => 90],
+    ];
+
     public function navigation(NavigationRegistry $registry): void
     {
-        $registry->group('shop-content', __('panel.section'), priority: 30);
+        foreach (self::GROUPS as $key => $group) {
+            $registry->group($key, __($group['label']), priority: $group['priority']);
+        }
 
         foreach ($this->registry->forSection($this->key()) as $resource) {
-            $registry->addItem('shop-content', new NavigationItem(
+            // A resource declares its own group, and `sales` / `catalog` are
+            // valid answers: returns are order work, reviews are product work.
+            // Everything used to land in one flat group regardless, which put
+            // the returns queue next to the redirect table and the scheduler
+            // log at the very top of the sidebar.
+            $registry->addItem($resource->navigationGroup(), new NavigationItem(
                 key: $resource->key(),
                 label: $resource->label(),
                 icon: $resource->icon(),
                 route: $resource->routeName('index'),
                 permission: $resource->permission(),
+                priority: $resource->navigationPriority(),
                 badge: $resource->navigationBadge(),
             ));
         }

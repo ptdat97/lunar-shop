@@ -28,6 +28,17 @@ class ScheduledRunResource extends PanelResource
         return 'shop';
     }
 
+    /** Nhật ký scheduler: chỉ đọc, chỉ mở khi đi truy sự cố. Trước đây nó đứng ĐẦU sidebar. */
+    public function navigationGroup(): string
+    {
+        return 'shop-system';
+    }
+
+    public function navigationPriority(): int
+    {
+        return 10;
+    }
+
     public function key(): string
     {
         return 'scheduled-runs';

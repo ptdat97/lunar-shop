@@ -34,6 +34,17 @@ class PageSectionResource extends PanelResource
         return 'shop';
     }
 
+    /** Khối nội dung dựng nên trang, nên đứng ngay dưới Trang. */
+    public function navigationGroup(): string
+    {
+        return 'shop-content';
+    }
+
+    public function navigationPriority(): int
+    {
+        return 20;
+    }
+
     public function key(): string
     {
         return 'page-sections';

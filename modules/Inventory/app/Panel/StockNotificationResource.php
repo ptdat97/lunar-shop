@@ -26,6 +26,17 @@ class StockNotificationResource extends PanelResource
         return 'shop';
     }
 
+    /** Hàng chờ về là hàng đợi vận hành, không phải nội dung. */
+    public function navigationGroup(): string
+    {
+        return 'shop-operations';
+    }
+
+    public function navigationPriority(): int
+    {
+        return 10;
+    }
+
     public function key(): string
     {
         return 'stock-notifications';

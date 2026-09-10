@@ -29,6 +29,17 @@ class LookbookResource extends PanelResource
         return 'shop';
     }
 
+    /** Lookbook đổi theo mùa. */
+    public function navigationGroup(): string
+    {
+        return 'shop-content';
+    }
+
+    public function navigationPriority(): int
+    {
+        return 40;
+    }
+
     public function key(): string
     {
         return 'lookbooks';

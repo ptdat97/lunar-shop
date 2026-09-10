@@ -251,6 +251,48 @@ hiện "đã lưu — để trống nếu giữ nguyên" để ô rỗng không 
 không tham số, nên route kiểu `{group}` sẽ lặng lẽ ra null và mục sidebar không
 đi đâu cả.
 
+## Thứ tự sidebar
+
+Mỗi resource khai chỗ đứng của nó bằng `navigationGroup()` + `navigationPriority()`.
+**Group key của Lunar là câu trả lời hợp lệ** — `addItem()` nhận bất kỳ key nào —
+và thường là chỗ đúng: Đổi/trả là việc của đơn hàng nên nằm trong `sales`, Đánh giá
+và Bảng size là việc của sản phẩm nên nằm trong `catalog`.
+
+Trước đây cả 13 resource rơi vào một nhóm phẳng "Nội dung shop" ở priority 30, tức
+là **trên cả Catalog lẫn Sales của Lunar**. Kết quả: thứ đầu tiên nhìn thấy khi mở
+panel là *Tác vụ định kỳ* — một nhật ký chỉ đọc — còn hàng đợi Đổi/trả thì nằm giữa
+bảng Chuyển hướng và Khu vực vận chuyển. Orders, màn hình shop mở mỗi sáng, đứng thứ ba.
+
+Thứ tự hiện tại, chạy từ việc hằng ngày xuống việc chẩn đoán:
+
+| # | Nhóm | Có gì |
+| --- | --- | --- |
+| 10 | Bán hàng (`sales`) | Orders · **Đổi/trả** · Khách hàng · Giảm giá |
+| 20 | Catalog (`catalog`) | Products · Brands · Bộ sưu tập · **Đánh giá** · **Bảng size** |
+| 30 | Vận hành (`shop-operations`) | Danh sách chờ hàng về · Khu vực vận chuyển |
+| 40 | Nội dung (`shop-content`) | Trang · Khối nội dung · Banner · Lookbook · Menu · Chuyển hướng |
+| 90 | Hệ thống (`shop-system`) | Tác vụ định kỳ |
+
+### Vì sao Bán hàng lên được trên Catalog
+
+`NavigationRegistry::group()` tạo nhóm ở **lần đầu** thấy key và bỏ qua mọi lời gọi
+sau; `NavigationGroup::$priority` là `readonly`. Nên vị trí một nhóm do **người đặt
+tên nó trước** quyết định — và section của Lunar chạy trước tất cả section của mình
+(`shop` là #20 trong danh sách, `catalog` là #2, `sales` là #3). Cả hai nhận priority
+mặc định 50, hoà nhau, và `OrderResolver` phá hoà bằng thứ tự đăng ký → Catalog trên Sales.
+
+`NavigationOrder` giành lấy quyền đặt tên đó qua đúng điểm mở rộng chính chủ —
+`Panel::extendSection()`. Một extension được xử lý **ngay sau** section nó extend, và
+`dashboard` là section đầu tiên, trước `catalog` và `sales`. Nên đặt tên nhóm từ đó là
+kịp, không phải fork gì cả.
+
+⚠️ **Chỗ này phụ thuộc vào thứ tự xử lý section của Lunar**, vốn không phải một hợp
+đồng được ghi thành văn. Nếu bản Lunar sau đổi thứ tự, `group()` sẽ thấy nhóm đã tồn
+tại và các lời gọi trong `NavigationOrder` thành **no-op**: sidebar lặng lẽ quay về
+thứ tự của Lunar, không có gì gãy và không có lỗi nào. Đó là hồi quy im lặng — lý do
+`PanelNavigationOrderTest` khẳng định **thứ tự kết quả** chứ không tin vào cơ chế, và
+thông báo lỗi của nó chỉ thẳng về `NavigationOrder`.
+
 ## Thao tác theo dòng
 
 Chỗ engine thôi làm forms-over-data. Một bản ghi đi qua các trạng thái thì khai

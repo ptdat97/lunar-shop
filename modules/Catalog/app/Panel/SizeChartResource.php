@@ -25,6 +25,17 @@ class SizeChartResource extends PanelResource
         return 'shop';
     }
 
+    /** Bảng size là dữ liệu của sản phẩm, tra thưa hơn Đánh giá. */
+    public function navigationGroup(): string
+    {
+        return 'catalog';
+    }
+
+    public function navigationPriority(): int
+    {
+        return 70;
+    }
+
     public function key(): string
     {
         return 'size-charts';
@@ -54,7 +65,7 @@ class SizeChartResource extends PanelResource
     {
         return [
             Field::text('name', __('admin.common.name'))
-                ->required()->rules('max:255')->placeholder("Áo nữ")->onIndex()->width(6),
+                ->required()->rules('max:255')->placeholder('Áo nữ')->onIndex()->width(6),
             Field::select('category', __('admin.size_chart.category'), [
                 'tops' => __('admin.size_chart.cat_tops'),
                 'bottoms' => __('admin.size_chart.cat_bottoms'),

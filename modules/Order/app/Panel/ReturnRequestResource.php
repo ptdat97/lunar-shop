@@ -34,6 +34,17 @@ class ReturnRequestResource extends PanelResource
         return 'shop';
     }
 
+    /** Đổi/trả là việc của đơn hàng: đặt ngay dưới Orders (10), trên Khách hàng (20). */
+    public function navigationGroup(): string
+    {
+        return 'sales';
+    }
+
+    public function navigationPriority(): int
+    {
+        return 15;
+    }
+
     public function key(): string
     {
         return 'returns';

@@ -33,6 +33,17 @@ class MenuResource extends PanelResource
         return 'shop';
     }
 
+    /** Menu điều hướng gần như dựng một lần. */
+    public function navigationGroup(): string
+    {
+        return 'shop-content';
+    }
+
+    public function navigationPriority(): int
+    {
+        return 50;
+    }
+
     public function key(): string
     {
         return 'menus';

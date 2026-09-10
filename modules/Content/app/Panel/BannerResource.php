@@ -19,6 +19,17 @@ class BannerResource extends PanelResource
         return 'shop';
     }
 
+    /** Banner đổi theo đợt khuyến mãi. */
+    public function navigationGroup(): string
+    {
+        return 'shop-content';
+    }
+
+    public function navigationPriority(): int
+    {
+        return 30;
+    }
+
     public function key(): string
     {
         return 'banners';

@@ -14,6 +14,7 @@ use Modules\Core\Console\Preflight;
 use Modules\Core\Console\ReportUntranslatedContent;
 use Modules\Core\Console\ScheduleHeartbeat;
 use Modules\Core\Listeners\RecordScheduledRun;
+use Modules\Core\Panel\NavigationOrder;
 use Modules\Core\Panel\ResourceRegistry;
 use Modules\Core\Panel\ScheduledRunResource;
 use Modules\Core\Panel\SettingsRegistry;
@@ -84,5 +85,10 @@ class CoreServiceProvider extends ServiceProvider
         $this->app->make(ResourceRegistry::class)->add(new ScheduledRunResource);
 
         Panel::section($this->app->make(ShopSection::class));
+
+        // Đặt thứ tự cho hai nhóm của chính Lunar (Bán hàng trên Danh mục).
+        // Phải đi qua extendSection vì nhóm nào được đặt tên trước thì priority
+        // của bên đó thắng — xem NavigationOrder.
+        Panel::extendSection(new NavigationOrder);
     }
 }

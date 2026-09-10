@@ -34,6 +34,17 @@ class ReviewResource extends PanelResource
         return 'shop';
     }
 
+    /** Đánh giá gắn với sản phẩm. Mục của Lunar trong nhóm này đều ở 50, nên 60 đưa nó xuống ngay sau. */
+    public function navigationGroup(): string
+    {
+        return 'catalog';
+    }
+
+    public function navigationPriority(): int
+    {
+        return 60;
+    }
+
     public function key(): string
     {
         return 'reviews';

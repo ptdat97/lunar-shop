@@ -105,6 +105,32 @@ abstract class PanelResource
     }
 
     /**
+     * Which navigation group this resource's item belongs in.
+     *
+     * Lunar's own group keys are fair game — `sales` and `catalog` accept our
+     * items, and that is usually where they belong: returns are order work, and
+     * reviews are product work. Every declared resource used to land in one
+     * flat "Nội dung shop" group regardless, which put the returns queue next
+     * to the redirect table and the scheduler log above both.
+     */
+    public function navigationGroup(): string
+    {
+        return 'shop-content';
+    }
+
+    /**
+     * Order within the group. Lower is higher up.
+     *
+     * Ties break on registration order, which is why every item sitting at the
+     * default 50 sorted by whichever provider happened to boot first — stable,
+     * but meaningless to the person reading the sidebar.
+     */
+    public function navigationPriority(): int
+    {
+        return 50;
+    }
+
+    /**
      * Extra index columns that are not form fields — computed counts, related
      * names. Keyed by column name, each a callback given the model.
      *

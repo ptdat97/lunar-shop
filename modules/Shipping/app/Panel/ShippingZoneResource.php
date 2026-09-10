@@ -24,6 +24,17 @@ class ShippingZoneResource extends PanelResource
         return 'shop';
     }
 
+    /** Khu vực vận chuyển là cấu hình giao hàng, sửa thưa. */
+    public function navigationGroup(): string
+    {
+        return 'shop-operations';
+    }
+
+    public function navigationPriority(): int
+    {
+        return 20;
+    }
+
     public function key(): string
     {
         return 'shipping-zones';

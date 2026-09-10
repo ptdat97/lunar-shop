@@ -20,6 +20,17 @@ class PageResource extends PanelResource
         return 'shop';
     }
 
+    /** Trang là thứ hay sửa nhất trong nhóm nội dung. */
+    public function navigationGroup(): string
+    {
+        return 'shop-content';
+    }
+
+    public function navigationPriority(): int
+    {
+        return 10;
+    }
+
     public function key(): string
     {
         return 'pages';
