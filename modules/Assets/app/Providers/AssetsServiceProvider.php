@@ -8,12 +8,15 @@ use Illuminate\Support\ServiceProvider;
 use Laravel\Horizon\Horizon;
 use Lunar\Panel\Facades\Panel;
 use Modules\Assets\Console\Commands\MigrateLegacyImagesToLibrary;
+use Modules\Assets\Console\Commands\RegenerateConversions;
 use Modules\Assets\Panel\AssetsSection;
+use Modules\Assets\Panel\MediaSettingsGroup;
 use Modules\Assets\Services\ConversionGenerator;
 use Modules\Assets\Services\HorizonSettings;
 use Modules\Assets\Services\MediaLibraryService;
 use Modules\Assets\Services\MediaSettings;
 use Modules\Assets\Services\MediaUrl;
+use Modules\Core\Panel\SettingsRegistry;
 use Modules\Core\Support\LunarConfigOverride;
 use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
 
@@ -43,6 +46,9 @@ class AssetsServiceProvider extends ServiceProvider
         // Thư viện ảnh cho các trường ảnh trên panel (không có mục điều hướng).
         Panel::section(new AssetsSection);
 
+        // Kích thước ảnh sinh ra — thứ FashionMediaDefinitions đọc.
+        $this->app->make(SettingsRegistry::class)->add(new MediaSettingsGroup);
+
         // Re-apply our media definition overrides on top of Lunar's published
         // config/lunar/media.php — safe against `vendor:publish --force`.
         LunarConfigOverride::applyFrom('lunar.media', __DIR__.'/../../config/overrides.php');
@@ -61,6 +67,7 @@ class AssetsServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 MigrateLegacyImagesToLibrary::class,
+                RegenerateConversions::class,
             ]);
         }
     }

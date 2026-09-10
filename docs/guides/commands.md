@@ -234,3 +234,24 @@ khẩu ai cũng biết mà lọt lên shop thật thì đó là cửa hậu.
 > Test Dusk của panel đăng nhập bằng tài khoản này. Không có nó chúng **tự skip**
 > chứ không đỏ — nên suite vẫn báo xanh trong khi chẳng canh gì cả. Đó chính là
 > chuyện đã xảy ra một lần.
+
+## Kích thước ảnh
+
+Sửa ở `/panel/settings/shop/media`. Đó là nguồn mà `FashionMediaDefinitions` đọc,
+nên đổi một số là đổi pixel của mọi file `small`/`medium`/`large`/`zoom` shop
+phục vụ — cộng hai cái suy ra (`thumb` theo small, `webp` theo large).
+
+Đổi xong **chỉ áp cho ảnh sinh ra từ đó về sau**; file đã nằm trên đĩa giữ nguyên
+kích thước cũ. Muốn kéo thư viện hiện có lên số mới:
+
+```sh
+php artisan media:regenerate            # tạo lại toàn bộ, chạy nền trên queue `media`
+php artisan media:regenerate --missing  # chỉ sinh những conversion đang thiếu file
+```
+
+Cần một worker chạy hàng đợi `media` (Horizon, hoặc `queue:work --queue=media`) —
+lệnh sẽ cảnh báo nếu không có, vì việc đã xếp hàng mà không ai chạy trông y hệt
+thành công cho tới khi có người nhận ra ảnh chẳng đổi gì.
+
+> Spatie cũng có `media-library:regenerate`. Với thư viện nhỏ thì nó đơn giản
+> hơn; nó chạy đồng bộ trong một tiến trình nên vài nghìn ảnh sẽ rất lâu.
