@@ -134,10 +134,19 @@ class VariantAxes
         $axes = [];
         $lookup = [];
 
-        // `productOptions()` already orders by the pivot position.
-        $options = $product->productOptions()
-            ->with(['values' => fn ($query) => $query->orderBy('position')])
-            ->get();
+        // `loadMissing`, not a fresh `productOptions()` query: calling the
+        // relation method always hits the database, even on a product whose
+        // options a caller already eager-loaded. On a 24-card listing that was
+        // two queries per card for the options and one per option for its
+        // values — over a thousand queries on /search alone.
+        //
+        // No ordering is added here because Lunar's own relations carry it:
+        // `productOptions()` orders by the pivot position and `values()` by
+        // `position`. The `orderBy('position')` this used to add was a second,
+        // identical sort on the same column.
+        $product->loadMissing('productOptions.values');
+
+        $options = $product->productOptions;
 
         foreach ($options as $axis => $option) {
             $values = $option->values

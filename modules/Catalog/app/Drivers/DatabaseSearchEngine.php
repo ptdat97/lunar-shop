@@ -32,7 +32,13 @@ class DatabaseSearchEngine implements SearchEngine
                 // Only enabled variants feed the card price / availability / API —
                 // a disabled variant must never leak its price, stock or sku code
                 // into the listing (every other read path filters the same way).
-                'variants' => fn ($q) => $q->where('enabled', true)->with('prices')->chaperone(),
+                // `values` rides along because every card serialises its option
+                // groups (ProductResource → optionGroups → VariantAxes), and
+                // both sides of that join are per-product data.
+                'variants' => fn ($q) => $q->where('enabled', true)
+                    ->with(['prices', 'values'])
+                    ->chaperone(),
+                'productOptions.values',
                 'brand',
                 'defaultUrl',
                 'collections',
