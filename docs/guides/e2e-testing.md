@@ -30,6 +30,71 @@ Chỉ khi **hành vi sai nằm ở trình duyệt, không ở server**. Dấu hi
 Nếu tái hiện được bằng test feature (`assertInertia()` cho panel, request test cho
 storefront) thì **đừng dùng Dusk** — nó chậm hơn hai bậc và khó đọc hơn nhiều.
 
+### Nguyên tắc quyết định
+
+Hỏi đúng một câu: **bằng chứng cần thu nằm ở đâu?**
+
+| Bằng chứng nằm ở | Dùng | Vì sao |
+| --- | --- | --- |
+| Trạng thái DB sau một request | Test feature | Dusk không thấy gì thêm, chỉ chậm hơn |
+| HTML server trả về | Test feature | `assertSee`, regex trên `getContent()` |
+| JSON API trả về | Test feature | Hợp đồng ở tầng server |
+| **DOM sau khi JS chạy** | **E2E** | Server không biết JS làm gì với HTML nó gửi đi |
+| **Console trình duyệt** | **E2E** | PHP không ném gì cả — lỗi ở phía kia |
+| **Sau một tương tác** (bấm, mở modal, đổi tab) | **E2E** | Không có request nào để mà test |
+
+Ba quy tắc rút ra từ chính những lần đã sập trong dự án này:
+
+**1. Đừng viết E2E cho thứ test feature chứng minh được.** Đắt hơn, giòn hơn, và
+khi đỏ thì nói ít hơn. Cả `tests/Browser` chỉ nên có vài test.
+
+**2. Nhưng E2E là thứ DUY NHẤT chứng minh được vài loại việc.** Nếu bỏ nó thì
+không có lưới nào cả. Ví dụ có thật, 2026-09-10: sau khi việt hoá ~26 chuỗi JS,
+mọi test server đều xanh — payload có trong HTML, mọi khoá resolve đúng. Không
+cái nào chứng minh được **enhancer thật sự đọc payload đó**. `t()` chạy trong
+trình duyệt, trên một khối JSON do trình duyệt parse, ở thời điểm PHPUnit không
+nhìn thấy. Mà đó chính là chỗ lỗi cũ đã sống suốt: shop hiện tiếng Anh cho khách
+Việt đúng lúc gần trả tiền nhất, và không test server nào bắt được.
+
+**3. Test phải kiểm THỨ ĐÚNG, không phải thứ dễ kiểm.** Bẫy này không riêng gì
+E2E nhưng E2E hay dính nhất, vì "trang có render không" luôn dễ viết hơn "thao
+tác có chạy không".
+
+> **Ca đắt nhất, 2026-09-10.** Form đánh giá mới dựng có test khẳng định
+> `data-review-form` xuất hiện trong HTML. Test xanh. Nhưng `action` của form
+> dựng từ **slug**, trong khi route `products/{product}` bind theo **id** — nên
+> **mọi lượt gửi đánh giá đều 404**. Tính năng hỏng ở đúng chỗ quan trọng nhất
+> và test vẫn xanh, vì nó kiểm *form có mặt* chứ không kiểm *form gửi được*.
+>
+> Bản sửa: lấy `action` **ra khỏi trang đã render** rồi POST vào chính nó. Đó
+> mới là phiên bản duy nhất của test này có thể bắt được lỗi đó.
+
+### Ba trường hợp E2E đáng viết trong shop này
+
+Không phải danh sách mong muốn — là ba loại việc mà bỏ E2E thì không còn gì canh:
+
+**a. Bundle add-on của panel có nạp và render không.** Panel là Inertia/Vue; một
+màn hình khai báo bị hỏng biểu hiện là `Panel page not found: …` **chỉ trong
+console**, còn server vẫn trả 200 với payload Inertia hợp lệ. Xem
+`PanelFormsTest`.
+
+**b. Chuỗi đã dịch có tới được DOM không.** Xem nguyên tắc 2 ở trên và
+`StorefrontI18nSmokeTest`.
+
+**c. Console sạch trên các trang chính.** Rẻ, và bắt được cả một lớp lỗi: bundle
+chưa build, biến chưa định nghĩa, thư viện nạp sai thứ tự. `StorefrontSmokeTest`
+ghé trang chủ, collection, tìm kiếm, sản phẩm, giỏ, wishlist, đăng nhập/đăng ký.
+
+### Khi test E2E đỏ, nghi theo thứ tự này
+
+1. **Chưa build asset.** `public/build` và bundle panel đều gitignore. Đây là
+   nguyên nhân phổ biến nhất và triệu chứng trông giống hệt lỗi code.
+2. **ChromeDriver lệch Chrome** — xem §2. Lệch một major thì thường vẫn chạy;
+   lệch nhiều mới chết.
+3. **Dữ liệu DB dev đã đổi.** E2E chạy trên DB dev thật, không phải
+   `RefreshDatabase`. Một sản phẩm bị đổi tên là một test đỏ.
+4. Rồi mới tới code.
+
 ### Bài học đắt nhất
 
 Trong đợt truy bug media picker (thời admin còn chạy Filament/Livewire), **mọi
@@ -247,11 +312,11 @@ trả về cả dòng SKU chứ không phải field. Nhớ gỡ ra sau khi xong.
 
 ## 6. Đang có gì
 
-`tests/Browser/VariantMediaPickerTest.php` — 4 test cho trang biến thể sản phẩm:
+| File | Test | Canh cái gì |
+| --- | --- | --- |
+| `PanelFormsTest` | 5 | Bundle add-on nạp và render; đổi loại section thì nhánh hiển thị đổi theo; repeater thêm/xoá dòng; slug bám theo tiêu đề; trường ảnh mở được thư viện |
+| `StorefrontSmokeTest` | 3 | 12 trang chính tải được **và console sạch** — trang chủ, collection, tìm kiếm, sản phẩm, nội dung, lookbook, khuyến mãi, giỏ, wishlist, đăng nhập, đăng ký |
+| `StorefrontI18nSmokeTest` | 2 | Khối i18n tới được trình duyệt và parse được; lời nhắc freeship ghép đúng từ mẫu đã dịch + thay `:amount` |
 
-| Test | Canh cái gì |
-|---|---|
-| trang tải không lỗi console | Không có entangle/Alpine error lúc tải |
-| mở picker giữ console sạch | Lỗi từng nổ đúng lúc modal được chèn vào DOM |
-| modal mở được | Không hỏng lặng lẽ |
-| chọn ảnh thì gắn vào dòng | **Thêm** ảnh, không **thay** — bug thật đã tìm ra. Ghi vào DB dev rồi khôi phục trong `finally` |
+Chạy trong CI từ 2026-09-10 (job `dusk`), đỏ thì upload ảnh chụp + console log —
+đó là toàn bộ bằng chứng còn lại khi lỗi nằm ở trình duyệt.
