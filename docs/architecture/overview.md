@@ -751,6 +751,30 @@ theo session không cần crawl (cart drawer/page, wishlist).
 > `cancel()`, `close()`) rồi status tự theo. Chi tiết + bốn cái bẫy:
 > [../guides/upgrade-lunar-2.0.md](../guides/upgrade-lunar-2.0.md) §9.6.
 
+- **Panel gửi lại được email THẬT của shop, không phải bản chung chung.** Trang đơn
+  hàng của Lunar có nút "Gửi thông báo" (`POST panel/orders/{order}/notify`), dựng
+  notification từ `OrderNotificationManifest`. Danh mục đó ship sẵn **đúng một** mục
+  — `order-update` — còn email của shop là Mailable phát từ listener, nên nhân viên
+  gửi được một "cập nhật đơn hàng" trống rỗng mà **không** gửi lại được đúng cái
+  email khách đang hỏi. Lại đúng hình dạng lỗi lặp lại của dự án: *thứ ta ghi và
+  thứ panel đọc là hai chỗ khác nhau.*
+
+  `ResendableOrderMail` là adapter mỏng: Lunar dựng notification bằng
+  `new $class($order, $message)`, adapter giữ đúng chữ ký đó và `toMail()` trả về
+  chính Mailable sẵn có — không chép lại gì của email. `OrderStatusUpdatedMail`
+  **cố ý** không đăng ký: nó render một chuyển tiếp (`previousStatus` → hiện tại),
+  nên không có khái niệm "gửi lại nó một mình".
+
+  Đăng ký bằng **khoá dịch**, không phải `__()` của khoá: manifest tự dịch lúc đọc,
+  dịch sẵn lúc boot sẽ đóng băng locale của nhân viên đang đăng nhập.
+
+  `NotifyCustomerWithUserFallback` mở rộng action của Lunar qua contract (không
+  fork) để thêm một nấc người nhận: Lunar chỉ đọc contact email của hai địa chỉ,
+  còn `CheckoutController` của ta để `contact_email` **nullable** trên đường API
+  (khác `PlaceOrderRequest` của web vốn bắt buộc). Không có nấc này thì hộp thoại
+  panel là đường DUY NHẤT từ chối gửi, ném "no recipients" trên một đơn mà shop đã
+  gửi email thành công. Chỉ tập người nhận đổi; phần gửi, entry activity
+  `email-notification` và event `OrderCustomerNotified` vẫn là của Lunar.
 - Order history + order detail + **timeline** (`OrderTimeline` đọc `activity_log`,
   **không** tạo bảng riêng; chỉ lấy event `status-update`, vì cùng bảng đó chứa row
   `updated` với full column diff — không được lộ ra). 1.x có entry đó do Lunar ghi;

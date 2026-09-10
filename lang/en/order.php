@@ -23,4 +23,18 @@ return [
         'cancelled' => 'Cancelled',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Resendable notification labels
+    |--------------------------------------------------------------------------
+    |
+    | Shown in the panel's "Notify customer" dialog on an order. The keys are
+    | registered with the OrderNotificationManifest in OrderServiceProvider.
+    |
+    */
+
+    'notifications' => [
+        'confirmation' => 'Order confirmation',
+        'paid' => 'Payment received',
+    ],
 ];

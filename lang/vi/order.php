@@ -23,4 +23,18 @@ return [
         'cancelled' => 'Đã huỷ',
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Nhãn thông báo gửi lại được từ panel
+    |--------------------------------------------------------------------------
+    |
+    | Hiện trong hộp thoại "Gửi thông báo" trên trang đơn hàng của panel. Khoá
+    | được đăng ký vào OrderNotificationManifest ở OrderServiceProvider.
+    |
+    */
+
+    'notifications' => [
+        'confirmation' => 'Xác nhận đơn hàng',
+        'paid' => 'Đã nhận thanh toán',
+    ],
 ];
