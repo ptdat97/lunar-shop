@@ -627,6 +627,57 @@ theo session không cần crawl (cart drawer/page, wishlist).
   đúng bộ ảnh của variant đang chọn (view composer trong Assets), nên deep-link không bị
   nháy; JS chỉ đổi gallery khi **tập ảnh** đổi — đổi size cùng màu không rebuild.
   Variant không có ảnh riêng → fallback về gallery product.
+- **Bộ quan hệ của thẻ sản phẩm nằm ở MỘT chỗ:**
+  `ProductService::cardRelations()`. Mọi đường sinh ra thẻ (search engine,
+  collection, gợi ý, khuyến mãi) đều `->with()` bộ này.
+
+  Trước đây bốn service mỗi chỗ giữ một bản chép, và **mỗi bản thiếu một thứ
+  khác nhau**. Thiếu sót kiểu này vô hình cho tới khi có người đếm truy vấn:
+  trang vẫn render đúng, chỉ là mỗi thẻ tự đi lấy dữ liệu. `/search` từng chạy
+  **1298 truy vấn cho 24 thẻ**; gợi ý 112 truy vấn cho 8 sản phẩm.
+
+  Bắt buộc phải có `productOptions.values` **và** `variants.values`:
+  `ProductResource` serialise nhóm option cho từng thẻ, và phép nối đó cần cả
+  hai vế.
+
+  `thumbnail` cũng bắt buộc, **dù `media` đã có trong danh sách**. Lunar khai
+  `thumbnail()` là một `MorphOne` riêng (lọc theo collection +
+  `custom_properties->primary`), và Eloquent không trả lời một quan hệ bằng
+  collection đã nạp của quan hệ khác. View composer của thẻ đọc nó ba lần
+  (`$image`, `$picture`, `$hoverImage`), nên bỏ ra là **một truy vấn mỗi thẻ**.
+  Đây từng là nhận định sai trong chính tài liệu này — sửa sau khi đo section
+  `product-tabs`: 19 → 12 truy vấn cho 8 thẻ, truy vấn `media` lẻ 8 → 0.
+
+  Danh sách này là bộ của thẻ JSON. Trên các đường **chỉ render Blade** (section
+  `product-tabs` ở trang chủ) thì `productOptions.values` là nạp thừa, giá 3 truy
+  vấn gom lô — đã đo và vẫn giữ: 3 truy vấn hằng số rẻ hơn một danh sách thứ hai
+  rồi lại lệch khỏi danh sách này, đúng con bug mà `cardRelations()` sinh ra để
+  chặn.
+
+  Ngược lại, KHÔNG phải đường nào chạm product cũng dùng bộ này. Trang chi tiết
+  lookbook (`ContentService::lookbook()`) render thẻ bằng Blade và không serialise
+  nhóm option, nên nó giữ danh sách hẹp của riêng nó — nhét `cardRelations()` vào
+  đó làm trang **tăng** 14 → 17 truy vấn. Tiêu chí là *thẻ đó có đi qua
+  `ProductResource` không*, không phải *có phải là thẻ sản phẩm không*.
+
+  📏 Đo phải ấm cache: chạy request một lần bỏ đi rồi mới bật `DB::enableQueryLog()`
+  cho lần thứ hai. Lần đầu trong một tiến trình mới còn nạp config/view/section
+  cache — chính trang lookbook này đếm nguội ra 39 truy vấn, ấm ra 14. Và đừng
+  `git stash` một file mà file khác đang gọi: trang sẽ lỗi và cho ra "2 truy vấn",
+  trông như tối ưu chứ thực ra là trang chết.
+
+  Tổng cộng có **tám** bản chép được gom về đây: search engine, collection, gợi
+  ý, khuyến mãi (×2), `ProductService::bySlugs()/byIds()/related()`,
+  `WishlistService` và section `product-tabs`. Bản của wishlist thiếu cả
+  `defaultUrl` lẫn `prices` — trang yêu thích vừa truy vấn link theo từng thẻ vừa
+  tự đi lấy giá cho từng variant: **108 → 10 truy vấn cho 8 thẻ**. Ba lời gọi
+  `loadMissing([...])` trong SearchController (web + API) và CollectionController
+  cũng đã gỡ: search engine nạp sẵn bộ này rồi, nên chúng là no-op.
+
+  ⚠️ Gọi `productOptions()` (phương thức quan hệ) **luôn** truy vấn mới, kể cả
+  khi caller đã eager-load. Dùng `loadMissing` — đó là lỗi khiến ngay cả trang
+  chi tiết, vốn eager-load đúng, vẫn trả thêm một truy vấn mỗi lần.
+
 - **Search abstraction:** interface `SearchEngine` + driver `DatabaseSearchEngine`
   (MySQL, `computeFacets` trả size/color/brand/price, `applyFilters`). Đổi engine sau =
   thêm driver, không sửa caller. **Facet và filter đọc chung một nguồn** — bảng

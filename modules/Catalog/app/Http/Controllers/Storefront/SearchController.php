@@ -25,8 +25,6 @@ class SearchController extends Controller
         $query = (string) $request->string('q', '');
 
         $result = $this->search->search(SearchQuery::fromRequest($request));
-        // `media` powers the product-card hover (second) image (N+1-free grid).
-        $result->items->loadMissing(['variants', 'thumbnail', 'brand', 'media']);
 
         // Same contract as GET /api/v1/search — one shape for SSR + island.
         $state = SearchResultResource::toState($result, $request);

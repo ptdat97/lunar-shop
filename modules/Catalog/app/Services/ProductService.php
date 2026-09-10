@@ -106,6 +106,52 @@ class ProductService
      *
      * @return array<string, array{handle: ?string, display_type: string, values: list<array{label: string, color: ?string, image: ?string}>}>
      */
+    /**
+     * Everything a product card reads, in one place.
+     *
+     * Four services were each carrying their own copy of this list and every
+     * copy had drifted differently — the listing missed the product's options,
+     * recommendations missed those and the variants' values, and so on. Each
+     * omission is invisible until someone counts queries: the page renders
+     * correctly, it just fetches per card. `/search` was running 1298 queries
+     * for 24 cards that way.
+     *
+     * `productOptions.values` and the variants' `values` are both here because
+     * ProductResource serialises the option groups for every card, and that
+     * join needs both sides.
+     *
+     * `thumbnail` is here even though `media` is: Lunar declares it as its own
+     * MorphOne (collection + `custom_properties->primary`), and Eloquent does
+     * not answer a distinct relation from another one's loaded collection. The
+     * card composer reads it for the main image, the responsive `<picture>` and
+     * the hover image, so leaving it out costs one query per card — measured on
+     * the home page's product-tabs section, which is a plain Blade grid.
+     *
+     * This is the JSON card's list. `productOptions.values` costs three
+     * batched queries on the Blade-only paths that never serialise option
+     * groups (the home page's product-tabs section) — measured, and kept:
+     * three constant queries are cheaper than a second list that drifts from
+     * this one, which is the bug this method exists to prevent.
+     *
+     * @return array<string|int, mixed>
+     */
+    public static function cardRelations(): array
+    {
+        return [
+            // Only enabled variants feed a card's price, availability or sku —
+            // a disabled one must never leak into the storefront.
+            'variants' => fn ($query) => $query->where('enabled', true)
+                ->with(['prices', 'values'])
+                ->chaperone(),
+            'productOptions.values',
+            'brand',
+            'collections',
+            'defaultUrl',
+            'media',
+            'thumbnail',
+        ];
+    }
+
     public function optionGroups(Product $product): array
     {
         $groups = [];
@@ -267,8 +313,7 @@ class ProductService
         $products = Product::query()
             ->where('status', 'published')
             ->whereHas('urls', fn ($u) => $u->whereIn('slug', $slugs))
-            ->with(['variants' => fn ($q) => $q->where('enabled', true)->with(['prices', 'values'])->chaperone(),
-                'productOptions.values', 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media'])
+            ->with(self::cardRelations())
             ->get();
 
         // Re-order to match the requested slug order (DB returns arbitrary order).
@@ -300,8 +345,7 @@ class ProductService
         $products = Product::query()
             ->where('status', 'published')
             ->whereIn('id', $ids)
-            ->with(['variants' => fn ($q) => $q->where('enabled', true)->with(['prices', 'values'])->chaperone(),
-                'productOptions.values', 'thumbnail', 'brand', 'defaultUrl', 'collections', 'media'])
+            ->with(self::cardRelations())
             ->get();
 
         $order = array_flip($ids);
@@ -326,11 +370,7 @@ class ProductService
         // the RecommendationService hydrates the final, de-duplicated list
         // once. Direct callers can still request ready-to-render card models.
         if ($withCardRelations) {
-            $query->with([
-                'variants' => fn ($q) => $q->where('enabled', true)->with(['prices', 'values'])->chaperone(),
-                'productOptions.values',
-                'thumbnail', 'brand', 'defaultUrl', 'collections', 'media',
-            ]);
+            $query->with(self::cardRelations());
         }
 
         if ($collectionIds->isNotEmpty()) {

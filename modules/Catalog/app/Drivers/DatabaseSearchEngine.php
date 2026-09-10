@@ -9,6 +9,7 @@ use Lunar\Core\Models\Product;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Data\SearchResult;
+use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Support\MediaThumbnails;
 use Modules\Catalog\Support\TranslatedColumn;
 
@@ -28,26 +29,7 @@ class DatabaseSearchEngine implements SearchEngine
             // promotion eligibility, hover image) so a 24-card grid stays flat,
             // not N+1. `media` is included here so callers never need a follow-up
             // loadMissing(['media']) — one place, one query.
-            ->with([
-                // Only enabled variants feed the card price / availability / API —
-                // a disabled variant must never leak its price, stock or sku code
-                // into the listing (every other read path filters the same way).
-                // `values` rides along because every card serialises its option
-                // groups (ProductResource → optionGroups → VariantAxes), and
-                // both sides of that join are per-product data.
-                'variants' => fn ($q) => $q->where('enabled', true)
-                    ->with(['prices', 'values'])
-                    ->chaperone(),
-                'productOptions.values',
-                'brand',
-                'defaultUrl',
-                'collections',
-                // `media` is the full gallery (hover image). The `thumbnail`
-                // relation is just its primary item, so we DON'T eager-load
-                // thumbnail separately (a second media query filtered to
-                // primary=true) — it's back-filled from `media` in PHP below.
-                'media',
-            ]);
+            ->with(ProductService::cardRelations());
 
         $this->applyTerm($builder, $query->term);
         $this->applyScope($builder, $query->scope);

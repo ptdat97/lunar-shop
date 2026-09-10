@@ -5,6 +5,7 @@ namespace Modules\Customer\Services;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Collection;
 use Lunar\Core\Models\Product;
+use Modules\Catalog\Services\ProductService;
 use Modules\Customer\Models\WishlistItem;
 
 /**
@@ -33,7 +34,11 @@ class WishlistService
     {
         return Product::query()
             ->whereIn('id', $this->productIdsFor($user))
-            ->with(['variants', 'thumbnail', 'brand', 'media']) // media → card hover image
+            // Danh sách chung của thẻ sản phẩm. Bản viết tay ở đây thiếu
+            // `defaultUrl` (một truy vấn mỗi thẻ, cho chính cái link của thẻ)
+            // và thiếu `prices`, nên mỗi variant lại tự đi lấy giá:
+            // 108 truy vấn cho 8 thẻ, giờ còn 10.
+            ->with(ProductService::cardRelations())
             ->get();
     }
 

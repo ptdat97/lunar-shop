@@ -199,10 +199,12 @@ class ContentServiceProvider extends ServiceProvider
                 : Product::query()
                     ->whereIn('id', $allIds)
                     ->where('status', 'published')
-                    // PricingService primes price->currency from its per-request
-                    // currency map, so `prices` alone is enough here; media
-                    // powers the hover image.
-                    ->with(['variants.prices', 'thumbnail', 'brand', 'media'])
+                    // The same set every other card path loads. The list this
+                    // replaced was missing `defaultUrl`, which the card blade
+                    // reads for its href — one query per card, 8 of the 13 this
+                    // section ran. It also asked for `thumbnail` alongside
+                    // `media`, which is the same rows fetched twice.
+                    ->with(ProductService::cardRelations())
                     ->get()
                     ->keyBy('id');
 

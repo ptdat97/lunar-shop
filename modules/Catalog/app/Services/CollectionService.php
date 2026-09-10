@@ -72,10 +72,7 @@ class CollectionService
             // ProductVariant is the shop's purchasable, so catalog cards must
             // never load Lunar's legacy variants. Keep disabled variants out and
             // load their prices for ProductResource in one pass.
-            ->with([
-                'variants' => fn ($variants) => $variants->where('enabled', true)->with('prices')->chaperone(),
-                'brand', 'collections', 'defaultUrl', 'media',
-            ]);
+            ->with(ProductService::cardRelations());
 
         // `name` is a {locale: text} JSON column since Lunar 2.0; sort on the
         // visitor's locale.

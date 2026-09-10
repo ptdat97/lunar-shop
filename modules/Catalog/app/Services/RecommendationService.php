@@ -140,12 +140,9 @@ class RecommendationService
         $products = Product::query()
             ->where('status', 'published')
             ->whereIn('id', $ids)
-            // Full product-card relation set (price + url + promotion eligibility)
-            // so recommendation grids render flat, not N+1.
-            ->with([
-                'variants' => fn ($variants) => $variants->where('enabled', true)->with('prices')->chaperone(),
-                'brand', 'defaultUrl', 'collections', 'media',
-            ])
+            // The shared card relation set, so recommendation grids render
+            // flat rather than fetching per card.
+            ->with(ProductService::cardRelations())
             ->get();
 
         // The full media relation already contains the primary image. Avoid a

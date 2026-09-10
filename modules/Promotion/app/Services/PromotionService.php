@@ -6,6 +6,7 @@ use Illuminate\Support\Collection;
 use Lunar\Core\Models\Cart;
 use Lunar\Core\Models\Discount;
 use Lunar\Core\Models\Product;
+use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Support\MediaThumbnails;
 
 /**
@@ -121,7 +122,7 @@ class PromotionService
             // `media` powers the card hover (second) image; the `thumbnail`
             // (primary media) is back-filled from it below instead of being a
             // second, primary-filtered media query.
-            ->with(['variants.prices', 'brand', 'collections', 'defaultUrl', 'media']);
+            ->with(ProductService::cardRelations());
 
         $productIds = $this->targets->targetedProductIds($discount);
         $collectionIds = $this->targets->targetedCollectionIds($discount);
@@ -188,7 +189,7 @@ class PromotionService
         // (previously one query set PER promotion — an N+1 over promotions).
         $query = Product::query()
             ->where('status', 'published')
-            ->with(['variants.prices', 'brand', 'collections', 'defaultUrl', 'media']);
+            ->with(ProductService::cardRelations());
 
         // When no promotion is cart-wide, scope to just the targeted products
         // (by id or by membership of a targeted collection). Otherwise leave the
