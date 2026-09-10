@@ -5,6 +5,8 @@ namespace Modules\Promotion\Http\Controllers\Api\V1;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Lunar\Core\DataObjects\PriceValue;
+use Lunar\Core\Models\Currency;
 use Modules\Customer\Services\CustomerResolver;
 use Modules\Promotion\Http\Resources\PromotionResource;
 use Modules\Promotion\Services\MembershipService;
@@ -42,7 +44,18 @@ class PromotionController extends Controller
                 'lifetime_spend' => $this->membership->lifetimeSpend($customer),
                 'next_tier' => $next ? [
                     'name' => $next['tier']['name'],
+                    // Số thô (đơn vị nhỏ nhất) vẫn giữ cho thanh tiến độ.
                     'remaining' => $next['remaining_minor'],
+                    // ...còn chuỗi để HIỂN THỊ thì server định dạng, đúng mẫu
+                    // CartResource::freeShippingInfo(). Trước đây JS tự định
+                    // dạng bằng `formatVnd()`, ghim cứng VND và chia cho 100 —
+                    // sai hai lần: sai tiền tệ nếu shop dùng loại khác, và sai
+                    // 100 lần nếu shop dùng chính VND, vì VND có 0 chữ số thập
+                    // phân chứ không phải 2.
+                    'remaining_formatted' => (new PriceValue(
+                        (int) $next['remaining_minor'],
+                        Currency::getDefault(),
+                    ))->format(),
                 ] : null,
             ],
         ]);

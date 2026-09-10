@@ -6,9 +6,11 @@
      price is struck through and the discounted price shown beside it. --}}
 @if($formatted)
     @if($sale && ($sale['has_price_break'] ?? false))
-        <span class="product-card__price fw-semibold text-danger me-1">{{ $sale['sale'] }}</span>
+        <span class="product-card__price fw-semibold text-danger me-1"
+              data-price-amount="{{ $amount }}" data-price-currency="{{ $currencyCode }}">{{ $sale['sale'] }}</span>
         <span class="product-card__price-original text-muted text-decoration-line-through small">{{ $sale['original'] }}</span>
     @else
-        <span class="product-card__price fw-semibold">{{ $formatted }}</span>
+        <span class="product-card__price fw-semibold"
+              data-price-amount="{{ $amount }}" data-price-currency="{{ $currencyCode }}">{{ $formatted }}</span>
     @endif
 @endif

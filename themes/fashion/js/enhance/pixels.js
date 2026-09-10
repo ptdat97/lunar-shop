@@ -68,14 +68,24 @@
         }
 
         const nameEl = productCard.querySelector('.product-card__title a, h1');
-        const priceEl = productCard.querySelector('[data-product-price], .product-card__price');
+        const priceEl = productCard.querySelector('[data-price-amount], [data-product-price], .product-card__price');
         const name = nameEl ? nameEl.textContent.trim() : null;
-        const priceText = priceEl ? priceEl.textContent.trim() : '0';
-        const price = parseFloat(priceText.replace(/[^0-9.]/g, '')) || 0;
+
+        // Đọc số THÔ từ data-*, KHÔNG bóc từ chuỗi đã định dạng.
+        //
+        // Bản cũ làm `parseFloat(text.replace(/[^0-9.]/g, ''))`, chỉ đúng với
+        // định dạng kiểu Mỹ. Với "250.000 ₫" nó ra 250 (sai 1000 lần), với
+        // "1.250.000 ₫" ra 1.25 (sai một triệu lần). Giá trị chuyển đổi gửi cho
+        // GA/Facebook vì thế sai hệ số nghìn — làm hỏng ROAS và cả việc đặt giá
+        // thầu quảng cáo, mà không có gì báo lỗi ở đâu cả.
+        //
+        // Tiền tệ cũng vậy: trước đây ghim cứng 'USD' bất kể shop bán bằng gì.
+        const price = Number(priceEl?.dataset.priceAmount ?? 0) || 0;
+        const currency = priceEl?.dataset.priceCurrency || 'USD';
 
         track('add_to_cart', {
             value: price,
-            currency: 'USD',
+            currency,
             items: [
                 {
                     item_id: variantId,

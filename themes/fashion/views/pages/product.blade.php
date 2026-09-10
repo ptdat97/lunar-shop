@@ -141,7 +141,11 @@
         {{-- Price reflects the selected variant (updated by JS). On a price
                  break the original is struck and the sale price shown beside it;
                  enhance/product-variant.js keeps this in sync on variant change. --}}
-        <div class="h4 my-3" data-product-price>
+        {{-- `data-price-amount` là số THÔ cho pixel/analytics đọc. Trước đây
+             pixels.js bóc giá ra khỏi chuỗi hiển thị, chỉ đúng với định dạng
+             kiểu Mỹ: "1.250.000 ₫" cho ra 1.25. --}}
+        <div class="h4 my-3" data-product-price
+             data-price-amount="{{ $displayAmount }}" data-price-currency="{{ $currencyCode }}">
           @if ($sale && ($sale['has_price_break'] ?? false))
             <span class="text-danger me-2" data-price-sale>{{ $sale['sale'] }}</span>
             <span class="text-muted text-decoration-line-through fs-6" data-price-original>{{ $sale['original'] }}</span>

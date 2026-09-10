@@ -220,7 +220,18 @@ class CatalogServiceProvider extends ServiceProvider
 
         View::composer('theme::components.price', function ($view) use ($pricing): void {
             $product = $view->getData()['product'] ?? null;
-            $view->with('formatted', $product ? $pricing()->displayPrice($product) : null);
+            $svc = $pricing();
+
+            $view->with([
+                'formatted' => $product ? $svc->displayPrice($product) : null,
+                // Số THÔ cho máy đọc, cạnh chuỗi đã định dạng cho người đọc.
+                // pixels.js trước đây bóc giá ra khỏi chuỗi hiển thị bằng
+                // `replace(/[^0-9.]/g,'')` — với "1.250.000 ₫" cho ra 1.25, sai
+                // một triệu lần, và không có gì báo. Cùng hai giá trị này đã
+                // dùng cho JSON-LD, nên không thêm phép tính nào.
+                'amount' => $product ? $svc->lowestPriceAmount($product) : null,
+                'currencyCode' => $svc->defaultCurrencyCode(),
+            ]);
         });
 
         View::composer('theme::pages.product', function ($view) use ($pricing): void {
@@ -242,6 +253,11 @@ class CatalogServiceProvider extends ServiceProvider
                     ? $svc->displayPriceForVariant($selectedVariant)
                     : ($product ? $svc->displayPrice($product) : null),
                 'lowestPriceAmount' => $product ? $svc->lowestPriceAmount($product) : null,
+                // Số thô KHỚP với chuỗi đang hiển thị (giá của variant đang
+                // chọn), không phải giá thấp nhất của sản phẩm — pixel phải báo
+                // đúng con số khách nhìn thấy.
+                'displayAmount' => $svc->displayAmountForVariant($selectedVariant)
+                    ?? ($product ? $svc->lowestPriceAmount($product) : null),
                 'currencyCode' => $svc->defaultCurrencyCode(),
             ]);
         });

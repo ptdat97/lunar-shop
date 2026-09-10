@@ -131,6 +131,18 @@ class PricingService
     }
 
     /**
+     * The selected variant's price as a raw decimal, for machine readers.
+     *
+     * Pairs with {@see displayPriceForVariant()}: one string for the person,
+     * one number for the tracker. They must come from the same price or the
+     * analytics value stops matching what the shopper saw.
+     */
+    public function displayAmountForVariant(?ProductVariant $variant): ?float
+    {
+        return $variant ? $this->matchedPrice($variant)?->unitDecimal('price') : null;
+    }
+
+    /**
      * The store's default currency code (e.g. "USD", "VND"), for display /
      * structured data. Falls back to "USD" when none is configured.
      */
@@ -150,5 +162,4 @@ class PricingService
             ->filter()
             ->min();
     }
-
 }

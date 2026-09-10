@@ -7,11 +7,6 @@ import { t } from '../i18n.js';
 
 // API returns spend/remaining in minor units of the default currency (VND has
 // no minor unit subdivision in practice; factor 100 in Lunar). Format as VND.
-function formatVnd(minor) {
-    const amount = Math.round((minor ?? 0) / 100);
-    return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount);
-}
-
 export default async function membership(root = document) {
     const card = root.querySelector?.('[data-membership]') ?? document.querySelector('[data-membership]');
     if (!card) return;
@@ -46,9 +41,16 @@ export default async function membership(root = document) {
     }
 
     if (info.next_tier) {
+        // Số tiền đã được SERVER định dạng theo đúng tiền tệ của shop.
+        // Trước đây file này tự định dạng bằng `formatVnd()`: ghim cứng VND bất
+        // kể shop dùng loại tiền nào, và chia cho 100 — tức giả định 2 chữ số
+        // thập phân, trong khi VND có 0. Với shop VND thật nó hiện đúng 1% số
+        // tiền, và không có gì báo lỗi.
+        const remaining = info.next_tier.remaining_formatted ?? '';
+
         nextEl.textContent = t('membership.spend_to_reach',
-            { amount: formatVnd(info.next_tier.remaining), tier: info.next_tier.name },
-            `Spend ${formatVnd(info.next_tier.remaining)} more to reach ${info.next_tier.name}.`);
+            { amount: remaining, tier: info.next_tier.name },
+            `Spend ${remaining} more to reach ${info.next_tier.name}.`);
         nextEl.hidden = false;
 
         // Rough progress within the current → next band based on remaining.
