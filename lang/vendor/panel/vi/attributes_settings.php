@@ -1,0 +1,76 @@
+<?php
+
+/* Việt hoá màn hình Thuộc tính. Xem orders.php cho cơ chế merge. */
+
+return [
+
+    'title' => 'Thuộc tính',
+    'description' => 'Các trường tuỳ biến gắn trên sản phẩm, biến thể và những bản ghi khác.',
+    'create_attribute' => 'Tạo thuộc tính',
+    'create_description' => 'Thêm một trường tuỳ biến; kiểu của nó cố định ngay sau khi tạo.',
+    'system_badge' => 'Hệ thống',
+    'empty_title' => 'Chưa có thuộc tính nào',
+    'all_groups' => 'Mọi nhóm',
+
+    'column_name' => 'Tên',
+    'column_handle' => 'Mã định danh',
+    'column_group' => 'Nhóm',
+    'column_type' => 'Kiểu',
+
+    'field_name' => 'Tên',
+    'name_placeholder' => 'ví dụ: Chất liệu',
+    'field_handle' => 'Mã định danh',
+    'handle_hint' => 'chữ_thường_và_gạch_dưới',
+    'handle_placeholder' => 'tự sinh',
+    'field_group' => 'Nhóm',
+    'no_group' => 'Không thuộc nhóm nào',
+    'field_type' => 'Kiểu',
+    'type_locked_hint' => 'cố định sau khi tạo',
+    'field_position' => 'Vị trí',
+    'field_model_types' => 'Áp dụng cho',
+    'model_types_desc' => 'Những loại bản ghi nào mang thuộc tính này.',
+    'product_and_variant_invalid' => 'Thuộc tính của sản phẩm vốn đã hiện trên biến thể; chỉ chọn một trong hai.',
+
+    'type_text' => 'Chữ',
+    'type_translated_text' => 'Chữ có dịch',
+    'type_number' => 'Số',
+    'type_toggle' => 'Bật/tắt',
+    'type_dropdown' => 'Danh sách chọn',
+    'type_list' => 'Danh sách',
+    'type_file' => 'Tệp',
+    'type_youtube' => 'YouTube',
+    'type_vimeo' => 'Vimeo',
+
+    'flag_required' => 'Bắt buộc',
+    'flag_searchable' => 'Tìm kiếm được',
+    'flag_filterable' => 'Lọc được',
+    'required_hint' => 'Phải nhập giá trị thì mới lưu được.',
+    'searchable_hint' => 'Được lập chỉ mục cho tìm kiếm trong panel và trên storefront.',
+    'filterable_hint' => 'Dùng được làm bộ lọc trên storefront.',
+
+    'section_details' => 'Chi tiết',
+    'section_behaviour' => 'Hành vi',
+    'section_model_types' => 'Áp dụng cho',
+    'section_configuration' => 'Cấu hình',
+    'lookups_desc' => 'Những lựa chọn mà khách và nhân viên chọn được.',
+    'add_option' => 'Thêm lựa chọn',
+    'remove_option' => 'Xoá lựa chọn',
+    'no_options' => 'Chưa có lựa chọn nào',
+    'option_label_placeholder' => 'Nhãn',
+    'option_value_placeholder' => 'Giá trị',
+    'tags_placeholder' => 'Gõ rồi nhấn Enter',
+    'richtext' => 'Soạn thảo có định dạng',
+    'richtext_hint' => 'Sửa trường này bằng trình soạn thảo có định dạng.',
+    'field_min' => 'Nhỏ nhất',
+    'field_max' => 'Lớn nhất',
+
+    'edit_title' => 'Sửa thuộc tính — {name}',
+    'confirm_delete' => 'Bạn chắc chắn muốn xoá thuộc tính này? Giá trị của nó sẽ bị xoá khỏi mọi bản ghi.',
+    'confirm_delete_title' => 'Xoá thuộc tính?',
+    'confirm_delete_body' => '"{name}" sẽ bị xoá vĩnh viễn cùng toàn bộ giá trị của nó.',
+    'delete_blocked_system' => 'Không xoá được thuộc tính hệ thống.',
+
+    'flash_created' => 'Đã tạo thuộc tính.',
+    'flash_updated' => 'Đã cập nhật thuộc tính.',
+    'flash_deleted' => 'Đã xoá thuộc tính.',
+];

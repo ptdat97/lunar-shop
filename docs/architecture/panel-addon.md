@@ -359,6 +359,46 @@ Filament, không phải dịch lại. Phần khung mà engine vẽ (nút, xác n
 thái rỗng) nằm ở `lang/{locale}/panel.php` và được gửi xuống trong prop
 `resource`, nên một màn hình admin chỉ có một chỗ để dịch chứ không phải hai.
 
+### Chuỗi của chính panel Lunar
+
+Đó là **màn hình chính chủ** (Đơn hàng, Sản phẩm, Thương hiệu, Cài đặt…), nằm ở
+namespace `panel::`. Lunar có ship sẵn locale `vi` — nhưng **1302 trên 1994 khoá
+vẫn là nguyên văn tiếng Anh**, tức là placeholder chứ không phải bản dịch. Hai
+màn hình dùng hằng ngày nhất, Đơn hàng và Sản phẩm, chưa dịch một chữ nào.
+
+Ghi đè ở `lang/vendor/panel/{locale}/{group}.php`.
+
+⚠️ **Đường dẫn cũ `lang/vendor/lunarpanel/` đã chết** và đã xoá. `lunarpanel::`
+là namespace thời Filament; `PanelServiceProvider` giờ đăng ký namespace `panel`.
+File override cũ nằm đó không ghi đè gì cả — `__('lunarpanel::global.…')` trả về
+chính chuỗi khoá. Lại đúng lớp lỗi lặp lại của dự án: *ta ghi một chỗ, Lunar đọc
+một chỗ khác*, và im lặng.
+
+📌 **Laravel MERGE từng khoá cho namespace vendor** (`array_replace_recursive`
+trong `FileLoader::loadNamespaceOverrides`), nên file ghi đè chỉ cần chứa khoá
+muốn đổi — khoá không có vẫn rơi về bản của package. Chú thích trong file
+`lunarpanel` cũ nói ngược lại ("Laravel replaces the whole file (no key merge)")
+là **sai**; đã kiểm chứng bằng một file override một khoá.
+
+Hệ quả đáng giá của việc merge: những khoá upstream đã dịch đúng thì **cố ý
+không** ghi đè, để bản Lunar sau cải thiện được mà không bị file của mình che.
+
+`PanelTranslationTest` canh ba thứ mà đọc mắt không bắt được trên 1300 chuỗi:
+
+1. **Khoá phải tồn tại ở upstream.** Gõ sai một khoá thì nó không dịch gì cả và
+   cũng không báo lỗi.
+2. **Placeholder phải sống sót.** Đây là `{...}` của **vue-i18n**, giải quyết ở
+   trình duyệt — không phải `:param` của Laravel. Đổi `{amount}` thành `{sotien}`
+   là nhân viên nhìn thấy đúng chữ trong ngoặc, và không có gì ở đâu ném lỗi.
+   Số dạng số nhiều (`|`) cũng phải khớp: tiếng Việt không biến đổi nên hai vế
+   giữ nguyên chữ, nhưng vẫn phải đủ hai vế.
+3. **Không được để nguyên tiếng Anh** trong một file ghi đè. Ngoại lệ là danh từ
+   riêng và mã chuẩn (SKU, GTIN, ISO-2, YouTube…) — có danh sách riêng.
+
+Danh xưng khách hàng (`customers.title_mr/ms/mrs/mx/dr`) **cố ý giữ tiếng Anh**:
+tiếng Việt không có bộ tương đương gọn, và "Ông/Bà" thì mất cả Mx (trung tính)
+lẫn Dr. Dịch nửa vời ở đó tệ hơn để nguyên.
+
 ## Đăng nhập chỉ cần mật khẩu
 
 Lunar 2.0 **không có** đường đăng nhập chỉ-mật-khẩu và không có config nào tắt:

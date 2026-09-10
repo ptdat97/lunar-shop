@@ -1,0 +1,50 @@
+<?php
+
+/* Việt hoá phần Hình ảnh & tệp. Xem orders.php cho cơ chế merge. */
+
+return [
+
+    'title' => 'Hình ảnh',
+    'description' => '{count} ảnh · kéo để sắp lại · ô đầu tiên là ảnh đại diện',
+    'description_empty' => 'Ảnh hiển thị kèm bản ghi này. Ảnh đầu tiên trở thành ảnh đại diện.',
+    'upload' => 'Tải lên',
+    'upload_images' => 'Tải ảnh lên',
+    'empty_title' => 'Chưa có ảnh nào',
+    'empty_body' => 'Thả ảnh vào đây hoặc tải lên từ máy. Ảnh đầu tiên trở thành ảnh đại diện.',
+    'add_image' => 'Thêm ảnh',
+    'hero' => 'Đại diện',
+    'file_hint' => 'JPG, PNG hoặc WebP. Tối đa {size} MB mỗi tệp.',
+
+    'edit_image' => 'Sửa ảnh',
+    'edit_description' => 'Đặt chữ thay thế, chú thích không bắt buộc, và điểm lấy nét để ảnh cắt tự động vẫn giữ được phần quan trọng.',
+    'field_name' => 'Tên',
+    'field_alt' => 'Chữ thay thế',
+    'field_alt_placeholder' => 'ví dụ: Mặt trước sản phẩm màu titan nhám',
+    'field_caption' => 'Chú thích',
+    'field_caption_placeholder' => 'Thêm chú thích ngắn…',
+    'focal_point' => 'Điểm lấy nét',
+    'focal_hint' => 'Bấm hoặc kéo để đặt tâm khi cắt ảnh.',
+    'crop_previews' => 'Xem trước bản cắt',
+    'crop_previews_hint' => 'Xem trực tiếp các bản cắt tự động',
+    'make_primary' => 'Đặt làm ảnh đại diện',
+    'delete_image' => 'Xoá ảnh',
+    'confirm_delete_title' => 'Xoá ảnh này?',
+    'confirm_delete_body' => 'Tệp gốc và mọi bản chuyển đổi đều bị xoá. Ảnh đại diện tự chuyển sang ảnh kế tiếp.',
+    'reorder_mismatch' => 'Thứ tự không khớp với bộ ảnh hiện tại — tải lại trang rồi thử lại.',
+    'flash_uploaded' => 'Đã tải ảnh lên.',
+    'flash_updated' => 'Đã cập nhật ảnh.',
+    'flash_deleted' => 'Đã xoá ảnh.',
+
+    'files_description' => '{count} tệp · kéo để sắp lại',
+    'files_description_empty' => 'Tệp tải xuống được đính kèm bản ghi này.',
+    'upload_files' => 'Tải tệp lên',
+    'files_empty_title' => 'Chưa có tệp nào',
+    'files_empty_body' => 'Thả tệp vào đây hoặc tải lên từ máy.',
+    'files_hint' => 'Tối đa {size} MB mỗi tệp.',
+    'download' => 'Tải xuống',
+    'edit_file' => 'Sửa tệp',
+    'edit_file_description' => 'Đặt tên hiển thị và chú thích không bắt buộc.',
+    'delete_file' => 'Xoá tệp',
+    'confirm_delete_file_title' => 'Xoá tệp này?',
+    'confirm_delete_file_body' => 'Tệp sẽ bị xoá vĩnh viễn.',
+];

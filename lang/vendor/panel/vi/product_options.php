@@ -1,0 +1,93 @@
+<?php
+
+/* Việt hoá màn hình Tuỳ chọn sản phẩm. Xem orders.php cho cơ chế merge. */
+
+return [
+
+    'title' => 'Tuỳ chọn sản phẩm',
+    'description' => 'Các tuỳ chọn dùng chung như size và màu, dùng để sinh ra biến thể sản phẩm.',
+    'create_option' => 'Tạo tuỳ chọn',
+    'create_description' => 'Thêm một tuỳ chọn; quản lý các giá trị của nó ở màn hình chỉnh sửa.',
+    'shared_badge' => 'Dùng chung',
+    'empty_title' => 'Chưa có tuỳ chọn sản phẩm nào',
+
+    'column_name' => 'Tên',
+    'column_handle' => 'Mã định danh',
+    'column_type' => 'Kiểu',
+    'column_values' => 'Giá trị',
+    'column_products' => 'Sản phẩm',
+
+    'field_name' => 'Tên',
+    'name_placeholder' => 'ví dụ: Màu sắc',
+    'field_handle' => 'Mã định danh',
+    'handle_hint' => 'chữ-thường-và-gạch-ngang',
+    'handle_placeholder' => 'tự sinh',
+    'handle_change_warning' => 'Đổi mã định danh có thể làm hỏng tham chiếu ở các sản phẩm hiện có.',
+    'field_label' => 'Nhãn',
+    'label_hint' => 'Nhãn nội bộ, chỉ hiện trong trang quản trị',
+    'label_placeholder' => 'Nhãn nội bộ, không bắt buộc',
+    'field_type' => 'Kiểu',
+
+    'shared' => 'Dùng chung',
+    'shared_hint' => 'Tuỳ chọn dùng chung có thể tái sử dụng cho nhiều sản phẩm.',
+    'make_shared' => 'Chuyển thành dùng chung',
+    'make_shared_hint' => 'Tái sử dụng tuỳ chọn này cho nhiều sản phẩm. Không hoàn tác được.',
+    'shared_locked_hint' => 'Tuỳ chọn dùng chung tái sử dụng được cho nhiều sản phẩm và không chuyển ngược về riêng được.',
+    'untitled' => 'Tuỳ chọn chưa đặt tên',
+
+    'type_text' => 'Chữ',
+    'type_colour' => 'Màu',
+    'type_swatch' => 'Ảnh mẫu',
+    'change_type' => 'Đổi kiểu',
+    'change_type_title' => 'Đổi kiểu tuỳ chọn?',
+    'change_type_body' => 'Các giá trị riêng theo kiểu (màu, ảnh) sẽ bị xoá. Tên và thứ tự giá trị vẫn giữ. Không hoàn tác được.',
+    'new_type' => 'Kiểu mới',
+
+    'filter_all_types' => 'Mọi kiểu',
+    'filter_shared' => 'Chỉ loại dùng chung',
+    'filter_unused' => 'Chỉ hiện loại chưa dùng',
+
+    'section_details' => 'Chi tiết',
+    'section_values' => 'Giá trị ({count})',
+    'values_desc' => 'Những giá trị khách chọn được; mỗi tổ hợp sinh ra một biến thể.',
+    'values_reorder_desc' => 'Kéo để sắp lại. Đây là thứ tự khách hàng nhìn thấy.',
+    'add_value' => 'Thêm giá trị',
+    'remove_value' => 'Xoá giá trị',
+    'reorder_value' => 'Kéo để sắp lại',
+    'no_values' => 'Chưa có giá trị nào. Thêm một giá trị để bắt đầu dùng tuỳ chọn này.',
+    'no_values_short' => 'Chưa có giá trị',
+    'value_placeholder' => 'ví dụ: Đỏ',
+    'value_unused' => 'Chưa dùng',
+    'value_variant_count' => '{count} biến thể',
+    'value_delete_blocked' => 'Không xoá được giá trị đang được biến thể sản phẩm sử dụng.',
+    'unsupported_type' => 'Kiểu không hỗ trợ',
+
+    'pick_colour' => 'Chọn màu',
+    'swatch_upload' => 'Tải lên',
+    'swatch_replace' => 'Thay ảnh',
+    'swatch_remove_label' => 'Xoá ảnh mẫu',
+    'swatch_save_first' => 'Lưu tuỳ chọn trước khi tải ảnh mẫu lên.',
+    'swatch_uploaded' => 'Đã tải ảnh mẫu lên.',
+    'swatch_removed' => 'Đã xoá ảnh mẫu.',
+
+    'side_usage' => 'Mức sử dụng',
+    'side_usage_products' => 'sản phẩm',
+    'side_view_products' => 'Xem sản phẩm',
+    'side_timestamps' => 'Mốc thời gian',
+    'side_created' => 'Tạo lúc',
+    'side_updated' => 'Sửa lúc',
+    'side_activity' => 'Nhật ký',
+    'side_activity_see_all' => 'Xem tất cả',
+    'side_activity_empty' => 'Chưa có hoạt động nào.',
+
+    'edit_title' => 'Sửa tuỳ chọn sản phẩm — {name}',
+    'confirm_delete' => 'Bạn chắc chắn muốn xoá tuỳ chọn sản phẩm này?',
+    'confirm_delete_title' => 'Xoá tuỳ chọn sản phẩm?',
+    'confirm_delete_body' => '"{name}" sẽ bị xoá vĩnh viễn cùng toàn bộ giá trị của nó.',
+    'delete_blocked' => 'Không xoá được tuỳ chọn đang gắn với sản phẩm.',
+    'delete_blocked_values' => 'Không xoá được tuỳ chọn có giá trị đang được biến thể sử dụng.',
+
+    'flash_created' => 'Đã tạo tuỳ chọn sản phẩm.',
+    'flash_updated' => 'Đã cập nhật tuỳ chọn sản phẩm.',
+    'flash_deleted' => 'Đã xoá tuỳ chọn sản phẩm.',
+];
