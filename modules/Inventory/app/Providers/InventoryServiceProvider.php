@@ -5,6 +5,7 @@ namespace Modules\Inventory\Providers;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Core\Events\Orders\OrderCancelled;
+use Lunar\Core\Facades\CancelReasons;
 use Lunar\Core\Models\ProductVariant;
 use Lunar\Panel\Facades\Panel;
 use Modules\Core\Panel\ResourceRegistry;
@@ -54,6 +55,7 @@ class InventoryServiceProvider extends ServiceProvider
         Panel::section(new InventorySection);
 
         $this->feedLunarsLowStockThreshold();
+        $this->registerCancelReason();
 
         // Nhóm cài đặt của module trên panel Lunar.
         $this->app->make(SettingsRegistry::class)->add(new InventorySettings);
@@ -111,5 +113,26 @@ class InventoryServiceProvider extends ServiceProvider
 
             config(['lunar.panel.dashboard.low_stock_threshold' => $threshold]);
         });
+    }
+
+    /**
+     * Teach Lunar's cancel-reason vocabulary about the one this shop adds.
+     *
+     * `orders:expire-abandoned` cancels through Lunar's own CancelOrder action
+     * and stamps the reason `abandoned`. That reason was not in the manifest,
+     * and `ReasonManifest::label()` falls back to the raw key — so the panel's
+     * order screen showed a staff member the literal word "abandoned" where
+     * every other cancellation reads as a sentence.
+     *
+     * Registering it rather than formatting the string ourselves is the point:
+     * the label then comes from the same place the panel's cancel dialog and
+     * `cancelReasonLabel()` already read.
+     */
+    protected function registerCancelReason(): void
+    {
+        CancelReasons::add(
+            ExpireAbandonedOrders::CANCEL_REASON,
+            'admin.orders.cancel_reason_abandoned',
+        );
     }
 }

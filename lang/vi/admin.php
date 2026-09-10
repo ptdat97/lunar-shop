@@ -236,6 +236,9 @@ return [
         'none' => 'Không có đơn nào đang giữ hàng quá lâu.',
         'held_since' => 'đơn đang giữ hàng',
     ],
+    'orders' => [
+        'cancel_reason_abandoned' => 'Quá hạn thanh toán',
+    ],
     'review' => [
         'section' => 'Đánh giá',
         'auto_approve' => 'Tự động duyệt đánh giá',

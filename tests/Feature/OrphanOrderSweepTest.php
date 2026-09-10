@@ -131,4 +131,30 @@ class OrphanOrderSweepTest extends TestCase
         $this->assertNotSame(OrderStatus::CANCELLED, OrderStatus::of($order->fresh()));
         $this->assertSame(5, $variant->fresh()->getTotalInventory());
     }
+
+    /**
+     * The reason stamped on an auto-cancelled order has to be one Lunar's
+     * vocabulary knows.
+     *
+     * `ReasonManifest::label()` falls back to the raw key, so an unregistered
+     * reason is not an error — it just shows a staff member the literal word
+     * "abandoned" on the order screen where every other cancellation reads as a
+     * sentence. Registering it means the label comes from the same place the
+     * panel's own cancel dialog reads.
+     */
+    public function test_the_auto_cancel_reason_is_registered_with_lunar(): void
+    {
+        $reason = \Modules\Inventory\Console\ExpireAbandonedOrders::CANCEL_REASON;
+
+        $this->assertArrayHasKey(
+            $reason,
+            \Lunar\Core\Facades\CancelReasons::all(),
+            'Lý do huỷ tự động không có trong từ vựng của Lunar — panel sẽ hiện chữ thô.',
+        );
+
+        $label = \Lunar\Core\Facades\CancelReasons::label($reason);
+
+        $this->assertNotSame($reason, $label, 'Nhãn vẫn đang là khoá thô.');
+        $this->assertSame(__('admin.orders.cancel_reason_abandoned'), $label);
+    }
 }

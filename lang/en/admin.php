@@ -234,6 +234,9 @@ return [
         'none' => 'No orders are holding stock too long.',
         'held_since' => 'orders holding stock',
     ],
+    'orders' => [
+        'cancel_reason_abandoned' => 'Payment never completed',
+    ],
     'review' => [
         'section' => 'Reviews',
         'auto_approve' => 'Auto-approve reviews',

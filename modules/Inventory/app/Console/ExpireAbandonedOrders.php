@@ -33,6 +33,15 @@ class ExpireAbandonedOrders extends Command
 
     protected $description = 'Cancel unpaid gateway orders and return their reserved stock';
 
+    /**
+     * The reason stamped on orders this command cancels.
+     *
+     * A constant because it is a shared vocabulary: InventoryServiceProvider
+     * registers the same key with Lunar's CancelReasons manifest so the panel
+     * can render a label for it.
+     */
+    public const CANCEL_REASON = 'abandoned';
+
     public function handle(InventoryService $inventory): int
     {
         // No flag → the shop's own setting (Admin → Inventory). The flag stays for
@@ -91,7 +100,7 @@ class ExpireAbandonedOrders extends Command
                     // `cancel()` is Lunar's own action: it stamps `cancelled_at`
                     // and fires OrderCancelled, which RaiseOrderStatusUpdated
                     // turns into the shop's OrderStatusUpdated.
-                    $order->cancel(reason: 'abandoned', notify: false);
+                    $order->cancel(reason: self::CANCEL_REASON, notify: false);
                 }
             }
         });
