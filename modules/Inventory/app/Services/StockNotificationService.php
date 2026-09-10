@@ -6,7 +6,7 @@ use Lunar\Core\Models\ProductVariant;
 use Modules\Inventory\Models\StockNotification;
 
 /**
- * Manages back-in-stock ("notify me") subscriptions for out-of-stock SKUs.
+ * Manages back-in-stock ("notify me") subscriptions for out-of-stock variants.
  */
 class StockNotificationService
 {
@@ -15,13 +15,13 @@ class StockNotificationService
     ) {}
 
     /**
-     * Subscribe an email to a SKU that is currently out of stock.
+     * Subscribe an email to a variant that is currently out of stock.
      *
      * Owns the whole rule, including "is it actually out of stock?" — that used
      * to sit in the controller, where nothing stopped a second caller (an admin
-     * action, a job) from subscribing someone to an in-stock SKU.
+     * action, a job) from subscribing someone to an in-stock variant.
      *
-     * Idempotent: re-subscribing the same email to the same SKU returns the
+     * Idempotent: re-subscribing the same email to the same variant returns the
      * existing pending row (and resets it to pending if it was already notified
      * but has since sold out again).
      */

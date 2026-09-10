@@ -12,7 +12,7 @@ use Lunar\Core\Models\ProductVariant;
 use Modules\Core\Support\Queues;
 
 /**
- * Notifies a "notify me" subscriber that a SKU they wanted is back in stock.
+ * Notifies a "notify me" subscriber that a variant they wanted is back in stock.
  */
 class BackInStockMail extends Mailable implements ShouldQueue
 {

@@ -11,7 +11,7 @@
   $name = $product->translate('name');
   $description = $product->translate('description');
   $selectedStock = $selectedVariant?->getTotalInventory() ?? 0;
-  $inStock = $product->variants->contains(fn ($sku) => $sku->getTotalInventory() > 0);
+  $inStock = $product->variants->contains(fn ($variant) => $variant->getTotalInventory() > 0);
 @endphp
 
 {{-- SEO attributes (meta_title/meta_description, editable in the product

@@ -70,7 +70,7 @@ class CollectionService
         $query = $collection->products()
             ->where('status', 'published')
             // ProductVariant is the shop's purchasable, so catalog cards must
-            // never load Lunar's legacy variants. Keep disabled SKUs out and
+            // never load Lunar's legacy variants. Keep disabled variants out and
             // load their prices for ProductResource in one pass.
             ->with([
                 'variants' => fn ($variants) => $variants->where('enabled', true)->with('prices')->chaperone(),

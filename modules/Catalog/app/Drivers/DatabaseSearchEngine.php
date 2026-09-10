@@ -29,7 +29,7 @@ class DatabaseSearchEngine implements SearchEngine
             // not N+1. `media` is included here so callers never need a follow-up
             // loadMissing(['media']) — one place, one query.
             ->with([
-                // Only published SKUs feed the card price / availability / API —
+                // Only enabled variants feed the card price / availability / API —
                 // a disabled variant must never leak its price, stock or sku code
                 // into the listing (every other read path filters the same way).
                 'variants' => fn ($q) => $q->where('enabled', true)->with('prices')->chaperone(),
@@ -224,7 +224,7 @@ class DatabaseSearchEngine implements SearchEngine
         }
 
         // Availability facet — a single "In stock" checkbox. When ticked, keep
-        // only products with at least one in-stock, published SKU (quantity > 0).
+        // only products with at least one in-stock, enabled variant.
         $availability = array_filter((array) ($filters['availability'] ?? []));
         if (in_array('in_stock', $availability, true)) {
             $builder->whereHas('variants', fn ($v) => $v->where('enabled', true)->where('stock_available', '>', 0));

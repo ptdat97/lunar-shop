@@ -79,7 +79,7 @@ class RecommendationService
         // Strategies intentionally return only the data they need to rank a
         // candidate. Re-hydrate the final set with the canonical card
         // relations, just like cached product-page recommendations do. Without
-        // this, cart recommendations could omit SKUs (or leak disabled ones)
+        // this, cart recommendations could omit variants (or leak disabled ones)
         // depending on which strategy supplied the candidate.
         return $this->hydrate($picked->pluck('id')->all());
     }

@@ -36,7 +36,7 @@ class ProductService
      * Resolve a single published product by its URL slug.
      *
      * Optimized: joins urls directly instead of using whereHas (subquery),
-     * and eager-loads everything needed for the product page: published SKUs
+     * and eager-loads everything needed for the product page: enabled variants
      * with their prices, media gallery, brand, collections, and SEO URLs — all
      * in one query.
      */
@@ -157,14 +157,14 @@ class ProductService
     }
 
     /**
-     * Resolve which SKU a deep-link query selects (e.g. ?color=red&size=m),
+     * Resolve which variant a deep-link query selects (e.g. ?color=red&size=m),
      * for SSR (no-JS + crawlers). Keys are the lowercased variable name; values
-     * match value labels case-insensitively. A SKU qualifies only if it carries
-     * every queried option and each value matches. Falls back to the first SKU
+     * match value labels case-insensitively. A variant qualifies only if it carries
+     * every queried option and each value matches. Falls back to the first variant
      * when the query is empty or matches nothing.
      *
      * The storefront JS (enhance/product-variant.js) keeps this URL in sync as
-     * options change, so an SSR render and the JS state agree on the SKU.
+     * options change, so an SSR render and the JS state agree on the variant.
      *
      * @param  array<string, mixed>  $query  request()->query()
      */

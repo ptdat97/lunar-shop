@@ -13,8 +13,7 @@ class InventoryService
 {
     /**
      * Availability summary for a product (used in the product API payload):
-     * whether any SKU is purchasable, and the total tracked stock. SKUs track a
-     * plain on-hand quantity (no backorder/always modes).
+     * whether any variant is purchasable, and the total tracked stock.
      *
      * @return array{in_stock: bool, total_quantity: int}
      */
@@ -109,7 +108,7 @@ class InventoryService
     /**
      * Whether a variant can still be bought. Matches the storefront's
      * "in stock / Hết hàng" display and drives back-in-stock eligibility
-     * (a sold-out SKU should let a shopper subscribe).
+     * (a sold-out variant should let a shopper subscribe).
      *
      * Deliberately the SELLABLE figure, not the shelf count: units already
      * committed to another order are physically present but not for sale, and
@@ -125,7 +124,7 @@ class InventoryService
     public const DEFAULT_LOW_THRESHOLD = 5;
 
     /**
-     * Admin-configurable stock level at/below which a SKU is "low".
+     * Admin-configurable stock level at/below which a variant is "low".
      */
     public function lowStockThreshold(): int
     {

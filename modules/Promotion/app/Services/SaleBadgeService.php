@@ -226,18 +226,18 @@ class SaleBadgeService
     }
 
     /**
-     * The first SKU's matched price for a product, or null. Delegates to the
+     * The first variant's matched price for a product, or null. Delegates to the
      * Pricing service so the pricing engine is invoked in one place.
      */
     protected function productPrice(Product $product): ?Price
     {
-        $sku = $product->variants->first() ?? $product->variants()->first();
+        $variant = $product->variants->first() ?? $product->variants()->first();
 
-        if (! $sku) {
+        if (! $variant) {
             return null;
         }
 
-        return app(PricingService::class)->matchedPrice($sku);
+        return app(PricingService::class)->matchedPrice($variant);
     }
 
     /**

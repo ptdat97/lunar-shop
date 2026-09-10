@@ -150,23 +150,23 @@ class AnalyticsService
      */
     public function topProducts(int $limit = 5): Collection
     {
-        $skuMorph = (new ProductVariant)->getMorphClass();
+        $variantMorph = (new ProductVariant)->getMorphClass();
 
         return OrderLine::query()
             ->select('purchasable_id')
             ->selectRaw('SUM(quantity) as units, SUM(total) as revenue')
-            ->where('purchasable_type', $skuMorph)
+            ->where('purchasable_type', $variantMorph)
             ->whereHas('order', fn (Builder $q) => OrderStatus::scopePaid($q))
             ->groupBy('purchasable_id')
             ->orderByDesc('units')
             ->limit($limit)
             ->get()
             ->map(function ($line) {
-                $sku = ProductVariant::with('product')->find($line->purchasable_id);
+                $variant = ProductVariant::with('product')->find($line->purchasable_id);
 
                 return [
-                    'product_id' => $sku?->product?->id,
-                    'name' => $sku?->getDescription() ?? 'Unknown',
+                    'product_id' => $variant?->product?->id,
+                    'name' => $variant?->getDescription() ?? 'Unknown',
                     'quantity' => (int) $line->units,
                     'revenue' => (int) $line->revenue,
                 ];

@@ -32,7 +32,7 @@ class CartService
      *
      * Fetched (auto-creating, per lunar.cart_session.auto_create) without
      * calculating: Lunar's calculate() pipeline throws a TypeError on a line
-     * whose purchasable (SKU) was deleted/unpublished while it sat in the
+     * whose purchasable (a variant) was deleted or disabled while it sat in the
      * cart, which would 500 the storefront. Prune those lines first, then
      * calculate on a cart with a fresh `lines` relation.
      */
@@ -48,9 +48,9 @@ class CartService
     }
 
     /**
-     * Remove cart lines whose SKU no longer exists. Returns true if any line
+     * Remove cart lines whose variant no longer exists. Returns true if any line
      * was removed. Because saving a product's variants is delete-and-recreate,
-     * a SKU a shopper added can genuinely vanish (or be soft-deleted) between
+     * a variant a shopper added can genuinely vanish between
      * requests — those stale lines must go before Lunar recalculates.
      */
     protected function pruneMissingLines(Cart $cart): bool
@@ -91,29 +91,30 @@ class CartService
     }
 
     /**
-     * Add a SKU to the cart.
+     * Add a variant to the cart.
      *
-     * The `$variantId` is the surrogate id of the currently-selected SKU as the
-     * storefront rendered it. It is only used to look the SKU up right now;
-     * once in the cart, Lunar records the purchasable by morph id and the SKU's
-     * stable `sku` string travels onto the order line as the identifier.
+     * The `$variantId` is the surrogate id of the currently-selected variant as
+     * the storefront rendered it. It is only used to look the variant up right
+     * now; once in the cart, Lunar records the purchasable by morph id and the
+     * variant's stable `sku` string travels onto the order line as the
+     * identifier.
      *
      * @throws ValidationException
      */
     public function add(int $variantId, int $quantity = 1): Cart
     {
-        $sku = ProductVariant::findOrFail($variantId);
+        $variant = ProductVariant::findOrFail($variantId);
         $cart = $this->mutableCart();
 
-        // A disabled SKU must never enter the cart, no matter how the request
+        // A disabled variant must never enter the cart, no matter how the request
         // reached us (storefront hides it, but this is the real guard).
-        $this->guardStatus($sku);
+        $this->guardStatus($variant);
 
         // Guard the RESULTING quantity, not the increment. Checking `$quantity`
         // alone let a shopper past the last unit by adding 1 five times over.
-        $this->guardStock($sku, $this->quantityInCart($cart, $variantId) + $quantity);
+        $this->guardStock($variant, $this->quantityInCart($cart, $variantId) + $quantity);
 
-        return $cart->add($sku, $quantity)->calculate();
+        return $cart->add($variant, $quantity)->calculate();
     }
 
     /**
@@ -126,7 +127,7 @@ class CartService
         $cart = $this->mutableCart();
         $line = $cart->lines->firstWhere('id', $lineId);
 
-        // This path had no guard at all: PATCH quantity=999 on a SKU stocked
+        // This path had no guard at all: PATCH quantity=999 on a variant stocked
         // at 3 was accepted, and only blew up at checkout.
         if ($line && $line->purchasable instanceof ProductVariant) {
             $this->guardStatus($line->purchasable);
@@ -137,7 +138,7 @@ class CartService
     }
 
     /**
-     * How many units of a SKU the cart already holds.
+     * How many units of a variant the cart already holds.
      */
     protected function quantityInCart(Cart $cart, int $variantId): int
     {
@@ -148,16 +149,16 @@ class CartService
     }
 
     /**
-     * Refuse a quantity the SKU cannot fulfil (its own on-hand stock).
+     * Refuse a quantity the variant cannot fulfil (its own on-hand stock).
      *
      * Reads `quantity` (and `status`) FRESH from the DB rather than trusting the
-     * SKU hydrated onto the cached cart line: on the updateLine path that line
+     * variant hydrated onto the cached cart line: on the updateLine path that line
      * can be stale (another order or an admin edit moved stock meanwhile), which
      * would let a PATCH sail past the guard against a number that no longer holds.
      *
      * @throws ValidationException
      */
-    protected function guardStock(ProductVariant $sku, int $quantity): void
+    protected function guardStock(ProductVariant $variant, int $quantity): void
     {
         if ($quantity < 1) {
             return;
@@ -165,7 +166,7 @@ class CartService
 
         $fresh = ProductVariant::query()
             ->select(['id', 'stock_on_hand', 'stock_committed', 'stock_available', 'selling_policy', 'backorder', 'enabled'])
-            ->whereKey($sku->getKey())
+            ->whereKey($variant->getKey())
             ->first();
 
         // SELLABLE stock, not the shelf count: units committed to an order that
@@ -183,24 +184,25 @@ class CartService
     }
 
     /**
-     * Refuse a SKU that can no longer be bought. This is the enforcement point —
-     * the storefront hides such SKUs, but hiding a button is not a guard
+     * Refuse a variant that can no longer be bought. This is the enforcement
+     * point — the storefront hides such variants, but hiding a button is not a guard
      * (§17.4): a direct API call must still be rejected here.
      *
      * Delegates to ProductVariant::isPurchasable(), the contract method Lunar 1.5
      * added to Purchasable, so this guard and Lunar's own CartLineAvailability
      * validator can never disagree. It also widens what used to be checked: the
-     * old inline test only read the SKU's own `status`, so a SKU whose parent
-     * product had been unpublished or soft-deleted still went into the cart.
+     * old inline test read only the purchasable's own live flag, so one whose
+     * parent product had been unpublished still went into the cart.
      *
      * @throws ValidationException
      */
-    protected function guardStatus(ProductVariant $sku): void
+    protected function guardStatus(ProductVariant $variant): void
     {
-        // Re-read fresh: on updateLine the SKU comes off the cached cart line,
-        // which can be stale if the admin disabled it — or retired its product —
-        // meanwhile. A soft-deleted SKU resolves to null here and is refused too.
-        $fresh = ProductVariant::with('product')->find($sku->getKey());
+        // Re-read fresh: on updateLine the variant comes off the cached cart
+        // line, which can be stale if the admin disabled it — or retired its
+        // product — meanwhile. A deleted variant resolves to null and is
+        // refused too.
+        $fresh = ProductVariant::with('product')->find($variant->getKey());
 
         if (! $fresh || ! $fresh->isPurchasable()) {
             throw ValidationException::withMessages([

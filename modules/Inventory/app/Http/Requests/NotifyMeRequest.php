@@ -5,7 +5,7 @@ namespace Modules\Inventory\Http\Requests;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * POST /api/v1/inventory/notify-me — tell me when this SKU is back.
+ * POST /api/v1/inventory/notify-me — tell me when this variant is back.
  *
  * Accepts `sku_id` (preferred) or `variant_id` (backward-compat alias).
  */

@@ -36,9 +36,9 @@ class CartController extends Controller
             'quantity' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $skuId = $data['sku_id'] ?? $data['variant_id'];
+        $variantId = $data['sku_id'] ?? $data['variant_id'];
 
-        $cart = $this->cart->add($skuId, $data['quantity'] ?? 1);
+        $cart = $this->cart->add($variantId, $data['quantity'] ?? 1);
 
         return $this->resource($cart);
     }

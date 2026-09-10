@@ -57,7 +57,7 @@ class ProductVariantResource extends JsonResource
             // picker selection back to this variant without labels.
             'variant_indexes' => $indexes,
             'variant_key' => VariantAxes::key($indexes),
-            // Per-SKU images, resolved to the same {small,large,zoom,width,height}
+            // Per-variant images, resolved to the same {small,large,zoom,width,height}
             // shape as the product-level gallery so the storefront can swap one
             // for the other without knowing where the images came from. Empty
             // when the variant has none — the gallery then falls back to the

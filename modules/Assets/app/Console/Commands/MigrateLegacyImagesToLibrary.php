@@ -19,7 +19,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
 /**
  * One-off, idempotent port of every image field that used to accept a direct
  * upload (a bare path on the `media` disk, or — for product variant swatches
- * and SKU photos — a Spatie Media id attached straight to the Product) into a
+ * and per-variant photos — a Spatie Media id attached straight to the Product) into a
  * proper Media Library Asset, rewriting the owning column/JSON key to the
  * resulting Asset id.
  *
@@ -197,18 +197,18 @@ class MigrateLegacyImagesToLibrary extends Command
 
     // ---------------------------------------------------------------------
     // Sources: Spatie Media ids already attached to a Product -> Asset
-    // (variant image-swatches + per-SKU photos)
+    // (variant image-swatches + per-variant photos)
     // ---------------------------------------------------------------------
 
     protected function migrateVariantImages(): void
     {
         ProductVariant::query()->chunkById(200, function ($variants) {
-            foreach ($variants as $sku) {
-                $ids = collect($sku->image_asset_ids ?? []);
+            foreach ($variants as $variant) {
+                $ids = collect($variant->image_asset_ids ?? []);
                 $rewritten = $ids->map(fn ($id) => $this->mediaIdToAsset($id) ?? $id)->all();
 
                 if ($rewritten !== $ids->all()) {
-                    $this->saveIfChanged($sku, ['image_asset_ids' => $rewritten]);
+                    $this->saveIfChanged($variant, ['image_asset_ids' => $rewritten]);
                 }
             }
         });

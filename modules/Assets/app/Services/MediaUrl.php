@@ -37,7 +37,7 @@ class MediaUrl
 
     /**
      * Per-request memo of resolved library Assets' Media, keyed by Asset id.
-     * A product page can render dozens of SKUs, each with their own picked
+     * A product page can render dozens of variants, each with their own picked
      * Asset ids (ProductVariantResource); without this each fresh JsonResource
      * instance would re-query the same handful of library Assets.
      *

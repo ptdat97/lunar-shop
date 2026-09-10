@@ -12,8 +12,8 @@ use Lunar\Core\Models\ProductVariant;
 class PricingService
 {
     /**
-     * Per-request memo of matched prices, keyed by SKU ID.
-     * Prevents re-running Lunar's pricing engine for the same SKU
+     * Per-request memo of matched prices, keyed by variant id.
+     * Prevents re-running Lunar's pricing engine for the same variant
      * across multiple view composers (product-card, price, product page).
      *
      * @var array<int, Price|null>
@@ -65,8 +65,8 @@ class PricingService
 
         try {
             // Prime the inverse relation: Lunar's Price cast reads
-            // $price->priceable->unit_quantity, which lazy-loads the SKU
-            // again (one query per price) unless we point it back at the SKU
+            // $price->priceable->unit_quantity, which lazy-loads the variant
+            // again (one query per price) unless we point it back at the variant
             // we already have. Saves a query per product card on listing pages.
             //
             // Also prime the price->currency relation from the per-request
@@ -106,7 +106,7 @@ class PricingService
     }
 
     /**
-     * A product's published SKUs, ordered by position. Uses the eager-loaded
+     * A product's enabled variants, ordered by position. Uses the eager-loaded
      * relation when present (filtering out any disabled rows a broad eager-load
      * may have pulled in), else queries.
      *
@@ -122,8 +122,8 @@ class PricingService
     }
 
     /**
-     * Formatted display price for a specific SKU (e.g. a deep-linked variant
-     * on the product page). Null when the SKU can't be priced.
+     * Formatted display price for a specific variant (e.g. a deep-linked one
+     * on the product page). Null when the variant can't be priced.
      */
     public function displayPriceForVariant(?ProductVariant $variant): ?string
     {

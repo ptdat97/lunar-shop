@@ -8,7 +8,7 @@ use Modules\Inventory\Mail\BackInStockMail;
 use Modules\Inventory\Models\StockNotification;
 
 /**
- * Emails pending "notify me" subscribers when a SKU is restocked, then marks
+ * Emails pending "notify me" subscribers when a variant is restocked, then marks
  * their subscriptions notified so they aren't emailed again on the next restock.
  *
  * Driven by BackInStockObserver (fires when sellable stock crosses ≤0 → >0). Mail is

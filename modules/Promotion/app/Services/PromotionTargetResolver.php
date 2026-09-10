@@ -189,21 +189,21 @@ class PromotionTargetResolver
     }
 
     /**
-     * Whether a product (or one of its SKUs) is referenced by a set of
-     * Discountable rows (products / SKUs only).
+     * Whether a product (or one of its variants) is referenced by a set of
+     * Discountable rows (products / variants only).
      */
     protected function productInDiscountables(Collection $discountables, Product $product): bool
     {
-        $skuIds = $product->variants->pluck('id');
-        $skuMorph = (new ProductVariant)->getMorphClass();
+        $variantIds = $product->variants->pluck('id');
+        $variantMorph = (new ProductVariant)->getMorphClass();
 
-        return $discountables->contains(function ($item) use ($product, $skuIds, $skuMorph) {
+        return $discountables->contains(function ($item) use ($product, $variantIds, $variantMorph) {
             if ($item->discountable_type === Product::morphName()) {
                 return (int) $item->discountable_id === (int) $product->id;
             }
 
-            if ($item->discountable_type === $skuMorph) {
-                return $skuIds->contains((int) $item->discountable_id);
+            if ($item->discountable_type === $variantMorph) {
+                return $variantIds->contains((int) $item->discountable_id);
             }
 
             return false;

@@ -150,14 +150,13 @@ class CatalogServiceProvider extends ServiceProvider
     }
 
     /**
-     * Wire the flexible SKU model (VaniCommerce-style variants) into Lunar:
+     * Extensions on Lunar's own ProductVariant, registered without touching the
+     * vendor class (plan principle #1).
      *
-     *  - morph map: cart/order lines store `purchasable_type = product_sku`
-     *    (Lunar snake-cases model basenames for its own morph aliases, so this
-     *    matches that convention). Relation::morphMap MERGES, so Lunar's own
-     *    aliases are preserved.
-     *
-     * Registered without touching the vendor Product class (plan principle #1).
+     * The shop no longer has a purchasable of its own: cart and order lines
+     * store Lunar's `product_variant` morph alias, and the axes come from its
+     * shared ProductOptions. What is left here are casts for the two columns
+     * this shop still adds, and the eager-load chaperones.
      */
     protected function registerVariantExtensions(): void
     {

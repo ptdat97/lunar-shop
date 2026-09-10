@@ -18,7 +18,7 @@ use Modules\Order\Support\OrderStatus;
  * RecommendationService caches the resolved ids.
  *
  * order_lines.purchasable is a ProductVariant → sku.product_id gives the product;
- * we join through SKUs so co-purchase is counted at product level.
+ * we join through variants so co-purchase is counted at product level.
  */
 class CoPurchaseStrategy implements RecommendationStrategy
 {

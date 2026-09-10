@@ -194,16 +194,16 @@ class AssetsServiceProvider extends ServiceProvider
             $urls = app(MediaUrl::class);
 
             // Render the gallery for the SELECTED variant (deep link
-            // ?màu-sắc=Trắng, else the first SKU), so the SSR page already shows
+            // ?màu-sắc=Trắng, else the first variant), so the SSR page already shows
             // that colour's photos. Without this the page would paint the full
             // product gallery and enhance/product-variant.js would swap it on
             // load — a visible flash on every colour deep link.
             //
-            // The SKU stores media ids. Map over the IDS (not the media
-            // collection) so the SKU's own ordering survives — a colour whose
+            // The variant stores media ids. Map over the IDS (not the media
+            // collection) so the variant's own ordering survives — a colour whose
             // set leads with a different photo must actually open on it, which
             // a whereIn() filter would silently undo by keeping media order.
-            // Falls back to the whole gallery when the SKU has none of its own.
+            // Falls back to the whole gallery when the variant has none of its own.
             $skuImageIds = collect($data['selectedVariant']?->image_asset_ids ?? [])
                 ->map(fn ($id) => is_array($id) ? ($id['id'] ?? null) : $id)
                 ->filter(fn ($id) => is_numeric($id))
@@ -215,7 +215,7 @@ class AssetsServiceProvider extends ServiceProvider
                 // payload. Looking them up in $product->media instead — which is
                 // what this used to do — only found pictures that also happened to
                 // hang off the product, so a photo picked from the library for one
-                // SKU alone was silently dropped here while the payload still had
+                // variant alone was silently dropped here while the payload still had
                 // it. The visible effect: the new picture appeared only after
                 // clicking to another variant and back, because that is when the
                 // JS re-rendered the gallery from the payload.
