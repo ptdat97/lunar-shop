@@ -7,7 +7,6 @@ use Lunar\Core\Models\Cart;
 use Lunar\Core\Models\Discount;
 use Lunar\Core\Models\Product;
 use Modules\Catalog\Services\ProductService;
-use Modules\Catalog\Support\MediaThumbnails;
 
 /**
  * Single entry point the rest of the app uses for promotions. Owns the
@@ -142,9 +141,6 @@ class PromotionService
 
         $products = $query->latest('id')->limit($limit)->get();
 
-        // thumbnail = primary item of the already-loaded media (no extra query).
-        MediaThumbnails::backfill($products);
-
         return $products
             // Keep only products the badge logic actually applies to.
             ->filter(fn (Product $p) => $this->targets->appliesToProduct($discount, $p))
@@ -213,9 +209,6 @@ class PromotionService
         // Fetch a bit more than the limit so the appliesTo filter below can still
         // fill the slider after dropping any non-matching candidates.
         $candidates = $query->latest('id')->limit($limit * 2)->get();
-
-        // thumbnail = primary item of the loaded media (no extra query).
-        MediaThumbnails::backfill($candidates);
 
         // Keep products any displayable promotion actually applies to. The
         // discounts' relations are already loaded (displayablePromotions eager-

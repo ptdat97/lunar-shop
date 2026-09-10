@@ -666,6 +666,15 @@ theo session không cần crawl (cart drawer/page, wishlist).
   `git stash` một file mà file khác đang gọi: trang sẽ lỗi và cho ra "2 truy vấn",
   trông như tối ưu chứ thực ra là trang chết.
 
+  Đi kèm là việc xoá `Modules\Catalog\Support\MediaThumbnails` — một helper
+  dựng `thumbnail` từ `media` bằng PHP để né truy vấn thứ hai, gọi ở 5 chỗ. Nó
+  chép lại `thumbnail()` của Lunar nhưng **bỏ mất một trong hai bộ lọc**: Lunar
+  lọc `collection_name = lunar.media.collection` **và** `primary = true`, helper
+  chỉ lọc `primary` trên toàn bộ `media`. Sản phẩm của shop có cả collection
+  `swatch` (FashionMediaDefinitions), nên một swatch gắn cờ primary sẽ bị chọn
+  làm ảnh đại diện. Chưa xảy ra — không chỗ nào gắn `primary` cho swatch — nhưng
+  đó là lỗi chờ sẵn, đổi lấy đúng một truy vấn gom lô mỗi lượt render.
+
   Tổng cộng có **tám** bản chép được gom về đây: search engine, collection, gợi
   ý, khuyến mãi (×2), `ProductService::bySlugs()/byIds()/related()`,
   `WishlistService` và section `product-tabs`. Bản của wishlist thiếu cả

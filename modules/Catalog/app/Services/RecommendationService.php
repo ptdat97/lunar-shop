@@ -6,7 +6,6 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Lunar\Core\Models\Product;
 use Modules\Catalog\Contracts\RecommendationStrategy;
-use Modules\Catalog\Support\MediaThumbnails;
 use Modules\Core\Support\Settings;
 
 /**
@@ -144,10 +143,6 @@ class RecommendationService
             // flat rather than fetching per card.
             ->with(ProductService::cardRelations())
             ->get();
-
-        // The full media relation already contains the primary image. Avoid a
-        // redundant, primary-filtered thumbnail eager-load for every grid.
-        MediaThumbnails::backfill($products);
         $products = $products->keyBy('id');
 
         return collect($ids)

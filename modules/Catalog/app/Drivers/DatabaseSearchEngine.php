@@ -10,7 +10,6 @@ use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Data\SearchQuery;
 use Modules\Catalog\Data\SearchResult;
 use Modules\Catalog\Services\ProductService;
-use Modules\Catalog\Support\MediaThumbnails;
 use Modules\Catalog\Support\TranslatedColumn;
 
 /**
@@ -53,8 +52,6 @@ class DatabaseSearchEngine implements SearchEngine
         $items = $builder
             ->forPage($query->page, $query->perPage)
             ->get();
-
-        MediaThumbnails::backfill($items);
 
         // Without facets, skip the separate count() and derive `total` from the
         // page: exact enough for a carousel (no pager rendered).

@@ -4,7 +4,6 @@ namespace Modules\Catalog\Services;
 
 use Illuminate\Support\Facades\DB;
 use Lunar\Core\Models\Collection;
-use Modules\Catalog\Support\MediaThumbnails;
 use Modules\Catalog\Support\TranslatedColumn;
 
 /**
@@ -87,10 +86,6 @@ class CollectionService
         };
 
         $products = $query->paginate(perPage: $perPage, page: $page)->withQueryString();
-
-        // `media` already contains the primary image. Back-fill `thumbnail`
-        // rather than issuing a second, primary-filtered media query.
-        MediaThumbnails::backfill($products->getCollection());
 
         return $products;
     }
