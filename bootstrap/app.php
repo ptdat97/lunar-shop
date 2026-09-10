@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 use Modules\Core\Http\Middleware\EnsureTokenAbility;
+use Modules\Core\Http\Middleware\SecurityHeaders;
 use Modules\Core\Http\Middleware\ThrottleApiV1;
 use Modules\Core\Http\Middleware\VerifyCsrfTokenUnlessStateless;
 use Modules\Core\Support\ApiErrorResponse;
@@ -31,6 +32,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // carries no ambient cookie credential, so there is nothing to forge; the
         // cookie storefront still goes through the full check.
         $middleware->replaceInGroup('web', ValidateCsrfToken::class, VerifyCsrfTokenUnlessStateless::class);
+
+        // Security response headers on EVERY request, whichever group it lands
+        // in — a header that only covers the `web` group leaves the JSON API and
+        // the panel bare. Cheap enough to be global: config lookups, no I/O.
+        // What each header does and why CSP ships report-only: config/security.php.
+        $middleware->prepend(SecurityHeaders::class);
 
         // Rate-limit every `api/v1/*` request, whichever middleware group its
         // route sits in. throttleApi() is deliberately NOT used: it only covers
