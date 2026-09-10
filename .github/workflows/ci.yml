@@ -110,6 +110,171 @@ jobs:
           DB_PASSWORD: ''
         run: php artisan test
 
+  dusk:
+    name: Dusk (smoke trình duyệt)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Cố ý là job RIÊNG, không nối vào job test: nó chạy song song nên phản hồi
+    # của PHPUnit không bị chậm theo, và khi đỏ thì biết ngay lỗi nằm ở trình
+    # duyệt chứ không phải server.
+    #
+    # e2e-testing.md gọi Dusk là công cụ chẩn đoán chứ không phải tầng test
+    # chính — vẫn đúng, 700+ test PHPUnit vẫn là lưới hằng ngày. Nhưng một công
+    # cụ chẩn đoán không ai chạy thì mục rỗng: đã có lần 8/8 test Dusk đỏ suốt
+    # một quãng mà không ai biết, vì phải nhớ gõ tay mới chạy.
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+          MYSQL_DATABASE: lunar_dusk
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cài PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: bcmath, curl, exif, fileinfo, iconv, intl, json, openssl, pdo_mysql, simplexml, zip
+          coverage: none
+
+      - name: Dựng .env
+        run: cp .env.example .env
+
+      - name: composer install
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      - name: Sinh APP_KEY
+        run: php artisan key:generate
+
+      - name: Cài Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Build asset
+        # Cùng lý do như job test: public/build và bundle add-on của panel đều
+        # gitignore, thiếu là mọi trang @vite trả 500 và panel render rỗng.
+        run: |
+          npm ci
+          npm run build
+
+      - name: Chờ MySQL
+        run: |
+          for i in $(seq 1 30); do
+            mysqladmin ping -h 127.0.0.1 -P 3306 -u root --silent && exit 0
+            sleep 2
+          done
+          echo "MySQL không lên sau 60s" >&2
+          exit 1
+
+      - name: Migrate + seed
+        # Dusk lái site THẬT nên cần dữ liệu thật, khác PHPUnit vốn tự dựng
+        # trong RefreshDatabase.
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: lunar_dusk
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+        run: |
+          php artisan migrate --force
+          php artisan db:seed --force
+
+      - name: ChromeDriver khớp Chrome của runner
+        # `--detect` đọc version Chrome đang cài rồi tải đúng driver. Ghim cứng
+        # version sẽ hỏng mỗi lần GitHub nâng ảnh runner.
+        run: php artisan dusk:chrome-driver --detect
+
+      - name: Dựng site
+        env:
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: lunar_dusk
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+        run: |
+          php artisan serve --host=127.0.0.1 --port=8000 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000 >/dev/null && exit 0
+            sleep 2
+          done
+          echo "Site không lên sau 60s" >&2
+          exit 1
+
+      - name: Chạy Dusk
+        env:
+          APP_URL: http://127.0.0.1:8000
+          DB_CONNECTION: mysql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 3306
+          DB_DATABASE: lunar_dusk
+          DB_USERNAME: root
+          DB_PASSWORD: ''
+        run: php artisan dusk
+
+      - name: Ảnh chụp + console log khi đỏ
+        # Dusk đỏ mà không có ảnh thì gần như không lần được: lỗi nằm ở trình
+        # duyệt, và log phía server đã sạch (đó chính là lý do dùng Dusk).
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dusk-failure
+          path: |
+            tests/Browser/screenshots
+            tests/Browser/console
+            tests/Browser/source
+          retention-days: 7
+
+  audit:
+    name: Bảo mật dependency
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cài PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: composer install
+        run: composer install --prefer-dist --no-interaction --no-progress
+
+      # `composer.lock` ghim version, nên một CVE mới công bố cho thư viện đang
+      # dùng sẽ không tự xuất hiện — không có bước này thì chỉ biết khi có người
+      # đi đọc. Chạy trên mọi PR để lỗ hổng nổi lên trong ngày, không phải quý.
+      - name: composer audit
+        run: composer audit --no-interaction
+
+      - name: Cài Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: npm audit
+        # `--production` bỏ qua devDependency: một CVE trong build tool không
+        # chạm tới người dùng cuối, và chặn PR vì nó là cách nhanh nhất để cả
+        # đội học cách phớt lờ job này.
+        run: |
+          npm ci
+          npm audit --omit=dev --audit-level=high
+
   lint:
     name: Pint
     runs-on: ubuntu-latest

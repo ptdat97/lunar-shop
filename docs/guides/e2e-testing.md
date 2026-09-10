@@ -1,9 +1,16 @@
 # Test E2E — khi PHPUnit không nhìn thấy lỗi
 
 > Laravel Dusk lái Chrome thật. Đây là công cụ **chẩn đoán**, không phải tầng test
-> chính — 591 test PHPUnit vẫn là lưới an toàn hằng ngày.
+> chính — 722 test PHPUnit vẫn là lưới an toàn hằng ngày.
 > Dựng ra sau đợt truy một bug mất nhiều vòng vì thiếu đúng công cụ này.
-> Cập nhật: **2026-08-30**.
+> Cập nhật: **2026-09-10**.
+>
+> **Từ 2026-09-10 nó cũng chạy trong CI** (job `dusk`, xem
+> [deployment.md](deployment.md) §9). Điều đó KHÔNG đổi vị trí của nó: vẫn là
+> chẩn đoán, vẫn chỉ có test smoke, PHPUnit vẫn là tầng chính. Lý do cắm vào CI
+> là một công cụ chẩn đoán phải nhớ gõ tay mới chạy thì sẽ mục — đã có quãng
+> 8/8 test Dusk đỏ mà không ai biết. Job đỏ sẽ upload ảnh chụp + console log,
+> vì đó là toàn bộ bằng chứng còn lại khi lỗi nằm ở trình duyệt.
 
 ---
 

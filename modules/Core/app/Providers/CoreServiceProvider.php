@@ -7,11 +7,12 @@ use Illuminate\Console\Events\ScheduledTaskFinished;
 use Illuminate\Console\Events\ScheduledTaskStarting;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
-use Modules\Core\Console\ReportUntranslatedContent;
-use Modules\Core\Console\ScheduleHeartbeat;
 use Lunar\Panel\Auth\EmailTwoFactor;
 use Lunar\Panel\Facades\Panel;
 use Modules\Core\Auth\UnusedEmailTwoFactor;
+use Modules\Core\Console\Preflight;
+use Modules\Core\Console\ReportUntranslatedContent;
+use Modules\Core\Console\ScheduleHeartbeat;
 use Modules\Core\Listeners\RecordScheduledRun;
 use Modules\Core\Panel\ResourceRegistry;
 use Modules\Core\Panel\ScheduledRunResource;
@@ -63,7 +64,7 @@ class CoreServiceProvider extends ServiceProvider
         // infrastructure.
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
 
-        $this->commands([ScheduleHeartbeat::class, ReportUntranslatedContent::class]);
+        $this->commands([ScheduleHeartbeat::class, ReportUntranslatedContent::class, Preflight::class]);
 
         // One listener instance across all three events so a task's start row can
         // be matched to its finish. Hooking the scheduler's own events (rather

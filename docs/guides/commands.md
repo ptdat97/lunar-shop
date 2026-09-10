@@ -20,6 +20,29 @@
 | --- | --- |
 | `php artisan orders:expire-abandoned` | Hủy đơn gateway chưa thanh toán quá hạn, trả tồn kho về (scheduler tự chạy mỗi 10 phút) |
 | `php artisan membership:backfill` | Đồng bộ lại hạng thành viên theo tổng chi tiêu (thêm `--dry-run` để xem trước, không ghi) |
+| `php artisan shop:preflight` | **Cổng phát hành.** Exit 1 khi cấu hình sẽ làm mất tiền hoặc lộ dữ liệu (`--env-only` bỏ qua phép kiểm cần DB) |
+| `php artisan schedule:heartbeat` | Báo động khi một scheduled task ngừng chạy hoặc liên tục lỗi |
+| `php artisan media:regenerate` | Dựng lại conversion ảnh theo kích thước đang cấu hình (`--missing` chỉ làm cái còn thiếu) |
+| `php artisan content:untranslated` | Liệt kê bản ghi thiếu bản dịch (locale rỗng là lỗi im lặng) |
+
+### `shop:preflight` chặn những gì
+
+Chạy nó trong pipeline deploy, **sau `migrate` và trước `up`** — cả mục đích là
+chặn traffic, không phải ghi nhận sau khi khách đã vào.
+
+| Chặn (exit 1) | Vì sao |
+| --- | --- |
+| `APP_DEBUG` bật ở production | Stack trace ra public, kèm cả biến môi trường |
+| `APP_URL` không phải https ở production | Link email và callback thanh toán sinh sai scheme |
+| Endpoint thanh toán còn trỏ sandbox | Khách "trả tiền" bằng tiền test — **không có gì trên site báo điều này** |
+| Có mã merchant mà thiếu khoá ký | Mọi callback trượt xác thực chữ ký |
+| `queue.default = sync` ở production | Email và job ảnh chạy trong request, khách chờ cả lượt gửi mail |
+| `session.driver = file` ở production | Không chia sẻ giữa nhiều instance, giỏ hàng nhảy |
+| Tài khoản seeder demo còn tồn tại | Mật khẩu của nó nằm trong `.env.example` |
+
+Cảnh báo (exit 0 nhưng có in): cache driver `file`, mail transport `log`, CSP còn
+`report`. Đáng sửa, không đáng chặn phát hành — chặn vì những thứ này là cách
+nhanh nhất khiến cả đội học cách phớt lờ cái cổng.
 
 ## 🌱 Seed dữ liệu
 

@@ -89,8 +89,26 @@ php artisan icons:cache
 # 5. Restart workers (bắt buộc sau khi đổi code — worker giữ code cũ trong RAM)
 php artisan horizon:terminate      # supervisor tự khởi động lại
 
+# 6. CỔNG PHÁT HÀNH — chạy TRƯỚC `up`, khi site còn đóng
+php artisan shop:preflight         # exit 1 = đừng mở traffic
+
 php artisan up
 ```
+
+> **`shop:preflight` là cổng, không phải báo cáo.** Nó thoát khác 0 khi cấu hình
+> sẽ làm mất tiền hoặc lộ dữ liệu: `APP_DEBUG` bật ở production, endpoint thanh
+> toán còn trỏ sandbox, có mã merchant mà thiếu khoá ký, queue còn `sync`,
+> session driver còn `file`, hoặc tài khoản seeder demo còn tồn tại. Cảnh báo
+> (exit 0 nhưng có in) là những thứ nên sửa mà không đáng chặn phát hành.
+>
+> Đặt nó **sau `migrate`** vì có phép kiểm cần đọc DB, và **trước `up`** vì cả
+> mục đích là chặn traffic chứ không phải ghi nhận sau khi khách đã vào. Trên
+> host mới chưa migrate thì `--env-only` bỏ qua các phép kiểm cần DB.
+>
+> Chỗ đau nhất nó canh: `VNPAY_PAYMENT_URL` / `MOMO_ENDPOINT` còn trỏ sandbox.
+> Không có gì trên site báo điều đó — khách bấm thanh toán, thấy màn hình cổng
+> quen thuộc, "trả tiền" xong, đơn về `payment-received`, và tiền thì không bao
+> giờ tồn tại.
 
 Rollback: `git checkout <tag trước> && composer install ... && php artisan
 migrate:rollback --step=N` (chỉ khi migration mới gây lỗi) + lại bước 4–5.
@@ -247,6 +265,29 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
 - ⚠️ **Chạy test:** luôn `php artisan optimize:clear` trước. `config:cache` che các
   `<env>` trong `phpunit.xml`, khiến `runningUnitTests()` = false → CSRF chạy thật →
   test checkout đỏ 419. (Hành vi Laravel, có từ trước; tái hiện được trên code cũ.)
+- **Header bảo mật** (thêm 2026-09-10): `Modules\Core\Http\Middleware\SecurityHeaders`
+  prepend global nên phủ cả storefront, API lẫn panel. Gửi `X-Content-Type-Options`,
+  `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` ở mọi môi trường;
+  `Strict-Transport-Security` **chỉ** ở production trên https (gửi nhầm trên http
+  sẽ khoá trình duyệt vào https cho cả domain, không rút lại được từ server).
+  - **CSP mặc định `report`**, không phải `enforce`. Một CSP sai làm chết JS trên
+    toàn site và **không để lại dòng log nào phía server** — triệu chứng chỉ nằm
+    trong trình duyệt khách. Chạy report vài ngày, đọc vi phạm, rồi `CSP_MODE=enforce`.
+  - Storefront **đủ điều kiện enforce ngay**: không có một inline script thực thi
+    nào (mọi `<script>` đều có `src=`, hoặc là `application/json` — dữ liệu, không
+    chạy), nguồn ngoài duy nhất là Google Fonts. `style-src` buộc phải có
+    `'unsafe-inline'` vì theme có 11 thuộc tính style động (vị trí hotspot
+    lookbook, ảnh nền slider) — inline style không thực thi mã nên rủi ro thấp
+    hơn hẳn; `script-src 'self'` mới là phần đáng giá và nó sạch.
+  - **Panel LUÔN report-only** bất kể `CSP_MODE`: đó là bundle Inertia/Vue của
+    Lunar, ta không kiểm soát nó inline gì, và một policy làm hỏng panel là khoá
+    nhân viên khỏi chính cửa hàng của họ.
+- **Cổng thanh toán chưa cấu hình thì KHÔNG được chào** (sửa 2026-09-10). Trước
+  đây trang checkout ẩn đúng, nhưng whitelist validation của API lại là danh sách
+  riêng không lọc — `payment_type: vnpay` được nhận trên shop không có credential
+  VNPay, đơn đặt xong không có bước thanh toán nào (`paymentRedirectUrl()` trả
+  null), khách về thẳng trang cảm ơn mà chưa trả đồng nào và kho bị giữ tới lượt
+  quét đơn bỏ quên.
 - **API error envelope**: 500 không leak message nội bộ (bootstrap/app.php).
 - **VNPay/MoMo IPN**: idempotent + verify chữ ký (test phủ tamper case).
 
@@ -257,8 +298,10 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
 3. Add-to-cart → checkout COD end-to-end (order xuất hiện trong admin).
 4. VNPay/MoMo sandbox→production: một giao dịch thật giá trị nhỏ + IPN về
    (kiểm tra order → payment-received + email).
-5. `/lunar` admin đăng nhập được; `/horizon` mở được bằng staff admin, job
-   `mails` chạy khi đặt hàng test.
+5. `/panel` đăng nhập được (đường cũ `/lunar` là thời Filament, đã bỏ);
+   `/horizon` mở được bằng staff admin, job `mails` chạy khi đặt hàng test.
+   Mở một đơn bất kỳ trong panel: phải thấy thẻ fulfilment — đơn không có
+   fulfilment nghĩa là chuỗi `OrderPlaced` của Lunar không chạy.
 6. Trang bất kỳ không tồn tại → 404 branded; `php artisan down` → 503 branded.
 7. `php artisan about` trên server: Environment=production, Debug=OFF, mọi
    cache CACHED, storage LINKED.
@@ -284,7 +327,25 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
 ## 9. Chưa làm (chấp nhận được ở quy mô SME, làm khi cần)
 
 - CDN cho `public/` (build assets + media) — todo #4 trong ../roadmap.md.
-- Error tracker bên thứ ba (Sentry).
-- CI pipeline (test + pint chạy tay trước commit theo standards §15).
+- Error tracker bên thứ ba (Sentry). **Khoảng trống lớn nhất còn lại.** Hôm nay
+  lỗi production chỉ nằm trong `storage/logs` — không ai được báo, và không có
+  gì gom nhóm hay đếm tần suất. Riêng vi phạm CSP thì còn tệ hơn: chúng chỉ tồn
+  tại trong trình duyệt khách cho tới khi `CSP_REPORT_URI` có chỗ nhận.
 - Zero-downtime deploy (symlink releases / Deployer) — hiện dùng maintenance
   window ngắn với trang 503 branded.
+
+### Đã làm xong, không còn nằm ở mục này
+
+- ~~CI pipeline~~ ✅ `.github/workflows/ci.yml` chạy trên mọi push và PR vào
+  `main`, bốn job song song:
+
+  | Job | Canh cái gì |
+  | --- | --- |
+  | **PHPUnit** | Toàn bộ suite trên MySQL 8 thật (không phải SQLite — app dùng JSON function cho attribute + facet) |
+  | **Dusk** | Smoke trình duyệt thật. Đỏ thì upload ảnh chụp + console log, vì lỗi trình duyệt không để lại dấu vết phía server |
+  | **Bảo mật dependency** | `composer audit` + `npm audit --omit=dev`. `composer.lock` ghim version nên CVE mới không tự xuất hiện |
+  | **Pint** | Format |
+
+  ⚠️ Cả job PHPUnit lẫn Dusk đều **bắt buộc** chạy `npm run build`: `public/build`
+  và bundle add-on của panel đều gitignore, thiếu là mọi trang `@vite` trả 500 và
+  trang panel render rỗng mà không có lỗi phía server nào để lần.
