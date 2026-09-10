@@ -41,6 +41,13 @@ class PickupShippingModifier extends ShippingModifier
             identifier: PickupLocation::IDENTIFIER,
             price: new PriceValue(0, $currency),
             taxClass: TaxClass::getDefault(),
+            // Lunar's own flag for "the customer comes and gets it". CreateOrder
+            // stamps it onto the shipping line's meta, and the Collection
+            // fulfilment method claims the order's lines from there instead of
+            // the Shipping one. Left at its default `false`, a pickup order
+            // arrived in the panel as a parcel to send: staff were shown ship
+            // and add-tracking actions for someone walking into the shop.
+            collect: true,
         ));
 
         return $next($cart);

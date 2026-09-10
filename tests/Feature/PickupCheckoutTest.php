@@ -146,6 +146,41 @@ class PickupCheckoutTest extends TestCase
         $this->assertStringContainsString('Dat', $address['name']);
     }
 
+    /**
+     * A pickup order must reach the panel as something to hand over, not
+     * something to post.
+     *
+     * Lunar decides that from one flag: `ShippingOption::$collect`, which
+     * CreateOrder stamps onto the shipping line's meta and the Collection
+     * fulfilment method reads to claim the order's lines. Our pickup option
+     * left it at its default `false`, so the Shipping method claimed the order
+     * instead and staff were shown ship / add-tracking actions for a customer
+     * walking into the shop. Nothing on the storefront looked wrong — the
+     * symptom lived entirely in the admin.
+     */
+    public function test_a_pickup_order_is_fulfilled_by_collection_not_shipping(): void
+    {
+        $this->seedBaseData();
+        $this->configurePickup();
+        $this->addToCart();
+
+        $this->postJson('/api/v1/checkout/pickup', $this->contact())->assertSuccessful();
+        $this->postJson('/api/v1/checkout', ['payment_type' => 'cod'])->assertSuccessful();
+
+        $order = Order::latest('id')->firstOrFail();
+
+        $shippingLine = $order->lines()->where('type', 'shipping')->first();
+        $this->assertTrue(
+            (bool) ($shippingLine?->meta['collect'] ?? false),
+            'Dòng phí ship của đơn nhận tại cửa hàng không mang cờ `collect`.',
+        );
+
+        $methods = $order->fulfilments()->pluck('method')->all();
+
+        $this->assertContains('collection', $methods, 'Đơn nhận tại cửa hàng không có fulfilment `collection`.');
+        $this->assertNotContains('shipping', $methods, 'Đơn nhận tại cửa hàng vẫn bị giao cho phương thức `shipping`.');
+    }
+
     /** The address and the shipping option must never disagree. */
     public function test_collecting_selects_the_pickup_shipping_option(): void
     {

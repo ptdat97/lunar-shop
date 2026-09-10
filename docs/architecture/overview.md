@@ -899,6 +899,19 @@ dashboard của panel có sẵn `LowStockWidget`.
 - Zone/rate DB-backed (`ShippingZone`: country + states → rate + free-threshold,
   most-specific-wins) qua `ShippingZoneResolver` + `FlatRateShippingModifier`, fallback
   config. Quản trị: `/panel/shop/shipping-zones` + tab cài đặt Vận chuyển.
+- **Nhận tại cửa hàng phải bật cờ `collect` của Lunar.** `ShippingOption` có tham số
+  `collect: bool`; `CreateShippingLine` đóng dấu nó vào `meta` của dòng phí ship, và
+  fulfilment method `Collection` của Lunar đọc đúng chỗ đó để giành các dòng hàng của
+  đơn. `PickupShippingModifier` để nguyên mặc định `false` nên method `Shipping` giành
+  mất — đơn khách tự tới lấy vẫn vào panel như một kiện phải gửi, kèm nút giao hàng và
+  nhập mã vận đơn. **Storefront không có triệu chứng nào**: giá vẫn 0, địa chỉ vẫn là
+  cửa hàng, đơn vẫn đặt được. Lỗi chỉ tồn tại phía quản trị, nên không test nào của
+  checkout thấy được — `PickupCheckoutTest` giờ khẳng định thẳng đơn có fulfilment
+  `collection` và KHÔNG có `shipping`.
+
+  Đây là cùng một lớp lỗi với `MediaSettings` và facet tìm kiếm: *ta ghi một chỗ, Lunar
+  đọc một chỗ khác*. Cách tìm ra không phải đọc code của mình mà là đọc driver của Lunar
+  xem nó lấy quyết định từ đâu.
 
 ## Analytics
 - `AnalyticsService` (revenue/orders/AOV/monthly/top-products, MySQL-portable, đếm đúng
