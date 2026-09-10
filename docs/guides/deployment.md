@@ -327,14 +327,31 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
 ## 9. Chưa làm (chấp nhận được ở quy mô SME, làm khi cần)
 
 - CDN cho `public/` (build assets + media) — todo #4 trong ../roadmap.md.
-- Error tracker bên thứ ba (Sentry). **Khoảng trống lớn nhất còn lại.** Hôm nay
-  lỗi production chỉ nằm trong `storage/logs` — không ai được báo, và không có
-  gì gom nhóm hay đếm tần suất. Riêng vi phạm CSP thì còn tệ hơn: chúng chỉ tồn
-  tại trong trình duyệt khách cho tới khi `CSP_REPORT_URI` có chỗ nhận.
 - Zero-downtime deploy (symlink releases / Deployer) — hiện dùng maintenance
   window ngắn với trang 503 branded.
 
 ### Đã làm xong, không còn nằm ở mục này
+
+- ~~Error tracker bên thứ ba~~ ✅ Sentry đã cắm (2026-09-10), **tắt mặc định**.
+  Không có `SENTRY_LARAVEL_DSN` thì SDK không gửi gì và không mở kết nối nào —
+  bật một đường truyền dữ liệu ra bên thứ ba phải là quyết định có người bấm nút.
+
+  ⚠️ **Việc phải làm khi lên production:** tạo project trên Sentry, đặt
+  `SENTRY_LARAVEL_DSN`, và đặt `SENTRY_RELEASE=$(git rev-parse --short HEAD)`
+  trong quy trình deploy để biết bản nào gây lỗi. `shop:preflight` cảnh báo
+  (không chặn) nếu thiếu, và **chặn** nếu `send_default_pii` bị bật.
+
+  `Modules\Core\Support\SentryScrubber` là lưới lọc cuối trước khi một sự kiện
+  rời máy chủ. `send_default_pii => false` chặn phần lớn nhưng KHÔNG chặn những
+  thứ mang dữ liệu khách theo đường vòng, và với shop thì đó mới là chỗ nguy
+  hiểm: lỗi ở `/payment/vnpay/return?vnp_SecureHash=…` mang nguyên chữ ký thanh
+  toán trong URL. Scrubber xoá query string, header xác thực, email/điện
+  thoại/địa chỉ, ràng buộc SQL — giữ lại đúng id người dùng, vì không có định
+  danh nào thì không khớp báo lỗi với người báo được.
+
+  Còn thiếu `CSP_REPORT_URI`: CSP đang chạy `report` nhưng chưa có chỗ nhận, nên
+  vi phạm chỉ tồn tại trong DevTools của người đang mở trang. Sentry có endpoint
+  nhận CSP report — đặt cùng lúc với DSN.
 
 - ~~CI pipeline~~ ✅ `.github/workflows/ci.yml` chạy trên mọi push và PR vào
   `main`, bốn job song song:

@@ -58,8 +58,11 @@ Chạy trên **APP_URL + database dev** — đúng dữ liệu bạn nhìn thấ
 là điểm mạnh: tái hiện được đúng bản ghi đang lỗi. Đổi lại, **test có ghi dữ liệu
 phải tự khôi phục** — xem §3.4.
 
-**Không chạy trong CI**: `phpunit.xml` chỉ nạp `tests/Feature`, và runner không có
-trình duyệt. Đây là việc chạy tay khi nghi lỗi client.
+**Chạy trong CI từ 2026-09-10** (job `dusk`), và vẫn chạy tay khi nghi lỗi client.
+Hai lý do ghi ở đây trước kia — "runner không có trình duyệt" và "`phpunit.xml`
+chỉ nạp `tests/Feature`" — lý do đầu đã lạc hậu (ubuntu-latest có sẵn Chrome),
+lý do sau không áp dụng vì `artisan dusk` dùng cấu hình riêng chứ không đọc
+`phpunit.xml`.
 
 ### ChromeDriver
 
@@ -69,7 +72,21 @@ php artisan dusk:chrome-driver --detect
 
 ⚠️ Bản Dusk hiện tại **giải nén sai** cấu trúc zip mới của Chrome for Testing: nó
 tạo ra một *thư mục* `vendor/laravel/dusk/bin/chromedriver-mac-arm64` thay vì
-*file*. Triệu chứng là `Could not connect to localhost:9515`. Xử lý:
+*file*. Triệu chứng là `Could not connect to localhost:9515`, hoặc lệnh chết
+thẳng với `ZipArchive::extractTo(...): Failed to open stream`.
+
+**Lỗi này cũng đánh vào CI.** Job `dusk` trong `.github/workflows/ci.yml` vì vậy
+KHÔNG gọi `dusk:chrome-driver` mà tải thẳng từ endpoint của Google, rồi
+`install` vào đúng tên Dusk tìm (`chromedriver-linux`, xem
+`Chrome/ChromeProcess.php`) — chính chỗ lệch giữa tên đó và thư mục
+`chromedriver-linux64/` trong zip là nguyên nhân.
+
+📌 Trên macOS, Dusk dùng file tên `chromedriver-mac-arm`, **không phải**
+`chromedriver-mac-arm64` (cả hai cùng nằm trong `bin/`, dễ thay nhầm file rồi
+tưởng đã sửa xong). Và ChromeDriver lệch một major so với Chrome vẫn chạy được
+trong thực tế: đã đo 8/8 test xanh với driver 152 trên Chrome 153.
+
+Xử lý ở local:
 
 ```bash
 V=$(/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --version | awk '{print $3}')

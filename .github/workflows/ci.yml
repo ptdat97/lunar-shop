@@ -193,9 +193,38 @@ jobs:
           php artisan db:seed --force
 
       - name: ChromeDriver khớp Chrome của runner
-        # `--detect` đọc version Chrome đang cài rồi tải đúng driver. Ghim cứng
-        # version sẽ hỏng mỗi lần GitHub nâng ảnh runner.
-        run: php artisan dusk:chrome-driver --detect
+        # KHÔNG dùng `php artisan dusk:chrome-driver --detect`: bản Dusk hiện tại
+        # giải nén sai cấu trúc zip mới của Chrome for Testing và chết với
+        # `ZipArchive::extractTo(...): Failed to open stream` — lỗi này đã ghi
+        # trong docs/guides/e2e-testing.md và tái hiện được ở local.
+        #
+        # Tải thẳng từ endpoint chính chủ của Google thay vì dùng action bên thứ
+        # ba: bớt một mắt xích cung ứng cho một việc chỉ là tải file.
+        #
+        # Hỏi bản patch mới nhất theo ĐÚNG build của Chrome trên runner. Ghim
+        # cứng version sẽ hỏng mỗi lần GitHub nâng ảnh runner; lấy "Stable" thì
+        # lệch khi ảnh runner đi sau kênh stable.
+        run: |
+          set -euo pipefail
+          CHROME_VERSION=$(google-chrome --version | awk '{print $3}')
+          BUILD=$(echo "$CHROME_VERSION" | cut -d. -f1-3)
+          echo "Chrome trên runner: $CHROME_VERSION (build $BUILD)"
+
+          DRIVER_VERSION=$(curl -sSf \
+            https://googlechromelabs.github.io/chrome-for-testing/latest-patch-versions-per-build.json \
+            | python3 -c "import json,sys; print(json.load(sys.stdin)['builds']['$BUILD']['version'])")
+          echo "ChromeDriver khớp: $DRIVER_VERSION"
+
+          curl -sSfL -o /tmp/chromedriver.zip \
+            "https://storage.googleapis.com/chrome-for-testing-public/$DRIVER_VERSION/linux64/chromedriver-linux64.zip"
+          unzip -q -o /tmp/chromedriver.zip -d /tmp/chromedriver
+
+          # Dusk tìm đúng tên `chromedriver-linux` (ChromeProcess.php), còn zip
+          # thì lồng nó trong thư mục `chromedriver-linux64/` — chính chỗ lệch
+          # này là thứ làm `dusk:chrome-driver` chết.
+          install -m 0755 /tmp/chromedriver/chromedriver-linux64/chromedriver \
+            vendor/laravel/dusk/bin/chromedriver-linux
+          vendor/laravel/dusk/bin/chromedriver-linux --version
 
       - name: Dựng site
         env:

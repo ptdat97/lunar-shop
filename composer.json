@@ -26,6 +26,7 @@
         "lunarphp/core": "2.0.0-alpha.6",
         "lunarphp/panel": "2.0.0-alpha.6",
         "nwidart/laravel-modules": "^13.0",
+        "sentry/sentry-laravel": "^4.27",
         "spatie/laravel-medialibrary": "^11.12.7"
     },
     "require-dev": {

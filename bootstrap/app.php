@@ -12,6 +12,7 @@ use Modules\Core\Http\Middleware\SecurityHeaders;
 use Modules\Core\Http\Middleware\ThrottleApiV1;
 use Modules\Core\Http\Middleware\VerifyCsrfTokenUnlessStateless;
 use Modules\Core\Support\ApiErrorResponse;
+use Sentry\Laravel\Integration as SentryIntegration;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -68,6 +69,15 @@ return Application::configure(basePath: dirname(__DIR__))
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Báo lỗi production ra Sentry. Trước đây lỗi chỉ nằm trong
+        // storage/logs: khách gặp 500 giữa lúc thanh toán thì không ai biết
+        // trừ khi khách chịu khó nhắn tin (roadmap P0 §2).
+        //
+        // No-op khi chưa đặt SENTRY_LARAVEL_DSN — không mở kết nối nào, không
+        // gửi gì cả. Xem config/sentry.php và SentryScrubber để biết cái gì bị
+        // lọc trước khi rời máy chủ.
+        SentryIntegration::handles($exceptions);
+
         // An API client is not a browser. Laravel decides "JSON or redirect?" from
         // the Accept header, so a client sending `Accept: */*` (curl's default,
         // and plenty of HTTP libraries) hit `Handler::unauthenticated()`'s

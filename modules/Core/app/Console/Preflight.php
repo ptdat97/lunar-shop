@@ -163,6 +163,24 @@ class Preflight extends Command
             'Đang ghi log thay vì gửi — khách không nhận được email xác nhận đơn nào.',
         );
 
+        // Cảnh báo, không chặn: một shop chạy được mà không có error tracker,
+        // nó chỉ chạy mù. Chặn phát hành vì thiếu nó là buộc người ta phải có
+        // tài khoản Sentry mới deploy được, thứ không phải lúc nào cũng đúng.
+        $this->warnIf(
+            $production && blank(config('sentry.dsn')),
+            'Theo dõi lỗi',
+            'Chưa đặt SENTRY_LARAVEL_DSN — lỗi production chỉ nằm trong storage/logs, '
+                .'khách gặp 500 lúc thanh toán thì không ai được báo.',
+        );
+
+        // send_default_pii bật ở production là gửi IP, cookie và thân request
+        // của khách sang bên thứ ba. Cái này thì CHẶN.
+        $this->assert(
+            ! $production || ! config('sentry.send_default_pii'),
+            'Sentry PII',
+            'send_default_pii đang bật: IP, cookie và thân request của khách sẽ được gửi kèm mọi lỗi.',
+        );
+
         // Cảnh báo chứ không chặn: report-only vẫn tốt hơn không có CSP, và
         // chặn phát hành vì nó sẽ khiến người ta đặt `off` cho xong việc.
         $this->warnIf(

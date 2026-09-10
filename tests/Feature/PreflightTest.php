@@ -83,6 +83,30 @@ class PreflightTest extends TestCase
         $this->assertSame(1, $this->asProduction(['queue.default' => 'sync']));
     }
 
+    /**
+     * Sending customer IPs, cookies and request bodies to a third party is a
+     * different order of mistake from a missing DSN — one is a gap, the other
+     * is a leak. Only the leak blocks.
+     */
+    public function test_sentry_pii_blocks_the_release(): void
+    {
+        $exit = $this->asProduction([
+            'sentry.dsn' => 'https://public@example.ingest.sentry.io/1',
+            'sentry.send_default_pii' => true,
+        ]);
+
+        $this->assertSame(1, $exit);
+        $this->assertStringContainsString('PII', Artisan::output());
+    }
+
+    public function test_a_missing_error_tracker_only_warns(): void
+    {
+        $exit = $this->asProduction(['sentry.dsn' => null]);
+
+        $this->assertSame(0, $exit, 'Thiếu error tracker là cảnh báo, không phải chặn phát hành.');
+        $this->assertStringContainsString('SENTRY_LARAVEL_DSN', Artisan::output());
+    }
+
     /** Outside production the same config is fine — this is a deploy gate, not a linter. */
     public function test_local_is_not_held_to_production_rules(): void
     {

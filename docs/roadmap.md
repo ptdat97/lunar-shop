@@ -37,15 +37,30 @@ hoặc vi phạm nghĩa vụ pháp lý, hoặc hỏng mà không ai biết.
   DB, mail) **trước** khi lên production. Không có ngoại lệ, không có "để sau".
 
 ### 2. Lỗi production đang vô hình + không có lưới an toàn
-- ⬜ **Error tracker** (Sentry — free tier là đủ cho SME). Hiện **chỉ có**
-  `storage/logs/laravel-*.log`: khách gặp 500 lúc thanh toán thì **không ai biết**, trừ
-  khi khách chịu khó nhắn tin. Đây là việc rẻ nhất trong cả danh sách và có ROI cao nhất.
-- ⬜ **CI** — `.github/` **chưa tồn tại**. Tối thiểu: chạy `phpunit` mỗi push (~20 dòng
-  YAML). 432 test đang chạy **bằng tay** → chỉ cần quên một lần là bug lên production.
-  Muốn thêm `pint --test` thì trước đó phải chạy `pint` một lượt trên code của mình
-  trong **commit riêng, không kèm thay đổi logic** — bật thẳng vào CI sẽ đỏ ngay ngày
-  đầu vì còn nhiều file chưa từng format. (Con số 241 file đỏ trong bản ghi cũ đã lỗi
-  thời: 119 file trong đó thuộc bản fork Lunar, nay đã gỡ khỏi repo.)
+
+- ✅ **Error tracker** — đã cắm Sentry (2026-09-10). **TẮT mặc định**: không có
+  `SENTRY_LARAVEL_DSN` thì SDK không gửi gì và không mở kết nối nào. Cố ý như vậy — bật
+  một đường truyền dữ liệu ra bên thứ ba phải là quyết định có người bấm nút, không phải
+  hệ quả phụ của việc cài package. **Việc còn lại của anh: tạo project trên Sentry và đặt
+  DSN vào `.env` production.** `shop:preflight` cảnh báo (không chặn) nếu production chạy
+  mà chưa đặt.
+
+  Phần tốn công nhất không phải cắm SDK mà là **lọc dữ liệu trước khi gửi đi**.
+  `send_default_pii => false` chặn được phần lớn, nhưng không chặn những thứ mang dữ liệu
+  khách theo đường vòng — và với shop thì đó mới là chỗ nguy hiểm: một lỗi ở
+  `/payment/vnpay/return?vnp_SecureHash=…&vnp_TxnRef=…` mang nguyên chữ ký thanh toán
+  trong URL, một trường Sentry không có lý do gì để coi là đặc biệt. `SentryScrubber` xoá
+  query string, header xác thực, email/điện thoại/địa chỉ, và ràng buộc câu SQL; giữ lại
+  **đúng id** người dùng vì không có định danh nào thì không khớp báo lỗi với người báo được.
+
+- ✅ **CI** — `.github/workflows/ci.yml` chạy trên mọi push và PR vào `main`: PHPUnit trên
+  MySQL 8 thật, Dusk (smoke trình duyệt), `composer audit` + `npm audit`, và Pint. Xem
+  [deployment.md §9](guides/deployment.md).
+
+- ⬜ **Còn thiếu: `CSP_REPORT_URI`.** Header bảo mật đã có và CSP đang chạy chế độ
+  `report`, nhưng chưa có chỗ nhận báo cáo — nên vi phạm chỉ tồn tại trong DevTools của
+  người đang mở trang. Sentry có sẵn endpoint nhận CSP report; đặt cùng lúc với DSN thì
+  mới đọc được vi phạm thật để quyết định có bật `CSP_MODE=enforce` hay không.
 
 ### 3. Hoá đơn điện tử (HĐĐT) — nghĩa vụ pháp lý, không phải tính năng
 - ⬜ `Modules\Order\Services\InvoiceService` hiện sinh **PDF qua dompdf** — đó là *phiếu
