@@ -19,6 +19,7 @@
         "vue": "^3.5.42"
     },
     "dependencies": {
+        "@popperjs/core": "^2.11.8",
         "bootstrap": "^5.3.8"
     }
 }
