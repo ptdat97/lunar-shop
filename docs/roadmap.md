@@ -85,8 +85,25 @@ lớn nhất và đang 100% thủ công.** Càng nhiều đơn, càng đau.
   (Notification gửi thông báo, Inventory trả tồn kho) → webhook của hãng chỉ cần bắn vào
   đây, **không** phải sửa Order.
 - `ShippingService` + `ShippingZoneResolver` là chỗ cắm phí ship động (thay flat-rate).
-- **Còn thiếu, phải thêm:** cột/bảng lưu **mã vận đơn + link tracking** (`lunar_orders`
-  chưa có) → nhiều khả năng dùng `orders.meta` hoặc bảng `shipment` riêng.
+- ~~**Còn thiếu, phải thêm:** cột/bảng lưu **mã vận đơn + link tracking**~~
+  ✅ **Bản nâng cấp Lunar 2.0 đã giải quyết (2026-09-10).** `lunar_fulfilment_trackings`
+  có sẵn (carrier / tracking_number / tracking_url / shipping_method, nhiều mã cho một
+  fulfilment), panel có `AddTrackingDialog` viết vào đó, và `ShippingCarrier::getTrackingUrl()`
+  là chỗ cắm link tra cứu khi nào có hợp đồng. Không phải nghĩ tới `orders.meta` hay
+  bảng `shipment` tự chế nữa.
+
+  **Việc mở khoá được NGAY, không cần hợp đồng:** `AddFulfilmentTracking` tra hãng trong
+  `CarrierManifest` và **bỏ qua** phần validate định dạng khi không tìm thấy. Nghĩa là gõ
+  tay `carrier: "ghtk"` + mã vận đơn là lưu bình thường. Toàn bộ quy trình thủ công mô tả
+  ở trên — chủ shop tự sang web hãng tạo vận đơn rồi copy mã — giờ có chỗ lưu trong panel
+  thay vì nằm ngoài hệ thống, và khách hỏi "hàng tới đâu" thì tra được trên đơn.
+  Chốt bằng `tests/Feature/FulfilmentTrackingTest.php`.
+
+  ⚠️ `CarrierManifest` đang có 4 mặc định của Lunar: `royal-mail`, `dpd`, `ups`, `fedex`
+  — hãng Anh/Mỹ, vô dụng với shop Việt. **Cố ý chưa đăng ký hãng Việt Nam nào**: chọn
+  hãng nào là quyết định vận hành, và đúng nguyên tắc ghi ở đầu mục này là không code
+  trước theo tài liệu. Khi ký hợp đồng thì `Carriers::set()` thay cả bốn cái đó bằng
+  đúng một hãng đã ký.
 - Làm đúng mẫu `SearchEngine`/`PushSender`: `interface Carrier` + driver, **queued job**,
   webhook có xác thực chữ ký (§17.5: *chữ ký hợp lệ ≠ nội dung đúng* — xác thực xong mới
   bắt đầu kiểm tra nội dung).
