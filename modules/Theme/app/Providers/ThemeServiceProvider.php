@@ -12,6 +12,7 @@ use Modules\Theme\Http\Middleware\SetStorefrontLocale;
 use Modules\Theme\Panel\ThemeSettings as ThemeSettingsPanel;
 use Modules\Theme\Services\LocaleService;
 use Modules\Theme\Services\ThemeSettings;
+use Modules\Theme\Support\StorefrontI18n;
 
 class ThemeServiceProvider extends ServiceProvider
 {
@@ -56,6 +57,14 @@ class ThemeServiceProvider extends ServiceProvider
         // already means the panel theme.
         View::composer('theme::*', function ($view) {
             $view->with('theme', $this->app->make(ThemeSettings::class));
+        });
+
+        // The strings the theme's JavaScript renders. Composed globally rather
+        // than per page because the enhancers are loaded by a glob — any page
+        // can run any of them, so a per-page payload would be a list nobody
+        // keeps in step. See StorefrontI18n for why this exists at all.
+        View::composer('theme::layouts.*', function ($view) {
+            $view->with('storefrontI18n', StorefrontI18n::payload());
         });
 
         // Email accent colour. `mail.default` is rendered by Laravel's mail

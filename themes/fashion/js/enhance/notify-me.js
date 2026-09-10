@@ -1,9 +1,10 @@
 // Back-in-stock subscription. Shows the "notify me" form only when the selected
 // variant is out of stock (listens to variant:changed from product-variant.js),
 // and subscribes via POST /api/v1/inventory/notify-me. The add-to-cart button
-// already shows "Out of stock" with no JS — this is an additive enhancement.
+// already shows t('product.out_of_stock', {}, 'Out of stock') with no JS — this is an additive enhancement.
 
 import api from '../api.js';
+import { t } from '../i18n.js';
 
 export default function (root = document) {
     const box = root.querySelector('[data-notify-me]');
@@ -53,12 +54,12 @@ export default function (root = document) {
 
         try {
             const { data } = await api.post('/inventory/notify-me', { variant_id, email });
-            setStatus(data?.message ?? 'Subscribed.', true);
+            setStatus(data?.message ?? t('notify.subscribed', {}, 'Subscribed.'), true);
             form.querySelector('[data-notify-email]')?.setAttribute('disabled', 'disabled');
         } catch (err) {
             const msg = err?.response?.data?.message
                 ?? err?.response?.data?.errors?.email?.[0]
-                ?? 'Could not subscribe. Please try again.';
+                ?? t('notify.failed', {}, 'Could not subscribe. Please try again.');
             setStatus(msg, false);
             if (submit) submit.disabled = false;
         }

@@ -2,6 +2,7 @@
 // SPA cookie session). Account page logic lives in enhance/account.js.
 
 import api from '../api.js';
+import { t } from '../i18n.js';
 
 const REDIRECT_AFTER_AUTH = '/account';
 const REDIRECT_AFTER_LOGOUT = '/';
@@ -15,7 +16,7 @@ function showError(form, message) {
 function errorMessage(e) {
     const data = e.response?.data;
     if (data?.errors) return Object.values(data.errors)[0]?.[0];
-    return data?.message || 'Something went wrong. Please try again.';
+    return data?.message || t('common.error_generic', {}, 'Something went wrong. Please try again.');
 }
 
 function bindAuthForm(form) {
@@ -25,7 +26,7 @@ function bindAuthForm(form) {
         showError(form, '');
         const btn = form.querySelector('[data-auth-submit]');
         const label = btn?.textContent;
-        if (btn) { btn.disabled = true; btn.textContent = 'Please wait…'; }
+        if (btn) { btn.disabled = true; btn.textContent = t('common.please_wait', {}, 'Please wait…'); }
 
         const payload = Object.fromEntries(new FormData(form).entries());
         const remember = form.querySelector('[name="remember"]');

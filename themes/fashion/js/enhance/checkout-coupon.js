@@ -7,6 +7,7 @@
 import api from '../api.js';
 import { CART_UPDATED, emit } from '../events.js';
 import { appliedDiscountsHtml } from './cart.js';
+import { t } from '../i18n.js';
 
 export default function (root = document) {
     const summary = root.querySelector('[data-checkout-summary]');
@@ -72,9 +73,9 @@ export default function (root = document) {
         try {
             const { data } = await api.post('/cart/coupon', { code });
             applyCart(data.data ?? data);
-            setStatus('Coupon applied.', true);
+            setStatus(t('coupon.applied', {}, 'Coupon applied.'), true);
         } catch {
-            setStatus('Invalid or expired coupon.', false);
+            setStatus(t('coupon.invalid', {}, 'Invalid or expired coupon.'), false);
         }
     }
 
@@ -82,9 +83,9 @@ export default function (root = document) {
         try {
             const { data } = await api.delete('/cart/coupon');
             applyCart(data.data ?? data);
-            setStatus('Coupon removed.', true);
+            setStatus(t('coupon.removed', {}, 'Coupon removed.'), true);
         } catch {
-            setStatus('Could not remove coupon.', false);
+            setStatus(t('coupon.remove_failed', {}, 'Could not remove coupon.'), false);
         }
     }
 

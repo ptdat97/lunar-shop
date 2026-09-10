@@ -25,6 +25,7 @@ let thumbsSwiper = null;
  * @param {string} name
  * @param {{width:number,height:number}} [zoomSize]  fallback pswp dimensions
  */
+import { t } from '../i18n.js';
 export function galleryHtml(images, name, zoomSize = {}) {
     if (!images || !images.length) {
         return '<div class="ratio ratio-4x3 bg-light rounded d-flex align-items-center justify-content-center text-muted">No image</div>';
@@ -127,7 +128,7 @@ function initPhotoSwipe() {
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-big-right"><path d="M13.207 19.793a.707.707 0 0 1-1.207-.5V16a1 1 0 0 0-1-1H5a1 1 0 0 1-1-1v-4a1 1 0 0 1 1-1h6a1 1 0 0 0 1-1V4.707a.707.707 0 0 1 1.207-.5l6.94 6.94a1.207 1.207 0 0 1 0 1.707z"/></svg>
                 </button>
                 <span class="pswp__counter"></span>
-                <button type="button" class="pswp__button pswp__button-prev" aria-label="Previous">
+                <button type="button" class="pswp__button pswp__button-prev" aria-label="${t('gallery.previous', {}, 'Previous')}">
                   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-big-left"><path d="M10.793 19.793a.707.707 0 0 0 1.207-.5V16a1 1 0 0 1 1-1h6a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1h-6a1 1 0 0 1-1-1V4.707a.707.707 0 0 0-1.207-.5l-6.94 6.94a1.207 1.207 0 0 0 0 1.707z"/></svg>
                 </button>`,
             onInit: (el, pswp) => {

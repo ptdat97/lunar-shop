@@ -3,6 +3,7 @@
 // fills in the [data-membership] card. Auth-only; failures hide the card.
 
 import api from '../api.js';
+import { t } from '../i18n.js';
 
 // API returns spend/remaining in minor units of the default currency (VND has
 // no minor unit subdivision in practice; factor 100 in Lunar). Format as VND.
@@ -34,16 +35,20 @@ export default async function membership(root = document) {
     if (info.tier) {
         tierEl.textContent = info.tier.name;
         if (info.tier.discount_percentage) {
-            perkEl.textContent = `You get ${info.tier.discount_percentage}% off every order.`;
+            perkEl.textContent = t('membership.discount_every_order',
+                { percent: info.tier.discount_percentage },
+                `You get ${info.tier.discount_percentage}% off every order.`);
             perkEl.hidden = false;
         }
     } else {
-        tierEl.textContent = 'Not a member yet';
+        tierEl.textContent = t('membership.not_a_member', {}, 'Not a member yet');
         tierEl.classList.replace('bg-dark', 'bg-secondary');
     }
 
     if (info.next_tier) {
-        nextEl.textContent = `Spend ${formatVnd(info.next_tier.remaining)} more to reach ${info.next_tier.name}.`;
+        nextEl.textContent = t('membership.spend_to_reach',
+            { amount: formatVnd(info.next_tier.remaining), tier: info.next_tier.name },
+            `Spend ${formatVnd(info.next_tier.remaining)} more to reach ${info.next_tier.name}.`);
         nextEl.hidden = false;
 
         // Rough progress within the current → next band based on remaining.

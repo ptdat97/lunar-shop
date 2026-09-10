@@ -5,6 +5,7 @@
 // Helper module (leading underscore): imported by grid enhancers, not auto-run.
 
 import { gridConfig } from '../config/grid.js';
+import { t } from '../i18n.js';
 
 function esc(value) {
     return String(value ?? '').replace(/[&<>"']/g, (c) => ({
@@ -52,7 +53,7 @@ export function cardHtml(product) {
 <article class="product-card h-100 position-relative">
     ${badgeHtml(product)}
     <button class="btn btn-light btn-sm rounded-circle product-card__wishlist position-absolute top-0 end-0 m-2"
-            data-wishlist-toggle data-product-id="${esc(product.id)}" aria-label="Add to wishlist" aria-pressed="false">
+            data-wishlist-toggle data-product-id="${esc(product.id)}" aria-label="${t('product.add_to_wishlist', {}, 'Add to wishlist')}" aria-pressed="false">
         <i class="bi bi-heart"></i>
     </button>
     <a href="${url}" class="d-block product-card__media rounded mb-2${product.hover_thumbnail ? ' has-hover' : ''}">${media}</a>

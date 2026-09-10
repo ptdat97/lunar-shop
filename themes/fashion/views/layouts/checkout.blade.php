@@ -17,6 +17,8 @@
 
     @vite(['themes/fashion/css/app.scss', 'themes/fashion/js/app.js'])
 
+    @include('theme::partials.i18n')
+
     @stack('head')
 </head>
 <body class="checkout-shell d-flex flex-column min-vh-100 @yield('body_class')">

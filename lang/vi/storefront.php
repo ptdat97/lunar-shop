@@ -14,6 +14,7 @@ return [
         '419_title' => 'Phiên đã hết hạn',
         '419_message' => 'Phiên làm việc đã hết hạn. Vui lòng quay lại và thử lại.',
         'go_home' => 'Về trang chủ',
+        'generic' => 'Có lỗi xảy ra. Vui lòng thử lại.',
     ],
 
     'nav' => [
@@ -45,6 +46,9 @@ return [
         'name' => 'Tên',
         'email' => 'Email',
         'description' => 'Mô tả',
+        'previous' => 'Trước',
+        'try_again' => 'Thử lại',
+        'please_wait' => 'Vui lòng đợi…',
     ],
 
     'cart' => [
@@ -65,6 +69,13 @@ return [
         'free_shipping_unlocked' => 'Bạn đã được miễn phí vận chuyển!',
         'free_shipping_remaining' => 'Mua thêm :amount để được miễn phí vận chuyển.',
         'you_may_also_like' => 'Có thể bạn cũng thích',
+        'decrease' => 'Giảm',
+        'quantity' => 'Số lượng',
+        'increase' => 'Tăng',
+        'coupon_applied' => 'Đã áp dụng mã giảm giá.',
+        'coupon_invalid' => 'Mã không hợp lệ hoặc đã hết hạn.',
+        'coupon_removed' => 'Đã gỡ mã giảm giá.',
+        'coupon_remove_failed' => 'Không gỡ được mã giảm giá.',
     ],
 
     'product' => [
@@ -87,6 +98,14 @@ return [
         'notify_me' => 'Báo cho tôi',
         'notify_intro' => 'Hết hàng — nhận email khi có hàng lại.',
         'recently_viewed' => 'Đã xem gần đây',
+        'notify_subscribed' => 'Đã đăng ký. Chúng tôi sẽ báo khi có hàng.',
+        'notify_failed' => 'Không đăng ký được. Vui lòng thử lại.',
+        'size_use_this' => 'Chọn size này',
+        'size_no_match' => 'Chưa tìm được size phù hợp với số đo đó. Bạn xem thử bảng size nhé.',
+        'size_also_consider' => 'Có thể cân nhắc: :sizes',
+        'size_need_measurement' => 'Nhập ít nhất một số đo (ví dụ vòng ngực, vòng eo, vòng mông).',
+        'size_finding' => 'Đang tìm…',
+        'size_failed' => 'Chưa lấy được gợi ý. Vui lòng thử lại.',
     ],
 
     'promotion' => [
@@ -162,6 +181,9 @@ return [
         'save_error' => 'Không lưu được thay đổi.',
         'address_save_error' => 'Không lưu được địa chỉ.',
         'select_item' => 'Chọn ít nhất một sản phẩm.',
+        'membership_discount_every_order' => 'Bạn được giảm :percent% cho mọi đơn hàng.',
+        'membership_not_a_member' => 'Bạn chưa là thành viên',
+        'membership_spend_to_reach' => 'Mua thêm :amount để lên hạng :tier.',
     ],
 
     'checkout' => [

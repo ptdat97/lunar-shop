@@ -11,6 +11,7 @@
 
 import api from '../api.js';
 import { CART_UPDATED, emit } from '../events.js';
+import { t } from '../i18n.js';
 
 function openDrawer() {
     const el = document.getElementById('shoppingCart');
@@ -32,7 +33,7 @@ async function add(variantId, quantity, trigger) {
         emit(CART_UPDATED, { variantId, cart: data.data ?? data });
         openDrawer();
     } catch (e) {
-        if (btn) btn.textContent = 'Try again';
+        if (btn) btn.textContent = t('common.try_again', {}, 'Try again');
         return;
     } finally {
         if (btn && btn.textContent === 'Adding…') btn.textContent = label;

@@ -6,6 +6,7 @@ import api from '../api.js';
 import { CART_UPDATED, CART_REFRESHED, emit, on } from '../events.js';
 import { renderGrid } from './_card.js';
 import { appliedDiscountsHtml } from './cart.js';
+import { t } from '../i18n.js';
 
 function esc(v) {
     return String(v ?? '').replace(/[&<>"']/g, (c) => ({
@@ -86,7 +87,7 @@ export default function (root = document) {
         refreshRecommendations();
     }
 
-    // "You may also like" — fetched separately so a slow/empty recommendation
+    // t('cart.you_may_also_like', {}, 'You may also like') — fetched separately so a slow/empty recommendation
     // never blocks rendering the cart. Hidden when empty (mirrors the drawer).
     async function refreshRecommendations() {
         if (!recs || !recsGrid) return;
@@ -141,9 +142,9 @@ export default function (root = document) {
         if (!code) return;
         try {
             await mutate(api.post('/cart/coupon', { code }));
-            if (status) { status.textContent = 'Coupon applied.'; status.className = 'small mt-1 text-success'; }
+            if (status) { status.textContent = t('coupon.applied', {}, 'Coupon applied.'); status.className = 'small mt-1 text-success'; }
         } catch {
-            if (status) { status.textContent = 'Invalid or expired coupon.'; status.className = 'small mt-1 text-danger'; }
+            if (status) { status.textContent = t('coupon.invalid', {}, 'Invalid or expired coupon.'); status.className = 'small mt-1 text-danger'; }
         }
     });
 

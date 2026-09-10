@@ -14,6 +14,7 @@
 import api from '../api.js';
 import { CART_UPDATED, CART_REFRESHED, emit, on } from '../events.js';
 import { renderGrid } from './_card.js';
+import { t } from '../i18n.js';
 
 let lastCart = null;
 
@@ -42,9 +43,9 @@ function lineHtml(line) {
         <div class="text-muted small">${esc(line.sku ?? '')}</div>
         <div class="d-flex align-items-center justify-content-between mt-2">
             <div class="input-group input-group-sm" style="width:104px">
-                <button class="btn" type="button" data-qty-dec aria-label="Decrease">−</button>
-                <input class="form-control text-center" value="${line.quantity}" data-qty inputmode="numeric" aria-label="Quantity">
-                <button class="btn" type="button" data-qty-inc aria-label="Increase">+</button>
+                <button class="btn" type="button" data-qty-dec aria-label="${t('cart.decrease', {}, 'Decrease')}">−</button>
+                <input class="form-control text-center" value="${line.quantity}" data-qty inputmode="numeric" aria-label="${t('cart.quantity', {}, 'Quantity')}">
+                <button class="btn" type="button" data-qty-inc aria-label="${t('cart.increase', {}, 'Increase')}">+</button>
             </div>
             <span class="small fw-semibold">
                 ${esc(line.sub_total ?? '')}
@@ -126,8 +127,9 @@ function renderDrawer(cart) {
     if (shipping && cart.free_shipping) {
         shipping.hidden = false;
         shipping.textContent = cart.free_shipping.qualified
-            ? 'You’ve unlocked free shipping!'
-            : `Add ${cart.free_shipping.remaining} more for free shipping.`;
+            ? t('cart.free_shipping_unlocked', {}, 'You’ve unlocked free shipping!')
+            : t('cart.free_shipping_remaining', { amount: cart.free_shipping.remaining },
+                `Add ${cart.free_shipping.remaining} more for free shipping.`);
     } else if (shipping) {
         shipping.hidden = true;
     }
@@ -147,7 +149,7 @@ function renderAndNotify(cart) {
     emit(CART_REFRESHED, { cart: lastCart });
 }
 
-// "You may also like" — fetched separately from the cart so a slow/empty
+// t('cart.you_may_also_like', {}, 'You may also like') — fetched separately from the cart so a slow/empty
 // recommendation never blocks rendering the cart itself. Hidden when empty.
 async function refreshRecommendations() {
     const block = document.querySelector('#shoppingCart [data-cart-recommendations]');

@@ -8,6 +8,7 @@
 // (size-finder) to preselect a size. PhotoSwipe re-inits on gallery change.
 
 import { MediaUrlGallery, initGalleryLightbox } from './_gallery.js';
+import { t } from '../i18n.js';
 
 function readState(root) {
     const tag = root.querySelector('[data-product-state]');
@@ -15,16 +16,23 @@ function readState(root) {
     try { return JSON.parse(tag.textContent); } catch { return null; }
 }
 
-// Translated labels embedded by the Blade view (data-product-i18n). Falls back
-// to English so the enhancer still works if the block is absent.
+// Nhãn đã dịch. Trước đây file này tự đọc một khối `data-product-i18n` riêng của
+// trang sản phẩm — đó chính là cái mẫu mà i18n.js tổng quát hoá lên cho cả
+// storefront. Giữ tên hàm và shape trả về để phần còn lại của file không đổi;
+// khối riêng của trang sản phẩm vẫn được đọc và GHI ĐÈ lên bộ chung, nên trang
+// nào muốn nói khác đi vẫn nói được.
 function readI18n(root) {
-    const tag = root.querySelector('[data-product-i18n]');
-    const fallback = {
-        add_to_cart: 'Add to cart', out_of_stock: 'Out of stock',
-        select_options: 'Select options', in_stock: '%d in stock',
+    const shared = {
+        add_to_cart: t('product.add_to_cart', {}, 'Add to cart'),
+        out_of_stock: t('product.out_of_stock', {}, 'Out of stock'),
+        select_options: t('product.select_options', {}, 'Select options'),
+        in_stock: t('product.in_stock', {}, '%d in stock'),
     };
-    if (!tag) return fallback;
-    try { return { ...fallback, ...JSON.parse(tag.textContent) }; } catch { return fallback; }
+
+    const tag = root.querySelector('[data-product-i18n]');
+    if (!tag) return shared;
+
+    try { return { ...shared, ...JSON.parse(tag.textContent) }; } catch { return shared; }
 }
 
 function esc(v) {

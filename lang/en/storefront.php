@@ -14,6 +14,7 @@ return [
         '419_title' => 'Session expired',
         '419_message' => 'Your session expired. Please go back and try again.',
         'go_home' => 'Back to homepage',
+        'generic' => 'Something went wrong. Please try again.',
     ],
 
     'nav' => [
@@ -45,6 +46,9 @@ return [
         'name' => 'Name',
         'email' => 'Email',
         'description' => 'Description',
+        'previous' => 'Previous',
+        'try_again' => 'Try again',
+        'please_wait' => 'Please wait…',
     ],
 
     'cart' => [
@@ -65,6 +69,13 @@ return [
         'free_shipping_unlocked' => 'You’ve unlocked free shipping!',
         'free_shipping_remaining' => 'Add :amount more for free shipping.',
         'you_may_also_like' => 'You may also like',
+        'decrease' => 'Decrease',
+        'quantity' => 'Quantity',
+        'increase' => 'Increase',
+        'coupon_applied' => 'Coupon applied.',
+        'coupon_invalid' => 'Invalid or expired coupon.',
+        'coupon_removed' => 'Coupon removed.',
+        'coupon_remove_failed' => 'Could not remove coupon.',
     ],
 
     'product' => [
@@ -87,6 +98,14 @@ return [
         'notify_me' => 'Notify me',
         'notify_intro' => 'Out of stock — get an email when it’s back.',
         'recently_viewed' => 'Recently viewed',
+        'notify_subscribed' => 'Subscribed. We will let you know when it is back.',
+        'notify_failed' => 'Could not subscribe. Please try again.',
+        'size_use_this' => 'Use this size',
+        'size_no_match' => "We couldn't match a size from those measurements. Try the size chart.",
+        'size_also_consider' => 'Also consider: :sizes',
+        'size_need_measurement' => 'Enter at least one measurement (e.g. bust, waist, hip).',
+        'size_finding' => 'Finding…',
+        'size_failed' => 'Could not get a recommendation. Please try again.',
     ],
 
     'promotion' => [
@@ -162,6 +181,9 @@ return [
         'save_error' => 'Could not save changes.',
         'address_save_error' => 'Could not save the address.',
         'select_item' => 'Select at least one item.',
+        'membership_discount_every_order' => 'You get :percent% off every order.',
+        'membership_not_a_member' => 'Not a member yet',
+        'membership_spend_to_reach' => 'Spend :amount more to reach :tier.',
     ],
 
     'checkout' => [

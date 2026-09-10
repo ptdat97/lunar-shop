@@ -6,6 +6,7 @@
 // can preselect the matching size option.
 
 import api from '../api.js';
+import { t } from '../i18n.js';
 
 const CONFIDENCE_CLASS = {
     high: 'bg-success',
@@ -96,7 +97,7 @@ function initFinder(root) {
 
         if (!rec && !fromHistory) {
             if (!hasWarning) {
-                showError('We couldn’t match a size from those measurements. Try the size chart.');
+                showError(t('size.no_match', {}, 'We couldn’t match a size from those measurements. Try the size chart.'));
                 result.hidden = true;
                 return;
             }
@@ -120,7 +121,9 @@ function initFinder(root) {
         fitEl.textContent = rec?.fit ? `(${rec.fit} fit)` : '';
 
         const alts = (data.alternatives ?? []).map((a) => a.size);
-        altEl.textContent = alts.length ? `Also consider: ${alts.join(', ')}` : '';
+        altEl.textContent = alts.length
+            ? t('size.also_consider', { sizes: alts.join(', ') }, `Also consider: ${alts.join(', ')}`)
+            : '';
 
         if (applyBtn) {
             applyBtn.hidden = false;
@@ -136,13 +139,13 @@ function initFinder(root) {
         new FormData(form).forEach((v, k) => { if (v !== '') payload[k] = Number(v); });
 
         if (!Object.keys(payload).length) {
-            showError('Enter at least one measurement (e.g. bust, waist, hip).');
+            showError(t('size.need_measurement', {}, 'Enter at least one measurement (e.g. bust, waist, hip).'));
             return;
         }
 
         const btn = form.querySelector('[type="submit"]');
         const label = btn?.textContent;
-        if (btn) { btn.disabled = true; btn.textContent = 'Finding…'; }
+        if (btn) { btn.disabled = true; btn.textContent = t('size.finding', {}, 'Finding…'); }
         try {
             const { data } = await api.post(`/products/${slug}/recommend-size`, payload);
             render(data.data);
@@ -152,7 +155,7 @@ function initFinder(root) {
                 api.put('/customer/measurements', payload).catch(() => {});
             }
         } catch (err) {
-            showError(err.response?.data?.message || 'Could not get a recommendation. Please try again.');
+            showError(err.response?.data?.message || t('size.failed', {}, 'Could not get a recommendation. Please try again.'));
         } finally {
             if (btn) { btn.disabled = false; btn.textContent = label; }
         }

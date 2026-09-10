@@ -162,6 +162,87 @@ rời trang listing. Đã chừa chỗ, cố ý hoãn.
 ### 8. Admin nhập nội dung đa ngôn ngữ
 `translateAttribute` của Lunar đã sẵn; đây là **hướng dẫn vận hành**, không phải code.
 
+> **Chốt 2026-09-10** sau một đợt khảo sát xem shop đã có gì. Bốn mục 13–16 dưới đây
+> là phần được chọn để làm; ba việc làm TRƯỚC chúng (việt hoá chuỗi JS → cứu giỏ hàng
+> bỏ quên → xin đánh giá sau mua) nằm ở mục 17.
+>
+> Nguyên tắc xếp hạng: **tính theo hạ tầng đã có**, không tính theo độ hấp dẫn của tính
+> năng. Cái gì chỉ còn thiếu lớp hiển thị thì rẻ; cái gì cần một sổ cái mới thì đắt, dù
+> nghe hấp dẫn hơn.
+
+### 13. Thanh tiến độ freeship — *theme* · **công: rất thấp**
+
+Dữ liệu **đã tính sẵn**: `CartResource::freeShippingInfo()` trả về `qualified`,
+`threshold`, `remaining` và `progress` (phần trăm). Hiện chỉ được in ra **một dòng chữ**
+trong `enhance/cart.js`.
+
+- ⬜ Dựng thành thanh tiến độ trong mini-cart và trang giỏ.
+- ⬜ Không đụng backend. Đây là lý do nó đứng đầu danh sách: đòn bẩy AOV mà phần đắt tiền
+  đã làm xong từ trước.
+
+### 14. Badge "đúng size của bạn" — *Catalog + theme* · **công: thấp**
+
+`FitHistoryService` (giữ vs trả, between-sizes) và `SizeRecommender` **đã có** và đang
+chạy ở trang chi tiết. Chưa được dùng ở **thẻ sản phẩm**.
+
+- ⬜ Gắn badge lên thẻ cho khách đã đăng nhập và đã có lịch sử vừa vặn.
+- ⬜ Chỉ hiện khi tin cậy đủ cao — badge đoán sai một lần là mất lòng tin vĩnh viễn, và
+  nó xuất hiện ở lưới nên sai thì sai hàng loạt.
+- ⚠️ Nhớ `ProductService::cardRelations()`: badge cần dữ liệu variant, đừng để nó sinh
+  một truy vấn mỗi thẻ (xem [architecture/overview.md](architecture/overview.md), mục
+  "Bộ quan hệ của thẻ sản phẩm").
+
+### 15. Giới thiệu bạn (referral) — *Promotion + Customer* · **công: trung bình**
+
+Hạ tầng mã giảm giá đã có (`CartService::applyCoupon`, `lunar_discounts` với cột
+`coupon`). SME thời trang lớn lên bằng truyền miệng, nên đây là kênh thu khách rẻ nhất.
+
+- ⬜ Mỗi khách một mã riêng; người được giới thiệu giảm giá lần đầu, người giới thiệu
+  nhận thưởng **khi đơn kia đã thanh toán**, không phải khi đặt.
+- ⚠️ Chống tự giới thiệu chính mình và chống trại mã: ghép theo `user_id` + thiết bị,
+  và **chỉ trả thưởng sau khi hết hạn đổi/trả** — nếu không, trả hàng xong vẫn ăn thưởng.
+
+### 16. Điểm thưởng — *Promotion* · **công: cao, đừng đánh giá thấp**
+
+Hạng thành viên hiện **thụ động**: `MembershipService` tự xếp hạng theo tổng chi tiêu và
+cho giảm giá theo hạng. Khách không có việc gì để làm, nên không có lý do quay lại.
+
+- ⬜ Sổ cái điểm (cộng/trừ có bút toán, không phải một cột số dư — cùng bài học với sổ
+  cái tồn kho: số dư là thứ **dẫn xuất**, đối soát được).
+- ⬜ Hạn dùng điểm, và tiêu điểm lúc thanh toán.
+- ⚠️ Phần đắt không phải cộng điểm mà là **tiêu điểm**: nó chạm vào tính tiền, hoàn tiền
+  (hoàn đơn thì thu lại điểm đã cộng và trả lại điểm đã tiêu), và huỷ đơn. Làm sau mục
+  11 để lúc đó đã có sẵn khái niệm "thưởng sau khi hết hạn đổi/trả".
+
+### 17. Ba việc làm trước mục 13–16
+
+- ⬜ **Việt hoá chuỗi JS storefront** — storefront **không có cơ chế i18n cho JS**, nên
+  ~30 chuỗi nằm cứng trong code, rơi đúng vào lúc khách sẵn sàng mua nhất: giỏ hàng
+  (*"Add 250.000 ₫ more for free shipping."*), áp mã giảm giá (*"Coupon applied."*),
+  hạng thành viên (*"Spend … more to reach …"*), size finder, báo hàng về, và 12 chuỗi
+  trong `account.js`. Đây là lỗi đang chảy máu tiền, không phải việc đánh bóng.
+- ⬜ **Cứu giỏ hàng bỏ quên** — đòn bẩy chuyển đổi lớn nhất còn thiếu, và hạ tầng đã có
+  ~80%: giỏ persist qua `TokenAwareCartSession`, `OrderMailer` + queue + Horizon đã
+  chạy, scheduler đã có, `orders:expire-abandoned` vốn đã đi tìm giỏ/đơn treo. Chỉ thiếu
+  đúng cú nhắc. Nhắm giỏ đã qua bước nhập địa chỉ (nên có email).
+- ⬜ **Xin đánh giá sau mua** — hệ thống đánh giá đã có nhưng **không có gì đi xin**. Với
+  thời trang, đánh giá kèm ảnh thật là thứ thuyết phục nhất. Vòng lặp: nhiều đánh giá →
+  chuyển đổi cao hơn → nhiều đơn → nhiều đánh giá.
+
+### Cân nhắc rồi CỐ Ý chưa làm
+
+- **Zalo OA** — ở Việt Nam tỷ lệ mở Zalo bỏ xa email, và module `Notification` đã có sẵn
+  khuôn driver (`OrderSmsNotifier`, `DeviceRegistry`) nên thêm driver Zalo là đi theo mẫu
+  chứ không dựng mới. Nó nhân hiệu quả cho **cả** cứu giỏ hàng lẫn báo trạng thái đơn và
+  báo hàng về vốn đã chạy. ⏸ **Chặn ngoài code**: cần OA đã xác thực doanh nghiệp — cùng
+  nhóm với vận chuyển (P0.5) và hoá đơn điện tử (P0 §3).
+- **Quick-view** (mục 6) và **Analytics nâng cao** (mục 10, P3) — quick-view
+  thêm một lớp UI phải bảo trì để tiết kiệm cho khách một cú bấm, trong khi trang sản
+  phẩm đã nhanh; analytics nâng cao là đo đạc chứ không phải doanh thu, và shop chưa có
+  traffic thật để đo.
+
+---
+
 ---
 
 ## P3 — Khi quy mô lớn hơn

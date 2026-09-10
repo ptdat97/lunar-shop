@@ -54,6 +54,8 @@
 
     @include('theme::partials.pixels')
 
+    @include('theme::partials.i18n')
+
     @stack('head')
 </head>
 <body class="d-flex flex-column min-vh-100 @yield('body_class')">
