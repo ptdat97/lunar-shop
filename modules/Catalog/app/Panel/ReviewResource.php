@@ -3,6 +3,7 @@
 namespace Modules\Catalog\Panel;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Schema;
 use Modules\Catalog\Models\Review;
 use Modules\Catalog\Services\ReviewService;
 use Modules\Core\Panel\Field;
@@ -76,9 +77,19 @@ class ReviewResource extends PanelResource
      * Moderation only works if somebody knows there is something to moderate,
      * and nobody opens a screen on the off-chance. Null when the queue is
      * empty, so an idle shop carries no nagging badge.
+     *
+     * The Lunar panel resolves badges whenever the app boots — artisan
+     * commands included. On a first install the reviews table does not exist
+     * until `artisan migrate` runs later in the same setup, so a hard count
+     * here would crash every command before it could start. A missing table
+     * is just an empty queue.
      */
     public function navigationBadge(): ?string
     {
+        if (! Schema::hasTable((new Review)->getTable())) {
+            return null;
+        }
+
         $pending = app(ReviewService::class)->pendingCount();
 
         return $pending > 0 ? (string) $pending : null;
