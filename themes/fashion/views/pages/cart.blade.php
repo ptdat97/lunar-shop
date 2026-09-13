@@ -29,6 +29,11 @@
         </div>
 
         <div class="col-12 col-lg-4">
+            {{-- Free-shipping progress strip — rendered by enhance/cart-page.js
+                 from CartResource::freeShippingInfo(). Shown only when the
+                 threshold is enabled and the cart has lines. --}}
+            <div class="freeship-strip mb-3" data-cart-shipping hidden></div>
+
             <div class="border rounded p-3">
                 <h2 class="h6 text-uppercase">{{ __('storefront.cart.order_summary') }}</h2>
 

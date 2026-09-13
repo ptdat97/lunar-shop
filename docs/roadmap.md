@@ -176,8 +176,15 @@ Dữ liệu **đã tính sẵn**: `CartResource::freeShippingInfo()` trả về 
 `threshold`, `remaining` và `progress` (phần trăm). Hiện chỉ được in ra **một dòng chữ**
 trong `enhance/cart.js`.
 
-- ⬜ Dựng thành thanh tiến độ trong mini-cart và trang giỏ.
-- ⬜ Không đụng backend. Đây là lý do nó đứng đầu danh sách: đòn bẩy AOV mà phần đắt tiền
+- ✅ **Dựng thành thanh tiến độ trong mini-cart và trang giỏ** (2026-09-13). Helper
+  chung `freeShippingHtml()` trong `enhance/cart.js` render thanh Bootstrap progress
+  + dòng nhắc đã dịch, dùng ở cả `cart-drawer` (qua `renderDrawer`) lẫn trang giỏ
+  (`[data-cart-shipping]` mới thêm trong `cart.blade.php`, render bởi `cart-page.js`).
+  Trang giỏ trước đó **không có** chỗ hiển thị freeship nào. Kèm `is-complete` class
+  cho trạng thái đạt ngưỡng. Không đụng backend — chốt bằng
+  `tests/Feature/FreeShippingProgressTest.php` (hợp đồng `free_shipping` vẫn đủ
+  `qualified`/`threshold`/`remaining`/`progress`, và khối SSR `data-cart-shipping`).
+- ✅ Không đụng backend. Đây là lý do nó đứng đầu danh sách: đòn bẩy AOV mà phần đắt tiền
   đã làm xong từ trước.
 
 ### 14. Badge "đúng size của bạn" — *Catalog + theme* · **công: thấp**

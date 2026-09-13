@@ -77,6 +77,31 @@ export function appliedDiscountsHtml(cart) {
     }).join('');
 }
 
+// Free-shipping progress strip: one-line nudge (translated) + a progress bar
+// fed by CartResource::freeShippingInfo(). Null when the threshold is disabled.
+// Reused by the cart page enhancer via the exported helper below.
+export function freeShippingHtml(cart) {
+    const info = cart?.free_shipping;
+    if (!info) return '';
+
+    const pct = Math.max(0, Math.min(100, Number(info.progress) || 0));
+    const message = info.qualified
+        ? t('cart.free_shipping_unlocked', {}, 'You’ve unlocked free shipping!')
+        : t('cart.free_shipping_remaining', { amount: info.remaining },
+            `Add ${info.remaining} more for free shipping.`);
+
+    return `
+<div class="d-flex align-items-center justify-content-between gap-2">
+    <span class="d-inline-flex align-items-center gap-1">
+        <i class="bi bi-truck"></i>
+        <span>${esc(message)}</span>
+    </span>
+</div>
+<div class="progress mt-2" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100" aria-label="${esc(message)}">
+    <div class="progress-bar" style="width: ${pct}%"></div>
+</div>`;
+}
+
 function renderCount(cart) {
     document.querySelectorAll('[data-cart-count]').forEach((el) => {
         const n = cart?.lines_count ?? 0;
@@ -125,11 +150,9 @@ function renderDrawer(cart) {
     }
 
     if (shipping && cart.free_shipping) {
+        shipping.classList.toggle('is-complete', Boolean(cart.free_shipping.qualified));
+        shipping.innerHTML = freeShippingHtml(cart);
         shipping.hidden = false;
-        shipping.textContent = cart.free_shipping.qualified
-            ? t('cart.free_shipping_unlocked', {}, 'You’ve unlocked free shipping!')
-            : t('cart.free_shipping_remaining', { amount: cart.free_shipping.remaining },
-                `Add ${cart.free_shipping.remaining} more for free shipping.`);
     } else if (shipping) {
         shipping.hidden = true;
     }

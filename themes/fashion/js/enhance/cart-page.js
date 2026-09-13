@@ -5,7 +5,7 @@
 import api from '../api.js';
 import { CART_UPDATED, CART_REFRESHED, emit, on } from '../events.js';
 import { renderGrid } from './_card.js';
-import { appliedDiscountsHtml } from './cart.js';
+import { appliedDiscountsHtml, freeShippingHtml } from './cart.js';
 import { t } from '../i18n.js';
 
 function esc(v) {
@@ -71,6 +71,16 @@ export default function (root = document) {
 
         const discounts = page.querySelector('[data-cart-discounts]');
         if (discounts) discounts.innerHTML = appliedDiscountsHtml(cart);
+
+        // Free-shipping progress strip (same helper as the mini-cart drawer).
+        const shipping = page.querySelector('[data-cart-shipping]');
+        if (shipping && cart.free_shipping) {
+            shipping.classList.toggle('is-complete', Boolean(cart.free_shipping.qualified));
+            shipping.innerHTML = freeShippingHtml(cart);
+            shipping.hidden = false;
+        } else if (shipping) {
+            shipping.hidden = true;
+        }
 
         page.querySelector('[data-sum-subtotal]').textContent = cart.totals?.sub_total ?? '—';
         page.querySelector('[data-sum-discount]').textContent = cart.totals?.discount_total ?? '—';
