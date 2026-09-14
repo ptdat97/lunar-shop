@@ -57,10 +57,12 @@ hoặc vi phạm nghĩa vụ pháp lý, hoặc hỏng mà không ai biết.
   MySQL 8 thật, Dusk (smoke trình duyệt), `composer audit` + `npm audit`, và Pint. Xem
   [deployment.md §9](guides/deployment.md).
 
-- ⬜ **Còn thiếu: `CSP_REPORT_URI`.** Header bảo mật đã có và CSP đang chạy chế độ
+- 🟡 **Còn thiếu: `CSP_REPORT_URI`.** Header bảo mật đã có và CSP đang chạy chế độ
   `report`, nhưng chưa có chỗ nhận báo cáo — nên vi phạm chỉ tồn tại trong DevTools của
   người đang mở trang. Sentry có sẵn endpoint nhận CSP report; đặt cùng lúc với DSN thì
   mới đọc được vi phạm thật để quyết định có bật `CSP_MODE=enforce` hay không.
+  `shop:preflight` đã cảnh báo (không chặn) nếu production chạy `report`/`enforce` mà
+  thiếu URI (2026-09-14, chốt bằng 3 test trong `PreflightTest`).
 
 ### 3. Hoá đơn điện tử (HĐĐT) — nghĩa vụ pháp lý, không phải tính năng
 - ⬜ `Modules\Order\Services\InvoiceService` hiện sinh **PDF qua dompdf** — đó là *phiếu

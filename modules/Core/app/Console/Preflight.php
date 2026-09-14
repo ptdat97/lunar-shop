@@ -234,6 +234,19 @@ class Preflight extends Command
                 .'Đọc vi phạm thật rồi đổi CSP_MODE=enforce.',
         );
 
+        // Không có report_uri thì báo cáo vi phạm chỉ nằm trong DevTools của
+        // người đang mở trang — không ai đọc được vi phạm thật của khách để
+        // quyết định có enforce hay không. Sentry có sẵn endpoint nhận CSP
+        // report, nên đặt cùng lúc với DSN. Cảnh báo chứ không chặn: thiếu
+        // nơi nhận không làm mất doanh thu như sandbox payment.
+        $this->warnIf(
+            $production && config('security.csp.mode') !== 'off'
+                && blank(config('security.csp.report_uri')),
+            'CSP_REPORT_URI',
+            'Chưa đặt — vi phạm CSP chỉ hiện trong DevTools của khách, không tới được ai. '
+                .'Sentry có endpoint nhận CSP report: đặt cùng lúc với SENTRY_LARAVEL_DSN.',
+        );
+
         $this->assert(
             ! $production || config('security.csp.mode') !== 'off'
                 || filled(config('security.headers.X-Content-Type-Options')),

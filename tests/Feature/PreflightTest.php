@@ -167,6 +167,43 @@ class PreflightTest extends TestCase
         $this->assertStringContainsString('SENTRY_LARAVEL_DSN', Artisan::output());
     }
 
+    /**
+     * A report-mode CSP without a report_uri reports to nobody: violations
+     * only live in the visitor's DevTools. Warn (not block) in production so
+     * someone sets the Sentry CSP-reporting endpoint alongside the DSN.
+     */
+    public function test_a_missing_csp_report_uri_only_warns(): void
+    {
+        $exit = $this->asProduction(['security.csp.mode' => 'report', 'security.csp.report_uri' => null]);
+
+        $this->assertSame(0, $exit, 'Thiếu CSP_REPORT_URI là cảnh báo, không phải chặn phát hành.');
+        $this->assertStringContainsString('CSP_REPORT_URI', Artisan::output());
+    }
+
+    /** With a report destination set, there is nothing to warn about. */
+    public function test_a_set_csp_report_uri_is_quiet(): void
+    {
+        $exit = $this->asProduction([
+            'security.csp.mode' => 'report',
+            'security.csp.report_uri' => 'https://example.ingest.sentry.io/api/1/security/?sentry_key=abc',
+        ]);
+
+        $this->assertSame(0, $exit);
+        // Artisan::output() accumulates across tests in the same process, so
+        // assert on the warning LINE (!), not the bare key — an earlier test's
+        // "✓ CSP_REPORT_URI" must not fail this one.
+        $this->assertDoesNotMatchRegularExpression('/^  ! CSP_REPORT_URI/m', Artisan::output());
+    }
+
+    /** CSP off means there is nothing to report — the missing URI is moot. */
+    public function test_csp_off_does_not_warn_about_report_uri(): void
+    {
+        $exit = $this->asProduction(['security.csp.mode' => 'off', 'security.csp.report_uri' => null]);
+
+        $this->assertSame(0, $exit);
+        $this->assertDoesNotMatchRegularExpression('/^  ! CSP_REPORT_URI/m', Artisan::output());
+    }
+
     /** Outside production the same config is fine — this is a deploy gate, not a linter. */
     public function test_local_is_not_held_to_production_rules(): void
     {
