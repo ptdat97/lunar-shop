@@ -91,6 +91,7 @@ return [
         'fit' => 'Fit',
         'find_my_size' => 'Find my size',
         'recommended_size' => 'Recommended size',
+        'your_size' => 'Your size: :size',
         'fit_usual_size' => 'Based on what you kept before, :size is usually your size.',
         'fit_between_sizes' => 'You returned :low as too small and :high as too large — you are between sizes. Consider :high for a looser fit.',
         'no_products' => 'No products found.',

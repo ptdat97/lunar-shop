@@ -202,6 +202,30 @@
         align-items: center;
         gap: 0.4rem;
     }
+
+    // "Your size: M" — personalised sizing hint for signed-in shoppers
+    // (roadmap §14). Deliberately quieter than the promo badge: it personalises
+    // the card rather than selling it, so a single accent dot (the brand mark)
+    // and no background. Matched 1:1 by the JS grid (product-card__fit-size).
+    &__fit-size {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-family: v.$font-body;
+        font-size: v.$font-size-xs;
+        font-weight: v.$font-weight-semibold;
+        color: v.$text-primary;
+        white-space: nowrap;
+
+        &::before {
+            content: '';
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: v.$accent;
+            flex-shrink: 0;
+        }
+    }
     // ── Price ────────────────────────────────────────────────────────────────
     &__price {
         font-family: v.$font-body;

@@ -7,6 +7,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Collection;
 use Modules\Assets\Services\MediaUrl;
+use Modules\Catalog\Services\FitBadgeService;
 use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Services\ReviewService;
 use Modules\Inventory\Services\InventoryService;
@@ -87,6 +88,10 @@ class ProductResource extends JsonResource
             'availability' => app(InventoryService::class)->availabilityFor($this->resource),
             'promotion' => app(PromotionService::class)->saleFor($this->resource),
             'reviews' => app(ReviewService::class)->summaryFor($this->id),
+            // Personalised "your size" badge for this product card (roadmap §14).
+            // Null for guests and for shoppers without a kept size on it — a
+            // prediction stays on the product page, never on a grid.
+            'fit_size' => app(FitBadgeService::class)->for($this->resource),
         ];
 
         return $data;

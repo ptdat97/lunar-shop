@@ -187,17 +187,25 @@ trong `enhance/cart.js`.
 - ✅ Không đụng backend. Đây là lý do nó đứng đầu danh sách: đòn bẩy AOV mà phần đắt tiền
   đã làm xong từ trước.
 
-### 14. Badge "đúng size của bạn" — *Catalog + theme* · **công: thấp**
+### 14. Badge "đúng size của bạn" — *Catalog + theme* · **công: thấp** ✅ **XONG 2026-09-14**
 
 `FitHistoryService` (giữ vs trả, between-sizes) và `SizeRecommender` **đã có** và đang
-chạy ở trang chi tiết. Chưa được dùng ở **thẻ sản phẩm**.
+chạy ở trang chi tiết. Đã gắn lên **thẻ sản phẩm**:
 
-- ⬜ Gắn badge lên thẻ cho khách đã đăng nhập và đã có lịch sử vừa vặn.
-- ⬜ Chỉ hiện khi tin cậy đủ cao — badge đoán sai một lần là mất lòng tin vĩnh viễn, và
-  nó xuất hiện ở lưới nên sai thì sai hàng loạt.
-- ⚠️ Nhớ `ProductService::cardRelations()`: badge cần dữ liệu variant, đừng để nó sinh
-  một truy vấn mỗi thẻ (xem [architecture/overview.md](architecture/overview.md), mục
-  "Bộ quan hệ của thẻ sản phẩm").
+- ✅ Badge lên thẻ cho khách đã đăng nhập và đã có lịch sử vừa vặn — SSR
+  (`theme::components.product-card` qua composer trong `CatalogServiceProvider`) và
+  lưới JS (`enhance/_card.js` đọc `fit_size`) hiển thị cùng một thẻ.
+- ✅ Chỉ hiện khi tin cậy đủ cao: `FitHistoryService::badge()` là luật BẢO THỦ riêng
+  với trang chi tiết — chỉ size khách đã mua và GIỮ mới thành badge; suy đoán bước
+  lên/xuống từ đồ trả và cảnh báo between-sizes ở lại trang chi tiết (`for()`), nơi
+  có chỗ giải thích. Khách vãng lai, user chưa link customer, và size suy đoán →
+  không badge (null), nhưng key `fit_size` luôn có để hợp đồng grid ổn định.
+- ✅ Không N+1: `FitBadgeService` (scoped) memoise badge theo product + resolve
+  customer một lần/request; lịch sử size load 1 query/request và chart map 1 pivot +
+  1 rows query — cả lưới tốn số query phẳng. Chốt bằng
+  `tests/Feature/ProductCardFitBadgeTest.php` (8 test: JSON, SSR, guest, user lạ,
+  giữ-thắng-trả, suy-đoán-không-thành-badge, không rò lịch sử chéo, flat queries)
+  và cập nhật hợp đồng `HomeFeedTest` (`fit_size`).
 
 ### 15. Giới thiệu bạn (referral) — *Promotion + Customer* · **công: trung bình**
 

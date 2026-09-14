@@ -57,6 +57,7 @@ class StorefrontI18n
 
             // enhance/_card.js, _gallery.js
             'product.add_to_wishlist' => __('storefront.product.add_to_wishlist'),
+            'product.your_size' => __('storefront.product.your_size'),
             'gallery.previous' => __('storefront.common.previous'),
 
             // enhance/add-to-cart.js, auth.js

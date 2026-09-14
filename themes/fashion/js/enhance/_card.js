@@ -49,6 +49,13 @@ export function cardHtml(product) {
         ? `<div class="product-card__brand">${esc(product.brand)}</div>`
         : '';
 
+    // "Your size: M" — mirrors the SSR card's product-card__fit-size (roadmap
+    // §14). product.fit_size is only set for signed-in shoppers with a kept
+    // size, so the JS grid and the SSR grid show exactly the same cards.
+    const fitBadge = product.fit_size
+        ? `<span class="product-card__fit-size">${esc(t('product.your_size', { size: product.fit_size }, 'Your size: :size'))}</span>`
+        : '';
+
     return `
 <article class="product-card h-100 position-relative">
     ${badgeHtml(product)}
@@ -65,6 +72,7 @@ export function cardHtml(product) {
         <div class="product-card__price-wrap mb-1">
         ${priceHtml(product)}
         </div>
+        ${fitBadge}
     </div>
 </article>`;
 }

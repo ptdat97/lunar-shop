@@ -73,7 +73,10 @@ class HomeFeedTest extends TestCase
         // so a client has one product type, not one per endpoint.
         $this->assertSame(
             ['id', 'name', 'slug', 'description', 'thumbnail', 'hover_thumbnail', 'brand',
-                'skus', 'variants', 'options', 'images', 'availability', 'promotion', 'reviews'],
+                'skus', 'variants', 'options', 'images', 'availability', 'promotion', 'reviews',
+                // Personalised "your size" badge (roadmap §14): guest → null, but the
+                // key is always present so the grid contract stays stable.
+                'fit_size'],
             array_keys($tab['products'][0]),
         );
     }

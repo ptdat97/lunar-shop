@@ -19,6 +19,8 @@ use Modules\Catalog\Panel\CatalogSection;
 use Modules\Catalog\Panel\CatalogSettings;
 use Modules\Catalog\Panel\ReviewResource;
 use Modules\Catalog\Panel\SizeChartResource;
+use Modules\Catalog\Services\FitBadgeService;
+use Modules\Catalog\Services\FitHistoryService;
 use Modules\Catalog\Services\PricingService;
 use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Services\RecommendationService;
@@ -48,6 +50,14 @@ class CatalogServiceProvider extends ServiceProvider
         // request. ProductResource embeds one per product, so a grid would
         // otherwise fire a count + an avg query for every card.
         $this->app->scoped(ReviewService::class);
+
+        // Scoped for the same reason: FitHistoryService memoises the shopper's
+        // size history + chart map per request, and FitBadgeService the per-card
+        // "your size" badge on top of it (docs/roadmap.md §14). Working on the
+        // one scoped instance is what makes a whole grid cost a flat number of
+        // queries rather than one per card.
+        $this->app->scoped(FitHistoryService::class);
+        $this->app->scoped(FitBadgeService::class);
 
         // Storefront/API talk only to the SearchEngine contract, so swapping the
         // implementation later (e.g. Meilisearch) is a one-line binding change.
@@ -91,6 +101,7 @@ class CatalogServiceProvider extends ServiceProvider
         $this->registerSizeRelationships();
         $this->registerVariantExtensions();
         $this->composeThemePrices();
+        $this->composeFitSizeBadge();
 
     }
 
@@ -270,6 +281,25 @@ class CatalogServiceProvider extends ServiceProvider
             $limit = (int) app(Settings::class)
                 ->get('recently_viewed.limit', 8);
             $view->with('recentlyViewedLimit', max(1, min(12, $limit)));
+        });
+    }
+
+    /**
+     * Inject the shopper's "your size" badge into SSR product cards.
+     *
+     * A SEPARATE composer from the one in Assets (which resolves images) keeps
+     * the sizing dependency inside the Catalog module that owns it. Laravel
+     * runs every composer registered for a view, so both apply — exactly like
+     * the two existing `theme::pages.product` composers.
+     *
+     * Per-card cost is a memo hit; FitBadgeService does the flat per-request
+     * work underneath.
+     */
+    protected function composeFitSizeBadge(): void
+    {
+        View::composer('theme::components.product-card', function ($view): void {
+            $product = $view->getData()['product'] ?? null;
+            $view->with('fitSize', $product ? app(FitBadgeService::class)->for($product) : null);
         });
     }
 }

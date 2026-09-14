@@ -53,5 +53,11 @@
         <div class="product-card__price-wrap mb-1">
             @include('theme::components.price', ['product' => $product])
         </div>
+        @if($fitSize ?? false)
+            {{-- "Your size: M" — personalised sizing hint for signed-in shoppers
+                 (roadmap §14). Injected by CatalogServiceProvider; mirrors the
+                 fit_size field the JS grid reads, so SSR and JS cards match. --}}
+            <span class="product-card__fit-size">{{ __('storefront.product.your_size', ['size' => $fitSize]) }}</span>
+        @endif
     </div>
 </article>

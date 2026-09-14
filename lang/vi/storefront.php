@@ -91,6 +91,7 @@ return [
         'fit' => 'Dáng',
         'find_my_size' => 'Tìm size của tôi',
         'recommended_size' => 'Size gợi ý',
+        'your_size' => 'Size của bạn: :size',
         'fit_usual_size' => 'Dựa trên các đơn bạn đã giữ, :size thường là size của bạn.',
         'fit_between_sizes' => 'Bạn đã trả :low vì chật và :high vì rộng — bạn nằm giữa hai size. Cân nhắc :high nếu muốn mặc rộng rãi hơn.',
         'no_products' => 'Không tìm thấy sản phẩm.',
