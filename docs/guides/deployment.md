@@ -147,7 +147,8 @@ stopwaitsecs=3600
 
 Cron (chạy schedule trong `routes/console.php`: horizon:snapshot 5' /
 sanctum:prune-expired daily / queue:prune-failed weekly /
-**orders:expire-abandoned 10'**):
+**orders:expire-abandoned 10'** / carts:remind-abandoned 10' / orders:request-reviews 09:00 /
+referrals:release 09:30):
 
 ```cron
 * * * * * cd /var/www/lunar-shop && php artisan schedule:run >> /dev/null 2>&1

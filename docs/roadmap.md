@@ -3,7 +3,7 @@
 > **Chỉ ghi việc CHƯA làm.** Hiện trạng ở
 > [architecture/overview.md](architecture/overview.md); lịch sử bug đã sửa ở
 > [history/2026-07-platform-audit.md](history/2026-07-platform-audit.md).
-> Xếp theo ROI giảm dần. Cập nhật: **2026-08-30**.
+> Xếp theo ROI giảm dần. Cập nhật: **2026-09-15** (mục 15 giới thiệu bạn xong).
 >
 > **Thứ tự ưu tiên đã đảo lại (2026-07-13).** Trước đây danh sách này mở đầu bằng
 > tính năng chuyển đổi (quick-view, size intelligence, search engine). Rà lại code cho
@@ -209,15 +209,27 @@ chạy ở trang chi tiết. Đã gắn lên **thẻ sản phẩm**:
   giữ-thắng-trả, suy-đoán-không-thành-badge, không rò lịch sử chéo, flat queries)
   và cập nhật hợp đồng `HomeFeedTest` (`fit_size`).
 
-### 15. Giới thiệu bạn (referral) — *Promotion + Customer* · **công: trung bình**
+### 15. Giới thiệu bạn (referral) — *Promotion + Customer* · **công: trung bình** ✅ **XONG 2026-09-15**
 
 Hạ tầng mã giảm giá đã có (`CartService::applyCoupon`, `lunar_discounts` với cột
 `coupon`). SME thời trang lớn lên bằng truyền miệng, nên đây là kênh thu khách rẻ nhất.
 
-- ⬜ Mỗi khách một mã riêng; người được giới thiệu giảm giá lần đầu, người giới thiệu
-  nhận thưởng **khi đơn kia đã thanh toán**, không phải khi đặt.
-- ⚠️ Chống tự giới thiệu chính mình và chống trại mã: ghép theo `user_id` + thiết bị,
-  và **chỉ trả thưởng sau khi hết hạn đổi/trả** — nếu không, trả hàng xong vẫn ăn thưởng.
+- ✅ Mỗi khách một mã riêng (`referral_codes`), link `/r/{code}` giữ mã trong
+  session tới lúc đăng ký. Người được mời giảm giá lần đầu (coupon Lunar thật
+  một lần dùng, phát lúc đăng ký), người mời nhận thưởng **khi đơn kia đã qua
+  hạn đổi/trả**, không phải khi trả tiền: listener `OrderPaid` chỉ ĐÁNH DẤU
+  (`awaiting`), lệnh `referrals:release` (hằng ngày 09:30) mới PHÁT.
+- ✅ Chống tự giới thiệu chính mình và chống trại mã: ghép theo `user_id`
+  + vân tay thiết bị (ghi lúc mở trang tài khoản, chặn lượt đăng ký từ cùng máy
+  mà `user_id` không thấy được), một người chỉ được giới thiệu một lần.
+  Đơn đã trả lại hoặc hoàn tiền **không bao giờ** được thưởng (chung luật với
+  email xin đánh giá qua `OrderStatus::wasReturnedOrRefunded`).
+- ✅ Hàng đợi giới thiệu trong panel (chỉ xem + phát sớm + đóng lượt gian lận),
+  trang cài đặt riêng (group `referral`, TẮT mặc định), khối SSR trên trang tài
+  khoản + nút copy link (JS chỉ enhance). Chốt bằng
+  `tests/Feature/ReferralTest.php` + `tests/Feature/ReferralRewardTest.php`
+  (mã dùng một lần kể cả khi bị từ chối, đơn đầu-tiên-tính, thưởng một lần,
+  `--dry-run`, chỉ-phát-sau-hạn).
 
 ### 16. Điểm thưởng — *Promotion* · **công: cao, đừng đánh giá thấp**
 

@@ -10,6 +10,7 @@ use Lunar\Core\States\Order\Payment\Paid;
 use Lunar\Core\States\Order\Payment\PartiallyPaid;
 use Lunar\Core\States\Order\Payment\PartiallyRefunded;
 use Lunar\Core\States\Order\Payment\Refunded;
+use Modules\Order\Models\ReturnRequest;
 
 /**
  * The shop's order lifecycle — the seven handles a customer is shown, and which
@@ -230,6 +231,24 @@ class OrderStatus
     public static function isPaid(?Order $order): bool
     {
         return in_array(self::of($order), static::paid(), true);
+    }
+
+    /**
+     * The goods (or the money) went back: a returned or refunded order.
+     *
+     * One place, because two sweeps ask exactly this question before doing
+     * anything irreversible — the review request (never ask someone who sent
+     * the goods back how they liked them) and the referral reward (never pay a
+     * referrer for a sale that got reversed). Each half also reads a DIFFERENT
+     * mechanism: the refund half is derived from the transaction ledger
+     * (`OrderStatus::of()`), while the return half is a row in this module's
+     * `return_requests`. A sweep that remembered only one of them would look
+     * right and pay out on the other case.
+     */
+    public static function wasReturnedOrRefunded(Order $order): bool
+    {
+        return self::of($order) === self::REFUNDED
+            || ReturnRequest::query()->where('order_id', $order->id)->exists();
     }
 
     /**

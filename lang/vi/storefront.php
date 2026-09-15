@@ -303,4 +303,26 @@ return [
         'use_this_size' => 'Dùng size này',
     ],
 
+    'referral' => [
+        'title' => 'Giới thiệu bạn bè',
+        'intro' => 'Mời bạn bè bằng link dưới đây. Người được mời giảm :welcome% cho đơn đầu tiên, bạn nhận :reward% khi đơn đó qua hạn đổi/trả (:days ngày).',
+        'link_label' => 'Link mời của bạn',
+        'code_hint' => 'hoặc chia sẻ mã này',
+        'copy' => 'Sao chép link',
+        'copied' => 'Đã sao chép link',
+        'copy_failed' => 'Hãy bấm Ctrl/Cmd + C để sao chép',
+        'stat_invited' => 'Đã mời',
+        'stat_awaiting' => 'Đang chờ',
+        'stat_rewarded' => 'Đã thưởng',
+        'welcome_title' => 'Mã chào mừng của bạn',
+        'welcome_body' => 'Bạn được giới thiệu: dùng mã dưới đây để được giảm :percent% cho đơn đầu tiên.',
+        'welcome_used' => 'Mã này đã được dùng.',
+        'welcome_expired' => 'Mã này đã hết hạn.',
+        'friend' => 'Bạn của bạn',
+        'status_claimed' => 'Đã đăng ký',
+        'status_awaiting' => 'Chờ qua hạn đổi/trả',
+        'status_rewarded' => 'Đã nhận thưởng',
+        'status_voided' => 'Không được thưởng',
+    ],
+
 ];

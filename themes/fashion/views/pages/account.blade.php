@@ -91,6 +91,82 @@
                     </div>
                     <p class="text-muted small mt-2 mb-0" data-membership-next hidden></p>
                 </div>
+                {{-- Giới thiệu bạn — SSR y như khối đánh giá: mã và link nằm sẵn
+                     trong HTML, JS chỉ thêm nút copy. Tính năng tắt thì biến
+                     $referral là null và cả khối này không render — Blade không
+                     phải biết gì về cờ bật/tắt. --}}
+                @if(! empty($referral))
+                    <div class="border rounded p-3 mb-3" data-referral>
+                        <h2 class="h6 text-uppercase">{{ __('storefront.referral.title') }}</h2>
+                        <p class="text-muted small mb-2">
+                            {{ __('storefront.referral.intro', [
+                                'welcome' => $referral['welcome_percentage'],
+                                'reward' => $referral['reward_percentage'],
+                                'days' => $referral['reward_delay_days'],
+                            ]) }}
+                        </p>
+
+                        <div class="input-group input-group-sm mb-2">
+                            <input class="form-control" type="text" readonly
+                                   value="{{ $referral['link'] }}" data-referral-link
+                                   aria-label="{{ __('storefront.referral.link_label') }}">
+                            <button class="btn btn-outline-dark" type="button" data-referral-copy>
+                                {{ __('storefront.referral.copy') }}
+                            </button>
+                        </div>
+                        <p class="mb-3">
+                            <span class="badge bg-dark">{{ $referral['code'] }}</span>
+                            <span class="text-muted small ms-1">{{ __('storefront.referral.code_hint') }}</span>
+                        </p>
+
+                        <div class="row g-2 mb-3">
+                            @foreach(['invited' => 'stat_invited', 'awaiting' => 'stat_awaiting', 'rewarded' => 'stat_rewarded'] as $countKey => $labelKey)
+                                <div class="col-4">
+                                    <div class="border rounded p-2 text-center">
+                                        <div class="h6 mb-0">{{ $referral[$countKey] }}</div>
+                                        <div class="small text-muted">{{ __('storefront.referral.'.$labelKey) }}</div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+
+                        {{-- Người đang xem được giới thiệu bởi người khác: đây là mã
+                             của chính họ, không phải mã họ đi mời. --}}
+                        @if($referral['welcome'])
+                            <div class="alert alert-success py-2 mb-3">
+                                <div class="fw-semibold">{{ __('storefront.referral.welcome_title') }}</div>
+                                <div class="small">
+                                    {{ __('storefront.referral.welcome_body', ['percent' => $referral['welcome']['percentage']]) }}
+                                </div>
+                                <div class="mt-1">
+                                    <span class="badge bg-dark">{{ $referral['welcome']['code'] }}</span>
+                                    @if($referral['welcome']['used'])
+                                        <span class="small ms-1">{{ __('storefront.referral.welcome_used') }}</span>
+                                    @elseif($referral['welcome']['expired'])
+                                        <span class="small ms-1">{{ __('storefront.referral.welcome_expired') }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @endif
+
+                        @if($referral['friends'])
+                            <ul class="list-unstyled small mb-0">
+                                @foreach($referral['friends'] as $friend)
+                                    <li class="d-flex justify-content-between border-top py-1">
+                                        <span>{{ $friend['name'] }} <span class="text-muted">· {{ $friend['date'] }}</span></span>
+                                        <span>
+                                            <span class="text-muted">{{ __('storefront.referral.status_'.$friend['status']) }}</span>
+                                            @if($friend['reward_code'])
+                                                <span class="badge bg-light text-dark">{{ $friend['reward_code'] }}</span>
+                                            @endif
+                                        </span>
+                                    </li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                @endif
+
                 <div class="row g-3">
                     <div class="col-6 col-md-4">
                         <button class="border rounded p-3 w-100 text-start bg-white" data-tab-btn="orders">

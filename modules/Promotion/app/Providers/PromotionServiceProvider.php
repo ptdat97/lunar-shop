@@ -2,18 +2,25 @@
 
 namespace Modules\Promotion\Providers;
 
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 use Lunar\Core\Facades\Discounts;
 use Modules\Content\Services\SectionRenderer;
+use Modules\Core\Panel\ResourceRegistry;
 use Modules\Core\Panel\SettingsRegistry;
 use Modules\Order\Events\OrderPaid;
 use Modules\Promotion\Console\BackfillMembershipTiers;
+use Modules\Promotion\Console\ReleaseReferralRewards;
 use Modules\Promotion\Http\Resources\PromotionResource;
 use Modules\Promotion\Panel\MembershipSettings;
+use Modules\Promotion\Panel\ReferralResource;
+use Modules\Promotion\Panel\ReferralSettings;
 use Modules\Promotion\Services\MembershipService;
 use Modules\Promotion\Services\PromotionService;
+use Modules\Promotion\Services\ReferralService;
 
 class PromotionServiceProvider extends ServiceProvider
 {
@@ -23,6 +30,11 @@ class PromotionServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../../config/promotion.php', 'promotion');
+        // Giới thiệu bạn có group cài đặt riêng (`referral`) — không nằm chung
+        // group `promotion` với hạng thành viên, vì `Settings::put()` thay CẢ
+        // group: hai trang cài đặt dùng chung một group thì lưu trang này xoá
+        // khoá của trang kia.
+        $this->mergeConfigFrom(__DIR__.'/../../config/referral.php', 'referral');
 
         // Singleton so per-request memoization in the service (active automatic
         // discounts + their eager-loaded relations) is shared across the many
@@ -37,6 +49,11 @@ class PromotionServiceProvider extends ServiceProvider
     {
         // Nhóm cài đặt của module trên panel Lunar.
         $this->app->make(SettingsRegistry::class)->add(new MembershipSettings);
+        $this->app->make(SettingsRegistry::class)->add(new ReferralSettings);
+
+        // Hàng đợi giới thiệu: staff chỉ xem, đóng lượt gian lận, hoặc phát
+        // thưởng sớm — không tạo/sửa được một lượt giới thiệu nào.
+        $this->app->make(ResourceRegistry::class)->add(new ReferralResource);
 
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'promotion-admin');
@@ -46,11 +63,12 @@ class PromotionServiceProvider extends ServiceProvider
 
         $this->registerDiscountTypes();
         $this->registerMembershipSync();
+        $this->registerReferrals();
         $this->shareFlashSale();
         $this->serializePromotionsStrip();
 
         if ($this->app->runningInConsole()) {
-            $this->commands([BackfillMembershipTiers::class]);
+            $this->commands([BackfillMembershipTiers::class, ReleaseReferralRewards::class]);
         }
     }
 
@@ -138,6 +156,49 @@ class PromotionServiceProvider extends ServiceProvider
             if ($customer) {
                 app(MembershipService::class)->syncCustomer($customer);
             }
+        });
+    }
+
+    /**
+     * Giới thiệu bạn: ghi nhận người được mời lúc họ đăng ký, và đánh dấu đơn
+     * đủ điều kiện khi đơn đó được trả tiền.
+     *
+     * Nghe `Registered` của Laravel thay vì sửa AuthController: đăng ký có hai
+     * đường vào (cookie SPA và token cho app), một listener ở đây phục vụ cả
+     * hai mà không thêm lời gọi nào vào luồng đăng nhập.
+     *
+     * Nghe `OrderPaid` chỉ để ĐÁNH DẤU — thưởng chưa được phát ở đây, vì đơn
+     * vẫn còn trong hạn đổi/trả. `referrals:release` mới là chỗ phát.
+     */
+    protected function registerReferrals(): void
+    {
+        Event::listen(Registered::class, function (Registered $event): void {
+            $request = request();
+            $referrals = app(ReferralService::class);
+
+            $referrals->claim(
+                $event->user,
+                fingerprint: $request instanceof Request ? $referrals->fingerprintFor($request) : null,
+            );
+        });
+
+        Event::listen(OrderPaid::class, function (OrderPaid $event): void {
+            app(ReferralService::class)->markQualifyingOrder($event->order);
+        });
+
+        // Khối giới thiệu trên trang tài khoản render sẵn từ server — cùng cách
+        // mà đánh giá sản phẩm làm (SSR trước, JS chỉ enhance): không có JS thì
+        // khách vẫn đọc được mã và link của mình.
+        View::composer('theme::pages.account', function ($view): void {
+            $user = $view->getData()['user'] ?? null;
+            $request = request();
+
+            $view->with(
+                'referral',
+                $user
+                    ? app(ReferralService::class)->viewDataFor($user, $request instanceof Request ? $request : null)
+                    : null,
+            );
         });
     }
 

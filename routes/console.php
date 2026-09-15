@@ -81,3 +81,11 @@ Schedule::command('lunar:stock:reconcile')
 Schedule::command('schedule:heartbeat --quiet-ok')
     ->hourly()
     ->withoutOverlapping();
+
+// Phát thưởng giới thiệu bạn: lượt đã qua hạn đổi/trả thì mới trả thưởng, nên
+// mốc chờ tính bằng NGÀY — quét dày hơn không phát sớm hơn được. Lệnh tự thoát
+// sớm khi tính năng còn tắt (Cài đặt → Giới thiệu bạn), đúng như hai lệnh quét
+// ở trên, nên để đây từ đầu là an toàn: bật cờ trong panel là chạy.
+Schedule::command('referrals:release')
+    ->dailyAt('09:30')
+    ->withoutOverlapping();

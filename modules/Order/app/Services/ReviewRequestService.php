@@ -5,7 +5,6 @@ namespace Modules\Order\Services;
 use Illuminate\Support\Collection;
 use Lunar\Core\Models\Order;
 use Modules\Core\Support\Settings;
-use Modules\Order\Models\ReturnRequest;
 use Modules\Order\Support\OrderStatus;
 
 /**
@@ -88,16 +87,14 @@ class ReviewRequestService
     /**
      * A returned or refunded order must never get a review request.
      *
-     * Checked on the derived status rather than a flag, because 2.0 has no
-     * status column — `refunded` is inferred from the transaction ledger.
+     * The rule itself lives on {@see OrderStatus} — the referral reward sweep
+     * asks the same question before paying out, and the two halves of it (the
+     * derived refund status and the `return_requests` row) are easy to get
+     * half-right in one place and not notice.
      */
     protected function wasReturnedOrRefunded(Order $order): bool
     {
-        // Truy vấn thẳng chứ không qua quan hệ: Order là model của Lunar và
-        // KHÔNG có chiều ngược `returnRequests` — ReturnRequest là bảng của
-        // module này, chỉ belongsTo một chiều.
-        return OrderStatus::of($order) === OrderStatus::REFUNDED
-            || ReturnRequest::query()->where('order_id', $order->id)->exists();
+        return OrderStatus::wasReturnedOrRefunded($order);
     }
 
     /**

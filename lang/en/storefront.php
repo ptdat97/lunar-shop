@@ -303,4 +303,26 @@ return [
         'use_this_size' => 'Use this size',
     ],
 
+    'referral' => [
+        'title' => 'Invite your friends',
+        'intro' => 'Invite a friend with the link below. They get :welcome% off their first order, and you earn :reward% once it clears the return window (:days days).',
+        'link_label' => 'Your invite link',
+        'code_hint' => 'or share this code',
+        'copy' => 'Copy link',
+        'copied' => 'Link copied',
+        'copy_failed' => 'Press Ctrl/Cmd + C to copy',
+        'stat_invited' => 'Invited',
+        'stat_awaiting' => 'Waiting',
+        'stat_rewarded' => 'Rewarded',
+        'welcome_title' => 'Your welcome coupon',
+        'welcome_body' => 'You were referred: use the code below for :percent% off your first order.',
+        'welcome_used' => 'This code has been used.',
+        'welcome_expired' => 'This code has expired.',
+        'friend' => 'Your friend',
+        'status_claimed' => 'Signed up',
+        'status_awaiting' => 'Past the return window',
+        'status_rewarded' => 'Rewarded',
+        'status_voided' => 'Not rewarded',
+    ],
+
 ];

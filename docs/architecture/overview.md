@@ -5,8 +5,8 @@
 > (`lunarphp/core` + `lunarphp/panel`), storefront **100% Blade SSR + vanilla JS**
 > (không Vue). Chỉ ghi những gì đã có trong code.
 >
-> Cập nhật lần cuối: **2026-09-09** — 13 module nghiệp vụ (layout nwidart v13),
-> 64 route `api/v1`, 560 test xanh.
+> Cập nhật lần cuối: **2026-09-15** — 13 module nghiệp vụ (layout nwidart v13),
+> 64 route `api/v1`, 817 test xanh.
 >
 > ⚠️ **Admin đang dở dang.** Fase 3 của [đợt nâng 2.0](../guides/upgrade-lunar-2.0.md)
 > đã gỡ toàn bộ admin Filament và cài `lunarphp/panel` (Inertia + Vue); panel phục
@@ -297,7 +297,7 @@ module cùng nghe một event, không biết nhau.
 
 - ✅ **Đang dùng:** `PaymentAttemptEvent` (Order → email xác nhận + `DispatchOrderPaidForOfflineOrder`);
   `MediaHasBeenAddedEvent` (Assets). Domain event của dự án:
-  - `Order\Events\OrderPaid` — consumer: email đã-thanh-toán (Order), sync membership (Promotion).
+  - `Order\Events\OrderPaid` — consumer: email đã-thanh-toán (Order), sync membership + đánh dấu lượt giới thiệu đang chờ (Promotion).
   - `Order\Events\OrderStatusUpdated` — consumer: notification (Notification), **trả tồn kho**
     (Inventory).
 - Quy ước: event **domain của dự án** đặt trong module sở hữu (vd `OrderPaid` ở Order),
@@ -870,11 +870,11 @@ theo session không cần crawl (cart drawer/page, wishlist).
 - Wrap Lunar Discounts. **Custom discount types** (`QuantityPercentageOff` "mua N giảm
   X%", `ComboPercentageOff` "áo + quần giảm X%") qua `Discounts::addType`. **Flash Sale**
   (AmountOff time-boxed + cờ `data.flash_sale`). **Membership** theo tổng chi tiêu
-  (`MembershipService` → Lunar `CustomerGroup` Silver/Gold, sync qua event `OrderPaid`).
+  (`MembershipService` → Lunar `CustomerGroup` Silver/Gold, sync qua event `OrderPaid`), giới thiệu bạn (`ReferralService`: mã mời mỗi khách một, coupon chào mừng lúc đăng ký, thưởng cho người mời sau hạn đổi/trả qua lệnh `referrals:release` hằng ngày).
 - Storefront: promo-bar countdown, "Today's deals" strip, savings ở cart, membership
   card ở account, badge + gạch giá cũ ở product card + trang product (qua
   `PromotionService::saleFor`), applied-discounts ở cart/checkout, section
-  `promotion-slider` ở home, trang `/promotions` (index) + `/promotions/{handle}`.
+  `promotion-slider` ở home, trang `/promotions` (index) + `/promotions/{handle}`, khối giới thiệu trên trang tài khoản (`/account`, link `/r/{code}`) + trang cài đặt Giới thiệu bạn.
 - `PromotionService` là **singleton** + memoize `activeAutomatic()` (eager-load 1 lần)
   → tối ưu N+1 trên product card.
 

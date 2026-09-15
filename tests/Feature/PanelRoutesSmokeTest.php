@@ -4,10 +4,18 @@ namespace Tests\Feature;
 
 use Illuminate\Routing\Route;
 use Illuminate\Support\Facades\Route as Router;
+use Lunar\Core\Models\Channel;
+use Lunar\Core\Models\Currency;
+use Lunar\Core\Models\Customer;
+use Lunar\Core\Models\Order;
 use Lunar\Core\Models\Staff;
+use Lunar\Panel\PanelManager;
 use Modules\Core\Panel\PanelResource;
 use Modules\Core\Panel\ResourceRegistry;
 use Modules\Core\Panel\SettingsRegistry;
+use Modules\Order\Models\ReturnRequest;
+use Modules\Promotion\Models\ReferralClaim;
+use Modules\Promotion\Models\ReferralCode;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -247,16 +255,43 @@ class PanelRoutesSmokeTest extends TestCase
                 'ok' => true,
             ]),
             'returns' => $resource->model()::create([
-                'order_id' => \Lunar\Core\Models\Order::factory()->create([
-                    'channel_id' => \Lunar\Core\Models\Channel::getDefault()->id,
-                    'currency_code' => \Lunar\Core\Models\Currency::getDefault()->code,
+                'order_id' => Order::factory()->create([
+                    'channel_id' => Channel::getDefault()->id,
+                    'currency_code' => Currency::getDefault()->code,
                 ])->id,
                 'reference' => 'RMA-SMOKE',
-                'status' => \Modules\Order\Models\ReturnRequest::REQUESTED,
+                'status' => ReturnRequest::REQUESTED,
                 'reason' => 'wrong-size',
             ]),
+            'referrals' => $this->seedReferralRecord($resource),
             default => null,
         };
+    }
+
+    /**
+     * Một lượt giới thiệu: hai khách, một mã, một claim.
+     *
+     * Dựng tay vì cột bắt buộc của nó — mã nào, hai khách nào — là sự thật của
+     * việc ai mời ai, thứ mà form admin không bao giờ hỏi: staff không tạo lượt
+     * giới thiệu, khách tạo.
+     */
+    private function seedReferralRecord(PanelResource $resource): object
+    {
+        $referrer = Customer::create(['first_name' => 'Smoke', 'last_name' => 'Referrer']);
+        $referred = Customer::create(['first_name' => 'Smoke', 'last_name' => 'Friend']);
+
+        $code = ReferralCode::create([
+            'customer_id' => $referrer->id,
+            'code' => 'SMOKE123',
+        ]);
+
+        return $resource->model()::create([
+            'referral_code_id' => $code->id,
+            'referrer_customer_id' => $referrer->id,
+            'referred_customer_id' => $referred->id,
+            'status' => ReferralClaim::CLAIMED,
+            'claimed_at' => now(),
+        ]);
     }
 
     /** Every settings tab must open — eight former pages behind one screen. */
@@ -279,7 +314,7 @@ class PanelRoutesSmokeTest extends TestCase
      */
     public function test_every_navigation_item_resolves_to_a_real_route(): void
     {
-        $manager = app(\Lunar\Panel\PanelManager::class);
+        $manager = app(PanelManager::class);
         $staff = auth('staff')->user();
 
         $broken = [];

@@ -78,6 +78,11 @@ class StorefrontI18n
             'review.thanks' => __('storefront.product.reviews_thanks'),
             'review.failed' => __('storefront.product.reviews_failed'),
 
+            // enhance/referral.js — nút copy link mời
+            'referral.copy' => __('storefront.referral.copy'),
+            'referral.copied' => __('storefront.referral.copied'),
+            'referral.copy_failed' => __('storefront.referral.copy_failed'),
+
             // enhance/size-finder.js
             'size.use_this_size' => __('storefront.product.size_use_this'),
             'size.no_match' => __('storefront.product.size_no_match'),
