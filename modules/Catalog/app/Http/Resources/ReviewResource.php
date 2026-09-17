@@ -24,6 +24,13 @@ class ReviewResource extends JsonResource
             'author' => $this->author,
             'rating' => $this->rating,
             'body' => $this->body,
+            // Đã mua hàng thật hay chưa. Suy ra từ `order_id` phía server —
+            // xem Review::isVerified(). Luôn có mặt (kể cả false) để hợp đồng
+            // không đổi hình theo từng dòng.
+            'verified' => $this->isVerified(),
+            // Ảnh khách gửi: [{id, thumb, full}]. Mảng rỗng khi không có, chứ
+            // không phải null — người đọc JSON không phải phân biệt hai ca.
+            'photos' => $this->photoUrls(),
             'created_at' => $this->created_at?->toDateString(),
         ];
     }

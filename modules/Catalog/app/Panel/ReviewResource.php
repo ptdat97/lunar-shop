@@ -112,12 +112,29 @@ class ReviewResource extends PanelResource
         return true;
     }
 
+    /**
+     * Mỗi ảnh một cột.
+     *
+     * Trông thừa, nhưng đây là ràng buộc thật: panel chạy bundle biên dịch sẵn
+     * của vendor nên dự án **không thêm được cell renderer riêng** — cell
+     * `image` của `DataTableCell` nhận đúng một URL. Gộp ba ảnh vào một cột
+     * nghĩa là staff duyệt mà chỉ nhìn thấy ảnh đầu, tức là ảnh thứ hai lên
+     * storefront không qua mắt ai. Số cột sinh ra từ `Review::MAX_PHOTOS`, nên
+     * nâng trần là cột tự mọc thêm (và test sẽ đỏ nếu accessor chưa có).
+     */
     public function fields(): array
     {
+        $photos = array_map(
+            fn (int $index) => Field::image('photo_'.$index, __('admin.review.photo', ['index' => $index]))
+                ->onIndex()->width(2),
+            range(1, Review::MAX_PHOTOS),
+        );
+
         return [
             Field::text('author', __('admin.review.author'))->onIndex()->width(4),
             Field::number('rating', __('admin.review.rating'))->onIndex()->width(2),
             Field::toggle('approved', __('admin.review.approved'))->onIndex()->width(2),
+            ...$photos,
             Field::textarea('body', __('admin.review.body')),
         ];
     }
@@ -146,7 +163,9 @@ class ReviewResource extends PanelResource
      */
     public function indexQuery(Builder $query): Builder
     {
-        return $query->with('product')->orderBy('approved');
+        // `media` cùng lượt với `product`: ba cột ảnh đọc từ nó, và không eager
+        // load thì mỗi dòng tốn thêm một truy vấn.
+        return $query->with(['product', 'media'])->orderBy('approved');
     }
 
     public function computed(): array

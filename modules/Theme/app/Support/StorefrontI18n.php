@@ -77,6 +77,12 @@ class StorefrontI18n
             // enhance/review-form.js
             'review.thanks' => __('storefront.product.reviews_thanks'),
             'review.failed' => __('storefront.product.reviews_failed'),
+            // Đánh giá kèm ảnh luôn phải qua duyệt, nên lời cảm ơn phải khác —
+            // nói "đã đăng" trong khi nó đang chờ là nói dối khách.
+            'review.pending' => __('storefront.product.reviews_pending'),
+            // `:max` cố ý để nguyên: JS thay bằng con số đọc từ chính ô chọn
+            // ảnh, nên Theme không phải import model của Catalog (§10).
+            'review.too_many' => __('storefront.product.reviews_photos_too_many'),
 
             // enhance/referral.js — nút copy link mời
             'referral.copy' => __('storefront.referral.copy'),

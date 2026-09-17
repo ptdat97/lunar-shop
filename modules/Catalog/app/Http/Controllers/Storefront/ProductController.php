@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Modules\Catalog\Http\Resources\ProductResource;
+use Modules\Catalog\Models\Review;
 use Modules\Catalog\Services\ProductService;
 use Modules\Catalog\Services\RecommendationService;
 use Modules\Catalog\Services\ReviewService;
@@ -73,6 +74,11 @@ class ProductController extends Controller
             // khách không có chỗ nào để đọc hay để viết.
             'reviews' => $this->reviews->forProduct($product->id, perPage: 10),
             'reviewSummary' => $this->reviews->summaryFor($product->id),
+            // Ảnh gửi kèm: theme chỉ cần biết BẬT hay TẮT và trần bao nhiêu ảnh.
+            // Truyền xuống thay vì để Blade đọc model của Catalog (§10) —
+            // enhance/review-form.js đọc lại con số này từ chính ô chọn ảnh.
+            'reviewPhotos' => (bool) config('review.photos.enabled', true),
+            'maxReviewPhotos' => Review::MAX_PHOTOS,
         ]);
     }
 }

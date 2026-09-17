@@ -113,3 +113,23 @@
     }
 }
 
+
+// Ảnh thật khách gửi kèm đánh giá.
+//
+// Cố định 96×96 + object-fit: cover ở CSS, dù bản `thumb` đã crop vuông từ
+// server: một chuyển đổi chưa kịp sinh sẽ được phục vụ ở kích thước khác, và
+// không có hai dòng này thì hàng ảnh nhảy layout đúng lúc khách đang đọc.
+.review__photos {
+    margin: 0;
+    padding: 0;
+}
+
+.review__photo {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+    border: v.$border-width solid v.$border-color;
+    transition: opacity .15s ease;
+
+    &:hover { opacity: .85; }
+}

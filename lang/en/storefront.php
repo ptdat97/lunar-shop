@@ -118,6 +118,14 @@ return [
         'reviews_submit' => 'Submit review',
         'reviews_thanks' => 'Thanks for your review.',
         'reviews_failed' => 'Could not send your review. Please try again.',
+        'reviews_verified' => 'Verified purchase',
+        'reviews_verified_hint' => 'This reviewer bought the product from us.',
+        'reviews_photos' => 'Customer photos',
+        'reviews_photo_of' => 'Photo submitted with :author’s review',
+        'reviews_photos_label' => 'Your photos (up to :max)',
+        'reviews_photos_help' => 'JPG, PNG or WebP. Photos of the item being worn help the next shopper pick a size.',
+        'reviews_photos_too_many' => 'You can attach at most :max photos.',
+        'reviews_pending' => 'Thank you. Reviews with photos appear once we have checked them.',
     ],
 
     'promotion' => [

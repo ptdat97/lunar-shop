@@ -203,6 +203,7 @@ return [
         'unapprove' => 'Gỡ khỏi trang',
         'product' => 'Sản phẩm',
         'submitted_at' => 'Gửi lúc',
+        'photo' => 'Ảnh :index',
     ],
 
     'returns' => [

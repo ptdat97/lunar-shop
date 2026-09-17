@@ -203,6 +203,7 @@ return [
         'unapprove' => 'Unpublish',
         'product' => 'Product',
         'submitted_at' => 'Submitted',
+        'photo' => 'Photo :index',
     ],
 
     'returns' => [

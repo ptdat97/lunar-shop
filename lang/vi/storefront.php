@@ -118,6 +118,14 @@ return [
         'reviews_submit' => 'Gửi đánh giá',
         'reviews_thanks' => 'Cảm ơn bạn đã đánh giá.',
         'reviews_failed' => 'Chưa gửi được đánh giá. Vui lòng thử lại.',
+        'reviews_verified' => 'Đã mua hàng',
+        'reviews_verified_hint' => 'Người viết đã mua sản phẩm này tại shop.',
+        'reviews_photos' => 'Ảnh thật từ khách',
+        'reviews_photo_of' => 'Ảnh khách gửi kèm đánh giá của :author',
+        'reviews_photos_label' => 'Ảnh của bạn (tối đa :max)',
+        'reviews_photos_help' => 'JPG, PNG hoặc WebP. Ảnh có người mặc thật giúp người sau chọn size dễ hơn nhiều.',
+        'reviews_photos_too_many' => 'Chỉ gửi được tối đa :max ảnh.',
+        'reviews_pending' => 'Cảm ơn bạn. Đánh giá có ảnh sẽ hiện sau khi shop duyệt.',
     ],
 
     'promotion' => [

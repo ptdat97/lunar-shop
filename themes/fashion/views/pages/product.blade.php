@@ -278,6 +278,8 @@
         'reviews' => $reviews,
         'reviewSummary' => $reviewSummary,
         'product' => $product,
+        'reviewPhotos' => $reviewPhotos,
+        'maxReviewPhotos' => $maxReviewPhotos,
     ])
 
     @include('theme::partials.recently-viewed', ['currentSlug' => $slug])
