@@ -178,8 +178,18 @@ Xem [guides/deployment.md](guides/deployment.md) cho runbook đầy đủ.
   Hai bề mặt tương tác mới nhất đã có (2026-09-18): gửi đánh giá kèm ảnh, và ô
   tiêu điểm ở trang thanh toán — cả hai kiểm *thao tác có chạy không*, không
   kiểm *phần tử có hiện không*.
-  ⬜ Còn lại theo cùng nguyên tắc đó: picture/srcset, search-panel, notify-me,
-  lookbook-shoppable — thêm **khi chạm vào chúng**, không làm một lượt.
+  ✅ **Bốn mục còn lại đã phủ xong (2026-09-18)** — nhưng không phải bằng bốn
+  test Dusk. Soi từng cái theo bảng quyết định trước:
+  - **picture/srcset** → **test feature**, không phải E2E: component không có
+    một dòng JS nào, bằng chứng nằm ở HTML server trả về
+    (`ResponsivePictureTest`). Phần thuộc trình duyệt duy nhất — ảnh 404 —
+    `StorefrontSmokeTest` đã canh sẵn.
+  - **search-panel** → E2E: biểu tượng là link thật, nên `preventDefault` hỏng
+    thì triệu chứng là **trang đi mất**, server không thấy gì.
+  - **notify-me** → E2E: hợp đồng `variant:changed` giữa hai file JS, không đi
+    qua server lần nào. Ghim từ cả hai đầu mà **không ghi gì vào DB dev**.
+  - **lookbook "mua cả set"** → E2E: vòng lặp POST tuần tự; hỏng thì chỉ món đầu
+    vào giỏ, mà giỏ vẫn hợp lệ nên không có gì bất thường phía server.
 - ✅ ~~1 test đỏ (`OnDemandConversionTest:76`)~~ — đã xanh (kiểm lại 2026-07-23:
   `OnDemandConversionTest` 7/7 pass). Toàn bộ suite **432 test xanh**.
 

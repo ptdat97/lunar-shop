@@ -368,6 +368,21 @@ trả về cả dòng SKU chứ không phải field. Nhớ gỡ ra sau khi xong.
 | `FreeShippingProgressTest` | 1 | Enhancer vẽ thanh tiến độ freeship thật vào mini-cart **và** trang giỏ |
 | `ReviewPhotoUploadTest` | 1 | Form đánh giá **gửi được file đi** (JS tự chọn `FormData` thay vì JSON) và trả lời đúng "chờ duyệt" |
 | `LoyaltyCheckoutTest` | 1 | Bấm "Áp dụng" ở ô tiêu điểm **đổi được tổng tiền** — không phải "ô có hiện" |
+| `SearchPanelTest` | 4 | Biểu tượng tìm kiếm **mở panel thay vì điều hướng đi**; gõ ≥2 ký tự ra gợi ý; 1 ký tự thì không; Esc đóng |
+| `NotifyMeTest` | 3 | Hợp đồng `variant:changed` giữa hai enhancer, ghim từ **cả hai đầu** (phát và nghe) |
+| `LookbookShopTheSetTest` | 1 | "Mua cả set" thêm **đủ** N món rồi mini-cart tự mở |
 
 Chạy trong CI từ 2026-09-10 (job `dusk`), đỏ thì upload ảnh chụp + console log —
 đó là toàn bộ bằng chứng còn lại khi lỗi nằm ở trình duyệt.
+
+### Cố ý KHÔNG viết E2E cho
+
+| Thứ | Bằng chứng nằm ở | Ai canh |
+| --- | --- | --- |
+| `<picture>` / `srcset` | HTML server trả về — component **không có một dòng JS nào** | `Tests\Feature\ResponsivePictureTest` |
+| Ảnh trong `srcset` có 404 không | Browser log | `StorefrontSmokeTest` đã bắt **mọi** dòng log trên 12 trang |
+| Hợp đồng `/api/v1/*` mà enhancer gọi | JSON server trả về | Test feature của từng module |
+
+Đây không phải danh sách việc chưa làm — nó là danh sách việc **đã có người
+canh, ở đúng tầng rẻ hơn**. Viết Dusk chồng lên là đắt hơn, giòn hơn, và khi đỏ
+thì nói ít hơn (§1 nguyên tắc 1).
