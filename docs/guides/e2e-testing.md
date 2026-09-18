@@ -166,7 +166,7 @@ xattr -d com.apple.quarantine vendor/laravel/dusk/bin/chromedriver-mac-arm64 2>/
 
 ---
 
-## 3. Bảy cái bẫy, cả bảy đều đã sập ít nhất một lần
+## 3. Tám cái bẫy, cả tám đều đã sập ít nhất một lần
 
 ### 3.1 Debugbar chặn click
 
@@ -256,6 +256,17 @@ try { /* … */ } finally {
 }
 ```
 
+> **Ngoại lệ đã đo, đừng đi "sửa":** mọi test Dusk đều để lại một **giỏ rỗng**
+> cho mỗi phiên trình duyệt, kể cả test không đụng gì tới giỏ. Đó là
+> `lunar.cart_session.auto_create = true` — xem một trang storefront bất kỳ mà
+> session chưa có giỏ thì Lunar tạo một cái. Không phải rác của test, và **không
+> cần dọn**: `lunar:prune:carts` (lên lịch hằng ngày) thu các giỏ quá 90 ngày
+> chưa thành đơn. Viết code dọn chúng trong từng test là mua thêm một chỗ để
+> hỏng mà không đổi lấy gì.
+>
+> Cái PHẢI dọn là thứ test tự tạo và không ai thu: tài khoản, customer, bút toán,
+> đánh giá, và **mọi thay đổi cài đặt**.
+
 ### 3.5 Console rỗng không tự nhiên có
 
 Phải chủ động đọc và **lọc nhiễu**, nếu không mọi assert đều đỏ vì favicon hay
@@ -317,6 +328,29 @@ Hai lần sập liên tiếp khi viết `LoyaltyCheckoutTest`:
 
 > Bài học chung: một test dọn nửa vời còn tệ hơn test không dọn, vì nó dọn đủ
 > nhiều để không ai nhận ra là nó có để lại gì.
+
+### 3.8 Gõ phím: "đã focus" không có nghĩa là "gõ được"
+
+Mở một panel rồi gõ ngay vào ô nhập của nó sinh test **chập chờn** — đo được:
+hỏng khoảng **1/5 lần** với `ElementNotInteractableException`.
+
+Chờ `hidden === false` không đủ, mà chờ cả `document.activeElement` là ô nhập
+cũng **vẫn không đủ**: WebDriver từ chối gõ vào element nó coi là chưa
+"displayed", và một panel có CSS transition thì có hẳn một khoảng ô nhập đã được
+focus trong khi hộp vẫn đang mở ra.
+
+Với phím toàn cục (Esc, tắt modal…), đừng nhắm vào element nào cả — gửi tới cái
+đang focus:
+
+```php
+use Facebook\WebDriver\WebDriverKeys;
+
+$browser->driver->action()->sendKeys(null, WebDriverKeys::ESCAPE)->perform();
+```
+
+Cũng đúng với thao tác thật hơn: người dùng bấm Esc, họ không nhắm vào selector
+nào. (`keys('body', …)` thì hỏng vì lý do khác — xem §3.2: Dusk tự chèn tiền tố
+`body ` nên nó đi tìm `body body`.)
 
 ## 4. Khuôn một test đáng tin
 

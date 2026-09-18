@@ -15,8 +15,14 @@ use Tests\DuskTestCase;
  * and that the browser console stayed clean — the Livewire/Alpine entangle
  * errors that only ever show up in a real browser.
  *
- * Deliberately read-only: it never adds to cart or writes data, so it is safe
- * to run repeatedly on the dev DB without cleanup.
+ * Deliberately read-only: it never adds to cart and changes no record, so it is
+ * safe to run repeatedly on the dev DB without cleanup.
+ *
+ * It is not literally write-free, though — `lunar.cart_session.auto_create` is
+ * on, so visiting any storefront page mints an empty cart for the session. That
+ * is true of every Dusk test here and is left alone on purpose: the scheduled
+ * `lunar:prune:carts` reaps carts older than 90 days that never became orders.
+ * Cleaning them up per test would be code that buys nothing (§3.4).
  */
 class StorefrontSmokeTest extends DuskTestCase
 {

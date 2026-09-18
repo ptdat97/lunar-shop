@@ -2,6 +2,7 @@
 
 namespace Tests\Browser;
 
+use Facebook\WebDriver\WebDriverKeys;
 use Laravel\Dusk\Browser;
 use Tests\DuskTestCase;
 
@@ -17,20 +18,39 @@ use Tests\DuskTestCase;
  * nào lạ, server trả 200 cho cả hai đường. Chỉ có trình duyệt thấy được
  * ([e2e-testing.md §1](../../docs/guides/e2e-testing.md)).
  *
- * Chỉ đọc, không ghi gì — chạy lại bao nhiêu lần trên DB dev cũng an toàn.
+ * Không sửa dữ liệu nào, nên không cần dọn. (Nó vẫn để lại một giỏ rỗng như mọi
+ * lượt xem storefront — xem [§3.4](../../docs/guides/e2e-testing.md); đó là
+ * `cart_session.auto_create`, không phải thứ test này gây ra.)
  */
 class SearchPanelTest extends DuskTestCase
 {
     /** Panel hiện/ẩn bằng thuộc tính `hidden`, không phải bằng class. */
     private const VISIBLE = 'document.querySelector("[data-search-panel]")?.hidden === false';
 
+    /** Con trỏ đã nằm trong ô nhập — enhancer focus trong `requestAnimationFrame`. */
+    private const FOCUSED = 'document.activeElement === document.querySelector("[data-search-input]")';
+
+    /**
+     * Mở panel và chờ tới lúc THẬT SỰ gõ được.
+     *
+     * Chờ mỗi `hidden === false` là chưa đủ và sinh test chập chờn: cờ đó tắt
+     * trước khi element tương tác được, nên `keys()`/`type()` ngay sau đó thỉnh
+     * thoảng ném `element not interactable`. Mốc đúng là lúc enhancer focus vào
+     * ô nhập — vừa là hàng rào thời gian, vừa là một khẳng định thật (mở panel
+     * mà không đặt con trỏ vào ô thì khách phải bấm thêm một lần nữa).
+     */
+    private function openPanel(Browser $browser): Browser
+    {
+        return $browser->waitFor('[data-search-toggle]', 15)
+            ->click('[data-search-toggle]')
+            ->waitUntil(self::VISIBLE, 10)
+            ->waitUntil(self::FOCUSED, 10);
+    }
+
     public function test_the_toggle_opens_the_panel_instead_of_navigating(): void
     {
         $this->browse(function (Browser $browser) {
-            $browser->visit('/')
-                ->waitFor('[data-search-toggle]', 15)
-                ->click('[data-search-toggle]')
-                ->waitUntil(self::VISIBLE, 10);
+            $this->openPanel($browser->visit('/'));
 
             // Vẫn ở trang chủ: nút là <a href="/search">, nên không chặn được
             // hành vi mặc định là trang đã đi mất.
@@ -45,10 +65,7 @@ class SearchPanelTest extends DuskTestCase
     public function test_typing_renders_suggestions_from_the_api(): void
     {
         $this->browse(function (Browser $browser) {
-            $browser->visit('/')
-                ->waitFor('[data-search-toggle]', 15)
-                ->click('[data-search-toggle]')
-                ->waitUntil(self::VISIBLE, 10)
+            $this->openPanel($browser->visit('/'))
                 ->type('[data-search-input]', 'áo')
                 // Chờ chính danh sách có mục, không chờ một khoảng thời gian:
                 // enhancer debounce 220ms rồi mới gọi API.
@@ -74,10 +91,7 @@ class SearchPanelTest extends DuskTestCase
     public function test_one_character_does_not_call_the_api(): void
     {
         $this->browse(function (Browser $browser) {
-            $browser->visit('/')
-                ->waitFor('[data-search-toggle]', 15)
-                ->click('[data-search-toggle]')
-                ->waitUntil(self::VISIBLE, 10)
+            $this->openPanel($browser->visit('/'))
                 ->type('[data-search-input]', 'á')
                 ->pause(700); // quá hạn debounce 220ms một quãng rộng
 
@@ -95,15 +109,21 @@ class SearchPanelTest extends DuskTestCase
     public function test_escape_closes_the_panel(): void
     {
         $this->browse(function (Browser $browser) {
-            $browser->visit('/')
-                ->waitFor('[data-search-toggle]', 15)
-                ->click('[data-search-toggle]')
-                ->waitUntil(self::VISIBLE, 10)
-                // KHÔNG gửi vào 'body': Dusk tự chèn tiền tố `body ` vào selector
-                // nên nó đi tìm `body body`. Ô nhập cũng đúng là nơi con trỏ
-                // đang nằm — enhancer focus vào đó ngay khi mở panel.
-                ->keys('[data-search-input]', ['{escape}'])
-                ->waitUntil('document.querySelector("[data-search-panel]")?.hidden === true', 10);
+            $this->openPanel($browser->visit('/'));
+
+            // Gửi Esc tới phần tử ĐANG FOCUS, không qua selector.
+            //
+            // Hai đường kia đều hỏng: `keys('body', …)` đi tìm `body body` vì
+            // Dusk tự chèn tiền tố, còn `keys('[data-search-input]', …)` thì
+            // chập chờn — WebDriver từ chối gõ vào element nó coi là chưa
+            // "displayed", và panel có transition nên có một khoảng ô nhập đã
+            // được focus mà hộp vẫn đang mở ra. Đo được: hỏng khoảng 1/5 lần.
+            //
+            // Cách này cũng đúng với thao tác thật hơn: người dùng bấm Esc, họ
+            // không nhắm vào một selector nào cả.
+            $browser->driver->action()->sendKeys(null, WebDriverKeys::ESCAPE)->perform();
+
+            $browser->waitUntil('document.querySelector("[data-search-panel]")?.hidden === true', 10);
 
             $this->assertTrue(
                 $browser->script('return document.querySelector("[data-search-panel]").hidden;')[0],
