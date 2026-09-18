@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Encryption\Encrypter;
 use Illuminate\Support\Facades\Artisan;
 use Lunar\Core\Models\Currency;
 use Tests\TestCase;
@@ -42,6 +43,12 @@ class PreflightTest extends TestCase
         app()->detectEnvironment(fn () => 'production');
 
         config(array_merge([
+            // Khoá SẠCH. `.env` của repo vẫn đang chạy khoá nằm trong git
+            // history, nên không đặt ở đây thì MỌI ca "cấu hình production
+            // đúng" dưới đây trượt vì một lý do không liên quan tới thứ nó
+            // đang kiểm. Bản thân chốt khoá cháy có test riêng
+            // (`KeyRotationTest`), nên đặt khoá sạch ở đây không nới lỏng gì.
+            'app.key' => 'base64:'.base64_encode(Encrypter::generateKey(config('app.cipher'))),
             'app.debug' => false,
             'app.url' => 'https://shop.example',
             'app.env' => 'production',

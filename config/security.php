@@ -91,6 +91,29 @@ return [
     | chối chúng kể cả khi có script lạ chen được vào trang.
     |
     */
+    /*
+    |--------------------------------------------------------------------------
+    | APP_KEY đã cháy
+    |--------------------------------------------------------------------------
+    |
+    | SHA-256 của những khoá đã lộ ra ngoài, KHÔNG phải giá trị khoá — file này
+    | nằm trong repo, mà repo chính là nơi khoá lộ ra lần đầu.
+    |
+    | `shop:preflight` chặn deploy production khi APP_KEY đang chạy khớp một
+    | dòng ở đây. Thêm dòng mới bằng:
+    |
+    |     php -r "echo hash('sha256', base64_decode(substr('<APP_KEY>', 7)));"
+    |
+    | Danh sách chỉ DÀI THÊM, không ngắn lại: khoá đã vào git history thì cháy
+    | vĩnh viễn, xoá dòng đi là mở đường cho một lần vô tình dán lại.
+    |
+    */
+    'compromised_app_keys' => [
+        // `.env` bị commit trong 9 commit (113dfca … ef8c722). Đây là bí mật
+        // DUY NHẤT từng vào repo — xem docs/guides/deployment.md §10.
+        '58e37ed9c023a211c1dfd0bce74d7fa3ad7b4ed951eafb7a3211b675e4ba770c',
+    ],
+
     'headers' => [
         'X-Content-Type-Options' => 'nosniff',
         'X-Frame-Options' => 'SAMEORIGIN',

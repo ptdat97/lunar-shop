@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Schema;
 use Lunar\Core\Models\Currency;
 use Lunar\Core\Models\Staff;
+use Modules\Core\Support\CompromisedKeys;
 use Modules\Core\Support\Settings;
 
 /**
@@ -70,6 +71,36 @@ class Preflight extends Command
             filled(config('app.key')),
             'APP_KEY',
             'Chưa sinh khoá — session và mọi giá trị mã hoá sẽ hỏng. `php artisan key:generate`.',
+        );
+
+        // Khoá đã lộ thì có mặt cũng như không: bất kỳ ai đọc được git history
+        // đều giả mạo được session và giải được mọi giá trị mã hoá. Đây là FAIL
+        // ở production và WARN ở nơi khác — máy dev chạy khoá cháy thì vô hại,
+        // nhưng vẫn phải nhắc, vì khoá trên máy dev là thứ bị copy lên server.
+        $compromised = CompromisedKeys::includes((string) config('app.key'));
+
+        if ($production) {
+            $this->assert(
+                ! $compromised,
+                'APP_KEY đã rotate',
+                'Khoá đang chạy nằm trong git history — phải rotate. Quy trình 4 bước: docs/guides/deployment.md §10.',
+            );
+        } else {
+            $this->warnIf(
+                $compromised,
+                'APP_KEY đã rotate',
+                'Khoá đang chạy nằm trong git history. Vô hại ở máy dev, nhưng production thì bị chặn deploy.',
+            );
+        }
+
+        // `APP_PREVIOUS_KEYS` là biến TẠM của quy trình rotate. Để quên nó lại
+        // nghĩa là khoá cũ — khoá đã cháy — vẫn giải mã được, tức là rotate chưa
+        // thực sự xong. Không chặn deploy, vì bỏ nó ra TRƯỚC khi `shop:reencrypt`
+        // chạy xong còn tệ hơn.
+        $this->warnIf(
+            $production && filled(config('app.previous_keys')),
+            'APP_PREVIOUS_KEYS',
+            'Còn khoá cũ đang dùng được. Chạy `shop:reencrypt` rồi bỏ biến này đi mới coi là rotate xong.',
         );
 
         $this->assert(

@@ -32,9 +32,31 @@
 Ba việc dưới đây **không phải tính năng**: thiếu chúng thì shop hoặc không vận hành nổi,
 hoặc vi phạm nghĩa vụ pháp lý, hoặc hỏng mà không ai biết.
 
-### 1. ⚠️ Rotate secrets — CHẶN DEPLOY
-- ⬜ Secrets cũ **vẫn nằm trong git history**. Phải rotate (VNPay/MoMo key, `APP_KEY`,
-  DB, mail) **trước** khi lên production. Không có ngoại lệ, không có "để sau".
+### 1. ⚠️ Rotate `APP_KEY` — CHẶN DEPLOY
+
+**Đã rà lại toàn bộ 314 commit (2026-09-18). Phạm vi hẹp hơn mục này từng ghi.**
+
+- ⬜ **`APP_KEY`** nằm trong git history (9 commit, `.env` bị commit) và **`.env`
+  hiện tại vẫn đang dùng đúng khoá đó** — rotate chưa từng xảy ra. Quy trình 4
+  bước: [guides/deployment.md §10](guides/deployment.md#10-rotate-app_key).
+- ✅ **Phần còn lại KHÔNG bị lộ** — đo được, không phải phỏng đoán:
+  `DB_PASSWORD` / `MAIL_PASSWORD` / `REDIS_PASSWORD` / AWS đều **rỗng hoặc
+  `null`** ở cả 10 bản `.env` từng commit; key VNPay/MoMo **chưa từng** nằm trong
+  `.env` (chúng đọc qua `Settings`, không qua env); không có secret nào hardcode
+  trong PHP ở bất kỳ commit nào.
+- ✅ **Có lưới an toàn rồi.** `shop:preflight` **chặn deploy production** khi
+  `APP_KEY` đang chạy khớp một digest trong `config/security.php`
+  (`compromised_app_keys` — lưu SHA-256, không lưu khoá, vì file này nằm đúng
+  trong repo đã làm lộ khoá). Ở máy dev chỉ cảnh báo.
+- ✅ **Và có lệnh cho bước không ai nghĩ tới:** `shop:reencrypt` chuyển dữ liệu
+  đã mã hoá sang khoá mới. Thiếu nó thì đổi khoá = **khoá mọi staff bật 2FA ra
+  khỏi panel**, và khoá bằng cách 500 chứ không báo "mã sai". Bỏ bước này
+  **không có triệu chứng gì** cho tới lúc ai đó dọn `APP_PREVIOUS_KEYS`, có thể
+  vài tháng sau.
+
+> **Việc của anh, không ai làm hộ được:** chạy 4 bước ở §10 trên server
+> production. Mọi thứ quanh nó — cổng chặn, lệnh chuyển dữ liệu, runbook — đã
+> xong.
 
 ### 2. Lỗi production đang vô hình + không có lưới an toàn
 

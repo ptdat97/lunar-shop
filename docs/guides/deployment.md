@@ -9,14 +9,26 @@
 
 ## 0. ⚠️ Việc bắt buộc trước lần deploy đầu tiên
 
-1. **Xoay vòng (rotate) toàn bộ secrets.** File `.env` từng bị commit vào git
-   (đã gỡ khỏi index 2026-07-08, nhưng **vẫn nằm trong git history**). Trước khi
-   repo được push/chia sẻ rộng hơn:
-   - Đổi: DB password, `APP_KEY` không cần đổi nếu chưa có dữ liệu mã hoá thật,
-     VNPay hash secret, MoMo access/secret key, SMTP credential, Redis password.
-   - Nếu repo đã từng public/push remote: cân nhắc rewrite history
-     (`git filter-repo --path .env --invert-paths`) và force-push, hoặc coi mọi
-     secret trong history là đã lộ.
+1. **Rotate `APP_KEY`.** File `.env` từng bị commit (đã gỡ khỏi index
+   2026-07-08, nhưng **vẫn nằm trong git history**). Quy trình 4 bước bắt buộc ở
+   [§10](#10-rotate-app_key). `shop:preflight` **chặn deploy production** cho tới
+   khi làm xong.
+
+   > **Mục này trước đây ghi sai, đã sửa sau khi rà lại history (2026-09-18).**
+   > Bản cũ dặn đổi DB password, VNPay hash secret, MoMo key, SMTP, Redis — và
+   > nói *"`APP_KEY` không cần đổi nếu chưa có dữ liệu mã hoá thật"*. Cả hai vế
+   > đều ngược:
+   >
+   > - Quét toàn bộ **314 commit**: bí mật **duy nhất** từng vào repo là
+   >   `APP_KEY` (9 commit). `DB_PASSWORD`, `MAIL_PASSWORD`, `REDIS_PASSWORD`,
+   >   AWS đều **rỗng hoặc `null`** ở mọi bản. Key VNPay/MoMo **chưa từng** nằm
+   >   trong `.env` — chúng đọc qua `Settings` (Cài đặt → Thanh toán), không qua
+   >   env. Rotate chúng vẫn nên làm nếu đã dùng thật, nhưng **không phải vì
+   >   repo**.
+   > - Và `APP_KEY` thì **có** dữ liệu mã hoá thật: 2FA của staff
+   >   (`lunar_staff.app_authentication_*`). Đổi khoá mà không mã hoá lại là
+   >   khoá mọi staff bật 2FA ra khỏi panel.
+
 2. **`.env` production tạo tay trên server** từ `.env.example` — không copy từ
    máy dev, không commit.
 
@@ -367,3 +379,89 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
   ⚠️ Cả job PHPUnit lẫn Dusk đều **bắt buộc** chạy `npm run build`: `public/build`
   và bundle add-on của panel đều gitignore, thiếu là mọi trang `@vite` trả 500 và
   trang panel render rỗng mà không có lỗi phía server nào để lần.
+
+---
+
+## 10. Rotate `APP_KEY`
+
+**Trạng thái: CHƯA LÀM.** `shop:preflight` chặn deploy production cho tới khi
+xong. Khoá đang chạy là khoá nằm trong git history — bất kỳ ai đọc được repo đều
+giả mạo được session và giải được mọi giá trị mã hoá.
+
+### Vì sao không chỉ là `php artisan key:generate`
+
+`APP_KEY` mã hoá hai thứ, và chỉ một thứ là vô hại khi đổi:
+
+| | Đổi khoá thì sao |
+| --- | --- |
+| Session cookie | Khách bị đăng xuất. Phiền, hết. |
+| Cột `encrypted` trong DB | **Không giải được nữa.** Mất dữ liệu. |
+
+Shop này có đúng hai cột loại thứ hai — `lunar_staff.app_authentication_secret`
+và `…_recovery_codes`, tức **2FA của staff**. Và chúng không hỏng lịch sự: secret
+giải ra rác thì không phải base32, Google2FA ném `InvalidCharactersException`,
+nên màn hình 2FA trả **500** chứ không báo "mã sai". Dự án đã trả giá đúng lớp
+lỗi này một lần ở đợt nâng Lunar 1.5.
+
+Danh sách cột nằm ở `Modules\Core\Support\EncryptedColumns`, và
+`KeyRotationTest` quét source bắt nó phải phủ mọi cast `encrypted` — thêm model
+mới có cột mã hoá mà quên khai báo là suite đỏ, không phải là một sự cố
+production.
+
+### Bốn bước
+
+Chạy trên server production, **trong maintenance window**, sau khi đã backup DB.
+
+```bash
+# 1. Lấy khoá hiện tại ra trước khi ghi đè — đây là thứ duy nhất đọc được dữ liệu cũ
+grep '^APP_KEY=' .env          # chép lại giá trị này
+
+php artisan key:generate --force
+
+# 2. Đặt khoá CŨ vào APP_PREVIOUS_KEYS để Laravel còn đọc được dữ liệu cũ
+#    (thêm dòng này vào .env, giá trị là khoá vừa chép ở bước 1)
+#    APP_PREVIOUS_KEYS=base64:...khoá-cũ...
+
+php artisan config:clear
+
+# 3. Chuyển dữ liệu sang khoá mới. Xem trước bằng --dry-run.
+php artisan shop:reencrypt --dry-run
+php artisan shop:reencrypt
+
+# 4. Chỉ khi bước 3 trả về thành công: bỏ APP_PREVIOUS_KEYS khỏi .env
+php artisan config:clear
+php artisan shop:preflight        # phải xanh dòng "APP_KEY đã rotate"
+```
+
+> ⚠️ **Bước 3 là bước duy nhất không ai nghĩ tới, và bỏ nó KHÔNG có triệu
+> chứng.** `APP_PREVIOUS_KEYS` khiến mọi thứ vẫn giải mã được, nên site trông
+> như bình thường. Rồi tới lúc ai đó dọn biến môi trường thừa — có thể vài tháng
+> sau — 2FA của toàn bộ staff chết cùng một lúc, và không còn ai nối được hai sự
+> kiện với nhau.
+
+> `shop:reencrypt` **chạy lại được** (giá trị đã ở khoá mới thì bỏ qua) và
+> **không bao giờ ghi đè** giá trị nó không giải được — nó báo lỗi và giữ
+> nguyên. Bị ngắt giữa chừng thì chỉ cần chạy lại.
+
+### Nếu bước 3 báo có giá trị không giải được
+
+Nghĩa là khoá cũ không mở được chúng — thường là dữ liệu còn sót từ một lần đổi
+khoá trước đó. **Đừng bỏ `APP_PREVIOUS_KEYS`.** Cách xử lý: xoá 2FA của đúng
+những staff đó trong panel và bắt họ bật lại. Giữ nguyên còn hơn ghi đè bằng rác.
+
+### Còn git history thì sao
+
+Rotate xong thì khoá cũ trở nên vô dụng, nên **không bắt buộc** phải viết lại
+history. Nếu vẫn muốn dọn:
+
+```bash
+git filter-repo --path .env --invert-paths    # rồi force-push
+```
+
+Cái giá: mọi SHA đổi, mọi clone/fork hiện có gãy, và mọi link tới commit cũ chết.
+Với repo một người thì chấp nhận được; đổi lại chỉ là việc "cho sạch", vì khoá
+đã cháy thì đã cháy.
+
+**Không xoá dòng digest trong `config/security.php`.** Khoá cũ vẫn nằm trong mọi
+bản clone đã tồn tại, nên nó cháy vĩnh viễn — danh sách chỉ dài thêm, không ngắn
+lại.

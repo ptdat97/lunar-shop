@@ -24,6 +24,7 @@
 | `php artisan referrals:release` | Phát thưởng giới thiệu cho lượt đã qua hạn đổi/trả — tự thoát khi tắt (Cài đặt → Giới thiệu bạn bè), scheduler hằng ngày 09:30 |
 | `php artisan loyalty:expire` | Đóng phần chưa tiêu của các lô điểm đã hết hạn — ghi **bút toán**, không lọc ngầm; tự thoát khi tắt (Cài đặt → Điểm thưởng), scheduler hằng ngày 09:45 |
 | `php artisan membership:backfill` | Đồng bộ lại hạng thành viên theo tổng chi tiêu (thêm `--dry-run` để xem trước, không ghi) |
+| `php artisan shop:reencrypt` | Mã hoá lại dữ liệu DB sang `APP_KEY` hiện tại — **bước 2 của rotate khoá**, thiếu nó là khoá staff ra khỏi panel (`--dry-run` để xem trước). Xem [deployment.md §10](deployment.md#10-rotate-app_key) |
 | `php artisan shop:preflight` | **Cổng phát hành.** Exit 1 khi cấu hình sẽ làm mất tiền hoặc lộ dữ liệu (`--env-only` bỏ qua phép kiểm cần DB) |
 | `php artisan schedule:heartbeat` | Báo động khi một scheduled task ngừng chạy hoặc liên tục lỗi |
 | `php artisan media:regenerate` | Dựng lại conversion ảnh theo kích thước đang cấu hình (`--missing` chỉ làm cái còn thiếu) |
@@ -36,6 +37,7 @@ chặn traffic, không phải ghi nhận sau khi khách đã vào.
 
 | Chặn (exit 1) | Vì sao |
 | --- | --- |
+| `APP_KEY` là khoá đã lộ | Khoá trong git history — ai đọc được repo cũng giả mạo được session. Đối chiếu bằng SHA-256 trong `config/security.php`; ở máy dev chỉ cảnh báo |
 | `APP_DEBUG` bật ở production | Stack trace ra public, kèm cả biến môi trường |
 | `APP_URL` không phải https ở production | Link email và callback thanh toán sinh sai scheme |
 | Endpoint thanh toán còn trỏ sandbox | Khách "trả tiền" bằng tiền test — **không có gì trên site báo điều này** |

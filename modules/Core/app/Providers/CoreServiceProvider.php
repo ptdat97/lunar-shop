@@ -11,6 +11,7 @@ use Lunar\Panel\Auth\EmailTwoFactor;
 use Lunar\Panel\Facades\Panel;
 use Modules\Core\Auth\UnusedEmailTwoFactor;
 use Modules\Core\Console\Preflight;
+use Modules\Core\Console\ReencryptSecrets;
 use Modules\Core\Console\ReportUntranslatedContent;
 use Modules\Core\Console\ScheduleHeartbeat;
 use Modules\Core\Listeners\RecordScheduledRun;
@@ -65,7 +66,12 @@ class CoreServiceProvider extends ServiceProvider
         // infrastructure.
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
 
-        $this->commands([ScheduleHeartbeat::class, ReportUntranslatedContent::class, Preflight::class]);
+        $this->commands([
+            ScheduleHeartbeat::class,
+            ReportUntranslatedContent::class,
+            Preflight::class,
+            ReencryptSecrets::class,
+        ]);
 
         // One listener instance across all three events so a task's start row can
         // be matched to its finish. Hooking the scheduler's own events (rather
