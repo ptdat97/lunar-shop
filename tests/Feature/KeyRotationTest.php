@@ -239,6 +239,55 @@ class KeyRotationTest extends TestCase
         );
     }
 
+    /**
+     * Không file nào ĐANG được commit được phép mang một khoá đã cháy.
+     *
+     * Phép kiểm này sinh ra từ một lần bỏ sót thật: đợt rà soát đầu tiên chỉ
+     * quét `.env` và kết luận khoá "chỉ nằm trong git history" — trong khi
+     * `.env.example`, một file **đang tracked ở HEAD**, mang đúng khoá đó. Ai
+     * clone repo cũng có nó, không cần đào history.
+     *
+     * Quét mọi chuỗi hình dạng khoá Laravel trong file đã tracked, băm, đối
+     * chiếu với danh sách cháy. Rẻ, và bắt đúng lớp lỗi mà mắt người vừa trượt.
+     */
+    public function test_no_tracked_file_carries_a_compromised_key(): void
+    {
+        $tracked = trim((string) shell_exec('cd '.escapeshellarg(base_path()).' && git ls-files 2>/dev/null'));
+
+        if ($tracked === '') {
+            $this->markTestSkipped('Không đọc được danh sách file tracked (không phải git repo?).');
+        }
+
+        $offenders = [];
+
+        foreach (explode("\n", $tracked) as $relative) {
+            $path = base_path(trim($relative));
+
+            if (! is_file($path) || filesize($path) > 512 * 1024) {
+                continue;
+            }
+
+            $contents = (string) file_get_contents($path);
+
+            // Khoá Laravel: `base64:` + 44 ký tự base64 (32 byte).
+            if (! preg_match_all('/base64:[A-Za-z0-9+\/]{42,45}=*/', $contents, $matches)) {
+                continue;
+            }
+
+            foreach ($matches[0] as $candidate) {
+                if (CompromisedKeys::includes($candidate)) {
+                    $offenders[] = $relative;
+                }
+            }
+        }
+
+        $this->assertSame(
+            [],
+            array_values(array_unique($offenders)),
+            'File đang commit mang khoá đã cháy — thay bằng chỗ trống, `key:generate` sẽ điền.',
+        );
+    }
+
     // ------------------------------------------------- danh sách cột không lệch
 
     /**

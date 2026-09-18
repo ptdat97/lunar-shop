@@ -39,6 +39,11 @@ hoặc vi phạm nghĩa vụ pháp lý, hoặc hỏng mà không ai biết.
 - ⬜ **`APP_KEY`** nằm trong git history (9 commit, `.env` bị commit) và **`.env`
   hiện tại vẫn đang dùng đúng khoá đó** — rotate chưa từng xảy ra. Quy trình 4
   bước: [guides/deployment.md §10](guides/deployment.md#10-rotate-app_key).
+- ✅ **Và nó không chỉ nằm trong history: `.env.example` — file ĐANG tracked —
+  mang đúng khoá đó.** Ai clone repo cũng có, không cần đào history. Đã thay
+  bằng chỗ trống (2026-09-18). Lượt rà đầu tiên bỏ sót vì chỉ quét `.env`, nên
+  giờ có `KeyRotationTest::no_tracked_file_carries_a_compromised_key` quét mọi
+  file tracked — chính lớp lỗi mà mắt người vừa trượt.
 - ✅ **Phần còn lại KHÔNG bị lộ** — đo được, không phải phỏng đoán:
   `DB_PASSWORD` / `MAIL_PASSWORD` / `REDIS_PASSWORD` / AWS đều **rỗng hoặc
   `null`** ở cả 10 bản `.env` từng commit; key VNPay/MoMo **chưa từng** nằm trong

@@ -28,6 +28,10 @@
    > - Và `APP_KEY` thì **có** dữ liệu mã hoá thật: 2FA của staff
    >   (`lunar_staff.app_authentication_*`). Đổi khoá mà không mã hoá lại là
    >   khoá mọi staff bật 2FA ra khỏi panel.
+   > - **Nặng hơn cả history:** `.env.example` — file đang tracked — mang đúng
+   >   khoá đó, nên ai clone repo cũng có mà không cần đào history. Đã thay bằng
+   >   chỗ trống. Lượt rà đầu chỉ quét `.env` và bỏ sót nó; nay
+   >   `KeyRotationTest` quét mọi file tracked.
 
 2. **`.env` production tạo tay trên server** từ `.env.example` — không copy từ
    máy dev, không commit.
