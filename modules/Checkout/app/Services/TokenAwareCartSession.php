@@ -225,12 +225,34 @@ class TokenAwareCartSession extends CartSessionManager
         }
 
         $user = $this->tokenUser();
+        $customer = $user?->latestCustomer();
+
+        // Đi qua ĐÚNG resolver mà `parent::createNewCart()` dùng. Lunar gọi nó là
+        // "the single home for the storefront default cascade": region mặc định,
+        // rồi channel/currency/language đổ theo thứ tự ghi đè → của region →
+        // mặc định toàn cục.
+        //
+        // Bản trước dựng tay từ `getCurrency()`/`getChannel()`, mà hai hàm đó chỉ
+        // rơi về **mặc định toàn cục** — bỏ qua hẳn tầng region. Hệ quả là giỏ
+        // token lệch giỏ web ở ba trường: `region_id` để NULL, còn channel và
+        // currency lấy mặc định toàn cục thay vì của region. Không có triệu chứng
+        // trong một shop một region trỏ vào đúng mặc định, nhưng `region_id` được
+        // `FillOrderFromCart` chép thẳng sang `lunar_orders`, nên mọi đơn đặt từ
+        // app mang region rỗng trong khi đơn từ web thì không.
+        $context = $this->resolveStorefrontContext->execute(
+            channel: $this->channel?->exists ? $this->channel : null,
+            currency: $this->currency?->exists ? $this->currency : null,
+            customer: $customer,
+        );
 
         $cart = Cart::create([
-            'currency_id' => $this->getCurrency()->id,
-            'channel_id' => $this->getChannel()->id,
+            'currency_id' => $context->currency->id,
+            'channel_id' => $context->channel->id,
+            'region_id' => $context->region?->id,
             'user_id' => $user?->id,
-            'customer_id' => $user?->latestCustomer()?->id,
+            'customer_id' => $customer?->id,
+            // Lý do cả bản ghi đè này tồn tại: client stateless cần một handle để
+            // nhận lại giỏ của mình. Lunar không mint cái này.
             'public_token' => (string) Str::uuid(),
         ]);
 

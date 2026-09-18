@@ -3,6 +3,7 @@
 namespace Modules\Customer\Services;
 
 use App\Models\User;
+use Lunar\Core\Contracts\Actions\Customers\CreatesCustomer;
 use Lunar\Core\Contracts\Actions\Customers\LinksCustomerUser;
 use Lunar\Core\Models\Customer;
 
@@ -26,7 +27,14 @@ class CustomerResolver
 
         [$first, $last] = $this->splitName($user->name);
 
-        $customer = Customer::create([
+        // Qua action của Lunar, không `Customer::create()` thẳng. Hôm nay hai
+        // đường cho ra cùng một hàng — `CreateCustomer` chỉ thêm phần sync
+        // customer group khi được truyền id, mà ở đây không truyền. Lý do đổi là
+        // **cái seam**: panel và mọi addon tạo khách đều đi qua contract này, nên
+        // một shop bind lại nó sẽ áp cho khách tạo từ panel mà KHÔNG áp cho
+        // khách tự đăng ký ở storefront — đúng kiểu lệch im lặng mà nguyên tắc
+        // số 0 nói tới. Không phải sửa lỗi; là đóng một cửa.
+        $customer = app(CreatesCustomer::class)->execute([
             'first_name' => $first,
             'last_name' => $last,
         ]);

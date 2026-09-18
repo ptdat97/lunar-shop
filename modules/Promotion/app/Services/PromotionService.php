@@ -118,9 +118,11 @@ class PromotionService
         $query = Product::query()
             ->where('status', 'published')
             // Eager-load everything a product card renders (flat, not N+1).
-            // `media` powers the card hover (second) image; the `thumbnail`
-            // (primary media) is back-filled from it below instead of being a
-            // second, primary-filtered media query.
+            // `media` powers the card hover (second) image; `thumbnail` is
+            // Lunar's OWN MorphOne (lọc collection + `custom_properties->primary`)
+            // và được nạp riêng — xem ProductService::cardRelations(). Tự dựng
+            // ảnh đại diện từ `media` là đúng ca số 1 trong bảng "đã trả giá":
+            // bỏ mất bộ lọc collection thì một ảnh swatch có thể thành ảnh đại diện.
             ->with(ProductService::cardRelations());
 
         $productIds = $this->targets->targetedProductIds($discount);
