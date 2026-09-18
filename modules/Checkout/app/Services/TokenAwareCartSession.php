@@ -8,7 +8,7 @@ use Lunar\Core\Managers\CartSessionManager;
 use Lunar\Core\Models\Cart;
 
 /**
- * Cart identity for stateless clients (mobile app, POS), layered on Lunar's own
+ * Cart identity for stateless clients (mobile app), layered on Lunar's own
  * CartSessionManager — inherited, not reimplemented (Principle #1).
  *
  * Lunar keys the current cart off the HTTP session. A Bearer-token client has no
@@ -44,7 +44,7 @@ class TokenAwareCartSession extends CartSessionManager
      * (`VerifyCsrfTokenUnlessStateless`) so the two can never disagree about
      * what "stateless" means:
      *
-     *  - `Authorization: Bearer …` — a signed-in app / POS terminal;
+     *  - `Authorization: Bearer …` — a signed-in app;
      *  - `X-Cart-Token: …` — a guest reclaiming its basket;
      *  - `X-Client: app` — a guest's *first* call, before it has a handle to
      *    send. Without this the server could not tell an app apart from the

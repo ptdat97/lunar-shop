@@ -15,7 +15,7 @@ return [
     |
     | `abilities` scopes what a customer token may do. Cookie sessions are
     | unaffected — Sanctum's TransientToken passes every ability check — so this
-    | only constrains bearer tokens. Staff/POS tokens get their own set when
+    | only constrains bearer tokens. Staff tokens get their own set when
     | those clients arrive, and the routes already enforce.
     |
     */

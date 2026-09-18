@@ -10,7 +10,8 @@ use Modules\Checkout\Services\TokenAwareCartSession;
  *
  * Cart and checkout run in the `web`-derived `storefront` group because Lunar's
  * cart needs a session, which drags CSRF along. That is correct for the cookie
- * storefront but 419s every mobile/POS write: those clients have no cookie, so
+ * storefront but 419s every write from the mobile app: those clients have no
+ * cookie, so
  * no XSRF token to echo back.
  *
  * CSRF exists to stop a third-party page riding the user's *ambient* cookie

@@ -33,9 +33,9 @@
 
 ### Vì sao không Vue
 
-Storefront **từng** có 3 Vue island (variant picker, quick-view, checkout). Chúng đã
-được thay bằng vanilla enhancer và **Vue gỡ hoàn toàn** khỏi `package.json`. Dòng đầu
-`enhance/product-variant.js` còn ghi lại điều này.
+Storefront **từng** có 3 Vue island. Chúng đã được thay bằng vanilla enhancer và
+**Vue gỡ hoàn toàn** khỏi `package.json`. Dòng đầu `enhance/product-variant.js` còn
+ghi lại điều này.
 
 Thêm Vue/React trở lại **cần phê duyệt kiến trúc riêng** — xem
 [coding-standards §9](../guides/coding-standards.md#9-javascript-theme). Lý do: trang

@@ -12,7 +12,7 @@ class CustomerServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Personal-access-token policy (TTL + abilities) for app/POS clients.
+        // Personal-access-token policy (TTL + abilities) for mobile app clients.
         $this->mergeConfigFrom(__DIR__.'/../../config/customer.php', 'customer');
     }
 

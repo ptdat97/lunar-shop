@@ -271,11 +271,11 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
   - **request stateless** — mang `Authorization: Bearer`, `X-Cart-Token`, hoặc
     `X-Client` (`Modules\Core\Http\Middleware\VerifyCsrfTokenUnlessStateless`).
     Cart/checkout nằm group `web` (Lunar cart cần session) nên trước đây 419 mọi ghi
-    từ app/POS. Request stateless **không mang credential ngầm** (browser không tự gắn
+    từ app di động. Request stateless **không mang credential ngầm** (browser không tự gắn
     `Authorization` cross-site; header tuỳ biến phải qua CORS preflight, mà
     `cors.supports_credentials=false`), nên không có gì để forge. Khách **đã đăng nhập
     bằng cookie thì không bao giờ được miễn trừ**.
-- **Token API** (app/POS): `expires_at` 60 ngày (`API_TOKEN_TTL_DAYS`), ability
+- **Token API** (app di động): `expires_at` 60 ngày (`API_TOKEN_TTL_DAYS`), ability
   `customer:*`, xoay qua `POST /api/v1/auth/token/refresh` (thu hồi token cũ).
   ⚠️ **Không bật `sanctum.expiration`** — nó tính từ `created_at` nên sẽ vô hiệu hoá
   **mọi token đã phát hành**.

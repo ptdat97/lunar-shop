@@ -49,7 +49,7 @@ Route::prefix('api/v1')->middleware('web')->group(function (): void {
 // or the SPA cookie session.
 //
 // `token.ability:customer:*` scopes *bearer tokens* to the customer surface. A
-// staff/POS token minted with `pos:*` gets a 403 here rather than silently
+// staff token minted with `staff:*` gets a 403 here rather than silently
 // acting as the customer. The SPA cookie session passes through untouched — it
 // is already authenticated by cookie + CSRF and carries no ability list.
 Route::prefix('api/v1')->middleware(['web', 'auth:sanctum', 'token.ability:customer:*'])->group(function (): void {

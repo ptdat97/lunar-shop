@@ -19,8 +19,9 @@ use Symfony\Component\HttpFoundation\Response;
  * on how the session was established.
  *
  * The intent here is narrower and safer: a personal access token must carry the
- * ability, and nothing else changes. A POS token minted with `pos:*` therefore
- * gets a 403 on the customer surface instead of silently acting as the customer,
+ * ability, and nothing else changes. A staff token minted with `staff:*`
+ * therefore gets a 403 on the customer surface instead of silently acting as the
+ * customer,
  * while the browser session — which is already authenticated by cookie + CSRF —
  * is untouched.
  */

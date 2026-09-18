@@ -9,7 +9,7 @@ use Laravel\Sanctum\PersonalAccessToken;
 use Modules\Core\Support\Settings;
 
 /**
- * Personal access token policy for app / POS clients: how long a token lives,
+ * Personal access token policy for mobile app clients: how long a token lives,
  * what it may do, and how a client rolls one forward.
  *
  * Lives in a service, not the controller, because it is a business rule and two
@@ -107,7 +107,7 @@ class TokenIssuer
     }
 
     /**
-     * What a customer token may reach. Staff/POS tokens get their own set when
+     * What a customer token may reach. Staff tokens get their own set when
      * those clients arrive; the routes already enforce it.
      *
      * @return list<string>

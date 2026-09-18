@@ -6,7 +6,7 @@
 > Xếp theo ROI giảm dần. Cập nhật: **2026-09-18** (mục 16 điểm thưởng + phần ảnh còn lại của mục 17 xong).
 >
 > **Thứ tự ưu tiên đã đảo lại (2026-07-13).** Trước đây danh sách này mở đầu bằng
-> tính năng chuyển đổi (quick-view, size intelligence, search engine). Rà lại code cho
+> tính năng chuyển đổi (size intelligence, search engine). Rà lại code cho
 > thấy sai trọng tâm: **shop chưa giao được hàng tự động và chưa xuất được hoá đơn hợp
 > lệ**, còn lỗi production thì vô hình (không error tracker, không CI). Đó là **P0**.
 > Tính năng chuyển đổi chỉ có nghĩa sau khi bán–giao–xuất hoá đơn chạy trơn.
@@ -106,7 +106,7 @@ hoặc vi phạm nghĩa vụ pháp lý, hoặc hỏng mà không ai biết.
 
 **Không phải "chưa nghĩ tới" — là đang bị chặn bởi việc ngoài code.** Chưa ký hợp đồng
 với GHN/GHTK nên chưa có API key, chưa có sandbox → **hoãn**, không ước lượng, không
-code trước theo tài liệu (đoán shape rồi sửa lại là lãng phí — đúng bài học Phase 4/POS
+code trước theo tài liệu (đoán shape rồi sửa lại là lãng phí — đúng bài học Phase 4
 trong [audit](history/2026-07-platform-audit.md#phần-4--việc-đã-khảo-sát-rồi-cố-ý-dừng)).
 
 **Hiện trạng đo được:** `modules/Shipping` chỉ có `ShippingZone` với 4 field
@@ -196,10 +196,6 @@ Xem [guides/deployment.md](guides/deployment.md) cho runbook đầy đủ.
 ---
 
 ## P2 — Tăng chuyển đổi / trải nghiệm
-
-### 6. Quick-view — *theme*
-Modal xem nhanh sản phẩm từ grid (vanilla, đọc `/api/v1/products/{slug}`), add-to-cart không
-rời trang listing. Đã chừa chỗ, cố ý hoãn.
 
 ### 7. Size Intelligence — phần nice-to-have
 Đã có: hồ sơ số đo, fit history (giữ vs trả, between-sizes).
@@ -370,10 +366,8 @@ giảm giá theo hạng — khách không có việc gì để làm. Điểm là
   chứ không dựng mới. Nó nhân hiệu quả cho **cả** cứu giỏ hàng lẫn báo trạng thái đơn và
   báo hàng về vốn đã chạy. ⏸ **Chặn ngoài code**: cần OA đã xác thực doanh nghiệp — cùng
   nhóm với vận chuyển (P0.5) và hoá đơn điện tử (P0 §3).
-- **Quick-view** (mục 6) và **Analytics nâng cao** (mục 10, P3) — quick-view
-  thêm một lớp UI phải bảo trì để tiết kiệm cho khách một cú bấm, trong khi trang sản
-  phẩm đã nhanh; analytics nâng cao là đo đạc chứ không phải doanh thu, và shop chưa có
-  traffic thật để đo.
+- **Analytics nâng cao** (mục 10, P3) — là đo đạc chứ không phải doanh thu, và shop
+  chưa có traffic thật để đo.
 
 ---
 
@@ -423,7 +417,7 @@ không phải đóng băng code — **không đụng một dòng code nào**, 39
 **Ngưỡng quay lại (bỏ đóng băng):** quyết định làm headless/mobile app **thật** — có người
 dùng thật, không phải "phòng xa".
 
-### 12. Omnichannel / POS ⏸ và AI ⏸
+### 12. AI ⏸
 Đã khảo sát rồi **cố ý dừng** — lý do + số liệu đo được ở
 [platform_audit.md § Phần 4](history/2026-07-platform-audit.md#phần-4--việc-đã-khảo-sát-rồi-cố-ý-dừng).
 
@@ -491,9 +485,9 @@ sai mật khẩu · GA + Facebook pixel.
 | Sổ cái kế toán kép, đóng sổ cuối tháng, hoá đơn hoa hồng | Quy mô doanh nghiệp nhiều gian hàng. Repo đã có giá vốn + biên lợi nhuận trên từng dòng đơn — đủ trả lời "lãi bao nhiêu" |
 | Khám phá theo vị trí, sắp xếp theo khoảng cách | Địa lý của marketplace: chỉ có nghĩa khi nhiều người bán ở nhiều nơi. Một cửa hàng thì phần dùng được là **nhận tại cửa hàng**, đã làm |
 | So sánh sản phẩm | Mạnh với đồ điện tử nhiều thông số; với thời trang khách so sánh bằng **ảnh và size**, mà cả hai đã có ở gallery + size guide |
-| Hộp thư hợp kênh | Đã khảo sát rồi cố ý dừng — xem [§12](#12-omnichannel--pos--và-ai-) |
+| Hộp thư hợp kênh | Chỉ có nghĩa khi bán trên nhiều kênh cùng lúc. Shop một cửa hàng, một storefront |
 | Boosting sản phẩm, gói đăng ký người bán, hoa hồng | Chỉ tồn tại khi có nhiều người bán |
-| POS, marketplace nhiều gian hàng, sản phẩm số, trợ lý bán hàng AI | Ngoài phạm vi SME một cửa hàng |
+| Marketplace nhiều gian hàng, sản phẩm số, trợ lý bán hàng AI | Ngoài phạm vi SME một cửa hàng |
 
 ---
 

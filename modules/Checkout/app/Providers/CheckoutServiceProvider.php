@@ -72,7 +72,7 @@ class CheckoutServiceProvider extends ServiceProvider
 
     /**
      * Swap Lunar's session-only cart resolver for one that also understands
-     * Bearer tokens, so cart + checkout work headlessly (mobile app, POS).
+     * Bearer tokens, so cart + checkout work headlessly (mobile app).
      *
      * Lunar exposes this as a container singleton (`LunarServiceProvider`), so
      * this is a supported extension point — no vendor edit. Bound in boot()
