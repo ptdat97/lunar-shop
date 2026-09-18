@@ -10,6 +10,8 @@ use Lunar\Core\Models\Currency;
 use Modules\Assets\Services\MediaUrl;
 use Modules\Checkout\Services\TokenAwareCartSession;
 use Modules\Core\Support\Settings;
+use Modules\Promotion\Pipelines\Cart\RedeemLoyaltyPoints;
+use Modules\Promotion\Services\LoyaltyService;
 use Modules\Promotion\Services\PromotionService;
 
 /**
@@ -64,6 +66,7 @@ class CartResource extends JsonResource
                 'total' => $this->total?->format(),
             ],
             'free_shipping' => $this->freeShippingInfo(),
+            'loyalty' => $this->loyaltyInfo(),
         ];
 
         // Handle for stateless clients to send back as `X-Cart-Token`. Only ever
@@ -98,6 +101,24 @@ class CartResource extends JsonResource
 
         // Generates the `small` conversion on demand if its file is missing.
         return app(MediaUrl::class)->conversion($media, 'small');
+    }
+
+    /**
+     * Điểm thưởng đang áp cho giỏ này.
+     *
+     * Hình dạng do `LoyaltyService` sở hữu — trang thanh toán (Blade) đọc đúng
+     * hàm này, nên hai bề mặt không thể lệch nhau.
+     *
+     * `total` ở khối `totals` phía trên ĐÃ trừ điểm: chặng
+     * {@see RedeemLoyaltyPoints} chạy cuối
+     * pipeline giỏ. `applied_value` chỉ để UI hiện được DÒNG trừ, không phải để
+     * tự tính lại tổng.
+     *
+     * @return array<string, mixed>|null
+     */
+    protected function loyaltyInfo(): ?array
+    {
+        return app(LoyaltyService::class)->cartInfo($this->resource);
     }
 
     /**

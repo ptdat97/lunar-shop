@@ -870,7 +870,20 @@ theo session không cần crawl (cart drawer/page, wishlist).
 - Wrap Lunar Discounts. **Custom discount types** (`QuantityPercentageOff` "mua N giảm
   X%", `ComboPercentageOff` "áo + quần giảm X%") qua `Discounts::addType`. **Flash Sale**
   (AmountOff time-boxed + cờ `data.flash_sale`). **Membership** theo tổng chi tiêu
-  (`MembershipService` → Lunar `CustomerGroup` Silver/Gold, sync qua event `OrderPaid`), giới thiệu bạn (`ReferralService`: mã mời mỗi khách một, coupon chào mừng lúc đăng ký, thưởng cho người mời sau hạn đổi/trả qua lệnh `referrals:release` hằng ngày).
+  (`MembershipService` → Lunar `CustomerGroup` Silver/Gold, sync qua event `OrderPaid`), giới thiệu bạn (`ReferralService`: mã mời mỗi khách một, coupon chào mừng lúc đăng ký, thưởng cho người mời sau hạn đổi/trả qua lệnh `referrals:release` hằng ngày), **điểm thưởng** (`LoyaltyService` + sổ cái `loyalty_entries`).
+- **Điểm thưởng là một SỔ CÁI, không phải một cột số dư.** Số dư =
+  `SUM(points) WHERE available_at IS NULL OR available_at <= now`; mỗi bút toán cộng là
+  một **lô**, mỗi bút toán trừ trỏ về lô nó ăn (`lot_id`) nên "lô còn lại bao nhiêu" cũng
+  dẫn xuất. Tiêu theo **FIFO theo hạn** (lô sắp chết ăn trước). Hết hạn là một **bút
+  toán** do `loyalty:expire` ghi, không phải một điều kiện trong câu truy vấn — lọc ngầm
+  thì sổ không cộng lại thành số dư được nữa.
+  ⚠️ **Bút toán trừ thừa hưởng `available_at` của lô nó ăn.** Bỏ luật này là thu hồi điểm
+  của một đơn vừa bị trả lại cho ra số dư ÂM (dòng trừ có hiệu lực ngay trong khi lô còn
+  đang chờ). Cả bốn đường trừ đi qua `LoyaltyService::debit()` vì thế.
+  ⚠️ **Điểm là hình thức THANH TOÁN, không phải khuyến mãi.** Chặng
+  `RedeemLoyaltyPoints` nối đuôi `lunar.cart.pipelines.cart` — **sau** `Calculate`, vì
+  `Calculate` dựng lại `total` và ghi đè mọi phép trừ đặt trước nó. Trừ SAU thuế, không
+  đụng `discountTotal`; hệ quả có chủ đích là tiêu điểm **không đẻ ra điểm**.
 - Storefront: promo-bar countdown, "Today's deals" strip, savings ở cart, membership
   card ở account, badge + gạch giá cũ ở product card + trang product (qua
   `PromotionService::saleFor`), applied-discounts ở cart/checkout, section
@@ -975,8 +988,8 @@ product option, attribute group, customer group, tag, thuế. Phần còn lại 
 
 | Cách | Dùng cho |
 | --- | --- |
-| Engine resource khai báo | 12 màn hình CRUD (Nội dung, RMA, vùng ship, bảng size, báo hàng về, duyệt đánh giá, nhật ký scheduler) |
-| `SettingsGroup` | 8 trang cài đặt cũ + kích thước ảnh → một màn hình, 9 tab |
+| Engine resource khai báo | 13 màn hình CRUD (Nội dung, RMA, vùng ship, bảng size, báo hàng về, duyệt đánh giá, nhật ký scheduler, sổ cái điểm) |
+| `SettingsGroup` | 8 trang cài đặt cũ + kích thước ảnh → một màn hình, 11 tab (thêm Giới thiệu bạn, Điểm thưởng) |
 | `Slot` | Size & Fit chèn vào trang sửa sản phẩm chính chủ |
 | `widgets()` | hai thẻ dashboard: luỹ kế 6 tháng, đơn giữ hàng quá lâu |
 | Không làm | QueueWorkers → Horizon; MediaImageSizes → `media-library:regenerate` |
@@ -997,7 +1010,7 @@ morph-alias-aware, cache 1h) + `robots.txt`. Storefront SSR Blade → crawlable.
 
 # Test
 
-**506 test / 2036 assertion, all green (2026-08-05)** — 75 file trong `tests/Feature/`,
+**856 test / 6691 assertion, all green (2026-09-18)** — 123 file trong `tests/Feature/`,
 chạy trên MySQL `lunar_testing` (app phụ thuộc JSON functions/facets — SQLite không
 emulate được; các test cascade menu cũng cần đúng engine MySQL). `tests/TestCase` dùng
 `RefreshDatabase`; trait `CreatesStorefrontData` seed base data + fixture
@@ -1024,7 +1037,7 @@ trên `/api/v1/products?slugs=`), rebuild menu lồng nhau (self-cascade MySQL).
 - ⚠️ **Luôn `php artisan optimize:clear` trước khi chạy test.** `config:cache` che các `<env>`
   trong `phpunit.xml` → `DB_DATABASE` trỏ về DB dev và `RefreshDatabase` **xoá sạch nó**.
 
-⬜ **Còn thiếu:** `modules/<Name>/tests/` vẫn trống (toàn bộ 68 file ở `tests/Feature`);
+⬜ **Còn thiếu:** `modules/<Name>/tests/` vẫn trống (toàn bộ 123 file ở `tests/Feature`);
 chưa phủ phần thuần-JS (picture/srcset, search-panel, lookbook) — cần browser driver.
 
 ---
@@ -1084,6 +1097,8 @@ sau quyết định bằng dữ kiện chứ không bằng cảm tính.
 | 24 | 2026-08-27 | **Nâng Lunar 1.3 → 1.5 + Filament v3 → v4**, rồi dọn nợ đi kèm. Hai lỗi tìm ra là của upstream: migration đổi tên cột 2FA không chuyển mã giá trị (**khoá mọi staff bật 2FA ra khỏi admin**, mà khoá bằng cách 500 chứ không báo mã sai), và `translate()` trả chuỗi rỗng khi key locale tồn tại nhưng blank. **Gỡ được composer patch cuối cùng**: lý do cũ ("`HasTranslations` là trait nên `ModelManifest` không swap được") sai — không swap được *trait*, nhưng swap được *model dùng trait*. Nay là `SkipsEmptyTranslations` trên đúng 4 model có cột `name` JSON. `composer.json` bỏ 12 gói mà `lunarphp/lunar` tự kéo, giữ lại 5 gói code mình import trực tiếp | 544 test (baseline trước nâng cấp 506); `patches/` biến mất, `composer audit` 0 advisory |
 | 25 | 2026-08-30 | **Bốn năng lực từ đợt rà soát nền tảng.** (a) *Nhận tại cửa hàng* — năng lực giao hàng duy nhất không cần hợp đồng hãng vận chuyển, nên gỡ được phần lớn giá trị của P0.5 đang bị chặn; Lunar bắt buộc có địa chỉ giao nên đơn mang địa chỉ CỬA HÀNG mà giữ tên + điện thoại khách. (b) *Dây bảo hiểm cho cron* — `orders:expire-abandoned` ngừng chạy thì tồn kho khoá vĩnh viễn, mà im lặng trông y hệt "không có đơn quá hạn". (c) *Điều hướng đáy + bộ lọc bottom-sheet* — không phải THÊM nav mà DỜI nav: header mobile từ 6 điểm chạm còn hamburger + logo; bất biến chống trùng lặp là **ghép cặp breakpoint**, không phải "mỗi đích đến một link" (SSR buộc render cả hai bộ). (d) *Báo cáo nội dung thiếu bản dịch* — locale rỗng là lỗi im lặng, không ném lỗi cũng không ghi log | 582 test (từ 544); chạy thử báo cáo phát hiện ngay 13 bản ghi thiếu tiếng Việt |
 | 26 | 2026-09-09 | **Nâng Lunar 1.5 → 2.0.0-alpha.6, bỏ Filament, sang `lunarphp/panel`** (Fase 0→3; Fase 4 viết lại admin bằng Vue chưa bắt đầu — **hiện không có giao diện quản trị**). Ba thứ kế hoạch không lường được. (a) *`ModelManifest::replace()` biến mất, không có cái thay thế* — bản vá locale phải **hạ xuống tầng dữ liệu**: lọc locale rỗng lúc decode JSON thì `translate()` của upstream trở thành đúng, và vá rộng hơn cách cũ. (b) *`lunar:upgrade` ghi lại ledger đánh dấu toàn bộ baseline v2 là đã chạy* — nên cột nào 19 data migration bỏ sót thì **không bao giờ** được tạo nữa; tìm ra 3 cột thiếu bằng cách dựng baseline vào DB nháp rồi diff `information_schema`, cả 3 đều có code 2.0 đang đọc. (c) *`orders.status` bị xoá* — vòng đời 7 trạng thái thành **phái sinh** từ hai rollup + hai timestamp; không nơi nào set status nữa, và cái duy nhất bốn sự thật không phân biệt được (COD vs cổng thanh toán bỏ dở) phải đọc từ `meta.payment_type`, ghi cho mọi đơn + backfill đơn cũ | 560 test (baseline trước nâng cấp 597 — chênh lệch là test canh Filament đã xoá); panel phục vụ 370 route |
+| 27 | 2026-09-17 | **Đánh giá kèm ảnh + nhãn "đã mua hàng xác thực"** (roadmap §17). `product_reviews` thêm `user_id`/`order_id` + media collection `photos` treo thẳng vào đánh giá (KHÔNG vào thư viện ảnh admin — `MediaLibraryService::browse()` liệt kê `Asset`, nên picker ảnh sản phẩm không bao giờ nhặt phải ảnh selfie của khách). Nhãn đọc `order_id` chứ không đọc `user_id`: đăng nhập chỉ chứng minh một tài khoản, không chứng minh đã mua; server tự tra đơn đã thanh toán có chứa sản phẩm đó, client không có trường nào chạm tới. **Ảnh LUÔN qua duyệt** kể cả khi `auto_approve` bật — văn bậy thì đọc rồi gỡ, ảnh bậy thì người ta đã nhìn thấy rồi mới gỡ được. Tên file đặt lại ngẫu nhiên vì ảnh nằm trên đĩa công khai. Hàng đợi duyệt hiện mỗi ảnh một cột (panel chạy bundle vendor biên dịch sẵn → không thêm được cell nhiều ảnh) | 833 test (từ 817); mutation-check 5 guard. **Lỗi thật:** file bị model từ chối thì dòng đánh giá ĐÃ tạo rồi mới ném → 500 + đánh giá mồ côi; sửa bằng transaction + `Review::PHOTO_MIMES` dùng chung cho request và model. Guard N+1 đo theo TỶ LỆ (6 vs 12 đánh giá phải tốn bằng nhau) — ngưỡng tuyệt đối 10 vẫn cho lọt N+1 thật (9 truy vấn) |
+| 28 | 2026-09-18 | **Điểm thưởng** (roadmap §16) — sổ cái `loyalty_entries` có bút toán, không phải cột số dư. Mỗi bút toán cộng là một **lô**, mỗi bút toán trừ trỏ về lô nó ăn (`lot_id`) → cả số dư lẫn "lô còn lại bao nhiêu" đều **dẫn xuất**. Tiêu FIFO **theo hạn**; hết hạn là bút toán do `loyalty:expire` ghi, không phải điều kiện truy vấn. Không có lệnh "phát điểm" (khác §15): `available_at = ngày trả tiền + hạn đổi/trả` làm xong việc. Tiêu điểm qua chặng `RedeemLoyaltyPoints` nối đuôi `lunar.cart.pipelines.cart` — **sau** `Calculate`, trừ sau thuế, không đụng `discountTotal`: điểm là hình thức THANH TOÁN, nên tiêu điểm không đẻ ra điểm. Hoàn/huỷ đơn cuốn **cả hai chiều**: thu hồi điểm đã cộng và trả lại điểm đã tiêu | 856 test (từ 833); mutation-check 6 guard. **Lỗi thiết kế tìm ra khi viết test:** bút toán trừ để `available_at` NULL nên hiệu lực NGAY trong khi lô nó ăn còn đang chờ → thu hồi điểm của đơn vừa trả lại cho ra số dư **−10**. Luật đúng: dòng trừ thừa hưởng `available_at` của lô; cả bốn đường trừ đi qua `LoyaltyService::debit()`. Hai guard sẵn có của repo bắt icon panel bịa (`gift` không có trong `Icon.vue`) |
 
 > **Quy tắc cho mọi refactor:** giải thích *why* trước khi viết code · composer patch
 > là **bậc cuối** (thử hết extension point trước; nếu patch thì kèm PR upstream)

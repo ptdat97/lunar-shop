@@ -23,7 +23,7 @@ Storefront ở `/`, admin ở `/lunar`.
 ## Kiểm thử
 
 ```bash
-php artisan test                    # 432 test
+php artisan test                    # 856 test
 ./vendor/bin/pint --dirty           # code style, chỉ file đã sửa
 ```
 

@@ -22,6 +22,7 @@
 | `php artisan carts:remind-abandoned` | Nhắc giỏ bỏ quên, một email mỗi giỏ — tự thoát khi tắt (Cài đặt → Thanh toán & giỏ hàng), scheduler mỗi 10 phút |
 | `php artisan orders:request-reviews` | Xin đánh giá cho đơn đã giao — tự thoát khi tắt, scheduler hằng ngày 09:00 |
 | `php artisan referrals:release` | Phát thưởng giới thiệu cho lượt đã qua hạn đổi/trả — tự thoát khi tắt (Cài đặt → Giới thiệu bạn bè), scheduler hằng ngày 09:30 |
+| `php artisan loyalty:expire` | Đóng phần chưa tiêu của các lô điểm đã hết hạn — ghi **bút toán**, không lọc ngầm; tự thoát khi tắt (Cài đặt → Điểm thưởng), scheduler hằng ngày 09:45 |
 | `php artisan membership:backfill` | Đồng bộ lại hạng thành viên theo tổng chi tiêu (thêm `--dry-run` để xem trước, không ghi) |
 | `php artisan shop:preflight` | **Cổng phát hành.** Exit 1 khi cấu hình sẽ làm mất tiền hoặc lộ dữ liệu (`--env-only` bỏ qua phép kiểm cần DB) |
 | `php artisan schedule:heartbeat` | Báo động khi một scheduled task ngừng chạy hoặc liên tục lỗi |

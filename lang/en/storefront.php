@@ -311,6 +311,25 @@ return [
         'use_this_size' => 'Use this size',
     ],
 
+    'loyalty' => [
+        'title' => 'Loyalty points',
+        'balance' => ':points points',
+        'worth' => 'worth :value',
+        'pending' => ':points points are still on hold — they unlock once the order is past the returns window.',
+        'expiring' => ':points points expire on :date.',
+        'empty' => 'No points yet. Every order earns them.',
+        'rate_hint' => '1 point = :value. Minimum :min points per redemption.',
+        'checkout_title' => 'Use loyalty points',
+        'checkout_available' => 'You have :points points; up to :max can go towards this order.',
+        'checkout_label' => 'Points to use',
+        'apply' => 'Apply',
+        'remove' => 'Remove points',
+        'applied' => 'Using :points points (−:value).',
+        'unavailable' => 'Points cannot be used on this cart.',
+        'below_minimum' => 'Use at least :min points.',
+        'too_many' => 'At most :max points can go towards this order.',
+    ],
+
     'referral' => [
         'title' => 'Invite your friends',
         'intro' => 'Invite a friend with the link below. They get :welcome% off their first order, and you earn :reward% once it clears the return window (:days days).',

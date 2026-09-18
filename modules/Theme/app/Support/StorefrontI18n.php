@@ -84,6 +84,11 @@ class StorefrontI18n
             // ảnh, nên Theme không phải import model của Catalog (§10).
             'review.too_many' => __('storefront.product.reviews_photos_too_many'),
 
+            // enhance/checkout-loyalty.js — ô tiêu điểm ở trang thanh toán
+            'loyalty.apply' => __('storefront.loyalty.apply'),
+            'loyalty.remove' => __('storefront.loyalty.remove'),
+            'loyalty.applied' => __('storefront.loyalty.applied'),
+
             // enhance/referral.js — nút copy link mời
             'referral.copy' => __('storefront.referral.copy'),
             'referral.copied' => __('storefront.referral.copied'),

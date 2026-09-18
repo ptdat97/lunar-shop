@@ -4,20 +4,29 @@ namespace Modules\Promotion\Providers;
 
 use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Lunar\Core\Events\Orders\OrderPlaced;
 use Lunar\Core\Facades\Discounts;
 use Modules\Content\Services\SectionRenderer;
 use Modules\Core\Panel\ResourceRegistry;
 use Modules\Core\Panel\SettingsRegistry;
 use Modules\Order\Events\OrderPaid;
+use Modules\Order\Events\OrderStatusUpdated;
+use Modules\Order\Support\OrderStatus;
 use Modules\Promotion\Console\BackfillMembershipTiers;
+use Modules\Promotion\Console\ExpireLoyaltyPoints;
 use Modules\Promotion\Console\ReleaseReferralRewards;
 use Modules\Promotion\Http\Resources\PromotionResource;
+use Modules\Promotion\Panel\LoyaltyEntryResource;
+use Modules\Promotion\Panel\LoyaltySettings;
 use Modules\Promotion\Panel\MembershipSettings;
 use Modules\Promotion\Panel\ReferralResource;
 use Modules\Promotion\Panel\ReferralSettings;
+use Modules\Promotion\Pipelines\Cart\RedeemLoyaltyPoints;
+use Modules\Promotion\Services\LoyaltyService;
 use Modules\Promotion\Services\MembershipService;
 use Modules\Promotion\Services\PromotionService;
 use Modules\Promotion\Services\ReferralService;
@@ -35,6 +44,8 @@ class PromotionServiceProvider extends ServiceProvider
         // group: hai trang cài đặt dùng chung một group thì lưu trang này xoá
         // khoá của trang kia.
         $this->mergeConfigFrom(__DIR__.'/../../config/referral.php', 'referral');
+        // Điểm thưởng cũng có group cài đặt riêng (`loyalty`), cùng lý do.
+        $this->mergeConfigFrom(__DIR__.'/../../config/loyalty.php', 'loyalty');
 
         // Singleton so per-request memoization in the service (active automatic
         // discounts + their eager-loaded relations) is shared across the many
@@ -50,10 +61,15 @@ class PromotionServiceProvider extends ServiceProvider
         // Nhóm cài đặt của module trên panel Lunar.
         $this->app->make(SettingsRegistry::class)->add(new MembershipSettings);
         $this->app->make(SettingsRegistry::class)->add(new ReferralSettings);
+        $this->app->make(SettingsRegistry::class)->add(new LoyaltySettings);
 
         // Hàng đợi giới thiệu: staff chỉ xem, đóng lượt gian lận, hoặc phát
         // thưởng sớm — không tạo/sửa được một lượt giới thiệu nào.
         $this->app->make(ResourceRegistry::class)->add(new ReferralResource);
+
+        // Sổ cái điểm: chỉ đọc. Một dòng đã ghi là một sự kiện đã xảy ra —
+        // muốn đổi số dư thì ghi thêm bút toán, không sửa dòng cũ.
+        $this->app->make(ResourceRegistry::class)->add(new LoyaltyEntryResource);
 
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'promotion-admin');
@@ -64,11 +80,16 @@ class PromotionServiceProvider extends ServiceProvider
         $this->registerDiscountTypes();
         $this->registerMembershipSync();
         $this->registerReferrals();
+        $this->registerLoyalty();
         $this->shareFlashSale();
         $this->serializePromotionsStrip();
 
         if ($this->app->runningInConsole()) {
-            $this->commands([BackfillMembershipTiers::class, ReleaseReferralRewards::class]);
+            $this->commands([
+                BackfillMembershipTiers::class,
+                ReleaseReferralRewards::class,
+                ExpireLoyaltyPoints::class,
+            ]);
         }
     }
 
@@ -199,6 +220,80 @@ class PromotionServiceProvider extends ServiceProvider
                     ? app(ReferralService::class)->viewDataFor($user, $request instanceof Request ? $request : null)
                     : null,
             );
+        });
+    }
+
+    /**
+     * Điểm thưởng: cắm chặng trừ điểm vào pipeline giỏ, và bốn cái móc vòng đời.
+     *
+     * **Chặng pipeline được APPEND, không phải ghi đè.** Nó phải chạy SAU
+     * `Calculate` của Lunar, vì `Calculate` dựng lại `total` từ dòng hàng + phí
+     * ship và sẽ xoá mất phép trừ nào đặt trước nó. Nối đuôi danh sách là cách
+     * duy nhất diễn đạt "cuối cùng" mà không phải chép lại cả danh sách của
+     * Lunar — chép lại thì bản nâng cấp nào thêm chặng mới là ta lặng lẽ mất nó.
+     *
+     * Bốn móc, và mỗi cái trả lời một câu khác nhau:
+     *
+     * - `OrderPaid`  → ghi điểm, nhưng CHƯA cho tiêu (chờ hết hạn đổi/trả);
+     * - `OrderPlaced` (của Lunar) → ghi bút toán TRỪ cho số điểm đã tiêu. Ở lúc
+     *   đặt đơn chứ không phải lúc trả tiền: điểm đã thành tiền trên tổng đơn
+     *   rồi, nên nó phải rời sổ ngay lúc đó;
+     * - đơn bị trả lại / hoàn tiền → thu hồi điểm đã cộng;
+     * - đơn đóng lại (huỷ/hoàn) → trả lại điểm đã tiêu. Hai việc ngược chiều
+     *   nhau và đều phải xảy ra: một đơn vừa được thưởng vừa được tiêu điểm thì
+     *   huỷ nó phải cuốn cả hai.
+     */
+    protected function registerLoyalty(): void
+    {
+        Config::set('lunar.cart.pipelines.cart', [
+            ...array_diff(
+                (array) config('lunar.cart.pipelines.cart', []),
+                [RedeemLoyaltyPoints::class],
+            ),
+            RedeemLoyaltyPoints::class,
+        ]);
+
+        Event::listen(OrderPaid::class, function (OrderPaid $event): void {
+            app(LoyaltyService::class)->earnFor($event->order);
+        });
+
+        Event::listen(OrderPlaced::class, function (OrderPlaced $event): void {
+            app(LoyaltyService::class)->commitRedemption($event->order);
+        });
+
+        Event::listen(OrderStatusUpdated::class, function (OrderStatusUpdated $event): void {
+            $loyalty = app(LoyaltyService::class);
+            $order = $event->order;
+
+            // Trả lại / hoàn tiền: điểm đã thưởng cho đơn đó không còn lý do tồn
+            // tại. Dùng CHUNG một luật với email xin đánh giá và thưởng giới
+            // thiệu bạn — `wasReturnedOrRefunded` là nơi duy nhất định nghĩa nó.
+            if (OrderStatus::wasReturnedOrRefunded($order)) {
+                $loyalty->revokeForOrder($order);
+            }
+
+            // Đơn đã đóng mà không giao được: điểm khách đã TIÊU vào nó phải
+            // quay về. Khác câu hỏi ở trên, nên là một nhánh riêng chứ không
+            // phải `else`.
+            if (OrderStatus::isClosed($order)) {
+                $loyalty->refundRedemption($order);
+            }
+        });
+
+        // Khối điểm trên trang tài khoản render sẵn từ server, cùng cách khối
+        // giới thiệu bạn làm: không có JS thì khách vẫn đọc được số dư.
+        View::composer('theme::pages.account', function ($view): void {
+            $user = $view->getData()['user'] ?? null;
+
+            $view->with('loyalty', $user ? app(LoyaltyService::class)->viewDataFor($user) : null);
+        });
+
+        // Ô tiêu điểm ở trang thanh toán. Đọc ĐÚNG hàm mà CartResource đọc, nên
+        // con số trên trang và con số trong JSON không thể lệch nhau.
+        View::composer('theme::pages.checkout', function ($view): void {
+            $cart = $view->getData()['cart'] ?? null;
+
+            $view->with('loyalty', $cart ? app(LoyaltyService::class)->cartInfo($cart) : null);
         });
     }
 

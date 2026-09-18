@@ -14,6 +14,7 @@ use Modules\Core\Panel\PanelResource;
 use Modules\Core\Panel\ResourceRegistry;
 use Modules\Core\Panel\SettingsRegistry;
 use Modules\Order\Models\ReturnRequest;
+use Modules\Promotion\Models\LoyaltyEntry;
 use Modules\Promotion\Models\ReferralClaim;
 use Modules\Promotion\Models\ReferralCode;
 use Tests\Concerns\CreatesStorefrontData;
@@ -264,6 +265,15 @@ class PanelRoutesSmokeTest extends TestCase
                 'reason' => 'wrong-size',
             ]),
             'referrals' => $this->seedReferralRecord($resource),
+            // Một bút toán điểm. Cột bắt buộc của nó là sự thật của một sự kiện
+            // đã xảy ra (ai, bao nhiêu, loại gì) — staff không ghi bút toán
+            // bằng form, domain ghi.
+            'loyalty-entries' => $resource->model()::create([
+                'customer_id' => Customer::create(['first_name' => 'Smoke', 'last_name' => 'Points'])->id,
+                'type' => LoyaltyEntry::EARN,
+                'points' => 10,
+                'available_at' => now(),
+            ]),
             default => null,
         };
     }

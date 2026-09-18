@@ -91,6 +91,48 @@
                     </div>
                     <p class="text-muted small mt-2 mb-0" data-membership-next hidden></p>
                 </div>
+                {{-- Điểm thưởng — SSR, cùng khuôn với khối giới thiệu bạn ngay
+                     dưới: tính năng tắt (hoặc khách chưa có hồ sơ) thì $loyalty
+                     là null và cả khối biến mất. Blade không biết gì về cờ. --}}
+                @if(! empty($loyalty))
+                    <div class="border rounded p-3 mb-3" data-loyalty>
+                        <h2 class="h6 text-uppercase">{{ __('storefront.loyalty.title') }}</h2>
+
+                        @if($loyalty['balance'] > 0)
+                            <p class="mb-1">
+                                <span class="h4">{{ __('storefront.loyalty.balance', ['points' => number_format($loyalty['balance'])]) }}</span>
+                                <span class="text-muted ms-1">{{ __('storefront.loyalty.worth', ['value' => $loyalty['value']]) }}</span>
+                            </p>
+                        @else
+                            <p class="text-muted mb-1">{{ __('storefront.loyalty.empty') }}</p>
+                        @endif
+
+                        @if($loyalty['pending'] > 0)
+                            <p class="text-muted small mb-1">
+                                {{ __('storefront.loyalty.pending', ['points' => number_format($loyalty['pending'])]) }}
+                            </p>
+                        @endif
+
+                        {{-- Điểm sắp chết là thứ duy nhất ở khối này khách cần
+                             hành động, nên nó được nói to hơn phần còn lại. --}}
+                        @if($loyalty['expiring'])
+                            <p class="text-warning-emphasis small mb-1">
+                                {{ __('storefront.loyalty.expiring', [
+                                    'points' => number_format($loyalty['expiring']['points']),
+                                    'date' => $loyalty['expiring']['at'],
+                                ]) }}
+                            </p>
+                        @endif
+
+                        <p class="text-muted small mb-0">
+                            {{ __('storefront.loyalty.rate_hint', [
+                                'value' => $loyalty['point_value'],
+                                'min' => $loyalty['min_redeem'],
+                            ]) }}
+                        </p>
+                    </div>
+                @endif
+
                 {{-- Giới thiệu bạn — SSR y như khối đánh giá: mã và link nằm sẵn
                      trong HTML, JS chỉ thêm nút copy. Tính năng tắt thì biến
                      $referral là null và cả khối này không render — Blade không

@@ -311,6 +311,25 @@ return [
         'use_this_size' => 'Dùng size này',
     ],
 
+    'loyalty' => [
+        'title' => 'Điểm thưởng',
+        'balance' => ':points điểm',
+        'worth' => 'tương đương :value',
+        'pending' => 'Còn :points điểm đang chờ — điểm tiêu được sau khi đơn qua hạn đổi/trả.',
+        'expiring' => ':points điểm sẽ hết hạn ngày :date.',
+        'empty' => 'Bạn chưa có điểm nào. Mỗi đơn hàng đều tích điểm.',
+        'rate_hint' => '1 điểm = :value. Tiêu tối thiểu :min điểm mỗi lần.',
+        'checkout_title' => 'Dùng điểm thưởng',
+        'checkout_available' => 'Bạn có :points điểm, dùng được tối đa :max điểm cho đơn này.',
+        'checkout_label' => 'Số điểm muốn dùng',
+        'apply' => 'Áp dụng',
+        'remove' => 'Bỏ dùng điểm',
+        'applied' => 'Đã dùng :points điểm (−:value).',
+        'unavailable' => 'Điểm thưởng chưa dùng được cho giỏ này.',
+        'below_minimum' => 'Phải dùng ít nhất :min điểm.',
+        'too_many' => 'Đơn này dùng được tối đa :max điểm.',
+    ],
+
     'referral' => [
         'title' => 'Giới thiệu bạn bè',
         'intro' => 'Mời bạn bè bằng link dưới đây. Người được mời giảm :welcome% cho đơn đầu tiên, bạn nhận :reward% khi đơn đó qua hạn đổi/trả (:days ngày).',

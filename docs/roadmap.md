@@ -3,7 +3,7 @@
 > **Chỉ ghi việc CHƯA làm.** Hiện trạng ở
 > [architecture/overview.md](architecture/overview.md); lịch sử bug đã sửa ở
 > [history/2026-07-platform-audit.md](history/2026-07-platform-audit.md).
-> Xếp theo ROI giảm dần. Cập nhật: **2026-09-15** (mục 15 giới thiệu bạn xong).
+> Xếp theo ROI giảm dần. Cập nhật: **2026-09-18** (mục 16 điểm thưởng + phần ảnh còn lại của mục 17 xong).
 >
 > **Thứ tự ưu tiên đã đảo lại (2026-07-13).** Trước đây danh sách này mở đầu bằng
 > tính năng chuyển đổi (quick-view, size intelligence, search engine). Rà lại code cho
@@ -231,17 +231,49 @@ Hạ tầng mã giảm giá đã có (`CartService::applyCoupon`, `lunar_discoun
   (mã dùng một lần kể cả khi bị từ chối, đơn đầu-tiên-tính, thưởng một lần,
   `--dry-run`, chỉ-phát-sau-hạn).
 
-### 16. Điểm thưởng — *Promotion* · **công: cao, đừng đánh giá thấp**
+### 16. Điểm thưởng — *Promotion* · **công: cao** ✅ **XONG 2026-09-18**
 
-Hạng thành viên hiện **thụ động**: `MembershipService` tự xếp hạng theo tổng chi tiêu và
-cho giảm giá theo hạng. Khách không có việc gì để làm, nên không có lý do quay lại.
+Hạng thành viên là **thụ động**: `MembershipService` xếp hạng theo tổng chi tiêu và cho
+giảm giá theo hạng — khách không có việc gì để làm. Điểm là phần chủ động.
 
-- ⬜ Sổ cái điểm (cộng/trừ có bút toán, không phải một cột số dư — cùng bài học với sổ
-  cái tồn kho: số dư là thứ **dẫn xuất**, đối soát được).
-- ⬜ Hạn dùng điểm, và tiêu điểm lúc thanh toán.
-- ⚠️ Phần đắt không phải cộng điểm mà là **tiêu điểm**: nó chạm vào tính tiền, hoàn tiền
-  (hoàn đơn thì thu lại điểm đã cộng và trả lại điểm đã tiêu), và huỷ đơn. Làm sau mục
-  11 để lúc đó đã có sẵn khái niệm "thưởng sau khi hết hạn đổi/trả".
+- ✅ **Sổ cái `loyalty_entries`, không phải một cột số dư.** Số dư là
+  `SUM(points) WHERE available_at IS NULL OR available_at <= now` — dẫn xuất, đối
+  soát được. Mỗi bút toán cộng là một **lô**; mỗi bút toán trừ trỏ về lô nó ăn
+  (`lot_id`), nên "lô này còn lại bao nhiêu" cũng dẫn xuất. Không có `lot_id` thì
+  tới lúc hết hạn không ai biết đóng bao nhiêu.
+- ✅ **Hạn dùng là bút toán, không phải điều kiện truy vấn.** `loyalty:expire`
+  (hằng ngày 09:45) ghi dòng trừ cho phần chưa tiêu của lô quá hạn. Lọc ngầm
+  trong câu truy vấn thì sổ không cộng lại thành số dư được nữa.
+- ✅ **Không có lệnh "phát điểm".** Khác §15 (thưởng giới thiệu là một coupon phải
+  được TẠO), ở đây `available_at = ngày trả tiền + hạn đổi/trả` làm xong việc:
+  điểm nằm ngoài số dư cho tới lúc đó, và đơn bị trả lại trong lúc chờ thì lô bị
+  thu hồi khi còn nguyên.
+- ✅ **Tiêu điểm: điểm là hình thức THANH TOÁN, không phải khuyến mãi.** Chặng
+  `RedeemLoyaltyPoints` nối đuôi `lunar.cart.pipelines.cart` (sau `Calculate`,
+  nếu không `Calculate` ghi đè `total`), trừ SAU thuế và **không đụng**
+  `discountTotal`. Hệ quả có chủ đích: tiêu điểm không giảm thuế phải nộp, và vì
+  điểm tính trên `total` cuối cùng nên tiêu điểm **không đẻ ra điểm** — vòng lặp
+  tự nuôi bị chặn bởi chính chỗ đặt phép trừ.
+- ✅ Hoàn tiền / huỷ đơn: hai chiều ngược nhau và **cả hai** phải xảy ra — thu hồi
+  điểm đã cộng (`wasReturnedOrRefunded`, chung luật với §15 và email xin đánh giá)
+  **và** trả lại điểm đã tiêu (`isClosed`).
+- ✅ Sổ cái trong panel **chỉ đọc** (sửa dòng cũ là phá mất khả năng đối soát),
+  trang cài đặt riêng (group `loyalty`, TẮT mặc định), khối SSR trên trang tài
+  khoản + ô tiêu điểm ở trang thanh toán (JS chỉ enhance). Chốt bằng
+  `tests/Feature/LoyaltyPointsTest.php` (24 test).
+
+  **Lỗi thiết kế tìm ra khi viết test, đáng ghi lại:** bút toán trừ ban đầu để
+  `available_at` NULL nên có hiệu lực NGAY, trong khi lô nó ăn vào còn đang chờ →
+  thu hồi điểm của một đơn vừa bị trả lại cho ra **số dư −10**. Luật đúng: **dòng
+  trừ thừa hưởng `available_at` của lô nó ăn**. Cả bốn đường trừ đi qua một hàm
+  duy nhất (`LoyaltyService::debit()`) vì thế.
+
+- ⚠️ **Chỗ còn hở, cố ý:** hai lượt thanh toán ĐỒNG THỜI của cùng một khách có thể
+  tiêu quá số dư (giỏ kẹp theo số dư lúc TÍNH, bút toán trừ ghi lúc đơn đã tạo).
+  Kết quả là số dư âm — **nhìn thấy được, đối soát được**, và khách không tiêu
+  tiếp được cho tới khi nó dương lại. Đổi lấy việc không phải dựng một vòng đời
+  "giữ chỗ điểm" song song với giữ chỗ tồn kho. Nếu sau này sai, chỗ sửa là
+  `LoyaltyService::commitRedemption()`.
 
 ### 17. Ba việc làm trước mục 13–16 — ✅ **XONG 2026-09-10**
 
@@ -265,10 +297,27 @@ cho giảm giá theo hạng. Khách không có việc gì để làm, nên khôn
   lượt này (`partials/reviews.blade.php`, neo `#danh-gia` — chính là neo email trỏ tới,
   đổi tên là hỏng mọi link đã gửi). SSR trước: đọc đánh giá KHÔNG phụ thuộc JS.
 
-  ⬜ **Còn lại: đánh giá kèm ảnh.** Bảng `product_reviews` hiện không có `user_id`,
-  `order_id` hay media — nên chưa có "đã mua hàng xác thực" và chưa có ảnh. Với thời
-  trang thì ảnh thật của khách là thứ thuyết phục nhất, nhưng đó là thay đổi schema +
-  giao diện tải ảnh, tách riêng khỏi việc "đi xin".
+  ✅ **Đánh giá kèm ảnh — XONG 2026-09-18.** `product_reviews` nay có `user_id`,
+  `order_id` và media (collection `photos` treo thẳng vào đánh giá, **không** vào
+  thư viện ảnh của admin).
+
+  - Nhãn "đã mua hàng" đọc `order_id`, **không** đọc `user_id`: đăng nhập chỉ chứng
+    minh một tài khoản, không chứng minh đã mua. Server tự tra đơn ĐÃ THANH TOÁN của
+    chính khách có chứa sản phẩm đó (`OrderStatus::scopePaid` — nên đơn COD cũng
+    tính); client không có trường nào chạm tới được.
+  - **Ảnh LUÔN qua hàng đợi duyệt**, kể cả khi `review.auto_approve` đang bật: văn
+    bậy thì đọc rồi gỡ, ảnh bậy thì người ta đã nhìn thấy rồi mới gỡ được. Hai rủi
+    ro khác hạng nên không dùng chung một công tắc. Tên file được đặt lại ngẫu
+    nhiên — ảnh nằm trên đĩa công khai, tên đoán được = xem được trước khi duyệt.
+  - Hàng đợi duyệt hiện **mỗi ảnh một cột** (`Review::MAX_PHOTOS` sinh ra số cột).
+    Trông thừa, nhưng panel chạy bundle biên dịch sẵn của vendor nên không thêm được
+    cell renderer nhiều ảnh; gộp lại thì staff chỉ thấy ảnh đầu.
+
+  Chốt bằng `tests/Feature/ReviewPhotoTest.php` (16 test). **Lỗi thật tìm ra khi
+  viết test:** file bị chốt chặn của model từ chối thì dòng đánh giá ĐÃ được tạo
+  rồi mới ném — 500 cho khách và một đánh giá mồ côi nằm chờ duyệt vĩnh viễn. Sửa
+  bằng transaction + một danh sách mime duy nhất (`Review::PHOTO_MIMES`) cho cả
+  request lẫn model.
 
 ### Cân nhắc rồi CỐ Ý chưa làm
 
@@ -356,7 +405,14 @@ sai mật khẩu · GA + Facebook pixel.
 
 ### Còn treo
 
-- 🟡 **Lunar 2.0 + panel Inertia/Vue** — **Fase 0→3 xong** (2026-09-09):
+- ✅ **Lunar 2.0 + panel Inertia/Vue — XONG.** Fase 0→3 (2026-09-09) và
+  **Fase 4 + 5 đã hoàn tất**: phần admin riêng của dự án đã viết lại trên panel
+  (13 resource khai báo + 9 tab cài đặt + 2 widget dashboard + Slot Size & Fit).
+  Nguồn sự thật là
+  [architecture/overview.md § Admin](architecture/overview.md#admin-lunarphppanel--inertia--vue).
+  *(Đoạn dưới đây giữ lại làm lịch sử của đợt nâng cấp.)*
+
+  🟡 **Lunar 2.0 + panel Inertia/Vue** — **Fase 0→3 xong** (2026-09-09):
   `lunarphp/core` + `lunarphp/panel` `2.0.0-alpha.6`, Filament đã gỡ, 560 test
   xanh, panel phục vụ 370 route. Món nợ reflection trong `ModulesServiceProvider`
   đã trả (file đó bị xoá). Nhật ký thực thi + năm câu hỏi mở đã trả lời:
@@ -372,10 +428,12 @@ sai mật khẩu · GA + Facebook pixel.
 
   ⚠️ Vẫn là **alpha**: API đổi theo tuần. Đọc kỹ changelog trước mỗi lần bump.
 
-- ⬜ **Phân quyền của panel** — câu hỏi mở duy nhất còn lại từ đợt khảo sát:
-  panel dùng chuỗi permission riêng (`sales:manage-customers`), chưa rõ khớp thế
-  nào với `spatie/laravel-permission` dự án đang dùng. **Phải trả lời trước khi
-  viết trang admin đầu tiên.**
+- ✅ **Phân quyền của panel — đã trả lời.** `Lunar\Core\Models\Staff` dùng đúng
+  `Spatie\Permission\Traits\HasRoles` mà dự án đang dùng. Điều **không** hiển
+  nhiên: `Gate::after` của panel chỉ cấp một ability khi manifest access-control
+  biết đến nó, mà manifest dựng từ bảng `permissions` — nên quyền mới phải có hàng
+  trong bảng, thiếu nó thì `can:` chặn tất cả, kể cả admin. Chi tiết:
+  [guides/upgrade-lunar-2.0.md §8](guides/upgrade-lunar-2.0.md).
 
 - ⬜ **Uptime check bên ngoài.** Dây bảo hiểm cho cron chỉ báo khi *một job* lặng đi; nếu
   **cả scheduler** chết thì heartbeat chết theo. Cần một dịch vụ ngoài gọi lệnh kiểm tra
@@ -397,16 +455,22 @@ sai mật khẩu · GA + Facebook pixel.
 
 ## Cấu hình: cái gì ra admin, cái gì ở lại config
 
-**Đã ra admin** (đọc qua `Modules\Core\Support\Settings`, DB → fallback config/env — backend
-còn nguyên, UI chờ Fase 4): payment keys
+**Đã ra admin** (đọc qua `Modules\Core\Support\Settings`, DB → fallback config/env): payment keys
 (VNPay/MoMo) + default method · shipping flat-rate + free-threshold · **nhận tại cửa hàng**
 (bật/tắt + địa chỉ + giờ mở cửa + hướng dẫn) · membership tiers ·
 recommendations (limit/TTL) · review auto-approve · media on-demand mode · low-stock threshold ·
 **thời gian giữ hàng đơn chưa trả** (`inventory.hold_minutes`) · **bật/tắt push**
-(`notification.push_enabled`) · **TTL đăng nhập app** (`customer.ttl_days`).
+(`notification.push_enabled`) · **TTL đăng nhập app** (`customer.ttl_days`) ·
+**giới thiệu bạn** (group `referral`) · **điểm thưởng** (group `loyalty`: tỉ lệ cộng, giá
+trị điểm, hạn chờ, hạn dùng, tiêu tối thiểu, trần % mỗi đơn).
+
+> **Trần % của điểm không phải để tiết kiệm.** Để 100 thì một đơn trả hết bằng điểm là
+> đơn 0 đồng, mà cổng thanh toán từ chối số tiền 0 — lỗi nổ ở đúng bước cuối của khách.
 
 **Cố ý giữ trong config** (kỹ thuật/bảo mật, không phải quyết định kinh doanh):
 `recommend.strategies` · `inventory`/`cart`/`media` pipeline-overrides · tax-inclusive ·
+`review.photos` (trần kỹ thuật của đường tải lên; **số ảnh tối đa** thì không ở config mà
+là hằng số `Review::MAX_PHOTOS`, vì nó phải khớp số cột ảnh của hàng đợi duyệt) ·
 Scout/Typesense · FFmpeg · media disks · `theme.locales` (cần file dịch tồn tại) ·
 `notification.push.driver` (tên **class**, resolve trong `register()` **trước khi** DB sẵn
 sàng — chọn driver chưa cài là vỡ mọi request) · `customer.tokens.abilities` (scope bảo

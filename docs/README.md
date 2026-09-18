@@ -1,8 +1,8 @@
 # Lunar Shop — Tài liệu kỹ thuật
 
 Ecommerce fashion cho SME single-store. Laravel 12 + [Lunar](https://lunarphp.io/)
-làm commerce core, storefront Blade SSR. Admin đang trong quá trình viết lại
-trên `lunarphp/panel` (Inertia + Vue) — xem [guides/upgrade-lunar-2.0.md](guides/upgrade-lunar-2.0.md).
+làm commerce core, storefront Blade SSR. Admin chạy trên `lunarphp/panel`
+(Inertia + Vue) — nhật ký đợt chuyển: [guides/upgrade-lunar-2.0.md](guides/upgrade-lunar-2.0.md).
 
 > ## ⭐ Đọc câu này trước mọi thứ khác
 >
@@ -163,7 +163,7 @@ modules/<Name>/
 | File PHP trong `modules/` | 353 |
 | Route `api/v1` | 64 |
 | Route panel (`lunarphp/panel`) | 370 |
-| Test | 560 |
+| Test | 856 |
 
 > Số liệu là snapshot lúc viết. Chạy `php artisan test` và
 > `php artisan route:list` để lấy con số hiện thời.

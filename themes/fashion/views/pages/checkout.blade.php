@@ -263,6 +263,52 @@
                 <div class="small mt-1" data-coupon-status></div>
             </div>
 
+            {{-- Tiêu điểm thưởng. SSR: ô nhập và số dư nằm sẵn trong HTML, JS
+                 chỉ gửi form — không có JS thì khách vẫn thấy mình có bao nhiêu
+                 điểm và đang dùng bao nhiêu.
+
+                 Khối biến mất khi $loyalty là null: tính năng tắt, khách vãng
+                 lai, hoặc chưa có điểm nào. Blade không biết gì về cờ bật/tắt. --}}
+            @if(! empty($loyalty))
+                <div class="checkout-summary__loyalty mt-3" data-loyalty-form
+                     data-loyalty-url="{{ url('/api/v1/cart/loyalty') }}">
+                    <div class="fw-semibold small">{{ __('storefront.loyalty.checkout_title') }}</div>
+                    <p class="text-muted small mb-2">
+                        {{ __('storefront.loyalty.checkout_available', [
+                            'points' => number_format($loyalty['balance']),
+                            'max' => number_format($loyalty['max']),
+                        ]) }}
+                    </p>
+                    <div class="input-group input-group-sm">
+                        <input class="form-control" type="number" inputmode="numeric"
+                               min="{{ $loyalty['min'] }}" max="{{ $loyalty['max'] }}" step="1"
+                               value="{{ $loyalty['applied'] ?: '' }}"
+                               placeholder="{{ __('storefront.loyalty.checkout_label') }}"
+                               aria-label="{{ __('storefront.loyalty.checkout_label') }}"
+                               data-loyalty-input>
+                        @if($loyalty['applied'] > 0)
+                            <button class="btn btn-outline-danger" type="button" data-loyalty-remove>
+                                {{ __('storefront.loyalty.remove') }}
+                            </button>
+                        @else
+                            <button class="btn btn-outline-dark" type="button" data-loyalty-apply>
+                                {{ __('storefront.loyalty.apply') }}
+                            </button>
+                        @endif
+                    </div>
+                    <div class="small mt-1" data-loyalty-status>
+                        @if($loyalty['applied'] > 0)
+                            <span class="text-success">
+                                {{ __('storefront.loyalty.applied', [
+                                    'points' => number_format($loyalty['applied']),
+                                    'value' => $loyalty['applied_value'],
+                                ]) }}
+                            </span>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
             {{-- Applied promotions (SSR — cart already calculated). $appliedDiscounts
                  injected by the Promotion view composer. checkout-coupon.js
                  refreshes this list on coupon apply/remove without a reload. --}}

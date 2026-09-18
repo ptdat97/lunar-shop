@@ -89,3 +89,10 @@ Schedule::command('schedule:heartbeat --quiet-ok')
 Schedule::command('referrals:release')
     ->dailyAt('09:30')
     ->withoutOverlapping();
+
+// Đóng các lô điểm đã hết hạn. Hạn tính bằng NGÀY nên quét một lần mỗi ngày là
+// đủ; chạy sau lệnh phát thưởng giới thiệu để hai lệnh không tranh cùng một
+// phút. Cũng tự thoát sớm khi điểm thưởng còn tắt.
+Schedule::command('loyalty:expire')
+    ->dailyAt('09:45')
+    ->withoutOverlapping();
