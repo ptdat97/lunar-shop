@@ -109,6 +109,7 @@ return [
         'size_finding' => 'Đang tìm…',
         'size_failed' => 'Chưa lấy được gợi ý. Vui lòng thử lại.',
         'reviews_title' => 'Đánh giá từ khách hàng',
+        'reviews_write' => 'Viết đánh giá',
         'reviews_count' => ':count đánh giá',
         'reviews_rating' => ':rating trên 5 sao',
         'reviews_rating_label' => 'Số sao',

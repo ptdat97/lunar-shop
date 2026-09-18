@@ -93,7 +93,13 @@ ghé trang chủ, collection, tìm kiếm, sản phẩm, giỏ, wishlist, đăng
    lệch nhiều mới chết.
 3. **Dữ liệu DB dev đã đổi.** E2E chạy trên DB dev thật, không phải
    `RefreshDatabase`. Một sản phẩm bị đổi tên là một test đỏ.
-4. Rồi mới tới code.
+4. **Phần tử nằm trong popup chưa mở.** Bootstrap để `.modal` ở `display:none`, mà
+   `waitFor` của Dusk chờ phần tử *hiển thị* — một field trong modal chưa mở sẽ treo
+   hết thời gian chờ rồi đỏ, dù HTML hoàn toàn đúng. Bước đầu tiên luôn là click thật
+   vào nút mở popup. Cùng nhóm: nút nằm ở góc dưới-phải bị thanh Debugbar chặn click
+   (`ElementClickInterceptedException`); `scrollIntoView({block:"center"})` trước khi
+   click là đủ, và vẫn giữ được một click thật thay vì gọi `.click()` bằng script.
+5. Rồi mới tới code.
 
 ### Bài học đắt nhất
 

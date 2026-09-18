@@ -60,7 +60,24 @@ class ReviewPhotoUploadTest extends DuskTestCase
 
         try {
             $this->browse(function (Browser $browser) use ($product, $photo) {
-                $browser->visit('/products/'.$product->defaultUrl->slug)
+                $browser->visit('/products/'.$product->defaultUrl->slug);
+
+                // Nút mở popup nằm ở cuối mục đánh giá, tức góc dưới-phải của
+                // trang — đúng chỗ thanh Laravel Debugbar đứng. Click thẳng sẽ
+                // bị nó chặn (`ElementClickInterceptedException`), nên đưa nút
+                // ra giữa khung nhìn rồi mới click. Vẫn là click thật, không
+                // phải gọi `.click()` bằng script: thứ đang được kiểm ở đây là
+                // "khách bấm được nút mở popup".
+                $browser->script(
+                    'document.querySelector(\'button[data-bs-target="#reviewForm"]\')'
+                    .'.scrollIntoView({block: "center"});'
+                );
+
+                $browser
+                    // Form nằm trong popup #reviewForm, nên phải MỞ popup trước:
+                    // type/attach/press của Dusk chỉ làm việc được với phần tử
+                    // đang hiển thị, còn `waitFor` thì chờ đúng trạng thái đó.
+                    ->click('button[data-bs-target="#reviewForm"]')
                     ->waitFor('[data-review-form]', 15)
                     ->type('[data-review-form] [name="author"]', $this->author)
                     ->select('[data-review-form] [name="rating"]', '5')

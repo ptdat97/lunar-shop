@@ -359,6 +359,16 @@ giảm giá theo hạng — khách không có việc gì để làm. Điểm là
   bằng transaction + một danh sách mime duy nhất (`Review::PHOTO_MIMES`) cho cả
   request lẫn model.
 
+  🎨 **Form đánh giá nay nằm trong popup (`#reviewForm`), 2026-09-18.** Mục đánh giá để
+  ĐỌC trước; sáu ô nhập nằm giữa danh sách làm loãng đúng thứ khách vào đó để xem. Nút
+  "Viết đánh giá" nằm cạnh tiêu đề và mở popup. Nhưng popup cần JS để Bootstrap gỡ
+  `display:none`, nên khối `<noscript>` ngay dưới trả form về dạng tĩnh: **khách không JS
+  vẫn gửi được**. Phần đọc không đổi (SSR, không phụ thuộc JS).
+
+  Kéo theo hai chỗ sửa cùng lượt: `ReviewRequestTest` chốt thêm "có nút mở popup" (một
+  popup không có nút mở là một form không ai gửi được), và `ReviewPhotoUploadTest` phải
+  **mở popup trước khi gõ** — xem `docs/guides/e2e-testing.md` §"Khi test E2E đỏ".
+
 ### Cân nhắc rồi CỐ Ý chưa làm
 
 - **Zalo OA** — ở Việt Nam tỷ lệ mở Zalo bỏ xa email, và module `Notification` đã có sẵn

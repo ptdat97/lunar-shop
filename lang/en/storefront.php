@@ -109,6 +109,7 @@ return [
         'size_finding' => 'Finding…',
         'size_failed' => 'Could not get a recommendation. Please try again.',
         'reviews_title' => 'Customer reviews',
+        'reviews_write' => 'Write a review',
         'reviews_count' => ':count reviews',
         'reviews_rating' => ':rating out of 5 stars',
         'reviews_rating_label' => 'Rating',

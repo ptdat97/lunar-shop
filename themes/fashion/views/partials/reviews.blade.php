@@ -6,7 +6,21 @@
      `id="danh-gia"` là neo mà email xin đánh giá trỏ tới; đổi tên là link trong
      những email đã gửi đi thành vô nghĩa. --}}
 <section id="danh-gia" class="mt-5">
-    <h2 class="h4 mb-3">{{ __('storefront.product.reviews_title') }}</h2>
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+        <h2 class="h4 mb-0">{{ __('storefront.product.reviews_title') }}</h2>
+
+        {{-- Nút mở popup viết đánh giá. Form nằm trong modal ngay dưới, không
+             nằm giữa danh sách: khách vào mục này để ĐỌC trước, và sáu ô nhập
+             chen vào giữa các đánh giá làm loãng đúng thứ họ đang tìm.
+
+             `data-bs-toggle` chứ không phải href neo: popup do Bootstrap JS
+             mở, còn khách không có JS được phục vụ bằng khối <noscript> bên
+             dưới modal (form trở về dạng tĩnh). --}}
+        <button class="btn btn-outline-dark btn-sm" type="button"
+                data-bs-toggle="modal" data-bs-target="#reviewForm">
+            <i class="bi bi-pencil"></i> {{ __('storefront.product.reviews_write') }}
+        </button>
+    </div>
 
     @if(($reviewSummary['count'] ?? 0) > 0)
         <p class="mb-3">
@@ -63,53 +77,81 @@
         <p class="text-muted">{{ __('storefront.product.reviews_empty') }}</p>
     @endforelse
 
-    {{-- Form gửi đánh giá. `action` trỏ thẳng endpoint API đã có, nên không cần
-         route mới; enhance/review-form.js chặn submit và gửi bằng fetch để khách
-         không rời trang.
+    {{-- Form gửi đánh giá, đặt trong popup #reviewForm. `action` trỏ thẳng endpoint
+         API đã có, nên không cần route mới; enhance/review-form.js chặn submit và
+         gửi bằng fetch để khách không rời trang.
 
          `enctype` là multipart vì form có thể mang ảnh — và phải đúng ngay cả ở
          đường không-JS, nơi trình duyệt tự submit. --}}
-    <form class="mt-4 row g-2 align-items-end"
-          data-review-form
-          {{-- ID, KHÔNG phải slug: route `products/{product}` bind theo khoá route
-               của model, và Product khoá theo `id`. Dùng slug thì mọi lượt gửi
-               đánh giá đều 404 — và một form chỉ được kiểm "có mặt trong HTML"
-               sẽ không phát hiện ra điều đó. --}}
-          action="{{ url('/api/v1/products/'.$product->id.'/reviews') }}"
-          method="post"
-          enctype="multipart/form-data">
-        <div class="col-12 col-sm-4">
-            <label class="form-label" for="review-author">{{ __('storefront.product.reviews_your_name') }}</label>
-            <input class="form-control" id="review-author" name="author" required maxlength="255">
-        </div>
-        <div class="col-6 col-sm-3">
-            <label class="form-label" for="review-rating">{{ __('storefront.product.reviews_rating_label') }}</label>
-            <select class="form-select" id="review-rating" name="rating" required>
-                @foreach(range(5, 1) as $star)
-                    <option value="{{ $star }}">{{ $star }} ★</option>
-                @endforeach
-            </select>
-        </div>
-        <div class="col-12">
-            <label class="form-label" for="review-body">{{ __('storefront.product.reviews_body') }}</label>
-            <textarea class="form-control" id="review-body" name="body" rows="3" maxlength="2000"></textarea>
-        </div>
-        @if($reviewPhotos ?? false)
-            <div class="col-12">
-                <label class="form-label" for="review-photos">
-                    {{ __('storefront.product.reviews_photos_label', ['max' => $maxReviewPhotos]) }}
-                </label>
-                {{-- `data-max-photos` là nguồn con số cho cả HTML lẫn JS: theme
-                     không đọc hằng số của Catalog, controller truyền xuống. --}}
-                <input class="form-control" type="file" id="review-photos" name="photos[]"
-                       accept="image/jpeg,image/png,image/webp" multiple
-                       data-max-photos="{{ $maxReviewPhotos }}">
-                <div class="form-text">{{ __('storefront.product.reviews_photos_help') }}</div>
+    <div class="modal fade" id="reviewForm" tabindex="-1" aria-labelledby="reviewFormLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-scrollable modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="reviewFormLabel">
+                        {{ __('storefront.product.reviews_write') }}
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <div class="modal-body">
+                    <form class="row g-2"
+                          data-review-form
+                          {{-- ID, KHÔNG phải slug: route `products/{product}` bind theo khoá route
+                               của model, và Product khoá theo `id`. Dùng slug thì mọi lượt gửi
+                               đánh giá đều 404 — và một form chỉ được kiểm "có mặt trong HTML"
+                               sẽ không phát hiện ra điều đó. --}}
+                          action="{{ url('/api/v1/products/'.$product->id.'/reviews') }}"
+                          method="post"
+                          enctype="multipart/form-data">
+                        <div class="col-12 col-sm-7">
+                            <label class="form-label" for="review-author">{{ __('storefront.product.reviews_your_name') }}</label>
+                            <input class="form-control" id="review-author" name="author" required maxlength="255">
+                        </div>
+                        <div class="col-12 col-sm-5">
+                            <label class="form-label" for="review-rating">{{ __('storefront.product.reviews_rating_label') }}</label>
+                            <select class="form-select" id="review-rating" name="rating" required>
+                                @foreach(range(5, 1) as $star)
+                                    <option value="{{ $star }}">{{ $star }} ★</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="review-body">{{ __('storefront.product.reviews_body') }}</label>
+                            <textarea class="form-control" id="review-body" name="body" rows="4" maxlength="2000"></textarea>
+                        </div>
+                        @if($reviewPhotos ?? false)
+                            <div class="col-12">
+                                <label class="form-label" for="review-photos">
+                                    {{ __('storefront.product.reviews_photos_label', ['max' => $maxReviewPhotos]) }}
+                                </label>
+                                {{-- `data-max-photos` là nguồn con số cho cả HTML lẫn JS: theme
+                                     không đọc hằng số của Catalog, controller truyền xuống. --}}
+                                <input class="form-control" type="file" id="review-photos" name="photos[]"
+                                       accept="image/jpeg,image/png,image/webp" multiple
+                                       data-max-photos="{{ $maxReviewPhotos }}">
+                                <div class="form-text">{{ __('storefront.product.reviews_photos_help') }}</div>
+                            </div>
+                        @endif
+                        <div class="col-12">
+                            <button class="btn btn-dark" type="submit">{{ __('storefront.product.reviews_submit') }}</button>
+                            <span class="ms-2 small" data-review-status role="status" aria-live="polite"></span>
+                        </div>
+                    </form>
+                </div>
             </div>
-        @endif
-        <div class="col-12">
-            <button class="btn btn-dark" type="submit">{{ __('storefront.product.reviews_submit') }}</button>
-            <span class="ms-2 small" data-review-status role="status" aria-live="polite"></span>
         </div>
-    </form>
+    </div>
+
+    {{-- Khách tắt JS: Bootstrap không gỡ được `display:none` của .modal, nên popup
+         trên là một form vô hình và mục này mất luôn đường GỬI đánh giá. Đây là
+         chỗ duy nhất trong partial mà việc VIẾT phụ thuộc JS — đổi lại phần đọc
+         gọn hơn hẳn. Vài dòng dưới trả form về dạng tĩnh để khách không JS vẫn
+         submit được như một form thường. --}}
+    <noscript>
+        <style>
+            #reviewForm { display: block; position: static; width: auto; height: auto; opacity: 1; }
+            #reviewForm .modal-dialog { max-width: 32rem; margin: 1.5rem auto; }
+            #reviewForm .btn-close { display: none; }
+        </style>
+    </noscript>
 </section>

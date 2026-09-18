@@ -19,6 +19,18 @@ export default function init() {
     const button = form.querySelector('button[type="submit"]');
     const photos = form.querySelector('input[type="file"][name="photos[]"]');
 
+    // Form nằm trong popup (partials/reviews.blade.php). Đóng popup rồi mở lại là
+    // gặp lại dòng trạng thái của lượt trước — "cảm ơn" nằm trên một form trắng
+    // đọc thành lời hứa cho lượt vừa rồi. Xoá khi popup mở. `closest` để theme
+    // nào render form ra ngoài popup thì đoạn này tự vô hiệu.
+    const modal = form.closest('.modal');
+
+    if (modal && status) {
+        modal.addEventListener('show.bs.modal', () => {
+            status.textContent = '';
+        });
+    }
+
     // Trần số ảnh đọc từ chính ô chọn ảnh (server render ra), không hardcode:
     // đổi `Review::MAX_PHOTOS` là chỗ này đi theo, không phải sửa hai nơi.
     const maxPhotos = Number(photos?.dataset.maxPhotos) || 0;

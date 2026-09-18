@@ -165,6 +165,12 @@ class ReviewRequestTest extends TestCase
         $this->assertStringContainsString('id="danh-gia"', $html);
         $this->assertStringContainsString('Vải mát, lên dáng đẹp.', $html);
         $this->assertStringContainsString('data-review-form', $html);
+
+        // Form nằm trong popup: khối đọc gọn hơn, nhưng phải có NÚT MỞ form —
+        // một popup không có nút mở là một form không ai gửi được. Bootstrap gỡ
+        // `display:none` bằng JS nên cả hai đầu đều phải có trong HTML.
+        $this->assertStringContainsString('id="reviewForm"', $html);
+        $this->assertStringContainsString('data-bs-target="#reviewForm"', $html);
     }
 
     /**
