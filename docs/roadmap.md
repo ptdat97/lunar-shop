@@ -171,8 +171,15 @@ Xem [guides/deployment.md](guides/deployment.md) cho runbook đầy đủ.
 ### 5. Test còn thiếu
 - ⬜ `modules/<Name>/tests/` **vẫn trống** — toàn bộ 68 file ở `tests/Feature`. Thêm smoke
   test cạnh module **khi chạm module đó**, không làm một lượt.
-- ⬜ Phần thuần-JS chưa phủ: picture/srcset, search-panel, notify-me UI, lookbook-shoppable.
-  Cần browser driver (Dusk/Playwright) — quyết định riêng, không phải việc nhỏ.
+- 🟡 Phần thuần-JS: **browser driver không còn là câu hỏi** — Dusk đã chạy trong
+  CI từ 2026-09-10, và `tests/Browser` nay có 13 test. Nhưng đích **không phải
+  phủ hết JS**: [e2e-testing.md §1](guides/e2e-testing.md) chốt rằng chỉ viết E2E
+  cho thứ test feature không chứng minh được, và `tests/Browser` cố ý giữ nhỏ.
+  Hai bề mặt tương tác mới nhất đã có (2026-09-18): gửi đánh giá kèm ảnh, và ô
+  tiêu điểm ở trang thanh toán — cả hai kiểm *thao tác có chạy không*, không
+  kiểm *phần tử có hiện không*.
+  ⬜ Còn lại theo cùng nguyên tắc đó: picture/srcset, search-panel, notify-me,
+  lookbook-shoppable — thêm **khi chạm vào chúng**, không làm một lượt.
 - ✅ ~~1 test đỏ (`OnDemandConversionTest:76`)~~ — đã xanh (kiểm lại 2026-07-23:
   `OnDemandConversionTest` 7/7 pass). Toàn bộ suite **432 test xanh**.
 

@@ -166,7 +166,7 @@ xattr -d com.apple.quarantine vendor/laravel/dusk/bin/chromedriver-mac-arm64 2>/
 
 ---
 
-## 3. Năm cái bẫy, cả năm đều đã sập ít nhất một lần
+## 3. Bảy cái bẫy, cả bảy đều đã sập ít nhất một lần
 
 ### 3.1 Debugbar chặn click
 
@@ -270,6 +270,54 @@ log** sau bước tải trang, để assert sau đó chỉ nói về thao tác �
 
 ---
 
+### 3.6 `text()` và `textContent` không phải một, và `waitUntil` sẽ nói dối
+
+Chờ "tổng tiền đổi đi" bằng cách chụp giá trị cũ rồi so trong `waitUntil`:
+
+```php
+$before = trim($browser->text('[data-sum-total]'));          // ❌
+$browser->press('[data-loyalty-apply]')
+    ->waitUntil('document.querySelector("[data-sum-total]").textContent.trim() !== '
+        .json_encode($before), 20);
+```
+
+`text()` trả về **text đã render** (kiểu `innerText`), còn `textContent` là text
+thô — khoảng trắng của hai bên khác nhau, nên biểu thức `!==` **đúng ngay lập
+tức**. `waitUntil` trả về tức thì, test đi tiếp trong khi chưa có gì xảy ra, rồi
+mới đỏ ở dòng assert phía dưới với thông báo vô nghĩa ("hai chuỗi không khác
+nhau" — trong khi vừa chờ xong vì chúng khác nhau).
+
+Đọc và chờ bằng **cùng một biểu thức**:
+
+```php
+$read = 'document.querySelector("[data-sum-total]").textContent.trim()';
+$before = $browser->script("return {$read};")[0];             // ✅
+$browser->press('[data-loyalty-apply]')
+    ->waitUntil($read.' !== '.json_encode($before), 20);
+```
+
+### 3.7 Dọn nửa vời tệ hơn không dọn
+
+Hai lần sập liên tiếp khi viết `LoyaltyCheckoutTest`:
+
+1. **`Cart` dùng `SoftDeletes`.** `$cart->delete()` chỉ đặt `deleted_at`; hàng vẫn
+   nằm đó và FK `lunar_carts.customer_id` vẫn giữ, nên xoá customer sau đó chết.
+   Phải `Cart::withTrashed()->…->forceDelete()`, và xoá `lunar_cart_lines` trước
+   vì nó cũng có FK trỏ vào giỏ.
+2. **Dọn dữ liệu ném thì khôi phục cài đặt không chạy.** Bản đầu đặt cả hai việc
+   trong cùng một hàm, dữ liệu trước cài đặt sau. Lần chạy hỏng đầu tiên chết ở
+   FK, nên shop dev **bị bỏ lại với điểm thưởng đang BẬT** — và mọi lần chạy sau
+   đó coi đó là nguyên trạng rồi cần mẫn khôi phục lại đúng trạng thái sai ấy.
+
+   Khôi phục cài đặt phải nằm trong `finally` của phần dọn dữ liệu:
+
+   ```php
+   try { $this->cleanUpData(); } finally { $this->restoreSettings(); }
+   ```
+
+> Bài học chung: một test dọn nửa vời còn tệ hơn test không dọn, vì nó dọn đủ
+> nhiều để không ai nhận ra là nó có để lại gì.
+
 ## 4. Khuôn một test đáng tin
 
 ```php
@@ -317,6 +365,9 @@ trả về cả dòng SKU chứ không phải field. Nhớ gỡ ra sau khi xong.
 | `PanelFormsTest` | 5 | Bundle add-on nạp và render; đổi loại section thì nhánh hiển thị đổi theo; repeater thêm/xoá dòng; slug bám theo tiêu đề; trường ảnh mở được thư viện |
 | `StorefrontSmokeTest` | 3 | 12 trang chính tải được **và console sạch** — trang chủ, collection, tìm kiếm, sản phẩm, nội dung, lookbook, khuyến mãi, giỏ, wishlist, đăng nhập, đăng ký |
 | `StorefrontI18nSmokeTest` | 2 | Khối i18n tới được trình duyệt và parse được; lời nhắc freeship ghép đúng từ mẫu đã dịch + thay `:amount` |
+| `FreeShippingProgressTest` | 1 | Enhancer vẽ thanh tiến độ freeship thật vào mini-cart **và** trang giỏ |
+| `ReviewPhotoUploadTest` | 1 | Form đánh giá **gửi được file đi** (JS tự chọn `FormData` thay vì JSON) và trả lời đúng "chờ duyệt" |
+| `LoyaltyCheckoutTest` | 1 | Bấm "Áp dụng" ở ô tiêu điểm **đổi được tổng tiền** — không phải "ô có hiện" |
 
 Chạy trong CI từ 2026-09-10 (job `dusk`), đỏ thì upload ảnh chụp + console log —
 đó là toàn bộ bằng chứng còn lại khi lỗi nằm ở trình duyệt.
