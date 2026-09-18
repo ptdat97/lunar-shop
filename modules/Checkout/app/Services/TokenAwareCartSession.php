@@ -89,7 +89,9 @@ class TokenAwareCartSession extends CartSessionManager
     protected function fetchOrCreate(bool $create = false, bool $estimateShipping = false, bool $calculate = true): ?Cart
     {
         if (! $this->isStateless()) {
-            return parent::fetchOrCreate($create, $estimateShipping, $calculate);
+            return $this->claimForSignedInUser(
+                parent::fetchOrCreate($create, $estimateShipping, $calculate),
+            );
         }
 
         $cart = $this->resolveStatelessCart();
@@ -114,7 +116,61 @@ class TokenAwareCartSession extends CartSessionManager
             $this->estimateShipping();
         }
 
-        return $this->cart;
+        return $this->claimForSignedInUser($this->cart);
+    }
+
+    /**
+     * Gán giỏ đang có cho khách vừa đăng nhập.
+     *
+     * Lunar chỉ gán customer lúc **tạo** giỏ (`createNewCart`), không gán lại khi
+     * một giỏ đã tồn tại có chủ. Nhưng đó chính là đường đi thường gặp nhất của
+     * một shop: khách vãng lai bỏ hàng vào giỏ trước, đăng nhập sau — lúc đó giỏ
+     * đã tồn tại với `customer_id` NULL và **ở nguyên như vậy tới tận lúc đặt
+     * đơn**, vì `CheckoutService` mới là chỗ gán.
+     *
+     * Cái giá không phải chuyện nhỏ, và nó im lặng:
+     *
+     * - **Giảm giá theo hạng thành viên không áp.** DiscountManager của Lunar
+     *   lọc theo customer group của giỏ; giỏ không có customer thì không có
+     *   group nào để khớp. Khách hạng Gold trả giá thường và không có gì báo.
+     * - **Ô tiêu điểm thưởng không hiện** (`LoyaltyService::cartInfo()` đọc
+     *   `cart->customer`), nên tính năng trông như chưa được bật.
+     *
+     * Chỉ điền khi giỏ CHƯA có customer, và không đụng giỏ mang `user_id` của
+     * người khác — một máy dùng chung không được biến giỏ người trước thành giỏ
+     * người sau. Tính lại ngay sau khi gán: pipeline giỏ (giảm giá theo hạng,
+     * trần tiêu điểm) đã chạy một lượt với customer NULL rồi.
+     */
+    protected function claimForSignedInUser(?Cart $cart): ?Cart
+    {
+        if (! $cart || $cart->customer_id) {
+            return $cart;
+        }
+
+        $user = $this->authManager->user() ?? $this->tokenUser();
+
+        if (! $user || ($cart->user_id !== null && $cart->user_id !== $user->id)) {
+            return $cart;
+        }
+
+        // `latestCustomer()`, KHÔNG phải CustomerResolver: đọc một cái giỏ không
+        // được phép đẻ ra một bản ghi customer. Khách chưa có customer thì
+        // CheckoutService tạo lúc đặt đơn, như trước giờ.
+        $customer = $user->latestCustomer();
+
+        if (! $customer) {
+            return $cart;
+        }
+
+        $cart->update(['user_id' => $user->id, 'customer_id' => $customer->id]);
+
+        // `customer` nằm trong `lunar.cart.eager_load`, nên nó đã được nạp là
+        // NULL trước khi cột kịp đổi. Không gỡ quan hệ cũ đi thì mọi chỗ đọc
+        // `$cart->customer` trong chính request này vẫn thấy null — cột đúng,
+        // mà màn hình vẫn sai.
+        $cart->unsetRelation('customer')->unsetRelation('user');
+
+        return $this->cart = $cart->recalculate();
     }
 
     /**
