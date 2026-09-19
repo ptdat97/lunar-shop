@@ -60,6 +60,21 @@ return [
             // POST — nên 'self' không chặn thanh toán. Kiểm lại nếu đổi cổng.
             'form-action' => ["'self'"],
         ],
+
+        /*
+         * Directive ghi đè riêng cho panel (`/panel/*`), thay nguyên giá trị của
+         * directive cùng tên ở trên.
+         *
+         * `frame-ancestors 'self'`: mọi trường ảnh mở file manager của module
+         * Assets trong một iframe CÙNG origin (`/panel/shop/media/picker`).
+         * `'none'` chặn cả iframe đó — Chrome đánh giá nó kể cả ở chế độ
+         * report-only (có log vi phạm), và enforce thì popup trắng. `'self'` vẫn
+         * chặn clickjacking từ origin khác, đúng như X-Frame-Options SAMEORIGIN
+         * vẫn gửi kèm. Storefront không cần bị nhúng nên giữ `'none'`.
+         */
+        'panel_directives' => [
+            'frame-ancestors' => ["'self'"],
+        ],
     ],
 
     /*

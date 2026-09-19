@@ -3,6 +3,8 @@
 namespace Tests\Browser;
 
 use Laravel\Dusk\Browser;
+use Lunar\Core\Models\Asset;
+use Lunar\Core\Models\Product;
 use Lunar\Core\Models\Staff;
 use Tests\DuskTestCase;
 
@@ -173,20 +175,148 @@ class PanelFormsTest extends DuskTestCase
     }
 
     /**
-     * The image field is a picker, not a text box — the columns hold an Asset
-     * id. Opening the library is the interaction that proves it.
+     * The image field is not a text box and not a library of its own — it
+     * opens the file manager (modules/Assets) in a popup iframe. Proving the
+     * frame loads the real manager, and that closing it hands control back,
+     * covers the part no feature test can: the postMessage round trip.
      */
-    public function test_the_image_field_opens_the_media_library(): void
+    public function test_the_image_field_opens_the_file_manager(): void
     {
         $this->browse(function (Browser $browser): void {
             $browser->loginAs($this->staffId(), 'staff')
                 ->visit('/panel/shop/banners/create')
                 ->waitFor('[data-media-picker]', 10)
                 ->click('[data-media-picker]')
-                ->pause(800)
-                ->assertPresent('[role="dialog"]');
+                ->waitFor('.shop-fm-overlay iframe[src*="/shop/media/picker"]', 10)
+                ->withinFrame('.shop-fm-overlay iframe', function (Browser $frame): void {
+                    $frame->waitFor('[data-fm="upload"]', 15)
+                        ->assertPresent('[data-fm="choose"]')
+                        ->click('[data-fm="close"]');
+                })
+                ->waitUntilMissing('.shop-fm-overlay', 5);
 
-            $this->assertConsoleClean($browser, 'bộ chọn ảnh');
+            $this->assertConsoleClean($browser, 'file manager');
+        });
+    }
+
+    /**
+     * The pick has to make it back across the frame. Every server-side test
+     * was green while it did not: the chosen assets were Vue proxies, and
+     * postMessage threw DataCloneError inside the iframe — the popup simply
+     * stayed open. Only a real browser sees that.
+     *
+     * Still read-only: the form is filled, never saved.
+     */
+    public function test_a_file_chosen_in_the_manager_lands_in_the_field(): void
+    {
+        if (! Asset::query()->whereHas('file')->exists()) {
+            $this->markTestSkipped('Thư viện media trên DB dev đang trống — không có gì để chọn.');
+        }
+
+        $this->browse(function (Browser $browser): void {
+            $browser->loginAs($this->staffId(), 'staff')
+                ->visit('/panel/shop/banners/create')
+                ->waitFor('[data-media-picker]', 10)
+                ->click('[data-media-picker]')
+                ->waitFor('.shop-fm-overlay iframe', 10)
+                ->withinFrame('.shop-fm-overlay iframe', function (Browser $frame): void {
+                    $frame->waitFor('[data-fm-asset]', 15)->doubleClick('[data-fm-asset]');
+                })
+                ->waitUntilMissing('.shop-fm-overlay', 5)
+                ->waitFor('[data-media-picker] img', 5);
+
+            // Body copy: several files at once, inserted as <img> tags.
+            $browser->visit('/panel/shop/pages/create')
+                ->waitFor('[data-insert-image]', 10)
+                ->click('[data-insert-image]')
+                ->waitFor('.shop-fm-overlay iframe', 10)
+                ->withinFrame('.shop-fm-overlay iframe', function (Browser $frame): void {
+                    $frame->waitFor('[data-fm-asset]', 15)
+                        ->click('[data-fm-asset]')
+                        ->click('[data-fm="choose"]');
+                })
+                ->waitUntilMissing('.shop-fm-overlay', 5);
+
+            $this->assertStringContainsString('<img src="', (string) $browser->value('textarea[data-field="content"]'));
+
+            $this->assertConsoleClean($browser, 'chọn ảnh qua file manager');
+        });
+    }
+
+    /**
+     * "Photos by colour" rides on Lunar's product editor as a slot and draws
+     * one group per colour — the part no feature test can see: the component
+     * registered, mounted in the zone, and fetched its own state.
+     */
+    public function test_the_colour_photos_card_renders_on_the_product_editor(): void
+    {
+        $product = Product::query()
+            ->whereHas('productOptions', fn ($query) => $query->whereIn('type', ['colour', 'swatch']))
+            ->first();
+
+        if (! $product) {
+            $this->markTestSkipped('DB dev không có sản phẩm nào có tuỳ chọn màu.');
+        }
+
+        $this->browse(function (Browser $browser) use ($product): void {
+            $browser->loginAs($this->staffId(), 'staff')
+                ->visit("/panel/products/{$product->id}/edit")
+                ->waitFor('[data-colour-images] [data-colour]', 15);
+
+            $this->assertGreaterThan(0, count($browser->elements('[data-colour-images] [data-colour]')));
+
+            $this->assertConsoleClean($browser, 'ảnh theo màu');
+        });
+    }
+
+    /**
+     * Lunar's own gallery uploader (compiled into the vendor bundle) opens the
+     * file manager instead of the file dialog, and what is chosen there reaches
+     * Lunar's own upload request — nativeUploadBridge.js end to end.
+     *
+     * Read-only: the upload request is recorded and then cancelled in
+     * `inertia:before`, so the product is never touched.
+     */
+    public function test_lunars_gallery_upload_goes_through_the_file_manager(): void
+    {
+        $product = Product::query()->first();
+
+        if (! $product || ! Asset::query()->whereHas('file')->exists()) {
+            $this->markTestSkipped('DB dev cần ít nhất một sản phẩm và một ảnh trong thư viện.');
+        }
+
+        $this->browse(function (Browser $browser) use ($product): void {
+            $browser->loginAs($this->staffId(), 'staff')
+                ->visit("/panel/products/{$product->id}/edit")
+                ->waitUntil('!!document.querySelector(\'input[type=file][accept="image/*"]\')', 15);
+
+            $browser->script(<<<'JS'
+                window.__uploads = [];
+                document.addEventListener('inertia:before', (event) => {
+                    const visit = event.detail.visit;
+                    const data = visit.data instanceof FormData ? [...visit.data.values()] : Object.values(visit.data || {}).flat();
+                    window.__uploads.push({ url: String(visit.url), files: data.filter((value) => value instanceof File).length });
+                    event.preventDefault();
+                });
+                // Exactly what the gallery's Upload button does.
+                document.querySelector('input[type=file][accept="image/*"]').click();
+            JS);
+
+            $browser->waitFor('.shop-fm-overlay iframe[src*="multiple=1"]', 10)
+                ->withinFrame('.shop-fm-overlay iframe', function (Browser $frame): void {
+                    $frame->waitFor('[data-fm-asset]', 15)
+                        ->click('[data-fm-asset]')
+                        ->click('[data-fm="choose"]');
+                })
+                ->waitUntilMissing('.shop-fm-overlay', 5)
+                ->waitUntil('window.__uploads.length > 0', 10);
+
+            $upload = $browser->script('return window.__uploads[0];')[0];
+
+            $this->assertMatchesRegularExpression('#/products/\d+/media$#', $upload['url']);
+            $this->assertSame(1, $upload['files']);
+
+            $this->assertConsoleClean($browser, 'gallery sản phẩm qua file manager');
         });
     }
 }

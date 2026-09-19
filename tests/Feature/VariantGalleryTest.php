@@ -4,56 +4,65 @@ namespace Tests\Feature;
 
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
-use Lunar\Core\Models\Asset;
+use Lunar\Core\Models\Product;
 use Lunar\Core\Models\ProductVariant;
 use Lunar\Core\Models\TaxClass;
 use Modules\Catalog\Http\Resources\ProductVariantResource;
 use Modules\Catalog\Services\ProductService;
+use Modules\Catalog\Services\VariantImages;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
 /**
- * Per-colour product galleries: each SKU may carry its own subset of Media
- * Library Assets (the `image_asset_ids` JSON column, a list of Asset ids picked via
- * MediaPicker), so choosing a colour swaps the gallery.
+ * Per-colour product galleries: each variant may show its own ordered subset of
+ * the product's gallery — Lunar's variant images (`ProductVariant::images()`,
+ * the `media_product_variant` pivot) — so choosing a colour swaps the gallery.
  *
  * Covers the two halves that have to agree: the SSR gallery (the media view
  * composer scopes it to the selected variant) and the hydration payload
- * (ProductVariantResource resolves ids into the same shape as the product gallery,
- * which is what enhance/product-variant.js swaps in).
+ * (ProductVariantResource serialises them in the same shape as the product
+ * gallery, which is what enhance/product-variant.js swaps in).
  */
 class VariantGalleryTest extends TestCase
 {
     use CreatesStorefrontData;
 
-    /** Create $count library Assets (with a real image file each) and return their ids in order. */
-    private function makeAssets(int $count): array
+    protected function setUp(): void
     {
-        Storage::fake('public');
+        parent::setUp();
 
-        $ids = [];
+        Storage::fake('media');
+    }
+
+    /** Add $count photos to the product's own gallery and return them in order. */
+    private function galleryPhotos(Product $product, int $count): array
+    {
+        $media = [];
         for ($i = 1; $i <= $count; $i++) {
-            $asset = Asset::create([]);
-            $asset->addMedia(UploadedFile::fake()->image("shot-{$i}.jpg", 800, 1200))
-                ->preservingOriginal()
+            $media[] = $product->addMedia(UploadedFile::fake()->image("shot-{$i}.jpg", 800, 1200))
                 ->toMediaCollection(config('lunar.media.collection', 'images'));
-
-            $ids[] = $asset->id;
         }
 
-        return $ids;
+        return $media;
+    }
+
+    /** @param  array<int, Media>  $media */
+    private function showOn(ProductVariant $variant, array $media): void
+    {
+        app(VariantImages::class)->syncVariants([$variant], collect($media));
     }
 
     public function test_sku_images_resolve_to_the_product_gallery_shape(): void
     {
         $this->seedBaseData();
         $product = $this->createProduct();
-        $ids = $this->makeAssets(2);
+        $photos = $this->galleryPhotos($product, 2);
 
         $sku = $product->variants()->first();
-        $sku->update(['image_asset_ids' => $ids]);
+        $this->showOn($sku, $photos);
 
-        $payload = (new ProductVariantResource($sku))->toArray(request());
+        $payload = (new ProductVariantResource($sku->fresh()))->toArray(request());
 
         $this->assertCount(2, $payload['images']);
         // The gallery renderer needs these keys; a raw id list would break it.
@@ -62,30 +71,22 @@ class VariantGalleryTest extends TestCase
         $this->assertArrayHasKey('zoom', $payload['images'][0]);
     }
 
-    public function test_sku_image_order_is_preserved_not_asset_order(): void
+    public function test_sku_image_order_is_preserved_not_gallery_order(): void
     {
         $this->seedBaseData();
         $product = $this->createProduct();
-        $ids = $this->makeAssets(3);
+        [$a, $b, $c] = $this->galleryPhotos($product, 3);
 
-        // Lead with the LAST asset — the whole point of per-colour sets.
-        $reordered = [$ids[2], $ids[0], $ids[1]];
-
+        // Lead with the LAST gallery photo — the whole point of per-colour sets.
         $sku = $product->variants()->first();
-        $sku->update(['image_asset_ids' => $reordered]);
+        $this->showOn($sku, [$c, $a, $b]);
 
-        $payload = (new ProductVariantResource($sku))->toArray(request());
-
-        // The payload's `id` is the underlying Media id (not the Asset id) —
-        // resolve each Asset's Media id in the same order to compare.
-        $expectedMediaIds = collect($reordered)
-            ->map(fn (int $assetId) => Asset::find($assetId)->file->id)
-            ->all();
+        $payload = (new ProductVariantResource($sku->fresh()))->toArray(request());
 
         $this->assertSame(
-            $expectedMediaIds,
+            [$c->id, $a->id, $b->id],
             array_column($payload['images'], 'id'),
-            'the SKU\'s own ordering must survive — filtering by asset order would undo it',
+            'the variant\'s own ordering must survive — gallery order would undo it',
         );
     }
 
@@ -93,12 +94,9 @@ class VariantGalleryTest extends TestCase
     {
         $this->seedBaseData();
         $product = $this->createProduct();
-        $this->makeAssets(2);
+        $this->galleryPhotos($product, 2);
 
-        $sku = $product->variants()->first();
-        $sku->update(['image_asset_ids' => []]);
-
-        $payload = (new ProductVariantResource($sku))->toArray(request());
+        $payload = (new ProductVariantResource($product->variants()->first()))->toArray(request());
 
         // Empty here is the contract: the storefront then shows state.images.
         $this->assertSame([], $payload['images']);
@@ -116,21 +114,20 @@ class VariantGalleryTest extends TestCase
             'options' => ['Color' => 'Black'],
         ]);
 
-        $ids = $this->makeAssets(2);
+        [$black, $white] = $this->galleryPhotos($product, 2);
 
-        // Black leads with the first asset, White with the second.
-        $product->variants()->first()->update(['image_asset_ids' => [$ids[0]]]);
+        $this->showOn($product->variants()->first(), [$black]);
 
-        $white = ProductVariant::create([
+        $whiteVariant = ProductVariant::create([
             'product_id' => $product->id,
             'sku' => 'GAL-WHITE',
-            'image_asset_ids' => [$ids[1]],
             'tax_class_id' => TaxClass::getDefault()?->id,
             'enabled' => true,
         ]);
-        $white->values()->syncWithoutDetaching([
+        $whiteVariant->values()->syncWithoutDetaching([
             $this->optionValue($product, 'Color', 'White')->id,
         ]);
+        $this->showOn($whiteVariant, [$white]);
 
         $service = app(ProductService::class);
         $fresh = $service->findBySlug('gallery-tee');
@@ -140,33 +137,29 @@ class VariantGalleryTest extends TestCase
 
         $this->assertSame('GAL-BLACK', $blackPick->sku);
         $this->assertSame('GAL-WHITE', $whitePick->sku);
-        $this->assertNotSame(
-            $blackPick->image_asset_ids,
-            $whitePick->image_asset_ids,
-            'each colour must own a distinct image set, else the gallery never changes',
-        );
+        $this->assertSame([$black->id], $blackPick->images->pluck('id')->all());
+        $this->assertSame([$white->id], $whitePick->images->pluck('id')->all());
     }
 
     /**
-     * Resolution goes through MediaUrl::assetMedia(), scoped per request — a
-     * page rendering many SKUs must cost at most one query per DISTINCT Asset
-     * id, not one per SKU. Sharing the same 2 Assets across 4 SKUs must not
-     * multiply the query count.
+     * The product page loads every variant's images with the product
+     * (ProductService eager-loads `variants.images`), so serialising many
+     * variants must not query the pivot or the media table again.
      */
-    public function test_serializing_many_skus_costs_bounded_asset_queries(): void
+    public function test_serializing_many_skus_does_not_query_their_images_again(): void
     {
         $this->seedBaseData();
         $product = $this->createProduct(['slug' => 'nplusone-tee']);
-        $ids = $this->makeAssets(2);
+        $photos = $this->galleryPhotos($product, 2);
 
         foreach (range(1, 4) as $i) {
-            ProductVariant::create([
+            $variant = ProductVariant::create([
                 'product_id' => $product->id,
                 'sku' => 'NP-'.$i,
-                'image_asset_ids' => $ids,
                 'tax_class_id' => TaxClass::getDefault()?->id,
                 'enabled' => true,
             ]);
+            $this->showOn($variant, $photos);
         }
 
         $fresh = app(ProductService::class)->findBySlug('nplusone-tee');
@@ -178,17 +171,13 @@ class VariantGalleryTest extends TestCase
             (new ProductVariantResource($sku))->toArray(request());
         }
 
-        $assetQueries = collect(\DB::getQueryLog())
-            ->filter(fn ($q) => str_contains($q['query'], '`lunar_assets`') || str_contains(strtolower($q['query']), 'from `assets`'))
+        $imageQueries = collect(\DB::getQueryLog())
+            ->filter(fn ($q) => str_contains($q['query'], 'media_product_variant'))
             ->count();
 
         \DB::disableQueryLog();
 
-        $this->assertLessThanOrEqual(
-            1,
-            $assetQueries,
-            'the same 2 Asset ids shared across 4 SKUs must resolve in at most one query, not one per SKU',
-        );
+        $this->assertSame(0, $imageQueries, 'variant images must come from the eager load, not one query per variant');
     }
 
     /**
@@ -207,18 +196,18 @@ class VariantGalleryTest extends TestCase
         $slugs = [];
         foreach (range(1, 3) as $p) {
             $product = $this->createProduct(['slug' => "bulk-tee-{$p}"]);
-            $ids = $this->makeAssets(2);
+            $photos = $this->galleryPhotos($product, 2);
             $slugs[] = "bulk-tee-{$p}";
 
             // Several SKUs each, so an N+1 would be unmistakable.
             foreach (range(1, 4) as $i) {
-                ProductVariant::create([
+                $variant = ProductVariant::create([
                     'product_id' => $product->id,
                     'sku' => "BULK-{$p}-{$i}",
-                    'image_asset_ids' => $ids,
                     'tax_class_id' => TaxClass::getDefault()?->id,
                     'enabled' => true,
                 ]);
+                $this->showOn($variant, $photos);
             }
         }
 
@@ -236,5 +225,12 @@ class VariantGalleryTest extends TestCase
             ->count();
 
         $this->assertSame(0, $repeatedProduct, 'each SKU must reuse the parent product that loaded it');
+
+        // Variant images ride the same eager load: one batched query, not one per SKU.
+        $this->assertLessThanOrEqual(
+            1,
+            $log->filter(fn ($q) => str_contains($q['query'], 'media_product_variant'))->count(),
+            'variant images must be eager-loaded with the cards',
+        );
     }
 }

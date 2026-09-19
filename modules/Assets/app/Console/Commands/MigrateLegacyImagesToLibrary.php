@@ -7,21 +7,23 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Lunar\Core\Models\Asset;
 use Lunar\Core\Models\Product;
-use Lunar\Core\Models\ProductVariant;
 use Modules\Assets\Services\MediaLibraryService;
 use Modules\Content\Models\Banner;
 use Modules\Content\Models\Menu;
 use Modules\Content\Models\Page;
 use Modules\Content\Models\PageSection;
 use Modules\Theme\Services\ThemeSettings;
-use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 /**
  * One-off, idempotent port of every image field that used to accept a direct
- * upload (a bare path on the `media` disk, or — for product variant swatches
- * and per-variant photos — a Spatie Media id attached straight to the Product) into a
- * proper Media Library Asset, rewriting the owning column/JSON key to the
- * resulting Asset id.
+ * upload (a bare path on the `media` disk) into a proper Media Library Asset,
+ * rewriting the owning column/JSON key to the resulting Asset id.
+ *
+ * Per-variant photos are no longer here: they are Lunar's own variant images
+ * now, and the migration that dropped the shop's `image_asset_ids` column
+ * moved them (Catalog, VariantImageColumn). This command used to re-own the
+ * product's gallery media for them — which would now take photos out of the
+ * product's gallery.
  *
  * After this app-wide FileUpload -> MediaPicker migration, every image field
  * is a Select bound to a library Asset id; this command is what makes
@@ -33,13 +35,10 @@ class MigrateLegacyImagesToLibrary extends Command
 {
     protected $signature = 'assets:migrate-legacy-images {--dry-run : Report what would change without writing}';
 
-    protected $description = 'Port legacy direct-upload image paths/media ids into Media Library Assets';
+    protected $description = 'Port legacy direct-upload image paths into Media Library Assets';
 
     /** Path (relative to the `media` disk) => Asset id, so the same file is never ingested twice. */
     private array $pathToAssetId = [];
-
-    /** Spatie Media id => Asset id, so the same media item is never re-owned twice. */
-    private array $mediaIdToAssetId = [];
 
     private bool $dryRun = false;
 
@@ -54,7 +53,6 @@ class MigrateLegacyImagesToLibrary extends Command
         $this->migrateMenuItems();
         $this->migratePageSections();
         $this->migrateThemeSettings();
-        $this->migrateVariantImages();
 
         $this->info(($this->dryRun ? '[dry-run] ' : '')."Done. {$this->created} new library asset(s) created.");
 
@@ -196,25 +194,6 @@ class MigrateLegacyImagesToLibrary extends Command
     }
 
     // ---------------------------------------------------------------------
-    // Sources: Spatie Media ids already attached to a Product -> Asset
-    // (variant image-swatches + per-variant photos)
-    // ---------------------------------------------------------------------
-
-    protected function migrateVariantImages(): void
-    {
-        ProductVariant::query()->chunkById(200, function ($variants) {
-            foreach ($variants as $variant) {
-                $ids = collect($variant->image_asset_ids ?? []);
-                $rewritten = $ids->map(fn ($id) => $this->mediaIdToAsset($id) ?? $id)->all();
-
-                if ($rewritten !== $ids->all()) {
-                    $this->saveIfChanged($variant, ['image_asset_ids' => $rewritten]);
-                }
-            }
-        });
-    }
-
-    // ---------------------------------------------------------------------
     // Shared resolution helpers
     // ---------------------------------------------------------------------
 
@@ -262,48 +241,6 @@ class MigrateLegacyImagesToLibrary extends Command
         $this->created++;
 
         return $this->pathToAssetId[$relative] = $asset->id;
-    }
-
-    /**
-     * Resolve a Spatie Media id (already attached to a Product's `images` or
-     * `swatch` collection) to a library Asset id, MOVING that Media row onto a
-     * new Asset (re-owning it, not copying the file) the first time it's seen.
-     * Returns null for anything that isn't a positive numeric media id, or that
-     * no longer resolves to an existing Media row.
-     */
-    protected function mediaIdToAsset(mixed $mediaId): ?int
-    {
-        if (! is_numeric($mediaId) || (int) $mediaId <= 0) {
-            return null;
-        }
-
-        $mediaId = (int) $mediaId;
-
-        if (isset($this->mediaIdToAssetId[$mediaId])) {
-            return $this->mediaIdToAssetId[$mediaId];
-        }
-
-        $media = Media::find($mediaId);
-
-        if (! $media) {
-            return null;
-        }
-
-        if ($this->dryRun) {
-            $this->created++;
-
-            return $this->mediaIdToAssetId[$mediaId] = -$this->created;
-        }
-
-        $asset = Asset::create([]);
-        $media->model_type = $asset->getMorphClass();
-        $media->model_id = $asset->id;
-        $media->collection_name = config('lunar.media.collection', 'images');
-        $media->save();
-
-        $this->created++;
-
-        return $this->mediaIdToAssetId[$mediaId] = $asset->id;
     }
 
     /**

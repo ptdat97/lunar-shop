@@ -193,6 +193,15 @@ Xem [guides/deployment.md](guides/deployment.md) cho runbook đầy đủ.
 - ✅ ~~1 test đỏ (`OnDemandConversionTest:76`)~~ — đã xanh (kiểm lại 2026-07-23:
   `OnDemandConversionTest` 7/7 pass). Toàn bộ suite **432 test xanh**.
 
+### 6. Ảnh theo màu không có chỗ sửa trên panel — *Catalog + Assets* ✅ **XONG 2026-09-19**
+- Chọn hướng **"storefront đọc pivot của Lunar, bỏ cột"**: gallery giờ là liên kết tới
+  thư viện, nên lý do cột `image_asset_ids` tồn tại (không copy file) đã hết, và giữ
+  hai kho cho một thứ chính là lỗi đã gặp. Ảnh biến thể = `media_product_variant` của
+  Lunar; sửa theo màu ở ô **"Ảnh theo màu"** trên trang sản phẩm, theo từng biến thể ở
+  ô chính chủ của Lunar — cùng dữ liệu. Cột đã xoá bằng migration (dữ liệu chuyển
+  sang pivot). Kèm theo: sửa lỗi seeder ghi id media vào cột "asset id" khiến ảnh theo
+  màu hiện sai. Chi tiết ở [overview.md § Ảnh theo màu](architecture/overview.md).
+
 ---
 
 ## P2 — Tăng chuyển đổi / trải nghiệm

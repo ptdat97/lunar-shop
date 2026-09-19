@@ -272,7 +272,7 @@ Customer::resolveRelationUsing(
 
 ```php
 // trong register()
-ProductVariant::addCasts(['image_asset_ids' => 'array']);
+Product::addCasts(['name' => FilledTranslations::class]);
 Product::addLocalScope('featured', fn (Builder $q) => $q->where(...));
 ```
 
@@ -411,7 +411,7 @@ fallback của Lunar, xem [../upstream/README.md](../upstream/README.md)),
 |---|---|---|---|
 | **Catalog** | Catalog + Product + Pricing + Review + Recommend + Search + Collection | Toàn bộ hiển thị/truy vấn sản phẩm | Services: `ProductService`, `PricingService`, `ReviewService`, `RecommendationService`, `CollectionService`, `SitemapService`, `SizeChartService`, `SizeRecommender`, `FitHistoryService`. Models: `ProductMaterial`, `SizeChart`, `SizeChartRow`, `Review`. Contracts/Drivers: `SearchEngine` + `DatabaseSearchEngine`. Strategies: `Association`, `Collection`. Admin: bảng size + Size&Fit (slot). Home/sitemap/health + seeders demo. |
 | **Content** | CMS + SectionBuilder + Menu | Nội dung storefront admin-managed | Models: `Page`, `Banner`, `Lookbook`(+Image/Item), `Redirect`, `PageSection`, `Menu`(+Item). Services: `ContentService`, `SectionRenderer`, `MenuRenderer`, `MenuTree`. Admin: 6 màn hình khai báo dưới `/panel/shop`. |
-| **Assets** | Media + FileManager | Ảnh/file | Services: `MediaUrl`, `ConversionGenerator`, `MediaRegenerator`, `MediaSettings`, `MediaLibraryService`. On-demand conversion + media library. Admin: bộ chọn ảnh cho mọi trường ảnh của panel. |
+| **Assets** | Media + FileManager | Ảnh/file | Services: `MediaUrl`, `ConversionGenerator`, `MediaRegenerator`, `MediaSettings`, `MediaLibraryService`. On-demand conversion + media library. Admin: **file manager** (trang *Thư viện media* + bản nhúng iframe) — lối duy nhất để thêm ảnh, mọi trường ảnh của panel mở nó ([panel-addon.md](panel-addon.md#file-manager--lối-duy-nhất-để-thêm-ảnh)). **Một nguồn sự thật cho file ảnh:** gallery của Lunar (sản phẩm, bộ sưu tập, thương hiệu, loại SP, swatch) là liên kết tới file thư viện, không phải bản sao ([panel-addon.md](panel-addon.md#gallery-của-lunar--một-nguồn-sự-thật-là-thư-viện)). |
 | **Checkout** | Checkout + Cart + Payment | Luồng cart → checkout → payment | Services: `CartService`, `CheckoutService`, `TokenAwareCartSession`, `RefundService`. Gateway: `VNPayGateway`/`MoMoGateway` + `*PaymentProcessor` kế thừa **`GatewayReconciler`** (nơi duy nhất giữ luật callback: chữ ký → số tiền → đơn đã đóng → khoá chống race). PaymentTypes: `VNPayPayment`, `MoMoPayment`. Config override `cart-overrides.php` + `payment-overrides.php`. |
 | **Customer** | Customer + Location | Khách, địa chỉ, auth, wishlist, địa giới VN | Services: `CustomerResolver`, `AuthService`, `TokenIssuer`, `WishlistService`, `RecentlyViewedService`, `CountryService`. Models: `WishlistItem`, `Province`, `Ward`. Auth web + Sanctum (cookie + PAT), address book, order history, VN provinces/wards API + seeder dataset. |
 | **Order** | — | Order, trạng thái, email giao dịch, RMA | Services: `OrderService`, `OrderMailer`, `ReturnService`, `InvoiceService`, `OrderTimeline`. Support: `OrderStatus` (**một nguồn** cho status handle, nhãn i18n, `PAID`/`CLOSED`/`RETURNABLE`). Events: `OrderPaid`, `OrderStatusUpdated`. 4 mailable queued + observer/listeners. |
@@ -652,20 +652,45 @@ theo session không cần crawl (cart drawer/page, wishlist).
   - `products.variables` (blob trục tự định nghĩa), `lunar_product_skus`,
     `sku_variant_map` và các cột `status`/`model` trên variant **đã bị bỏ**. Xem
     [migrate-skus-to-variants.md](../guides/migrate-skus-to-variants.md).
-  - Cột duy nhất shop còn thêm vào variant: `image_asset_ids` (danh sách Asset id
-    của thư viện ảnh) và `cost_price`. **Không đặt tên cột trùng tên method của
-    `ProductVariant`** — cột thật luôn thắng quan hệ trùng tên trong Eloquent, và
-    cột `images` cũ từng làm hỏng mọi trang sửa sản phẩm của panel vì thế.
+  - Cột duy nhất shop còn thêm vào variant: `cost_price`. (`image_asset_ids` đã bỏ
+    2026-09-19 — ảnh biến thể là của Lunar, xem § Ảnh theo màu.) **Không đặt tên cột
+    trùng tên method của `ProductVariant`** — cột thật luôn thắng quan hệ trùng tên
+    trong Eloquent, và cột `images` cũ từng làm hỏng mọi trang sửa sản phẩm của
+    panel vì thế.
 - `ProductService` là nguồn read duy nhất (list qua `SearchEngine`, `findBySlug`,
   `bySlugs` giữ thứ tự, `related`, `resolveSelectedVariant` cho deep-link).
   ⚠️ `resolveSelectedVariant` khớp theo **nhãn đã localise** (`?màu-sắc=Đen`), không phải
   handle — `product-variant.js` slugify đúng nhãn đó nên hai bên khớp nhau.
-- **Ảnh theo màu:** `ProductVariant.image_asset_ids` giữ danh sách **Asset id**; `ProductVariantResource`
-  resolve chúng qua `MediaImageResource` để ra **cùng shape** với gallery cấp product
-  (`{small,large,zoom,width,height}`), giữ nguyên thứ tự do admin đặt. SSR đã render
-  đúng bộ ảnh của variant đang chọn (view composer trong Assets), nên deep-link không bị
-  nháy; JS chỉ đổi gallery khi **tập ảnh** đổi — đổi size cùng màu không rebuild.
-  Variant không có ảnh riêng → fallback về gallery product.
+- **Ảnh theo màu:** ảnh biến thể là **của Lunar** — `ProductVariant::images()`, pivot
+  `media_product_variant` (có `position`, ảnh đầu là `primary`), tức một tập con có thứ tự
+  của gallery sản phẩm; mà gallery sản phẩm lại là liên kết tới file thư viện (§ Assets),
+  nên dùng chung một ảnh cho nhiều màu/size không copy gì. `ProductVariantResource`
+  serialise chúng qua `MediaImageResource` ra **cùng shape** với gallery cấp product
+  (`{small,large,zoom,width,height}`), đúng thứ tự `position`. SSR render đúng bộ ảnh của
+  variant đang chọn (view composer trong Assets) từ **cùng relation**, nên deep-link không
+  nháy và hai đường không thể lệch nhau; JS chỉ đổi gallery khi **tập ảnh** đổi — đổi
+  size cùng màu không rebuild. Variant không có ảnh riêng → fallback về gallery product.
+  `variants.images` được eager-load trong `findBySlug()` và `cardRelations()`.
+  - **Giỏ hàng & thanh toán cũng theo màu:** ảnh của dòng hàng là `getThumbnail()`
+    của Lunar (ảnh chính của biến thể, không có thì ảnh sản phẩm) qua
+    `MediaUrl::lineImage()` — dùng chung cho `CartResource` (drawer, trang giỏ) và
+    trang thanh toán; cả hai nạp `lines.purchasable.images` một lần cho cả giỏ.
+    Trang đơn hàng trong panel vốn gọi `getThumbnail()` nên tự đúng màu.
+  - **Sửa ở đâu:** ô **"Ảnh theo màu"** trên trang sửa sản phẩm (Slot
+    `products.edit:content:after`, `VariantImages` + `ProductColourImagesController`) —
+    mỗi màu một bộ, lưu một lần cho mọi size; chọn từ gallery sản phẩm hoặc file manager
+    (ảnh thư viện được đưa vào gallery qua `LibraryLinks::mediaInGallery()`: dùng lại
+    liên kết/ảnh trùng byte có sẵn, không nhân đôi). Ô "Ảnh biến thể" chính chủ trên
+    trang biến thể sửa **cùng dữ liệu** cho từng biến thể; màu nào các size lệch nhau
+    thì ô "Ảnh theo màu" báo. Trục màu = tuỳ chọn đầu tiên kiểu `colour`/`swatch`
+    (hoặc tuỳ chọn duy nhất).
+  - **Lịch sử (2026-09-19):** trước đó storefront đọc cột riêng `image_asset_ids`
+    như Asset id, trong khi seeder ghi vào đó **id media của gallery** — 161/162 id trên
+    DB dev, nên màu của sản phẩm #1 hiện nhầm ảnh banner thư viện còn các sản phẩm khác
+    luôn rơi về gallery chung; và không màn hình 2.0 nào sửa được cột này. Migration
+    `2026_09_19_100000_move_variant_images_to_lunar_variant_media` chuyển mọi bộ vào
+    pivot (`VariantImageColumn`: id là media của chính gallery → lấy media đó, còn lại →
+    Asset, đưa vào gallery) rồi xoá cột. Dev: 648 biến thể, 1.933 dòng pivot.
 - **Bộ quan hệ của thẻ sản phẩm nằm ở MỘT chỗ:**
   `ProductService::cardRelations()`. Mọi đường sinh ra thẻ (search engine,
   collection, gợi ý, khuyến mãi) đều `->with()` bộ này.
@@ -760,6 +785,11 @@ theo session không cần crawl (cart drawer/page, wishlist).
     chung** đúng các method đó, không còn copy query.
   - Upload trong modal tự chọn luôn file vừa lên; `type:` giới hạn cả lưới lẫn MIME
     được upload (picker ảnh không nhận PDF).
+  - **2026-09-19 — thay bằng file manager:** sau đợt 2.0 picker là một slideout tự
+    duyệt + tự upload (và nút upload của nó chưa từng gửi được file: `http` của panel
+    JSON-hoá `FormData` thành `{}`). Nay mọi trường ảnh mở **file manager của module
+    Assets** trong popup iframe và chỉ nhận lại file đã chọn — xem
+    [panel-addon.md](panel-addon.md#file-manager--lối-duy-nhất-để-thêm-ảnh).
 
 ## Cart & Checkout & Payment
 - **Headless (2026-07-10):** cart/checkout chạy được **không cần session**.

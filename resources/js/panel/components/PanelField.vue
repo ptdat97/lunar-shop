@@ -1,7 +1,9 @@
 <script setup>
-import { computed } from 'vue';
-import { TextInput, Textarea, Select, Toggle, FieldLabel } from '@lunarphp/panel';
+import { computed, nextTick, ref } from 'vue';
+import { usePage } from '@inertiajs/vue3';
+import { TextInput, Textarea, Select, Toggle, FieldLabel, Button } from '@lunarphp/panel';
 import MediaPicker from './MediaPicker.vue';
+import { openFileManager } from '../media/openFileManager';
 
 const props = defineProps({
     field: { type: Object, required: true },
@@ -30,6 +32,46 @@ const selected = computed({
     get: () => (Array.isArray(props.modelValue) ? props.modelValue.map(String) : []),
     set: (v) => emit('update:modelValue', v),
 });
+
+// Body copy takes images from the file manager like every other field: the
+// inserted <img> points at the file's `large` conversion, never the original
+// upload or an address pasted from somewhere else.
+const htmlBox = ref(null);
+const fileManager = computed(() => usePage().props.fileManager ?? null);
+
+const escapeAttr = (text) => String(text ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+
+const insertImages = async () => {
+    const textarea = htmlBox.value?.querySelector('textarea');
+    // Read before the popup takes focus away from the textarea.
+    const start = textarea?.selectionStart ?? String(value.value ?? '').length;
+    const end = textarea?.selectionEnd ?? start;
+
+    const chosen = await openFileManager({
+        url: fileManager.value?.url,
+        type: 'image',
+        multiple: true,
+        title: props.field.mediaLabels?.insert,
+    });
+
+    if (!chosen?.length) {
+        return;
+    }
+
+    const snippet = chosen
+        .map((asset) => `<img src="${escapeAttr(asset.large ?? asset.url)}" alt="${escapeAttr(asset.alt ?? '')}" loading="lazy">`)
+        .join('\n');
+
+    const current = String(value.value ?? '');
+    value.value = current.slice(0, start) + snippet + current.slice(end);
+
+    await nextTick();
+
+    if (textarea) {
+        textarea.focus();
+        textarea.setSelectionRange(start + snippet.length, start + snippet.length);
+    }
+};
 </script>
 
 <template>
@@ -76,6 +118,21 @@ const selected = computed({
             :invalid="!!error"
             :data-field="field.name"
         />
+
+        <div v-else-if="field.type === 'html'" ref="htmlBox" class="grid gap-1">
+            <div class="flex gap-1">
+                <Button size="sm" icon="image" :disabled="!fileManager" :data-insert-image="field.name" @click="insertImages">
+                    {{ field.mediaLabels?.insert }}
+                </Button>
+            </div>
+            <Textarea
+                :id="field.name"
+                v-model="value"
+                :rows="12"
+                :invalid="!!error"
+                :data-field="field.name"
+            />
+        </div>
 
         <Textarea
             v-else-if="isMultiline"

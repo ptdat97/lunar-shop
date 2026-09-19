@@ -24,6 +24,9 @@ class CartResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        // Every line's variant images in one query, for lineThumbnail().
+        $this->resource->loadMissing('lines.purchasable.images');
+
         $data = [
             'id' => $this->id,
             'lines_count' => $this->lines->sum('quantity'),
@@ -92,15 +95,12 @@ class CartResource extends JsonResource
     }
 
     /**
-     * Resolve a cart line's product thumbnail, falling back to the original
-     * when the conversion isn't generated yet.
+     * A cart line's picture: the chosen colour's own photo when it has one
+     * (Lunar's variant images), else the product's — see MediaUrl::lineImage().
      */
     protected function lineThumbnail($line): ?string
     {
-        $media = $line->purchasable?->product?->thumbnail;
-
-        // Generates the `small` conversion on demand if its file is missing.
-        return app(MediaUrl::class)->conversion($media, 'small');
+        return app(MediaUrl::class)->lineImage($line, 'small');
     }
 
     /**

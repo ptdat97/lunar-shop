@@ -2,7 +2,13 @@
 
 namespace Tests\Feature;
 
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
+use Lunar\Core\Models\ProductVariant;
 use Lunar\Core\Models\Staff;
+use Modules\Catalog\Services\VariantImages;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -31,12 +37,14 @@ class PanelProductEditTest extends TestCase
         $this->actingAs(Staff::factory()->create(['admin' => true]), 'staff');
     }
 
-    /** The exact shape that broke: a variant carrying image asset ids. */
-    public function test_the_editor_renders_for_a_variant_with_image_asset_ids(): void
+    /** The shape that once broke it: a variant with images of its own. */
+    public function test_the_editor_renders_for_a_variant_with_images(): void
     {
-        $product = $this->createProduct();
+        Storage::fake('media');
 
-        $product->variants->first()->update(['image_asset_ids' => [1, 3, 2]]);
+        $product = $this->createProduct();
+        $photo = $product->addMedia(UploadedFile::fake()->image('front.png', 40, 40))->toMediaCollection('images');
+        app(VariantImages::class)->syncVariants([$product->variants->first()], collect([$photo]));
 
         $this->get("/panel/products/{$product->id}/edit")->assertOk();
     }
@@ -50,23 +58,19 @@ class PanelProductEditTest extends TestCase
     }
 
     /**
-     * The column must not shadow the relation again. Asserting on the types is
-     * what pins the bug: `images` has to be Lunar's media relation, and the
-     * shop's asset ids have to live under their own name.
+     * The shop's old `image_asset_ids` column shadowed Lunar's `images()` once
+     * (a 500 on every product editor) and then became a second store for the
+     * same thing. It is gone: `images` is Lunar's relation, and nothing else.
      */
-    public function test_the_shops_column_does_not_shadow_lunars_media_relation(): void
+    public function test_variant_images_are_lunars_relation_and_the_old_column_is_gone(): void
     {
         $variant = $this->createProduct()->variants->first();
 
-        $variant->update(['image_asset_ids' => [7]]);
-
-        $fresh = $variant->fresh();
-
-        $this->assertSame([7], $fresh->image_asset_ids);
-        $this->assertInstanceOf(\Illuminate\Support\Collection::class, $fresh->images);
+        $this->assertFalse(Schema::hasColumn($variant->getTable(), 'image_asset_ids'));
+        $this->assertInstanceOf(Collection::class, $variant->fresh()->images);
 
         // getThumbnail() is what the panel calls, and what died on the array.
-        $this->assertNull($fresh->getThumbnail());
+        $this->assertNull($variant->fresh()->getThumbnail());
     }
 
     /**
@@ -79,8 +83,8 @@ class PanelProductEditTest extends TestCase
         $table = config('lunar.database.table_prefix').'product_variants';
 
         $shadowed = array_values(array_filter(
-            \Illuminate\Support\Facades\Schema::getColumnListing($table),
-            fn (string $column) => method_exists(\Lunar\Core\Models\ProductVariant::class, $column),
+            Schema::getColumnListing($table),
+            fn (string $column) => method_exists(ProductVariant::class, $column),
         ));
 
         $this->assertSame(
@@ -100,9 +104,9 @@ class PanelProductEditTest extends TestCase
     {
         $table = config('lunar.database.table_prefix').'product_variants';
 
-        $this->assertTrue(\Illuminate\Support\Facades\Schema::hasColumn($table, 'enabled'));
+        $this->assertTrue(Schema::hasColumn($table, 'enabled'));
         $this->assertFalse(
-            \Illuminate\Support\Facades\Schema::hasColumn($table, 'status'),
+            Schema::hasColumn($table, 'status'),
             'Cột status thời SKU đã quay lại — lại có hai câu trả lời cho cùng một câu hỏi.',
         );
     }

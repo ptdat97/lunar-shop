@@ -5,8 +5,13 @@ namespace Modules\Assets\Providers;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Inertia\Inertia;
 use Laravel\Horizon\Horizon;
+use Lunar\Core\Contracts\Actions\Media\AddsMedia;
 use Lunar\Panel\Facades\Panel;
+use Lunar\Panel\PanelManager;
+use Modules\Assets\Actions\AddMediaThroughLibrary;
+use Modules\Assets\Console\Commands\AdoptGalleryMedia;
 use Modules\Assets\Console\Commands\MigrateLegacyImagesToLibrary;
 use Modules\Assets\Console\Commands\RegenerateConversions;
 use Modules\Assets\Panel\AssetsSection;
@@ -16,9 +21,11 @@ use Modules\Assets\Services\HorizonSettings;
 use Modules\Assets\Services\MediaLibraryService;
 use Modules\Assets\Services\MediaSettings;
 use Modules\Assets\Services\MediaUrl;
+use Modules\Assets\Support\Library\LibraryFilesystem;
 use Modules\Core\Panel\SettingsRegistry;
 use Modules\Core\Support\LunarConfigOverride;
 use Spatie\MediaLibrary\MediaCollections\Events\MediaHasBeenAddedEvent;
+use Spatie\MediaLibrary\MediaCollections\Filesystem;
 
 class AssetsServiceProvider extends ServiceProvider
 {
@@ -36,6 +43,15 @@ class AssetsServiceProvider extends ServiceProvider
         $this->app->scoped(MediaSettings::class);
         $this->app->scoped(ConversionGenerator::class);
         $this->app->scoped(MediaUrl::class);
+
+        // The library is the one source of truth for gallery images: every
+        // upload into a Lunar gallery goes through it (LibraryLinks). Lunar
+        // documents rebinding its action contracts as the way to do this.
+        $this->app->bind(AddsMedia::class, AddMediaThroughLibrary::class);
+
+        // Spatie resolves its Filesystem from the container; this one refuses
+        // to rename or move the library's original through a link.
+        $this->app->bind(Filesystem::class, LibraryFilesystem::class);
     }
 
     /**
@@ -43,8 +59,10 @@ class AssetsServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Thư viện ảnh cho các trường ảnh trên panel (không có mục điều hướng).
+        // File manager — trang riêng trên panel, và là lối DUY NHẤT để thêm ảnh:
+        // mọi trường ảnh mở nó trong iframe rồi nhận lại file đã chọn.
         Panel::section(new AssetsSection);
+        $this->shareFileManager();
 
         // Kích thước ảnh sinh ra — thứ FashionMediaDefinitions đọc.
         $this->app->make(SettingsRegistry::class)->add(new MediaSettingsGroup);
@@ -52,6 +70,7 @@ class AssetsServiceProvider extends ServiceProvider
         // Re-apply our media definition overrides on top of Lunar's published
         // config/lunar/media.php — safe against `vendor:publish --force`.
         LunarConfigOverride::applyFrom('lunar.media', __DIR__.'/../../config/overrides.php');
+        LunarConfigOverride::applyFrom('media-library', __DIR__.'/../../config/media-library-overrides.php');
 
         $this->loadMigrationsFrom(__DIR__.'/../../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../../resources/views', 'assets');
@@ -66,10 +85,52 @@ class AssetsServiceProvider extends ServiceProvider
 
         if ($this->app->runningInConsole()) {
             $this->commands([
+                AdoptGalleryMedia::class,
                 MigrateLegacyImagesToLibrary::class,
                 RegenerateConversions::class,
             ]);
         }
+    }
+
+    /**
+     * Tell every panel page where the file manager lives.
+     *
+     * Image fields sit on pages this module does not render — banners, pages,
+     * theme settings, nested repeaters — and each opens the picker. Sharing the
+     * URL keeps AssetsSection's route the only place it is written down,
+     * instead of a path hard-coded into the bundle that silently 404s the day
+     * the panel path or the prefix changes.
+     *
+     * Null for a staff member without the library's permission. Image fields
+     * then disable their button, and Lunar's own gallery uploaders fall back
+     * to the file dialog they ship with (nativeUploadBridge.js stands down) —
+     * a product editor without content rights can still add product photos,
+     * and those uploads still land in the library (AddMediaThroughLibrary
+     * runs server-side, whoever uploads).
+     *
+     * Resolved per response, and only on Inertia responses — the storefront is
+     * Blade and never sees it.
+     */
+    protected function shareFileManager(): void
+    {
+        Inertia::share('fileManager', function () {
+            $staff = request()->user($this->app->make(PanelManager::class)->guard());
+
+            if (! $staff?->can(AssetsSection::PERMISSION)) {
+                return null;
+            }
+
+            return [
+                'url' => route('panel.shop.media.picker'),
+                'base' => route('panel.shop.media.index'),
+                // Strings for what runs outside the manager's own page: the
+                // popup's accessible name, and the bridge's notice.
+                'labels' => [
+                    'picker_title' => __('admin.file_manager.picker_title'),
+                    'bridge_fetch_failed' => __('admin.file_manager.bridge_fetch_failed'),
+                ],
+            ];
+        });
     }
 
     /**
@@ -188,9 +249,12 @@ class AssetsServiceProvider extends ServiceProvider
 
         // Checkout: expose a per-line thumbnail resolver so the order summary can
         // show product images (Shopify-style) without resolving a service inline.
+        // The line's own colour when the variant has photos (MediaUrl::lineImage),
+        // with every line's variant images loaded in one query up front.
         View::composer('theme::pages.checkout', function ($view): void {
             $urls = app(MediaUrl::class);
-            $view->with('lineImage', fn ($line, string $size = 'small') => $urls->conversion($line?->purchasable?->product?->thumbnail, $size));
+            ($view->getData()['cart'] ?? null)?->loadMissing('lines.purchasable.images');
+            $view->with('lineImage', fn ($line, string $size = 'small') => $urls->lineImage($line, $size));
         });
 
         // Product page: zoom dimensions, OG image, and the gallery image set.
@@ -206,37 +270,16 @@ class AssetsServiceProvider extends ServiceProvider
             // product gallery and enhance/product-variant.js would swap it on
             // load — a visible flash on every colour deep link.
             //
-            // The variant stores media ids. Map over the IDS (not the media
-            // collection) so the variant's own ordering survives — a colour whose
-            // set leads with a different photo must actually open on it, which
-            // a whereIn() filter would silently undo by keeping media order.
-            // Falls back to the whole gallery when the variant has none of its own.
-            $skuImageIds = collect($data['selectedVariant']?->image_asset_ids ?? [])
-                ->map(fn ($id) => is_array($id) ? ($id['id'] ?? null) : $id)
-                ->filter(fn ($id) => is_numeric($id))
-                ->map(fn ($id) => (int) $id);
+            // The selected variant's own photos are Lunar's variant images —
+            // rows of this product's gallery, in the variant's order (the pivot
+            // `position`), the same ones ProductVariantResource serialises for
+            // the hydration payload. One source for both, so the SSR gallery and
+            // the JS one can never disagree. No photos of its own → the whole
+            // gallery.
+            $own = $data['selectedVariant']?->images ?? collect();
 
-            if ($skuImageIds->isNotEmpty()) {
-                // Resolve through the ASSET ids, exactly as
-                // ProductVariantResource::galleryImages() does for the hydration
-                // payload. Looking them up in $product->media instead — which is
-                // what this used to do — only found pictures that also happened to
-                // hang off the product, so a photo picked from the library for one
-                // variant alone was silently dropped here while the payload still had
-                // it. The visible effect: the new picture appeared only after
-                // clicking to another variant and back, because that is when the
-                // JS re-rendered the gallery from the payload.
-                //
-                // Two resolution paths for one thing is the bug; this leaves one.
-                $assetMedia = app(MediaUrl::class)->assetMedia($skuImageIds->all());
-
-                $scoped = $skuImageIds
-                    ->map(fn (int $id) => $assetMedia[$id] ?? null)
-                    ->filter();
-
-                if ($scoped->isNotEmpty()) {
-                    $media = $scoped->values();
-                }
+            if ($own->isNotEmpty()) {
+                $media = $own->values();
             }
 
             $gallery = $media->map(fn ($image) => [

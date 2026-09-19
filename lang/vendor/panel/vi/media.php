@@ -8,9 +8,11 @@ return [
     'description' => '{count} ảnh · kéo để sắp lại · ô đầu tiên là ảnh đại diện',
     'description_empty' => 'Ảnh hiển thị kèm bản ghi này. Ảnh đầu tiên trở thành ảnh đại diện.',
     'upload' => 'Tải lên',
-    'upload_images' => 'Tải ảnh lên',
+    // Nút này mở thư viện media của shop (modules/Assets), không phải hộp
+    // thoại chọn file — xem resources/js/panel/media/nativeUploadBridge.js.
+    'upload_images' => 'Chọn hoặc tải ảnh lên',
     'empty_title' => 'Chưa có ảnh nào',
-    'empty_body' => 'Thả ảnh vào đây hoặc tải lên từ máy. Ảnh đầu tiên trở thành ảnh đại diện.',
+    'empty_body' => 'Chọn ảnh có sẵn trong thư viện media hoặc tải ảnh mới lên (thả ảnh vào đây cũng được). Ảnh đầu tiên trở thành ảnh đại diện.',
     'add_image' => 'Thêm ảnh',
     'hero' => 'Đại diện',
     'file_hint' => 'JPG, PNG hoặc WebP. Tối đa {size} MB mỗi tệp.',

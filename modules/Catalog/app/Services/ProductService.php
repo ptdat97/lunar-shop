@@ -57,7 +57,7 @@ class ProductService
                 // both sides of that (the variant's values, and the product's
                 // option list) are loaded here — VariantAxes joins them.
                 'variants' => fn ($q) => $q->where('enabled', true)
-                    ->with(['prices.currency', 'values'])
+                    ->with(['prices.currency', 'values', 'images'])
                     ->chaperone(),
                 'productOptions.values',
                 'thumbnail', 'brand', 'collections.defaultUrl', 'defaultUrl', 'media',
@@ -140,8 +140,14 @@ class ProductService
         return [
             // Only enabled variants feed a card's price, availability or sku —
             // a disabled one must never leak into the storefront.
+            // `images`: each variant's own photos (Lunar's variant images),
+            // serialised with the card so the grid can show a colour's photo.
+            // `chaperone()` lives here, in the closure, because it cannot live
+            // on the relation: Lunar's Product defines `variants()`, so a
+            // resolveRelationUsing() override is silently ignored, and 2.0
+            // removed model replacement.
             'variants' => fn ($query) => $query->where('enabled', true)
-                ->with(['prices', 'values'])
+                ->with(['prices', 'values', 'images'])
                 ->chaperone(),
             'productOptions.values',
             'brand',

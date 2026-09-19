@@ -81,6 +81,29 @@ class SecurityHeadersTest extends TestCase
         $this->assertNotNull($response->headers->get('Content-Security-Policy-Report-Only'));
     }
 
+    /**
+     * The panel frames its own file manager: every image field opens
+     * `/panel/shop/media/picker` in a same-origin iframe. Chrome evaluates
+     * `frame-ancestors` even in a report-only policy, so `'none'` there both
+     * logs a violation on every picker open and would blank it the day the
+     * panel is enforced. The storefront is never framed and stays at `'none'`.
+     */
+    public function test_the_panel_may_frame_itself_but_the_storefront_may_not(): void
+    {
+        $this->seedBaseData();
+
+        $panel = (string) $this->get('/panel')->headers->get('Content-Security-Policy-Report-Only');
+        $storefront = (string) $this->get('/')->headers->get('Content-Security-Policy-Report-Only');
+
+        $this->assertStringContainsString("frame-ancestors 'self'", $panel);
+        $this->assertStringNotContainsString("frame-ancestors 'none'", $panel);
+        $this->assertStringContainsString("frame-ancestors 'none'", $storefront);
+
+        // Only the one directive differs — the panel does not quietly lose the rest.
+        $this->assertStringContainsString("script-src 'self'", $panel);
+        $this->assertStringContainsString("object-src 'none'", $panel);
+    }
+
     public function test_csp_can_be_turned_off_entirely(): void
     {
         $this->seedBaseData();

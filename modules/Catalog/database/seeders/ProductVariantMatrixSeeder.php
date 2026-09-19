@@ -14,6 +14,7 @@ use Lunar\Core\Models\Product;
 use Lunar\Core\Models\ProductOption;
 use Lunar\Core\Models\ProductOptionValue;
 use Lunar\Core\Models\ProductVariant;
+use Modules\Catalog\Services\VariantImages;
 
 /**
  * Builds the colour x size variant matrix for the demo catalog.
@@ -170,6 +171,8 @@ class ProductVariantMatrixSeeder extends Seeder
     {
         $prefix = Str::upper(Str::substr(Str::slug($product->translate('name') ?: 'sku'), 0, 6));
         $imagesByColor = $this->imagesByColor($product);
+        $gallery = $product->media->keyBy('id');
+        $variantImages = app(VariantImages::class);
         $currency = Currency::getDefault();
         $location = Location::getDefault();
 
@@ -206,12 +209,17 @@ class ProductVariantMatrixSeeder extends Seeder
                 'cost_price' => (int) round($price * 0.55),
                 'weight_value' => self::WEIGHT_BY_SIZE[$size['en']] ?? 250,
                 'weight_unit' => 'g',
-                // Every size of a colour shares that colour's photo set.
-                'image_asset_ids' => $imagesByColor[$ci] ?? [],
                 // One disabled variant per product, so the storefront's enabled
                 // filter is visibly doing something.
                 'enabled' => ! ($size['en'] === 'L' && $ci === 2),
             ])->save();
+
+            // Every size of a colour shares that colour's photo set — Lunar's
+            // own variant images, a selection from the product's gallery.
+            $variantImages->syncVariants([$variant], collect($imagesByColor[$ci] ?? [])
+                ->map(fn (int $id) => $gallery->get($id))
+                ->filter()
+                ->values());
 
             Price::updateOrCreate(
                 [

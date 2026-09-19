@@ -7,6 +7,8 @@ use Lunar\Core\Enums\ProductOptionType;
 use Lunar\Core\Models\Asset;
 use Lunar\Core\Models\ProductVariant;
 use Modules\Catalog\Services\ProductService;
+use Modules\Catalog\Services\VariantImages;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 use Tests\Concerns\CreatesStorefrontData;
 use Tests\TestCase;
 
@@ -18,10 +20,10 @@ use Tests\TestCase;
  * The storefront keeps its own vocabulary (`text` / `color` / `image`), so these
  * tests pin the translation between the two as well as the payload itself.
  *
- * Per-variant images stay a list of Media Library Asset ids picked from the
- * shared library (modules/Assets) rather than media the variant owns: the
- * catalogue reuses 162 assets across 1,945 references, so owning them would copy
- * the same files over and over.
+ * Per-variant images are Lunar's own (`ProductVariant::images()`): an ordered
+ * selection from the product's gallery, whose files live once in the library
+ * (modules/Assets, LibraryLinks) — so sharing a photo across sizes and colours
+ * copies nothing.
  */
 class VariantSwatchTest extends TestCase
 {
@@ -95,47 +97,46 @@ class VariantSwatchTest extends TestCase
     }
 
     /**
-     * A variant's images are stored exactly as posted — Asset ids, in order.
-     *
-     * The picker posts library ids, so there is no ingest step to get wrong; the
-     * risk is the opposite, that something helpfully "resolves" them on save and
-     * the reference stops surviving a file replacement.
+     * A variant's images keep the order they were set in — the first is the
+     * variant's primary, which is what Lunar's getThumbnail() reads.
      */
-    public function test_a_variants_images_are_persisted_as_the_posted_asset_ids(): void
+    public function test_a_variants_images_keep_their_order_and_primary(): void
     {
         $this->seedBaseData();
         $product = $this->createProduct();
-
-        $first = $this->libraryAsset('one.png');
-        $second = $this->libraryAsset('two.png');
+        $first = $product->addMedia(UploadedFile::fake()->image('one.png', 40, 40))->toMediaCollection('images');
+        $second = $product->addMedia(UploadedFile::fake()->image('two.png', 40, 40))->toMediaCollection('images');
 
         $variant = $product->variants->first();
-        $variant->update(['image_asset_ids' => [$second->id, $first->id]]);
+        app(VariantImages::class)->syncVariants([$variant], collect([$second, $first]));
 
-        $this->assertSame([$second->id, $first->id], $variant->fresh()->image_asset_ids);
+        $fresh = $variant->fresh();
+
+        $this->assertSame([$second->id, $first->id], $fresh->images->pluck('id')->all());
+        $this->assertSame($second->id, $fresh->getThumbnail()?->id);
     }
 
-    /** Dropping an image from one variant must not delete the shared asset. */
-    public function test_an_asset_is_kept_when_dropped_from_one_variant(): void
+    /** Dropping a photo from one variant keeps it on the other and in the gallery. */
+    public function test_a_photo_is_kept_when_dropped_from_one_variant(): void
     {
         $this->seedBaseData();
         $product = $this->createProduct();
-        $asset = $this->libraryAsset();
+        $photo = $product->addMedia(UploadedFile::fake()->image('shared.png', 40, 40))->toMediaCollection('images');
 
         $a = $product->variants->first();
-        $a->update(['image_asset_ids' => [$asset->id]]);
-
         $b = ProductVariant::create([
             'product_id' => $product->id,
             'sku' => 'SW-B-'.uniqid(),
-            'image_asset_ids' => [$asset->id],
             'tax_class_id' => $a->tax_class_id,
             'enabled' => true,
         ]);
 
-        $a->update(['image_asset_ids' => []]);
+        $images = app(VariantImages::class);
+        $images->syncVariants([$a, $b], collect([$photo]));
+        $images->syncVariants([$a], collect());
 
-        $this->assertSame([$asset->id], $b->fresh()->image_asset_ids);
-        $this->assertNotNull(Asset::find($asset->id), 'the library keeps the file for everyone else');
+        $this->assertSame([], $a->fresh()->images->pluck('id')->all());
+        $this->assertSame([$photo->id], $b->fresh()->images->pluck('id')->all());
+        $this->assertNotNull(Media::find($photo->id), 'the gallery keeps the photo for everyone else');
     }
 }

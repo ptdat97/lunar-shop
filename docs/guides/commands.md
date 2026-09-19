@@ -155,6 +155,8 @@ php artisan lunar:panel:install # publish lại asset biên dịch sẵn của p
 | --- | --- |
 | `media-library:regenerate` | Tạo lại ảnh conversion (thumbnail, medium...) |
 | `media-library:clean` | Dọn conversion/file mồ côi |
+| `assets:adopt-galleries --dry-run` | Xem trước việc chuyển ảnh gallery cũ (sản phẩm, bộ sưu tập, thương hiệu, loại SP, swatch) vào thư viện media — không ghi gì |
+| `assets:adopt-galleries` | Chuyển thật: file gốc vào thư viện (trùng nội dung thì dùng lại), dòng media của gallery thành liên kết, **giữ nguyên id**. Chạy lại bao nhiêu lần cũng được. Xem [panel-addon.md](../architecture/panel-addon.md#gallery-của-lunar--một-nguồn-sự-thật-là-thư-viện) |
 
 ## 🧰 Khác
 

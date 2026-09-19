@@ -9,7 +9,6 @@ use Lunar\Core\Models\Collection as LunarCollection;
 use Lunar\Core\Models\Product;
 use Lunar\Core\Models\ProductOption;
 use Lunar\Core\Models\ProductOptionValue;
-use Lunar\Core\Models\ProductVariant;
 use Lunar\Panel\Facades\Panel;
 use Modules\Catalog\Contracts\SearchEngine;
 use Modules\Catalog\Drivers\DatabaseSearchEngine;
@@ -99,7 +98,6 @@ class CatalogServiceProvider extends ServiceProvider
         $this->loadRoutesFrom(__DIR__.'/../../routes/api.php');
 
         $this->registerSizeRelationships();
-        $this->registerVariantExtensions();
         $this->composeThemePrices();
         $this->composeFitSizeBadge();
 
@@ -159,39 +157,6 @@ class CatalogServiceProvider extends ServiceProvider
         ProductOptionValue::addCasts([
             'name' => $arrayObject,
         ]);
-    }
-
-    /**
-     * Extensions on Lunar's own ProductVariant, registered without touching the
-     * vendor class (plan principle #1).
-     *
-     * The shop no longer has a purchasable of its own: cart and order lines
-     * store Lunar's `product_variant` morph alias, and the axes come from its
-     * shared ProductOptions. What is left here are casts for the two columns
-     * this shop still adds, and the eager-load chaperones.
-     */
-    protected function registerVariantExtensions(): void
-    {
-        // `image_asset_ids` is the shop's own column on Lunar's variant: a list
-        // of Media Library Asset ids the variant points at, not media it owns.
-        // The catalogue holds 1,945 references resolving to 162 distinct assets,
-        // so owning them would copy the same files twelve times over and defeat
-        // the shared library the Assets module exists for. `addCasts()` is the
-        // seam 2.0 leaves for exactly this.
-        //
-        // NOT named `images`: that shadows Lunar's own ProductVariant::images()
-        // relation, because a real column always wins over a relation of the
-        // same name in Eloquent. It cost a 500 on every product editor page
-        // before the rename — see the rename migration.
-        ProductVariant::addCasts(['image_asset_ids' => 'array']);
-
-        // NOT a `resolveRelationUsing('variants', …)` override: Laravel only
-        // consults a dynamic relation when the model has no such method, and
-        // Lunar's Product defines `variants()` — so an override there is
-        // silently ignored, which is exactly how the chaperone below went
-        // missing once already. Lunar 2.0 also removed model replacement, so the
-        // relation cannot be redefined at all. Callers add `->chaperone()` in
-        // their eager-load closure instead; see ProductService.
     }
 
     /**

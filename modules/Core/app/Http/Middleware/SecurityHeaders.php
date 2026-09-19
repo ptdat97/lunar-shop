@@ -68,7 +68,7 @@ class SecurityHeaders
             return;
         }
 
-        $policy = $this->policy();
+        $policy = $this->policy($this->isPanel($request));
 
         if ($policy === '') {
             return;
@@ -87,9 +87,16 @@ class SecurityHeaders
         );
     }
 
-    private function policy(): string
+    private function policy(bool $panel): string
     {
         $directives = (array) config('security.csp.directives', []);
+
+        // The panel frames its own file manager (same origin), which the
+        // storefront's `frame-ancestors 'none'` would block. Each key here
+        // replaces the directive outright rather than adding sources to it.
+        if ($panel) {
+            $directives = array_replace($directives, (array) config('security.csp.panel_directives', []));
+        }
 
         $parts = [];
 

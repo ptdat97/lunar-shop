@@ -1,9 +1,15 @@
 <script setup>
-import { onMounted, ref, watch } from 'vue';
-import { Slideout, TextInput, Button, Select, http } from '@lunarphp/panel';
+import { computed, onMounted, ref, watch } from 'vue';
+import { usePage } from '@inertiajs/vue3';
+import { Button, Icon, http } from '@lunarphp/panel';
+import { openFileManager } from '../media/openFileManager';
 
 // The value is a Lunar Asset id, which is what the storefront resolves through
-// MediaLibraryService — not a path. Typing one blind is what this replaces.
+// MediaLibraryService — not a path.
+//
+// This field does not list or upload anything. It opens the shop's file
+// manager (modules/Assets) and stores the id of whatever the admin chose
+// there, so every image in the panel enters the library through one door.
 const props = defineProps({
     modelValue: { default: null },
     labels: { type: Object, default: () => ({}) },
@@ -11,175 +17,127 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue']);
 
+// Shared on every panel page by AssetsServiceProvider.
+const manager = computed(() => usePage().props.fileManager ?? null);
+
 const preview = ref(null);
-const open = ref(false);
-const items = ref([]);
-const folders = ref([]);
-const search = ref('');
-const folder = ref('');
-const page = ref(1);
-const lastPage = ref(1);
-const loading = ref(false);
-const uploading = ref(false);
-const fileInput = ref(null);
+const missing = ref(false);
+
+// Rows saved before the library held ids still carry a path or URL. The
+// storefront resolves those (MediaUrl::imageUrl), so show it rather than
+// calling it missing.
+const isId = (value) => /^\d+$/.test(String(value ?? ''));
 
 const loadPreview = async () => {
+    missing.value = false;
+
     if (!props.modelValue) {
         preview.value = null;
 
         return;
     }
 
-    try {
-        preview.value = await http.get(`/panel/shop/media/${props.modelValue}`);
-    } catch {
-        // A deleted asset leaves the id behind; showing nothing beats a broken
-        // <img> that looks like the picker is failing.
-        preview.value = null;
-    }
-};
+    if (!isId(props.modelValue)) {
+        preview.value = { name: String(props.modelValue), thumb: null };
 
-const browse = async () => {
-    loading.value = true;
-
-    try {
-        const params = new URLSearchParams({ type: 'image', page: String(page.value) });
-
-        if (search.value) {
-            params.set('search', search.value);
-        }
-
-        if (folder.value) {
-            params.set('folder', folder.value);
-        }
-
-        const result = await http.get(`/panel/shop/media?${params}`);
-
-        items.value = result.items;
-        folders.value = result.folders;
-        lastPage.value = result.lastPage;
-    } finally {
-        loading.value = false;
-    }
-};
-
-const choose = (asset) => {
-    emit('update:modelValue', asset.id);
-    preview.value = asset;
-    open.value = false;
-};
-
-const clear = () => {
-    emit('update:modelValue', null);
-    preview.value = null;
-};
-
-const upload = async (event) => {
-    const file = event.target.files?.[0];
-
-    if (!file) {
         return;
     }
 
-    uploading.value = true;
+    // Just chosen: the manager already handed over the payload.
+    if (String(preview.value?.id) === String(props.modelValue)) {
+        return;
+    }
 
     try {
-        const body = new FormData();
-        body.append('file', file);
-
-        if (folder.value) {
-            body.append('folder', folder.value);
-        }
-
-        choose(await http.post('/panel/shop/media', body));
-    } finally {
-        uploading.value = false;
-
-        if (fileInput.value) {
-            fileInput.value.value = '';
-        }
+        preview.value = await http.get(`${manager.value.base}/files/${props.modelValue}`);
+    } catch {
+        // A deleted asset leaves the id behind on the row.
+        preview.value = null;
+        missing.value = true;
     }
+};
+
+const pick = async () => {
+    const chosen = await openFileManager({
+        url: manager.value?.url,
+        type: 'image',
+        title: props.labels.pick,
+        folder: preview.value?.folder ?? '',
+    });
+
+    if (chosen?.length) {
+        preview.value = chosen[0];
+        missing.value = false;
+        // A string: the column is a string and its rule is `string` — the form
+        // posts JSON, so a bare number fails validation.
+        emit('update:modelValue', String(chosen[0].id));
+    }
+};
+
+const clear = () => {
+    preview.value = null;
+    missing.value = false;
+    emit('update:modelValue', null);
 };
 
 onMounted(loadPreview);
 
 watch(() => props.modelValue, loadPreview);
-
-watch(open, (isOpen) => {
-    if (isOpen) {
-        browse();
-    }
-});
-
-watch([search, folder], () => {
-    page.value = 1;
-    browse();
-});
-
-watch(page, browse);
 </script>
 
 <template>
     <div class="flex items-start gap-2">
+        <!-- Sized in scoped CSS: `w-20`/`h-20` are not in the panel's prebuilt
+             stylesheet, which is how the old picker's tile collapsed when empty
+             and stretched to the photo when filled. -->
         <button
             type="button"
-            class="w-20 h-20 shrink-0 rounded-md border border-line bg-surface-2 grid place-items-center overflow-hidden hover:border-ink-300"
+            class="media-thumb"
             :data-media-picker="true"
-            @click="open = true"
+            :disabled="!manager"
+            :title="labels.pick"
+            @click="pick"
         >
-            <img v-if="preview?.thumb ?? preview?.url" :src="preview.thumb ?? preview.url" alt="" class="w-full h-full object-cover" />
-            <span v-else class="text-[11px] text-ink-500 px-1 text-center">{{ labels.pick }}</span>
+            <img v-if="preview?.thumb" :src="preview.thumb" :alt="preview.alt ?? ''" />
+            <Icon v-else name="image" />
         </button>
 
-        <div class="grid gap-1 pt-1">
-            <span class="text-[11px] text-ink-700 truncate max-w-[220px]">{{ preview?.name ?? '—' }}</span>
+        <div class="grid gap-1 pt-1 min-w-0">
+            <span class="text-[11px] text-ink-700 truncate max-w-[220px]" :title="preview?.name">{{ preview?.name ?? '—' }}</span>
+            <span v-if="missing" class="text-[11px] text-danger">{{ labels.missing }}</span>
             <div class="flex gap-1">
-                <Button size="sm" @click="open = true">{{ labels.pick }}</Button>
-                <Button v-if="modelValue" size="sm" variant="ghost" icon="trash" @click="clear" />
+                <Button size="sm" icon="image" :disabled="!manager" @click="pick">
+                    {{ modelValue ? labels.change : labels.pick }}
+                </Button>
+                <Button v-if="modelValue" size="sm" variant="ghost" icon="trash" :aria-label="labels.remove" :title="labels.remove" @click="clear" />
             </div>
         </div>
-
-        <Slideout :open="open" :title="labels.pick" @update:open="open = $event">
-            <div class="grid gap-3">
-                <div class="flex flex-wrap gap-2">
-                    <div class="flex-1 min-w-[160px]">
-                        <TextInput v-model="search" :placeholder="labels.search" clearable />
-                    </div>
-                    <Select v-model="folder">
-                        <option value="">{{ labels.allFolders }}</option>
-                        <option v-for="name in folders" :key="name" :value="name">{{ name }}</option>
-                    </Select>
-                    <Button size="sm" :disabled="uploading" @click="fileInput?.click()">
-                        {{ labels.upload }}
-                    </Button>
-                    <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="upload" />
-                </div>
-
-                <div v-if="loading" class="text-[11px] text-ink-500">…</div>
-
-                <div v-else-if="!items.length" class="text-[11px] text-ink-500 border border-line rounded-md p-3">
-                    {{ labels.empty }}
-                </div>
-
-                <div v-else class="grid gap-2" style="grid-template-columns: repeat(auto-fill, minmax(96px, 1fr))">
-                    <button
-                        v-for="asset in items"
-                        :key="asset.id"
-                        type="button"
-                        class="aspect-square rounded-md border border-line overflow-hidden hover:border-sage focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-sage/35"
-                        :title="asset.name"
-                        @click="choose(asset)"
-                    >
-                        <img :src="asset.thumb ?? asset.url" :alt="asset.alt ?? ''" class="w-full h-full object-cover" />
-                    </button>
-                </div>
-
-                <div v-if="lastPage > 1" class="flex items-center justify-between text-xs text-ink-500">
-                    <Button size="sm" variant="ghost" :disabled="page <= 1" @click="page -= 1">←</Button>
-                    <span>{{ page }} / {{ lastPage }}</span>
-                    <Button size="sm" variant="ghost" :disabled="page >= lastPage" @click="page += 1">→</Button>
-                </div>
-            </div>
-        </Slideout>
     </div>
 </template>
+
+<style scoped>
+.media-thumb {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 80px;
+    height: 80px;
+    padding: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-line);
+    border-radius: 6px;
+    background: var(--color-surface-2);
+    color: var(--color-ink-400);
+    cursor: pointer;
+}
+
+.media-thumb:hover { border-color: var(--color-ink-300); }
+
+.media-thumb:disabled { cursor: not-allowed; opacity: .6; }
+
+.media-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+</style>

@@ -62,10 +62,17 @@ class Field
      * Long-form body copy. Rendered as a plain monospace editor: the storefront
      * renders `content` as raw HTML already, so what the admin types is what
      * ships — no WYSIWYG layer to silently rewrite the markup.
+     *
+     * Images go in through the file manager like everywhere else: its button
+     * inserts an `<img>` pointing at the library file's `large` conversion, so
+     * body copy never links an original upload or an address from elsewhere.
      */
     public static function html(string $name, string $label): static
     {
-        return new static($name, $label, 'html');
+        $field = new static($name, $label, 'html');
+        $field->meta['mediaLabels'] = ['insert' => __('admin.media.insert')];
+
+        return $field;
     }
 
     public static function number(string $name, string $label): static
@@ -88,21 +95,22 @@ class Field
     }
 
     /**
-     * An image path/URL. Stored as a string the storefront resolves through
-     * MediaUrl, so both an uploaded library path and an absolute URL work.
+     * An image from the shop's file manager (modules/Assets). The field shows a
+     * preview and opens the manager in an iframe; it never lists or uploads
+     * anything itself, so every image in the panel enters the same library
+     * under the same rules.
      */
     public static function image(string $name, string $label): static
     {
         $field = new static($name, $label, 'image');
 
-        // The picker's own chrome, shipped with the field so its strings live
-        // with every other admin string rather than in the bundle.
+        // The field's own chrome, shipped with it so its strings live with
+        // every other admin string rather than in the bundle. The manager
+        // brings its own.
         $field->meta['mediaLabels'] = [
             'pick' => __('admin.media.browse'),
-            'search' => __('admin.media.search_placeholder'),
-            'allFolders' => __('admin.media.all_folders'),
-            'upload' => __('admin.media.upload'),
-            'empty' => __('admin.media.empty'),
+            'change' => __('admin.media.change'),
+            'remove' => __('admin.media.remove'),
             'missing' => __('admin.media.missing'),
         ];
 

@@ -5,7 +5,6 @@ namespace Modules\Catalog\Http\Resources;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Lunar\Core\Models\ProductVariant;
-use Modules\Assets\Services\MediaUrl;
 use Modules\Catalog\Services\PricingService;
 use Modules\Catalog\Support\VariantAxes;
 
@@ -67,36 +66,20 @@ class ProductVariantResource extends JsonResource
     }
 
     /**
-     * Resolve the variant's `image_asset_ids` JSON column (a list of Media Library Asset
-     * ids picked from the shared library — modules/Assets) into the gallery
-     * shape.
+     * The variant's own photos — Lunar's variant images (`images()`, the
+     * `media_product_variant` pivot, in position order) — in the gallery shape.
      *
-     * The column holds Asset ids rather than URLs so conversions stay resolvable
-     * after a library file is replaced, and the serialization lives in one place
-     * (MediaImageResource), shared with the product-level gallery.
-     *
-     * Resolution goes through MediaUrl::assetMedia(), which memoizes per Asset
-     * id on the scoped MediaUrl instance — a product page rendering dozens of
-     * variants costs at most one query per distinct Asset id across the page.
+     * They are rows of the product's own gallery, so the serialization is the
+     * same one the product-level gallery uses (MediaImageResource). Callers
+     * eager-load `variants.images` (ProductService); a variant serialized
+     * without it loads its own, which is correct but one query per variant.
      *
      * @return array<int, array<string, mixed>>
      */
     protected function galleryImages(): array
     {
-        $ids = collect($this->image_asset_ids ?? [])
-            ->map(fn ($id) => is_array($id) ? ($id['id'] ?? null) : $id)
-            ->filter(fn ($id) => is_numeric($id))
-            ->map(fn ($id) => (int) $id);
-
-        if ($ids->isEmpty()) {
-            return [];
-        }
-
-        $mediaByAssetId = app(MediaUrl::class)->assetMedia($ids->all());
-
-        // Preserve the admin's ordering: map over the ids, not the loaded rows.
-        return $ids
-            ->map(fn (int $id) => MediaImageResource::one($mediaByAssetId[$id] ?? null))
+        return $this->resource->images
+            ->map(fn ($media) => MediaImageResource::one($media))
             ->filter()
             ->values()
             ->all();

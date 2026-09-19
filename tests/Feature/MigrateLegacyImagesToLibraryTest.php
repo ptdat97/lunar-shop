@@ -5,7 +5,6 @@ namespace Tests\Feature;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Lunar\Core\Models\Asset;
-use Lunar\Core\Models\TaxClass;
 use Modules\Content\Models\Banner;
 use Modules\Content\Models\Menu;
 use Modules\Content\Models\MenuItem;
@@ -18,11 +17,11 @@ use Tests\TestCase;
 
 /**
  * Every FileUpload-for-images field was migrated to MediaPicker (an Asset id
- * Select), so pre-migration data — bare `media`-disk paths, or (for product
- * variant swatches / SKU photos) a Spatie Media id attached straight to a
- * Product — is no longer valid input for those pickers. This command is what
- * makes it valid again: it ingests/re-owns each legacy value into a proper
- * library Asset and rewrites the column to the resulting Asset id.
+ * Select), so pre-migration data — bare `media`-disk paths — is no longer
+ * valid input for those pickers. This command is what makes it valid again: it
+ * ingests each legacy value into a proper library Asset and rewrites the
+ * column to the resulting Asset id. (Per-variant photos are Lunar's variant
+ * images now; see VariantImageColumnTest.)
  */
 class MigrateLegacyImagesToLibraryTest extends TestCase
 {
@@ -115,29 +114,6 @@ class MigrateLegacyImagesToLibraryTest extends TestCase
         $this->assertIsNumeric($settings->get('general.logo'));
         $this->assertNotNull(Asset::find($settings->get('general.logo')));
         $this->assertIsNumeric($settings->get('payment')[0]);
-    }
-    public function test_a_sku_image_media_id_is_re_owned_by_a_new_asset(): void
-    {
-        $this->seedBaseData();
-        $product = $this->createProduct();
-        $media = $product->addMedia(UploadedFile::fake()->image('front.png', 300, 300))->toMediaCollection('images');
-
-        $sku = $product->variants()->create(['image_asset_ids' => [$media->id],
-            'sku' => 'MIG-1', 'tax_class_id' => TaxClass::getDefault()?->id,
-            'enabled' => true, ]);
-
-        $this->artisan('assets:migrate-legacy-images')->assertSuccessful();
-
-        $newIds = $sku->refresh()->image_asset_ids;
-        $this->assertCount(1, $newIds);
-        $asset = Asset::find($newIds[0]);
-        $this->assertNotNull($asset);
-
-        // Re-owned (moved), not duplicated — see the swatch test above for why
-        // comparing raw ids isn't the right assertion here.
-        $media->refresh();
-        $this->assertSame($asset->id, $media->model_id);
-        $this->assertSame(1, Media::where('id', $media->id)->count());
     }
 
     public function test_dry_run_makes_no_changes(): void

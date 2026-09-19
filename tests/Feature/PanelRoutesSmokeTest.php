@@ -47,9 +47,10 @@ class PanelRoutesSmokeTest extends TestCase
         'panel.password.request',
         'panel.two-factor.challenge',
 
-        // Not a screen — a JSON endpoint the picker calls, covered by
-        // PanelMediaPickerTest.
-        'panel.shop.media.index',
+        // Not a screen — the file manager's JSON listing, covered by
+        // PanelFileManagerTest. (The manager page and its picker ARE screens,
+        // and are swept like any other.)
+        'panel.shop.media.files',
 
         // Search endpoints answer XHR, not navigation.
         'panel.search',

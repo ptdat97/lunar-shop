@@ -5,7 +5,6 @@ namespace Modules\Assets\Services;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use Lunar\Core\Models\Asset;
 use Modules\Assets\Jobs\GenerateConversionJob;
 use Modules\Core\Support\Settings;
 use Spatie\MediaLibrary\MediaCollections\Models\Media;
@@ -35,44 +34,9 @@ class MediaUrl
      */
     private array $responsiveMemo = [];
 
-    /**
-     * Per-request memo of resolved library Assets' Media, keyed by Asset id.
-     * A product page can render dozens of variants, each with their own picked
-     * Asset ids (ProductVariantResource); without this each fresh JsonResource
-     * instance would re-query the same handful of library Assets.
-     *
-     * @var array<int, Media|null>
-     */
-    private array $assetMediaMemo = [];
-
     public function __construct(
         protected ConversionGenerator $generator,
     ) {}
-
-    /**
-     * Resolve a batch of Media Library Asset ids to their Media models in ONE
-     * query for whatever isn't already memoized, preserving the given order.
-     * Missing/deleted-from-library ids resolve to null.
-     *
-     * @param  iterable<int>  $assetIds
-     * @return array<int, Media|null> keyed by asset id
-     */
-    public function assetMedia(iterable $assetIds): array
-    {
-        $ids = collect($assetIds)->map(fn ($id) => (int) $id)->unique()->values();
-
-        $missing = $ids->reject(fn (int $id) => array_key_exists($id, $this->assetMediaMemo));
-
-        if ($missing->isNotEmpty()) {
-            $loaded = Asset::with('file')->whereIn('id', $missing->all())->get()->keyBy('id');
-
-            foreach ($missing as $id) {
-                $this->assetMediaMemo[$id] = $loaded->get($id)?->file;
-            }
-        }
-
-        return $ids->mapWithKeys(fn (int $id) => [$id => $this->assetMediaMemo[$id]])->all();
-    }
 
     /**
      * URL for a conversion. Two modes (config `lunar.media.on_demand.sync`):
@@ -130,6 +94,28 @@ class MediaUrl
         // Generation failed — return null rather than the original full-size
         // image, which would lag the storefront. The caller handles null.
         return $this->conversionMemo[$key] = null;
+    }
+
+    /**
+     * The picture for a cart or order line: the chosen variant's own main
+     * photo — Lunar's `getThumbnail()`, the primary of its variant images —
+     * else the product's. A shopper who put the black shirt in the bag sees
+     * the black shirt, not whichever colour leads the product gallery.
+     *
+     * getThumbnail() loads `images` and `product` per variant when they are
+     * missing; callers rendering several lines eager-load
+     * `lines.purchasable.images` first so a bag costs one query, not one per
+     * line.
+     */
+    public function lineImage(mixed $line, string $conversion = 'small'): ?string
+    {
+        $purchasable = $line?->purchasable;
+
+        $media = $purchasable && method_exists($purchasable, 'getThumbnail')
+            ? $purchasable->getThumbnail()
+            : null;
+
+        return $this->conversion($media instanceof Media ? $media : null, $conversion);
     }
 
     /**

@@ -150,26 +150,173 @@ này biến việc đổi tên file thành test đỏ thay vì trang trắng.
 | 8 trang cài đặt cũ | một màn hình `SettingsGroup`, mỗi nhóm một tab |
 | Báo cáo bán hàng | **một** widget dashboard (phần còn lại panel đã có) |
 | Size & Fit của sản phẩm | một `Slot` gắn vào trang sửa sản phẩm chính chủ |
-| Thư viện ảnh | `Field::image()` là bộ chọn, không phải ô text |
+| Ảnh theo màu | một `Slot` (`products.edit:content:after`) ghi vào ảnh biến thể **của Lunar** |
+| Thư viện ảnh | **File manager** — trang riêng + bản nhúng iframe mà mọi `Field::image()` mở ra; gallery của Lunar liên kết vào nó |
 
-## Trường ảnh
+## File manager — lối duy nhất để thêm ảnh
 
-`Field::image()` render bộ chọn thư viện, không phải ô nhập. Đây là chuyện đúng
-sai chứ không phải tiện tay: **các cột này lưu id Asset của Lunar**, không phải
-đường dẫn (`banner.image`, `page.featured_image`, `lookbook.cover_image`,
-`settings.slides.*.image`…). Ô text nghĩa là admin gõ id trong vô định, và ảnh
-xem trước bên cạnh không bao giờ resolve được.
+Module `Assets` sở hữu file manager: **nơi duy nhất** trên panel tải lên, xếp thư
+mục, sửa alt/title, thay file và xoá ảnh. Mọi thành phần khác cần ảnh đều đi qua
+nó — không component nào tự liệt kê thư viện hay tự upload. Mẫu lấy từ
+`fileManagerIframe()` của VaniCommerce: một URL file manager, mở trong popup
+iframe, trả lại file đã chọn.
+
+```
+/panel/shop/media            trang "Thư viện media" (nhóm Nội dung trên sidebar)
+/panel/shop/media/picker     cùng component, không sidebar — để nhúng iframe
+/panel/shop/media/files…     JSON API mà cả hai dùng (AssetsSection ghi đủ bảng route)
+```
+
+| Lớp | File |
+| --- | --- |
+| Section + route + mục sidebar | `modules/Assets/app/Panel/AssetsSection.php` |
+| Hai trang Inertia | `MediaManagerController` → `shop/media/Index`, `shop/media/Picker` |
+| JSON API | `MediaLibraryController` (list · upload · sửa · thay · chuyển · xoá · đổi tên thư mục) |
+| Logic | `MediaLibraryService` — chỗ duy nhất đọc/ghi thư viện |
+| Giao diện | `resources/js/panel/media/FileManager.vue` (một component, hai chế độ `manage` / `pick`) |
+| Mở popup | `resources/js/panel/media/openFileManager.js` → `Promise<asset[] \| null>` |
+
+### Gọi từ một thành phần khác
+
+```js
+import { openFileManager } from '../media/openFileManager';
+
+const assets = await openFileManager({
+    url: usePage().props.fileManager.url,   // AssetsServiceProvider chia sẻ cho mọi trang
+    type: 'image',
+    multiple: true,
+});
+// null khi huỷ; mảng payload (id, name, thumb, large, alt, folder…) khi chọn
+```
+
+Script ngoài bundle gọi `window.ShopFileManager.open({...})` — cùng hàm, URL tự lấy
+từ prop dùng chung.
+
+Picker trả kết quả bằng `postMessage` (kiểm origin + đúng iframe + `channel` riêng
+của từng lần mở), không phải bằng cách thò tay vào iframe gài callback như bản
+VaniCommerce. Picker trong iframe là **cả file manager** cộng nút *Chọn*: đang điền
+banner vẫn upload, tạo thư mục, sửa alt được mà không phải rời form. Upload xong
+file vừa lên được chọn sẵn. Mở URL picker trực tiếp (tab mới) thì nó chạy như
+trang quản lý thường, vì không có ai để trả lời.
+
+**Iframe cùng origin chạy được vì:** `X-Frame-Options: SAMEORIGIN`, còn CSP của
+panel luôn report-only (`SecurityHeaders`). Nếu một ngày bật CSP enforce cho panel,
+`frame-ancestors 'none'` sẽ làm trắng popup của mọi trường ảnh —
+`PanelFileManagerTest::test_the_picker_can_be_framed_by_the_panel` canh đúng chuyện đó.
+
+### Trường ảnh
+
+`Field::image()` render preview + nút mở file manager, không phải ô nhập. Đây là
+chuyện đúng sai chứ không phải tiện tay: **các cột này lưu id Asset của Lunar**,
+không phải đường dẫn (`banner.image`, `page.featured_image`, `lookbook.cover_image`,
+`settings.slides.*.image`, logo/favicon của theme…). Ô text nghĩa là admin gõ id
+trong vô định.
 
 `MediaUrl::imageUrl()` chấp nhận cả id lẫn đường dẫn, nên các hàng cũ chưa chọn
-lại vẫn chạy — vì thế rule vẫn là `string` chứ không phải `integer`.
+lại vẫn chạy — vì thế rule vẫn là `string` chứ không phải `integer`, và field
+**emit id dạng chuỗi**: form gửi JSON, số trần trượt rule `string`.
 
-Bộ chọn **tự gọi endpoint lấy preview theo id** thay vì bắt payload mang sẵn
-preview đã resolve. Lý do: một trường ảnh có thể nằm ở bất kỳ độ sâu nào (slide
-của hero, ảnh lookbook, banner mega menu), và luồn preview xuống qua các repeater
-lồng nhau nghĩa là mọi controller đều phải biết về media.
+Field **tự gọi `/files/{id}` lấy preview** thay vì bắt payload mang sẵn preview
+đã resolve. Lý do: một trường ảnh có thể nằm ở bất kỳ độ sâu nào (slide của hero,
+ảnh lookbook, banner mega menu), và luồn preview xuống qua các repeater lồng nhau
+nghĩa là mọi controller đều phải biết về media.
 
-Thư viện có route riêng (`panel/shop/media`) do `AssetsSection` đăng ký, không có
-mục điều hướng — nó chỉ được mở từ trong một form.
+`Field::html()` có nút *Chèn ảnh từ thư viện*: mở file manager (chọn nhiều), chèn
+`<img>` trỏ tới conversion `large` tại vị trí con trỏ — nội dung trang không bao
+giờ nhúng file gốc hay một địa chỉ dán từ nơi khác.
+
+### Quy tắc upload
+
+- Chỉ ảnh jpg/png/webp/gif/bmp — rule `image` của Laravel, **không nhận SVG**
+  (SVG phục vụ từ chính origin của shop là một script).
+- Trần dung lượng là `lunar.media.max_upload_kb` của Lunar — cùng con số gallery
+  sản phẩm của panel dùng, nên hai nơi không lệch nhau.
+- Mỗi request một file; trình duyệt tải song song 3 file, mỗi file một thanh tiến
+  trình, file hỏng chỉ hỏng một mình.
+- Thư mục là `custom_properties.folder` (slug) trên media, không phải bảng riêng:
+  thư mục tồn tại khi có file trong nó. Đổi tên = gắn nhãn lại mọi file; đổi trùng
+  tên thư mục có sẵn là gộp.
+
+### Gallery của Lunar — một nguồn sự thật là thư viện
+
+Gallery sản phẩm / bộ sưu tập / thương hiệu / loại sản phẩm và ảnh swatch là
+màn hình **chính chủ của Lunar** (biên dịch sẵn trong `vendor/`, không sửa). Chúng
+vẫn chạy nguyên vẹn — nhưng **file ảnh chỉ tồn tại một lần, trong thư viện media**.
+
+**Mô hình: dòng media là liên kết, không phải bản sao.** Mỗi ảnh trong gallery vẫn
+là một dòng media Spatie thật trên bản ghi đó — nên mọi thứ Lunar đọc (quan hệ
+`thumbnail`, kéo sắp xếp, ảnh đại diện, alt/chú thích/điểm lấy nét, pivot ảnh
+biến thể `media_product_variant`) giữ nguyên. Khác biệt duy nhất: dòng đó mang
+`library_asset_id` + `library_media_id` trong `custom_properties`, và
+
+| | Đọc từ đâu |
+| --- | --- |
+| File gốc (`getPath`, `getUrl()`) | thư mục của file thư viện — **dùng chung** |
+| Conversion, responsive (`getPathForConversions`…) | thư mục **riêng** của dòng liên kết |
+
+Conversion để riêng là bắt buộc chứ không phải tiện: thương hiệu/loại SP dùng
+`StandardDefinitions` của Lunar (`small` = Fill 300×300 nền trắng), sản phẩm và
+thư viện dùng `FashionMediaDefinitions` (`small` = Crop theo cài đặt) — cùng tên,
+khác pixel. Dùng chung thư mục là cái sau đè cái trước. Conversion là cache dẫn
+xuất; thứ phải tồn tại một lần là **file gốc**. Nhờ vậy điểm lấy nét cũng đặt
+riêng được cho từng gallery trên cùng một ảnh.
+
+**Ba seam, đều chính thức** — không đụng `vendor/`:
+
+| Seam | Lớp | Làm gì |
+| --- | --- | --- |
+| Action `AddsMedia` của Lunar (Lunar ghi rõ: bind lại contract là cách override) | `Actions/AddMediaThroughLibrary` | Mọi upload vào gallery → lưu vào thư viện (**trùng nội dung SHA-1 thì dùng lại file cũ**) → tạo liên kết. Thư mục theo loại: `products`, `collections`, `brands`, `product-types`, `swatches` |
+| `media-library.path_generator` | `Support/Library/LibraryPathGenerator` | Liên kết đọc file gốc của thư viện |
+| `media-library.file_remover_class` | `Support/Library/LibraryFileRemover` | Xoá liên kết chỉ xoá thư mục riêng của nó, **không bao giờ** xoá file gốc |
+
+Thêm một binding container: `LibraryFilesystem` thay `Filesystem` của Spatie để
+không bao giờ đổi tên/di chuyển file gốc qua một liên kết. Ngoài liên kết, cả bốn
+lớp cư xử y hệt mặc định của Spatie/Lunar. Logic ở `Services/LibraryLinks`.
+
+**Hệ quả:**
+
+- Xoá ảnh khỏi gallery → chỉ gỡ liên kết; file vẫn trong thư viện.
+- Thay file trong thư viện → mọi gallery đang dùng nhận ảnh mới (`resync()`: đổi
+  trỏ, bỏ conversion cũ để sinh lại).
+- Xoá file khỏi thư viện → gỡ khỏi mọi gallery trước (qua `DeletesMedia` của Lunar
+  để ảnh đại diện tự chuyển). File manager hiện **số lượt dùng** trên từng ô và
+  danh sách "Đang dùng ở" trong panel chi tiết; hộp xác nhận xoá nói rõ số gallery
+  bị ảnh hưởng.
+- Định dạng thư viện không nhận (SVG, AVIF) và bản ghi ngoài danh sách
+  `LibraryLinks::MODELS` → `AddMedia` gốc của Lunar, không liên kết.
+
+**Chọn từ thư viện ngay trong gallery.** Nút upload của Lunar mở hộp thoại file
+qua một `<input type="file">` ẩn. `resources/js/panel/media/nativeUploadBridge.js`
+chặn click đó ở capture phase và mở file manager thay vào; ảnh chọn được đưa lại
+vào input và bắn `change`, nên component của Lunar tự upload như file lấy từ máy.
+Bytes đó về tới `AddMediaThroughLibrary`, khớp SHA-1 với chính file thư viện vừa
+chọn → **liên kết tới nó, không sinh bản sao** (đã kiểm bằng trình duyệt thật:
+chọn Asset #14 → gallery có liên kết tới #14, thư viện vẫn 14 file). Kéo thả
+thẳng vào gallery cũng đi qua `AddMediaThroughLibrary` nên vào thư viện như
+nhau. Nhân viên không có quyền `content:manage` nhận `fileManager = null` → bridge
+đứng ngoài, hộp thoại file gốc quay lại (upload của họ vẫn vào thư viện, vì
+action chạy phía server).
+
+Đánh đổi của bridge: ảnh chọn từ thư viện đi một vòng tải về rồi gửi lên (≤
+`lunar.media.max_upload_kb`) chỉ để server nhận ra nó. Đổi lại không phải đoán
+input nào thuộc nhóm media nào trên trang, và mọi uploader của Lunar (kể cả
+swatch) đi chung một đường.
+
+**Ảnh gallery có từ trước** vẫn tự giữ file cho tới khi chạy
+`php artisan assets:adopt-galleries` (xem trước bằng `--dry-run`, không ghi gì).
+Lệnh biến từng dòng thành liên kết **giữ nguyên id** — thứ tự, ảnh đại diện,
+alt, pivot ảnh biến thể còn nguyên — chuyển file gốc vào thư viện hoặc bỏ nó đi
+khi thư viện đã có đúng các byte đó; conversion cũ được giữ vì làm từ cùng một
+ảnh. Chạy lại an toàn. Trên DB dev (2026-09-19): 163 ảnh gallery → 44 file mới
+vào thư viện, 119 gộp vào file đã có.
+
+### Ngoài phạm vi
+
+- `VariantMediaPicker` của Lunar chọn ảnh biến thể **từ gallery sản phẩm** (pivot
+  `media_product_variant`), không upload — để nguyên, và nó giờ là **một trong hai cửa
+  sửa cùng dữ liệu** mà storefront đọc (cửa kia là ô "Ảnh theo màu", xem dưới).
+- Ảnh khách gửi kèm đánh giá cố ý **không** vào thư viện (xem
+  `Review::registerMediaCollections()`).
 
 ## Slot — chèn vào màn hình chính chủ
 
@@ -198,6 +345,26 @@ biết gì về chúng.
 
 Không có gì ở đây ghi đè màn hình của panel. Bỏ section này đi thì trang sửa sản
 phẩm vẫn chạy, chỉ thiếu một thẻ ở sidebar.
+
+### Ảnh theo màu
+
+Slot thứ hai trên cùng trang: `products.edit:content:after`, component
+`shop::ColourImages`. Lunar có ảnh biến thể (`media_product_variant`, có thứ tự, ảnh
+đầu là ảnh chính, `getThumbnail()` đọc nó) nhưng sửa **từng biến thể một** — áo 3 màu ×
+4 size là 12 lần sửa giống hệt. Ô này là hình dạng shop thời trang nghĩ tới: **mỗi màu
+một bộ ảnh**, lưu một lần là mọi size của màu đó nhận cùng bộ, ghi đúng vào pivot của
+Lunar — nên ô chính chủ trên trang biến thể và storefront thấy y như nhau.
+
+- Nguồn ảnh: gallery của chính sản phẩm (bấm để thêm), hoặc file manager (chọn nhiều).
+  Ảnh thư viện được đưa vào gallery qua `LibraryLinks::mediaInGallery()` — dùng lại
+  liên kết có sẵn hoặc ảnh gallery trùng byte, không bao giờ thêm bản trùng; sau đó
+  component reload riêng prop `mediaGroups` để thẻ gallery của Lunar hiện ảnh mới.
+- Mỗi thao tác (thêm, bỏ, đổi thứ tự) lưu ngay **cho một màu**, bằng JSON — không đụng
+  form sản phẩm đang có thể còn chỉnh sửa chưa lưu.
+- Màu có các size đang lệch nhau (ai đó sửa riêng ở trang biến thể) được báo; lưu ở đây
+  là đồng bộ lại.
+- Trục màu: tuỳ chọn đầu tiên kiểu `colour`/`swatch`, hoặc tuỳ chọn duy nhất của sản
+  phẩm; không có → ô nói rõ và chỉ về trang biến thể.
 
 ## Widget dashboard
 
