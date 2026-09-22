@@ -145,9 +145,11 @@ này biến việc đổi tên file thành test đỏ thay vì trang trắng.
 | Bảng size | `hasMany` cho các dòng size |
 | Đăng ký báo hàng về | chỉ đọc, cột tính toán + eager load |
 | Hàng đợi duyệt đánh giá | `rowActions()` duyệt/gỡ, không cho sửa lời khách |
+| Sổ cái điểm thưởng | chỉ đọc, cột tính toán (số dư dẫn xuất từ bút toán) |
+| Hàng đợi giới thiệu | `rowActions()` phát sớm / đóng lượt gian lận |
 | Nhật ký scheduler | chỉ đọc, lỗi xếp lên đầu |
 | Kích thước ảnh | `SettingsGroup`, trường sinh từ `MediaSettings::keys()` |
-| 8 trang cài đặt cũ | một màn hình `SettingsGroup`, mỗi nhóm một tab |
+| 12 nhóm cài đặt của shop (8 trang cũ + Giới thiệu bạn, Điểm thưởng, Giao diện, Kích thước ảnh) | một màn hình `SettingsGroup`, mỗi nhóm một tab |
 | Báo cáo bán hàng | **một** widget dashboard (phần còn lại panel đã có) |
 | Size & Fit của sản phẩm | một `Slot` gắn vào trang sửa sản phẩm chính chủ |
 | Ảnh theo màu | một `Slot` (`products.edit:content:after`) ghi vào ảnh biến thể **của Lunar** |
@@ -394,8 +396,10 @@ gấp trăm lần với đúng con số ghi trên đó.
 ## Cài đặt tính năng
 
 Song song với resource là `SettingsGroup`: cùng bộ trường, nhưng đọc/ghi
-key-value chứ không phải bảng. Tám trang Filament cũ nay là tám nhóm khai báo,
-chung một trang Vue.
+key-value chứ không phải bảng. Mười hai nhóm (8 trang Filament cũ + Giới thiệu bạn,
+Điểm thưởng, Giao diện, Kích thước ảnh) nay là mười hai nhóm khai báo, chung một
+trang Vue: `catalog · inventory · checkout · customer · payment · shipping ·
+membership · notification · referral · loyalty · theme · media`.
 
 Mỗi nhóm **tự giữ kho của nó**. Phần lớn ghi vào `app_settings` qua `Settings`
 (dùng `StoredSettingsGroup`), nhưng theme có bảng riêng và thông tin đăng nhập
@@ -425,7 +429,7 @@ Mỗi resource khai chỗ đứng của nó bằng `navigationGroup()` + `naviga
 và thường là chỗ đúng: Đổi/trả là việc của đơn hàng nên nằm trong `sales`, Đánh giá
 và Bảng size là việc của sản phẩm nên nằm trong `catalog`.
 
-Trước đây cả 13 resource rơi vào một nhóm phẳng "Nội dung shop" ở priority 30, tức
+Trước đây cả 14 resource rơi vào một nhóm phẳng "Nội dung shop" ở priority 30, tức
 là **trên cả Catalog lẫn Sales của Lunar**. Kết quả: thứ đầu tiên nhìn thấy khi mở
 panel là *Tác vụ định kỳ* — một nhật ký chỉ đọc — còn hàng đợi Đổi/trả thì nằm giữa
 bảng Chuyển hướng và Khu vực vận chuyển. Orders, màn hình shop mở mỗi sáng, đứng thứ ba.

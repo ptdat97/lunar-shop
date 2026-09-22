@@ -27,7 +27,7 @@ làm commerce core, storefront Blade SSR. Admin chạy trên `lunarphp/panel`
 | Deploy & vận hành production | [guides/deployment.md](guides/deployment.md) |
 | Hiểu đợt nâng Lunar 1.5 / Filament v4 đã làm gì (lịch sử) | [guides/upgrade-lunar-1.5.md](guides/upgrade-lunar-1.5.md) |
 | Đợt nâng Lunar 2.0 + panel Inertia/Vue: kế hoạch và nhật ký | [guides/upgrade-lunar-2.0.md](guides/upgrade-lunar-2.0.md) |
-| Hợp nhất ProductSku → ProductVariant (đã xong; còn 1 bước dọn) | [guides/migrate-skus-to-variants.md](guides/migrate-skus-to-variants.md) |
+| Hợp nhất ProductSku → ProductVariant (đã xong, bảng legacy đã drop) | [guides/migrate-skus-to-variants.md](guides/migrate-skus-to-variants.md) |
 | Hai lỗi của Lunar và cách sống chung | [upstream/README.md](upstream/README.md) |
 | Xem việc còn tồn đọng | [roadmap.md](roadmap.md) |
 
@@ -162,7 +162,7 @@ modules/<Name>/
 | Module | 13 |
 | File PHP trong `modules/` | 452 |
 | Route `api/v1` | 66 |
-| Route panel (`lunarphp/panel`) | 379 |
+| Route panel (`lunarphp/panel`, gồm 112 route của shop) | 380 |
 | Test | 940 |
 
 > Số liệu là snapshot lúc viết. Chạy `php artisan test` và
@@ -185,6 +185,7 @@ docs/
 │   ├── commands.md                  # lệnh artisan thường dùng
 │   ├── deployment.md                # deploy & vận hành
 │   ├── e2e-testing.md               # Dusk — lỗi phía trình duyệt
+│   ├── migrate-skus-to-variants.md  # runbook hợp nhất SKU → variant (đã xong)
 │   ├── upgrade-lunar-1.5.md         # runbook + nhật ký nâng Lunar 1.3 → 1.5
 │   └── upgrade-lunar-2.0.md         # kế hoạch 2.0 + đổi admin sang panel Vue
 ├── upstream/                        # 2 lỗi upstream + bản vá làm bằng chứng

@@ -87,8 +87,9 @@ SESSION_DOMAIN=your-domain.com
 # 1. Code + dependencies
 git pull --ff-only
 composer install --no-dev --prefer-dist --optimize-autoloader
-                                   # kéo lunarphp/lunar về vendor/ và dựng lại autoload
-                                   # PSR-4 cho 13 module (wikimedia/composer-merge-plugin);
+                                   # kéo lunarphp/core + lunarphp/panel về vendor/ và
+                                   # dựng lại autoload PSR-4 cho 13 module
+                                   # (wikimedia/composer-merge-plugin);
                                    # post-autoload-dump publish lại asset panel
 npm ci && npm run build            # hoặc build ở CI, rsync public/build
 
@@ -101,7 +102,6 @@ php artisan storage:link           # lần đầu
 
 # 4. Cache framework (đã verify hoạt động 2026-07-08)
 php artisan optimize               # config + route + event + view cache
-php artisan icons:cache
 
 # 5. Restart workers (bắt buộc sau khi đổi code — worker giữ code cũ trong RAM)
 php artisan horizon:terminate      # supervisor tự khởi động lại
@@ -164,8 +164,9 @@ stopwaitsecs=3600
 
 Cron (chạy schedule trong `routes/console.php`: horizon:snapshot 5' /
 sanctum:prune-expired daily / queue:prune-failed weekly /
-**orders:expire-abandoned 10'** / carts:remind-abandoned 10' / orders:request-reviews 09:00 /
-referrals:release 09:30):
+lunar:stock:reconcile 03:30 / **orders:expire-abandoned 10'** / carts:remind-abandoned 10' /
+orders:request-reviews 09:00 / referrals:release 09:30 / loyalty:expire 09:45 /
+schedule:heartbeat hourly):
 
 ```cron
 * * * * * cd /var/www/lunar-shop && php artisan schedule:run >> /dev/null 2>&1
@@ -328,8 +329,9 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
 
 - **Backup**: mysqldump hằng ngày (giữ ≥ 14 bản) + `storage/app` & `public/media`
   (ảnh sản phẩm) — script/cron ngoài repo. Test restore mỗi quý.
-- **Log**: `storage/logs/laravel-*.log` (daily, 14 ngày). Cân nhắc gắn error
-  tracker (Sentry/Flare) khi có ngân sách — chưa wired.
+- **Log**: `storage/logs/laravel-*.log` (daily, 14 ngày). **Error tracker: Sentry đã
+  cắm** (2026-09-10) nhưng **tắt mặc định** — chưa có `SENTRY_LARAVEL_DSN` thì không
+  gửi gì. Việc còn lại khi lên production: tạo project Sentry + đặt DSN, xem §9.
 - **Monitor**: uptime check `/up`; Horizon dashboard cho queue lag; disk cho
   `public/media` (conversion tăng dần).
 - **Nâng cấp**: `composer outdated` hàng tháng (Laravel, Lunar, Spatie…) — chạy full
@@ -378,8 +380,8 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
   | --- | --- |
   | **PHPUnit** | Toàn bộ suite trên MySQL 8 thật (không phải SQLite — app dùng JSON function cho attribute + facet) |
   | **Dusk** | Smoke trình duyệt thật. Đỏ thì upload ảnh chụp + console log, vì lỗi trình duyệt không để lại dấu vết phía server |
-  | **Bảo mật dependency** | `composer audit` + `npm audit --omit=dev`. `composer.lock` ghim version nên CVE mới không tự xuất hiện |
-  | **Pint** | Format, chạy `vendor/bin/pint --dirty` (chỉ file đã sửa, tương tự CI).
+  | **Bảo mật dependency** | `composer audit` + `npm audit --omit=dev --audit-level=high`. `composer.lock` ghim version nên CVE mới không tự xuất hiện |
+  | **Pint** | Format, chạy `vendor/bin/pint --test` trên **toàn repo** (local thì dùng `vendor/bin/pint --dirty` cho file vừa sửa) |
   ⚠️ Cả job PHPUnit lẫn Dusk đều **bắt buộc** chạy `npm run build`: `public/build`
   và bundle add-on của panel đều gitignore, thiếu là mọi trang `@vite` trả 500 và
   trang panel render rỗng mà không có lỗi phía server nào để lần.

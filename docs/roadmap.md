@@ -3,7 +3,7 @@
 > **Chỉ ghi việc CHƯA làm.** Hiện trạng ở
 > [architecture/overview.md](architecture/overview.md); lịch sử bug đã sửa ở
 > [history/2026-07-platform-audit.md](history/2026-07-platform-audit.md).
-> Xếp theo ROI giảm dần. Cập nhật: **2026-09-22** (mục 16 điểm thưởng + phần ảnh còn lại của mục 17 xong; số liệu thống kê cập nhật).
+> Xếp theo ROI giảm dần. Cập nhật: **2026-09-22** (mục 16 điểm thưởng + phần ảnh còn lại của mục 17 xong; rà lại số liệu hiện trạng: 131 file test, 24 test Dusk, admin trên panel đã xong Fase 4+5).
 >
 > **Thứ tự ưu tiên đã đảo lại (2026-07-13).** Trước đây danh sách này mở đầu bằng
 > tính năng chuyển đổi (size intelligence, search engine). Rà lại code cho
@@ -169,10 +169,10 @@ Xem [guides/deployment.md](guides/deployment.md) cho runbook đầy đủ.
 > Chi tiết ở changelog [architecture/overview.md](architecture/overview.md) #17–#21.
 
 ### 5. Test còn thiếu
-- ⬜ `modules/<Name>/tests/` **vẫn trống** — toàn bộ 68 file ở `tests/Feature`. Thêm smoke
+- ⬜ `modules/<Name>/tests/` **vẫn trống** — toàn bộ 131 file ở `tests/Feature`. Thêm smoke
   test cạnh module **khi chạm module đó**, không làm một lượt.
 - 🟡 Phần thuần-JS: **browser driver không còn là câu hỏi** — Dusk đã chạy trong
-  CI từ 2026-09-10, và `tests/Browser` nay có 13 test. Nhưng đích **không phải
+  CI từ 2026-09-10, và `tests/Browser` nay có 24 test trong 9 file. Nhưng đích **không phải
   phủ hết JS**: [e2e-testing.md §1](guides/e2e-testing.md) chốt rằng chỉ viết E2E
   cho thứ test feature không chứng minh được, và `tests/Browser` cố ý giữ nhỏ.
   Hai bề mặt tương tác mới nhất đã có (2026-09-18): gửi đánh giá kèm ảnh, và ô
@@ -412,10 +412,12 @@ nay **dừng để tập trung Blade SSR** — storefront chính thức và duy 
 (architecture/overview.md increment #14) — thứ chỉ lộ ra khi có client thật.
 
 #### ⚠️ `/api/v1` **KHÔNG** phải "API cho headless"
-Nó là **xương sống của chính Blade SSR**: **14 file JS** trong `themes/fashion` đang gọi nó
-(cart, coupon, search + suggest, notify-me, recommend-size, locations, membership, auth).
+Nó là **xương sống của chính Blade SSR**: **18 file enhancer** trong
+`themes/fashion/js/enhance` đang gọi nó (cart, coupon, checkout shipping, search +
+suggest, notify-me, recommend-size, review, wishlist, account, membership,
+recently-viewed, lookbook, grid, auth).
 **Gỡ/khoá API = gãy storefront ngay.** Vì thế "đóng băng" ở đây là đóng băng **bề mặt**,
-không phải đóng băng code — **không đụng một dòng code nào**, 394 test giữ nguyên.
+không phải đóng băng code — **không đụng một dòng code nào**, test nguyên trạng.
 
 #### Luật: **GIỮ, KHÔNG MỞ RỘNG** (đã ghi vào [routes/api.php](../routes/api.php))
 - Thêm endpoint/shape vì **Blade SSR cần** → bình thường, cứ làm.
@@ -464,7 +466,8 @@ sai mật khẩu · GA + Facebook pixel.
 
 - ✅ **Lunar 2.0 + panel Inertia/Vue — XONG.** Fase 0→3 (2026-09-09) và
   **Fase 4 + 5 đã hoàn tất**: phần admin riêng của dự án đã viết lại trên panel
-  (13 resource khai báo + 9 tab cài đặt + 2 widget dashboard + Slot Size & Fit).
+  (14 resource khai báo + 12 tab cài đặt + 2 widget dashboard + 2 slot: Size & Fit
+  và Ảnh theo màu).
   Nguồn sự thật là
   [architecture/overview.md § Admin](architecture/overview.md#admin-lunarphppanel--inertia--vue).
   *(Đoạn dưới đây giữ lại làm lịch sử của đợt nâng cấp.)*

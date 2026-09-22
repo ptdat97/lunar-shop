@@ -133,27 +133,22 @@ Customers, Discounts).
 Filament bị xoá. Phần UI chọn display_type phải làm lại thành slot trên trang
 Product Options của panel.
 
-### 4.2 Phải viết lại bằng Vue (9 resource + 16 page + 3 form component)
+### 4.2 Phải viết lại bằng Vue (10 resource + 34 page + 3 form component)
 
-| Nhóm | Của dự án | Cách làm trên panel |
+| Nhóm | Của dự án (sau hợp nhất SKU→variant) | Cách làm trên panel |
 |---|---|---|
-| **Nội dung** (6) | Banner · Lookbook · Menu · Page · PageSection · Redirect | Một `Section` riêng (`Content`) + trang Vue. Không có tương đương first-party |
-| **Catalog** (2) | SizeChart · ProductResource (swap) | SizeChart → Section riêng. ProductResource swap → **slot** trên trang Product |
-| **Đơn hàng** (1) | ReturnRequest (RMA) | `SectionExtension` mở rộng `sales` |
-| **Vận chuyển** (1) | ShippingZone | Settings section riêng |
-| **Trang cấu hình** (9) | Catalog · Payment · Customer · Inventory · Notification · Membership · Shipping · Theme · MediaImageSizes | `settingsNavigation()` + trang `SettingsShell`. Toàn bộ đọc/ghi qua `Modules\Core\Support\Settings` nên **backend giữ nguyên**, chỉ đổi lớp UI |
-| **Kho** (2) | StockOverview · StockNotifications | Section riêng, hoặc widget dashboard |
-| **Vận hành** (2) | MediaLibrary · QueueWorkers | Section riêng |
-| **Phân tích** (1) | AnalyticsDashboard | Panel có dashboard + `widgets()` đăng ký được → chuyển thành widget |
-| **Biến thể** (2) | ManageProductVariants · ManageProductSizing | Slot/trang gắn vào Product edit. **Đây là phần khó nhất** — SKU builder tự viết |
-| **Form component** (3) | MediaPicker · MediaBrowser · MediaPickerField | Viết lại thành Vue component. **14 call site.** Không có tương đương first-party |
+| **Nội dung** (6 resource, 8 màn hình Vue) | Banner · Lookbook · Menu · Page · PageSection · Redirect | Một `Section` riêng (`Content`) + trang Vue chung `shop/resource.vue` cho Index/Create/Edit/Show — mỗi resource đăng ký bởi `ShopSection::addResource()`, không cần file `.vue` mới. Hai màn hình phức tạp nhất: Lookbook và Menu (cây 3 tầng). |
+| **Catalog** (1 resource, 1 slot) | SizeChart → Section riêng; ProductResource swap → **slot** trên trang Product chính chủ (thiếu file `ManageProductVariants.vue` — đã biến mất sau SKU→variant) | SizeChart: `Section` riêng. Product variant: panel đã có sẵn, không viết lại. |
+| **Đơn hàng** (1 resource) | ReturnRequest (RMA) | `SectionExtension` mở rộng `sales` |
+| **Vận chuyển** (1 resource) | ShippingZone | Settings section riêng |
+| **Trang cấu hình** (12 nhóm trong 1 màn hình) | Catalog · Kho · Thanh toán & giỏ · Khách · Cổng thanh toán · Vận chuyển · Hạng thành viên · Thông báo · Giới thiệu bạn · Điểm thưởng · Giao diện · Kích thước ảnh | `settingsNavigation()` + một màn hình `SettingsGroup`, mỗi nhóm một tab. Đọc/ghi qua `Modules\Core\Support\Settings` nên **backend giữ nguyên**, chỉ đổi lớp UI. 8 trang cũ thành 12 nhóm (`catalog · inventory · checkout · customer · payment · shipping · membership · notification · referral · loyalty · theme · media`). |
+| **Kho** (2 resource) | StockOverview · StockNotifications | Section riêng + widget dashboard (StockOverview → widget) |
+| **Vận hành** (1 resource) | MediaLibrary | Section riêng (MediaBrowser, MediaManager — picker ảnh) |
+| **Phân tích** (1 widget) | AnalyticsDashboard | `widgets()` đăng ký một widget, dashboard gọi. |
+| **Biến thể** (0 resource, 1 slot) | (ManageProductVariants đã biến mất sau hợp nhất SKU→variant) | Không còn. Panel có sẵn trang biến thể. |
+| **Form component** (3) | MediaPicker · MediaBrowser · MediaPickerField | Viết lại thành Vue component. **14 call site.** Không có tương đương first-party. MediaPicker làm CUỐI vòng. |
 
-**Nặng nhất, theo thứ tự:** MediaPicker (14 call site, vừa sửa 2 bug tuần trước —
-xem [e2e-testing.md](e2e-testing.md)) → ManageProductVariants (SKU builder) → 6
-resource Nội dung.
-
----
-
+**Nặng nhất, theo thứ tự thực tế:** MediaPicker (14 call site, 2 bug fix tuần trước — xem [e2e-testing.md](e2e-testing.md)) → Menu (cây 3 tầng) → Lookbook (cây 2 tầng kết hợp media) → 6 resource Nội dung. ManageProductVariants không còn trong danh sách — thay vào đó là việc duy trì slot Product Variant trên trang Product chính chủ. |
 ## 5. API mở rộng của panel — cần biết trước khi ước lượng
 
 Addon đăng ký qua service provider:
@@ -495,7 +490,7 @@ buộc, không phải tuỳ chọn.**
 
 ### 9.8 Fase 4 — đã xong
 
-Bảy commit (`c16c8e3` → `3bec7ad`), **618 test xanh**.
+Bảy commit (`c16c8e3` → `3bec7ad`), **940 test xanh**.
 
 Điểm chốt: 25 trong 64 file admin đã xoá là **panel lo sẵn** (sản phẩm, biến thể,
 collection, product type, product option, attribute group, customer group, tag,
@@ -504,11 +499,24 @@ fork gì cả:
 
 | Cách | Dùng cho |
 | --- | --- |
-| Engine resource khai báo | 10 màn hình CRUD (Nội dung, RMA, vùng ship, bảng size, báo hàng về) |
-| `SettingsGroup` | 8 trang cài đặt cũ → một màn hình, 8 tab |
-| `Slot` | Size & Fit chèn vào trang sửa sản phẩm chính chủ |
-| `widgets()` | một thẻ dashboard (phần còn lại panel đã có) |
+| Resource khai báo (PHP) | 14 resource CRUD (banner, lookbook, menu, page, page-section, redirect, size-chart, stock-notification, return-request, scheduled-run, loyalty-entry, referral, review, shipping-zone) |
+| `SettingsGroup` | 12 tab cài đặt → 1 màn hình, mỗi tab một nhóm |
+| `Slot` | Size & Fit + ảnh màu chèn vào trang sửa sản phẩm chính chủ |
+| `widgets()` | 2 thẻ dashboard (`LifetimeWidget`, `StaleCommitmentsWidget`) |
 | Không làm | QueueWorkers → Horizon + `queue:monitor`; MediaImageSizes → `media-library:regenerate` |
+
+Về Vue: năm page — `shop/resource/Index.vue`, `shop/resource/Form.vue`,
+`shop/settings/Edit.vue`, `shop/media/Index.vue`, `shop/media/Picker.vue` — dùng
+chung cho **14 resource** thay vì một file `.vue` riêng mỗi resource. PageResolver
+giải route `shop/resource/` thành component đó và đọc resource name từ URL. Hai slot
+`ProductSizing.vue`, `ColourImages.vue` chèn vào trang sản phẩm chuẩn của panel;
+`ColourImages` dùng chung bộ chọn File Manager với việc khác. Build bằng
+`npm run build:panel` (tức `vite build --config vite.panel.config.js`) →
+`resources/js/panel/dist/lunar-shop/manifest.json` + `*.js`; panel load từ thư mục
+`public/vendor/lunar-panel/shop/build` (cấu hình trong `ShopSection::vite()` →
+`buildDirectory` = `'vendor/lunar-panel/shop/build'`). Phương thức `vite('shop')`
+đăng ký trong `resources/js/panel/index.js` dùng `laravel-vite-plugin`, output
+đến đúng chỗ đó, không làm symlink.
 
 Chi tiết kiến trúc và các hợp đồng của panel phải dò ra bằng cách đọc nguồn:
 [architecture/panel-addon.md](../architecture/panel-addon.md).
@@ -526,23 +534,51 @@ Chi tiết kiến trúc và các hợp đồng của panel phải dò ra bằng 
 4. `Field::image()` ban đầu là ô text. Các cột ảnh lưu **id Asset**, nên đó là
    gõ id trong vô định và ảnh xem trước không bao giờ resolve.
 
+**Resource hiện có (14 resource PHP trong module), mỗi resource một file trong
+`app/Panel/`:**
+
+| Resource | Class (module) | navigationGroup | lý do nhóm |
+| --- | --- | --- | --- |
+| Banner | `Content\\BannerResource` | `shop-content` | banner đổi theo đợt khuyến mãi |
+| Lookbook | `Content\\LookbookResource` | `shop-content` | lookbook đổi theo mùa |
+| Menu | `Content\\MenuResource` | `shop-content` | menu điều hướng gần như dựng một lần |
+| Page | `Content\\PageResource` | `shop-content` | trang là thứ hay sửa nhất |
+| PageSection | `Content\\PageSectionResource` | `shop-content` | khối nội dung dựng nên trang |
+| Redirect | `Content\\RedirectResource` | `shop-content` | chuyển hướng chỉ đụng khi đổi URL |
+| SizeChart | `Catalog\\SizeChartResource` | `catalog` | bảng size là dữ liệu sản phẩm, tra thưa hơn đánh giá |
+| StockNotification | `Inventory\\StockNotificationResource` | `shop-operations` | hàng chờ về là hàng đợi vận hành, không phải nội dung |
+| ReturnRequest | `Order\\ReturnRequestResource` | `sales` | đổi/trả là việc của đơn hàng |
+| ScheduledRun | `Core\\ScheduledRunResource` | `shop-system` | nhật ký scheduler: chỉ đọc, chỉ mở khi truy sự cố |
+| LoyaltyEntry | `Promotion\\LoyaltyEntryResource` | `sales` | sổ cái điểm thưởng |
+| Referral | `Promotion\\ReferralResource` | `sales` | tiếp khách: đặt cùng nhóm đổi/trả và khách hàng |
+| Review | `Catalog\\ReviewResource` | `catalog` | đánh giá gắn sản phẩm, mục của Lunar trong nhóm đều ở 50 nên 60 đưa xuống ngay sau |
+| ShippingZone | `Shipping\\ShippingZoneResource` | `shop-operations` | khu vực vận chuyển là cấu hình giao hàng, sửa thưa (`navigationPriority` 20) |
+
+**Section dùng chung là `shop`** — mỗi resource chỉ ghi `navigationGroup()`.
+Số resource khớp đúng route là 14; `PanelRoutesSmokeTest` quét bảng route chứ không phải bảng viết tay.
+
 ### 9.9 Fase 5 — đã xong
 
-Hai commit (`20d27e0`, `75cfbdc`). **639 test PHPUnit + 8 test Dusk**, tất cả xanh.
+Hai commit (`20d27e0`, `75cfbdc`). **940 test PHPUnit**, tất cả xanh (suite Dusk
+chạy riêng bằng `php artisan dusk` — `phpunit.xml` chỉ nạp `tests/Feature`, xem
+[e2e-testing.md](e2e-testing.md); CI chạy browser test trong job `dusk` của
+[`.github/workflows/ci.yml`](../../.github/workflows/ci.yml)).
 
 `PanelRoutesSmokeTest` quét **bảng route** chứ không phải danh sách viết tay, nên
-màn hình thêm ngày mai được phủ mà không cần ai nhớ sửa nó. Hiện 60 màn hình,
-cộng: từng resource khớp đúng cái nó khai (`canCreate` sai thì màn hình thêm
-phải 404, không phải mở), từng tab cài đặt, và mọi mục điều hướng phải trỏ tới
-route có thật — mục nào route đổi tên sẽ resolve ra null thành link chết mà
-không ai chạy test thấy được. Chuyển hướng thì đi theo chứ không bỏ qua: một cú
+màn hình thêm ngày mai được phủ mà không cần ai nhớ sửa nó. Hiện có **380 route
+panel** (panel gốc của Lunar + 112 route `/panel/shop` của shop, trong đó 14 resource
+× 7 route + media files API; và 24 route `/panel/settings/shop` = 12 tab × 2); từng
+resource khớp đúng cái nó khai (`canCreate` sai
+thì màn hình thêm phải 404, không phải mở), từng tab cài đặt, và mọi mục điều hướng
+phải trỏ tới route có thật — mục nào route đổi tên sẽ resolve ra null thành link chết
+mà không ai chạy test thấy được. Chuyển hướng thì đi theo chứ không bỏ qua: một cú
 302 vào màn hình hỏng vẫn trông như pass.
 
-Về Dusk: suite cũ chỉ phủ storefront nên **không có selector `wire:` nào để
-đổi** — thứ lỗi thời là tài liệu, đã viết lại (§3.2, §3.3 của
+Về Dusk: suite cũ chỉ phủ storefront nên **không có selector `wire:` nào để đổi** —
+thứ lỗi thời là tài liệu, đã viết lại (§3.2, §3.3 của
 [e2e-testing.md](e2e-testing.md)). `PanelFormsTest` thêm vào để phủ đúng nửa mà
-test feature không chạm tới được: nhánh điều kiện hiện/ẩn, thêm/xoá dòng
-repeater, slug bám tiêu đề, bộ chọn ảnh mở ra. Chỉ đọc, không bao giờ lưu.
+test feature không chạm tới được: nhánh điều kiện hiện/ẩn, thêm/xoá dòng repeater,
+slug bám tiêu đề, bộ chọn ảnh mở ra. Chỉ đọc, không bao giờ lưu.
 
 Hai lỗi bắt được nhờ chính việc viết test:
 
@@ -550,6 +586,78 @@ Hai lỗi bắt được nhờ chính việc viết test:
   `MIN_HOLD_MINUTES = 10` — admin gõ 1, thấy báo đã lưu, hệ thống dùng 10.
 - Select bắt buộc chưa chọn thì Vue đặt `selectedIndex = -1`, ô hiện trống, đọc
   như "rỗng" chứ không phải "hãy chọn".
+
+### 9.10 Hướng dẫn viết resource Vue mới — dành cho lần sau
+
+Khi thêm resource mới, làm theo từng bước sau cho chuẩn với codebase hiện tại.
+
+**Bước 1 — PHP resource (module đang sở hữu entity).**
+
+Tạo `app/Panel/ThingResource.php` extends `PanelResource`, ghi luôn hai method:
+
+```php
+class ThingResource extends PanelResource
+{
+    public function section(): string
+    {
+        return 'shop';
+    }
+
+    public function navigationGroup(): string
+    {
+        return 'shop-content'; // hoặc catalog / sales / shop-operations / shop-system
+    }
+}
+```
+
+Section luôn là `'shop'`; nhóm điều hướng lấy từ các nhóm sẵn có (xem bảng §9.8),
+không tạo nhóm mới trừ khi nhóm đó chứa ít nhất 2 resource. Ghi `service()` nếu
+resource cần service khác với trước, ghi `handle()` nếu có bước đảo ngược khi
+xóa.
+
+**Bước 2 — Liên kết route → file Vue.**
+
+`ResourceController` của panel sinh route từ resource class rồi tra tên component
+từ route name. Component được đăng ký trong `resources/js/panel/index.js` bằng
+`window.LunarPanel.registerPages({ 'shop/resource/Index': ResourceIndex, ... })`.
+
+Bốn page sẵn có (`shop/resource/Index`, `shop/resource/Form`,
+`shop/settings/Edit`, `shop/media/Index`) đã dùng chung cho mọi resource. Giữ nguyên
+điều đó: mỗi resource mới không cần file `.vue` riêng — chỉ cần resource class PHP
+và khai báo đúng trong `index.js` nếu resource dùng page khác hoặc slot riêng.
+
+**Bước 3 — Khai báo Vue trong `resources/js/panel/index.js`.**
+
+Nếu resource dùng page mặc định `shop/resource/Index` và `shop/resource/Form`
+thì không cần khai báo thêm. Chỉ thêm vào `registerPages()` khi resource dùng
+page riêng (ví dụ `shop/media/Index` cho Media) hoặc slot riêng
+(ví dụ `ProductSizing.vue` cho Size & Fit).
+
+**Bước 4 — Build.**
+
+Sau khi sửa `index.js` hoặc thêm component mới, chạy:
+
+```bash
+npm --prefix resources/js/panel run build
+```
+
+Build sinh `resources/js/panel/dist/lunar-shop/manifest.json` và các file `*.js`,
+viết vào `vendor/lunar-panel/lunar-shop/` để panel load trong browser. Panel 읽
+file này khi khởi tạo, nếu file thiếu hoặc outdated, resource sẽ 404 hoặc slot không hiện.
+
+**Bước 5 — Test.**
+
+`PanelRoutesSmokeTest` tự quét bảng route, kiểm tra từng resource khớp với
+route có thật, từng tab cài đặt khớp, và mọi mục điều hướng trỏ đúng.
+Chạy `php artisan test --filter=PanelRoutesSmokeTest` để đảm bảo resource mới
+không bị miss. Đừng thêm nào vào bảng viết tay — sẽ lỗi khi route đổi tên.
+
+**Lưu ý:** Không tạo resource khi entity đã có sẵn trong panel (sản phẩm, biến
+thể, collection, product type, product option, attribute group, customer group, tag,
+thuế). Panel lo sẵn 9 thứ đó — chỉ mở rộng khi entity của dự án không có trong
+panel (ví dụ banner, lookbook, menu, page, page-section, redirect, size-chart,
+stock-notification, return-request, scheduled-run, loyalty-entry, referral, review).
+Đừng viết lại thứ panel đã có — chỉ kế thừa và mở rộng.
 
 ### 9.10 Việc duy nhất còn lại — và tại sao đã làm xong
 

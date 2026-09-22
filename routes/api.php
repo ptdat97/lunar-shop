@@ -19,8 +19,10 @@
 |
 | The Next.js storefront is on hold; Blade SSR is the only storefront. But
 | `/api/v1` is NOT "the headless API" — it is the backbone of Blade SSR itself:
-| 14 theme JS files call it (cart, coupon, search + suggest, notify-me,
-| recommend-size, locations, membership, auth). It stays, and it stays healthy.
+| 18 `themes/fashion/js/enhance/*.js` files call it (cart, coupon, checkout
+| shipping, search + suggest, notify-me, recommend-size, review, wishlist,
+| account, membership, recently-viewed, lookbook, grid, auth). It stays, and it
+| stays healthy.
 |
 | What is frozen is the SURFACE, not the code. The rule is: KEEP, DON'T EXTEND.
 |
@@ -29,13 +31,18 @@
 |     building for a consumer that does not exist. The project already decided
 |     this once (audit § Phần 4 deferred /home-feed for exactly this reason).
 |
-| These endpoints have NO Blade consumer today — they exist for a headless/mobile
-| client that is currently on hold. Keep them working; do not grow them:
+| These endpoints have NO consumer today — they exist for a headless/mobile
+| client that is currently on hold. Keep them working; do not grow them
+| (re-measured 2026-09-22 by grepping themes/):
 |
 |   /home-feed · /devices · /notifications (+ read, read-all)
-|   /orders/{id}/timeline · /auth/token/* (PAT issue/refresh/revoke)
-|   /banners · /pages · /collections/{slug} · /wishlist · /orders
-|   /products/{product}/reviews · /checkout/* · /health (infra probe)
+|   /orders (index) · /orders/{id}/timeline · /auth/token/* (PAT issue/refresh/revoke)
+|   /banners · /pages · /pages/{slug} · /collections/{slug} · /health (infra probe)
+|
+| Adopted since the freeze was written (they DO have a consumer now, so the
+| "do not grow" clause no longer applies to them): GET+POST /wishlist,
+| GET /orders/{id}, POST /checkout/shipping, POST /products/{product}/reviews
+| (the review form posts straight at this endpoint).
 |
 | Note /auth/token/* also carries token expiry + abilities — a guard with a
 | mutation-check behind it (increment #4). Do not remove it to "clean up": it

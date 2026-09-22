@@ -51,7 +51,7 @@ themes/fashion/
  ├── theme.json                 # manifest: name, version, author
  ├── views/
  │    ├── layouts/app.blade.php # <html> shell: head/meta/SEO, header, @yield, footer, @stack
- │    ├── partials/  (14)       # header, footer, cart-drawer, search-panel, size-chart,
+ │    ├── partials/  (17)       # header, footer, cart-drawer, search-panel, size-chart,
  │    │                         # promo-bar, recently-viewed, product-jsonld, pixels…
  │    ├── pages/     (16)       # home, product, collection, search, cart, checkout(+confirmation),
  │    │                         # wishlist, account, login, register, page, lookbook(s), promotion(s)
@@ -64,7 +64,7 @@ themes/fashion/
  │    ├── api.js                # axios instance (baseURL /api/v1, CSRF/Sanctum cookie)
  │    ├── events.js             # cart:updated / cart:refreshed bus
  │    ├── config/               # hằng số chia sẻ giữa Blade và JS (vd grid.js)
- │    └── enhance/   (25)       # vanilla — mỗi file export default fn(root=document)
+ │    └── enhance/   (31)       # vanilla — mỗi file export default fn(root=document)
  └── css/
       ├── app.scss              # entry Vite
       ├── features/             # _header, _product-card, _mini-cart, _search-panel…
@@ -136,12 +136,19 @@ domain).
   Key theo **tập ảnh** chứ không theo variant id: mọi size cùng màu dùng chung bộ ảnh
   nên đổi size **không** rebuild gallery (giữ nguyên vị trí slide đang xem).
 - **`add-to-cart.js`**, **`cart.js`**, **`cart-page.js`** — giỏ + mini-cart drawer.
-- **`collection-shop.js`**, **`search-results.js`**, **`search-panel.js`** — filter/sort/
-  phân trang + suggest.
+- **`collection-shop.js`**, **`search-results.js`**, **`search-panel.js`**,
+  **`shop-filter-count.js`** — filter/sort/phân trang + suggest + đếm kết quả.
+- **`checkout-address.js`** (Tỉnh→Phường qua `/api/v1/locations`),
+  **`checkout-options.js`** (phí ship/nhận tại cửa hàng), **`checkout-coupon.js`**,
+  **`checkout-loyalty.js`** (ô tiêu điểm) — bốn mảnh ghép của trang thanh toán;
+  `checkout-pickup.js` cho luồng nhận tại cửa hàng.
 - **`size-finder.js`** — "tìm size của tôi" → bắn event `size:recommended`, variant
   picker nghe và chọn size tương ứng.
-- **`notify-me.js`**, **`wishlist.js`**, **`membership.js`**, **`flash-sale.js`**,
-  **`lookbook.js`**, **`recently-viewed.js`**, **`pixels.js`**.
+- **`review-form.js`** (gửi đánh giá kèm ảnh qua `FormData`),
+  **`referral.js`** (copy link giới thiệu), **`membership.js`**, **`flash-sale.js`**,
+  **`lookbook.js`**, **`recently-viewed.js`**, **`wishlist.js`**, **`notify-me.js`**,
+  **`mobile-menu.js`**, **`sliders.js`**, **`product-tabs.js`**, **`account.js`**,
+  **`auth.js`**, **`pixels.js`**.
 
 ---
 

@@ -1,11 +1,12 @@
 # Lunar Shop
 
 Ecommerce fashion cho SME single-store — Laravel 12 + [Lunar](https://lunarphp.io/)
-commerce core, admin Filament 3, storefront Blade SSR.
+commerce core 2.0 (`lunarphp/core`), admin trên `lunarphp/panel` (Inertia + Vue 3),
+storefront Blade SSR.
 
 ## Yêu cầu
 
-- PHP 8.2+ (`bcmath`, `curl`, `exif`, `fileinfo`, `iconv`, `intl`, `json`, `openssl`, `pdo`, `simplexml`, `zip`)
+- PHP 8.4+ (`bcmath`, `curl`, `exif`, `fileinfo`, `iconv`, `intl`, `json`, `openssl`, `pdo`, `simplexml`, `zip`)
 - MySQL 8+
 - Node 18+ · Composer 2
 
@@ -13,12 +14,12 @@ commerce core, admin Filament 3, storefront Blade SSR.
 
 ```bash
 composer setup          # install · .env · key · migrate · npm install · build
-php artisan db:seed     # dữ liệu demo: catalog, SKU, review, tồn kho, CMS
+php artisan db:seed     # dữ liệu demo: catalog, biến thể, đánh giá, tồn kho, CMS
 php artisan lunar:create-admin
 composer dev            # server + queue + logs + vite
 ```
 
-Storefront ở `/`, admin ở `/lunar`.
+Storefront ở `/`, admin (panel Lunar) ở `/panel`.
 
 ## Kiểm thử
 
@@ -36,7 +37,9 @@ Toàn bộ tài liệu kỹ thuật nằm trong **[docs/](docs/README.md)**.
 | [Kiến trúc tổng thể](docs/architecture/overview.md) | Hệ thống có gì, hoạt động ra sao |
 | [Quy tắc viết code](docs/guides/coding-standards.md) | Bắt buộc đọc trước khi commit |
 | [Theme `fashion`](docs/architecture/theme.md) | Cấu trúc storefront |
+| [Màn hình admin riêng](docs/architecture/panel-addon.md) | Thêm màn hình trên panel Lunar |
 | [Lệnh thường dùng](docs/guides/commands.md) | artisan cheatsheet |
+| [Test E2E](docs/guides/e2e-testing.md) | Lỗi chỉ xảy ra trong trình duyệt |
 | [Deploy & vận hành](docs/guides/deployment.md) | Đưa lên production |
 | [Việc còn tồn đọng](docs/roadmap.md) | Roadmap |
 

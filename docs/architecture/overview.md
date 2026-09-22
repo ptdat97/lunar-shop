@@ -6,15 +6,15 @@
 > (không Vue). Chỉ ghi những gì đã có trong code.
 >
 > Cập nhật lần cuối: **2026-09-22** — 13 module nghiệp vụ (layout nwidart v13),
-> 66 route `api/v1`, 379 route panel, 940 test (có 2 test cơ sở dữ liệu l Error
-> khi chạy cùng nhau do `RefreshDatabase` races — xen kẽ `--order-by=random` thì
-> toàn bộ xanh).
+> 66 route `api/v1`, 380 route panel (112 route dưới `/panel/shop` của dự án),
+> 940 test (2 test DB trong `KeyRotationTest` có thể `Error` khi chạy cùng nhau do
+> `RefreshDatabase` races — xen kẽ `--order-by=random` thì toàn bộ xanh).
 >
-> ⚠️ **Admin đang dở dang.** Fase 3 của [đợt nâng 2.0](../guides/upgrade-lunar-2.0.md)
-> đã gỡ toàn bộ admin Filament và cài `lunarphp/panel` (Inertia + Vue); panel phục
-> vụ 370 route của chính nó, nhưng **các trang riêng của dự án chưa được viết lại**
-> (Fase 4). Mục nói về Filament bên dưới đã đổi theo, nhưng đừng đọc chúng như
-> "đang chạy".
+> ✅ **Admin đã viết lại xong.** [Đợt nâng 2.0](../guides/upgrade-lunar-2.0.md) đã gỡ
+> toàn bộ admin Filament, cài `lunarphp/panel` (Inertia + Vue) và hoàn tất **Fase 4
+> + 5**: 14 resource khai báo, 12 tab cài đặt của shop, 2 slot trên trang sản phẩm,
+> 2 widget dashboard, file manager của module Assets. Chi tiết:
+> [panel-addon.md](panel-addon.md) và § Admin bên dưới.
 >
 > **Lunar là composer package `lunarphp/lunar` trong `vendor/`** — bản fork trong repo
 > đã được gỡ (2026-07-20). Đừng sửa `vendor/`; xem
@@ -29,10 +29,11 @@
 > 3 probe công khai (increment #14) — đúng như dự đoán của audit: *có những thứ chỉ lộ ra
 > khi có client thật*.
 >
-> ⚠️ **`/api/v1` KHÔNG phải "API cho headless" — nó là xương sống của chính Blade SSR:**
-> **14 file JS** trong `themes/fashion` gọi nó (cart, coupon, search + suggest, notify-me,
-> recommend-size, locations, membership, auth). Nên nó **giữ nguyên và phải khoẻ**; gỡ/khoá
-> là gãy storefront ngay.
+> **`/api/v1` KHÔNG phải "API cho headless" — nó là xương sống của chính Blade SSR:**
+> **18 file enhancer** trong `themes/fashion/js/enhance` gọi nó (cart, coupon,
+> checkout address/shipping, search + suggest, notify-me, recommend-size, review,
+> wishlist, account, membership, recently-viewed, lookbook, grid collection/search,
+> auth). Nên nó **giữ nguyên và phải khoẻ**; gỡ/khoá là gãy storefront ngay.
 >
 > 🧊 **Đóng băng (2026-07-13) là đóng băng BỀ MẶT, không phải code** — không đụng một dòng,
 > test nguyên trạng. Luật: **GIỮ, KHÔNG MỞ RỘNG** — thêm endpoint vì Blade SSR cần thì
@@ -150,7 +151,7 @@ qua package auto-discovery.
 | | Cách làm hiện tại |
 |---|---|
 | Core engine (`Lunar\`) | `vendor/lunarphp/core` — **không sửa** |
-| Admin panel (`Lunar\Panel\`) | `vendor/lunarphp/panel` — `Panel::section()` / slot (Fase 4 chưa viết) |
+| Admin panel (`Lunar\Panel\`) | `vendor/lunarphp/panel` — `Panel::section()` / slot / `SettingsGroup` / widget (xem [panel-addon.md](panel-addon.md)) |
 | Thêm quan hệ vào model core | `Model::resolveRelationUsing()` |
 | Thêm/đổi cast trên model core | `Model::addCasts()` — ví dụ `FilledTranslations` |
 | Thêm scope | `Model::addLocalScope()` |
@@ -316,8 +317,8 @@ module cùng nghe một event, không biết nhau.
 
 ## (6) Panel admin — Section / Slot / TableExtension
 
-⚠️ **Chưa dùng — Fase 4 chưa bắt đầu.** Mục này ghi API sẵn có để lúc viết không
-phải khảo sát lại.
+✅ **Đang dùng** — 5 section, 14 resource, 12 `SettingsGroup`, 2 slot, 2 widget. Mục này
+là bản đồ API mở rộng; hợp đồng chi tiết ở [panel-addon.md](panel-addon.md).
 
 `lunarphp/panel` (Inertia + Vue) mở rộng qua `Lunar\Panel\Facades\Panel`:
 
@@ -348,7 +349,7 @@ Thứ tự mọi thứ (nav, cột, action) dùng `Lunar\Panel\Support\Position`
 | `resolveRelationUsing` | `boot()` | model đã load |
 | `Model::addCasts` / `addLocalScope` | `register()` | trước khi model được dùng |
 | `Event::listen` | `boot()` | |
-| `Panel::section()` | `boot()` | facade cần app booted (Fase 4) |
+| `Panel::section()` | `boot()` | facade cần app booted |
 
 > **Core (`Modules\Core`) đăng ký đầu tiên** → `Settings`,
 > `LunarConfigOverride`, `Queues` sẵn sàng cho mọi module. Core **chỉ hạ tầng**, tuyệt
@@ -1010,8 +1011,9 @@ dashboard của panel có sẵn `LowStockWidget`.
 # Admin (`lunarphp/panel` — Inertia + Vue)
 
 Panel Lunar có sẵn trang cho Catalog, Sales, Customers, Settings — **kế thừa, không
-build lại**. Phục vụ 370 route dưới `/panel`; asset là bản biên dịch sẵn của vendor,
-publish bằng `lunar:panel:install` (đã gắn vào `post-autoload-dump`).
+build lại**. Phục vụ 380 route dưới `/panel` (112 trong đó là `/panel/shop` của dự án);
+asset là bản biên dịch sẵn của vendor, publish bằng `lunar:panel:install` (đã gắn vào
+`post-autoload-dump`).
 
 **Phần admin riêng của dự án đã viết lại xong** (Fase 4 + 5 của
 [đợt nâng 2.0](../guides/upgrade-lunar-2.0.md)). Điểm chốt: **25 trong 64 file
@@ -1021,10 +1023,11 @@ product option, attribute group, customer group, tag, thuế. Phần còn lại 
 
 | Cách | Dùng cho |
 | --- | --- |
-| Engine resource khai báo | 13 màn hình CRUD (Nội dung, RMA, vùng ship, bảng size, báo hàng về, duyệt đánh giá, nhật ký scheduler, sổ cái điểm) |
-| `SettingsGroup` | 8 trang cài đặt cũ + kích thước ảnh → một màn hình, 11 tab (thêm Giới thiệu bạn, Điểm thưởng) |
-| `Slot` | Size & Fit chèn vào trang sửa sản phẩm chính chủ |
+| Engine resource khai báo (`PanelResource`) | **14 màn hình CRUD** — banner · lookbook · menu · page · page-section · redirect · bảng size · đánh giá · báo hàng về · đổi/trả (RMA) · nhật ký scheduler · sổ cái điểm · giới thiệu bạn · vùng vận chuyển |
+| `SettingsGroup` | **12 tab cài đặt** → một màn hình: catalog · inventory · checkout · customer · payment · shipping · membership · notification · referral · loyalty · theme · media |
+| `Slot` | **2 slot** trên trang sửa sản phẩm chính chủ: Size & Fit, và Ảnh theo màu (`ColourImages`) |
 | `widgets()` | hai thẻ dashboard: luỹ kế 6 tháng, đơn giữ hàng quá lâu |
+| Section riêng (`Panel::section()`) | 5 section của shop: `shop` (nhóm Nội dung · Vận hành · Hệ thống), `catalog`, `inventory`, `assets` (file manager), `analytics` (widget) |
 | Không làm | QueueWorkers → Horizon; MediaImageSizes → `media-library:regenerate` |
 
 Chi tiết và các hợp đồng của panel: [panel-addon.md](panel-addon.md).

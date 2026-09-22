@@ -1,7 +1,9 @@
 # Migration Runbook — `ProductSku` → `Lunar\Core\Models\ProductVariant`
 
-> **Trạng thái:** kế hoạch, chưa thực thi. Là phần tiếp theo của
-> [upgrade-lunar-2.0.md](upgrade-lunar-2.0.md) và **chặn Fase 4** của nó.
+> **Trạng thái: XONG.** Pha A–F đã chạy; `lunar_product_skus` + `sku_variant_map` đã
+> drop (2026-09-09), kiểm chứng lại 2026-09-22 — xem §7. Không còn bước nào phải làm.
+> Là phần tiếp theo của [upgrade-lunar-2.0.md](upgrade-lunar-2.0.md) và là điều kiện
+> để Fase 4 (viết lại admin) chạy được.
 >
 > Đọc [§0](#0-tại-sao-lại-đảo-quyết-định-cũ) trước — mục này giải thích vì sao
 > một quyết định kiến trúc cũ bị đảo, và bằng chứng nào cho phép đảo.
@@ -67,7 +69,7 @@ Mỗi pha để lại app chạy được và test xanh. **Không gộp pha.**
 | C | ✅ **Xong** (gộp vào B) — tồn kho sang `StockLevel` | `stock_on_hand` khớp `quantity` cũ từng dòng |
 | D | ✅ **Xong** — đổi purchasable trong code | xem §6 |
 | E | ✅ **Xong** — bộ chọn đọc option value | Trang sản phẩm giữ nguyên hành vi; JS không đổi |
-| F | 🟡 Gỡ code xong; **bảng `lunar_product_skus` còn nguyên** | Giữ làm lưới an toàn — xem §7 |
+| F | ✅ **Xong** — gỡ code + drop bảng `lunar_product_skus` và `sku_variant_map` | Xem §7 |
 
 > **Pha A chạy được ngay và độc lập.** Nó không phụ thuộc quyết định nào ở B–F.
 > Đã xong — và nó đào ra hai lỗi thật, xem [§5](#5-nhật-ký-pha-a).
@@ -300,8 +302,9 @@ kiểm **kết quả** đi qua checkout, không kiểm ruột của bên tạo r
 
 ## 7. Việc còn lại
 
-`lunar_product_skus` (648 dòng) và `sku_variant_map` **đã được drop** trong migration
-`2026_09_09_170000_drop_legacy_sku_tables` (2026-09-09).
+**Không còn việc nào — cả ba bảng của thời trước 2.0 đã được drop.**
+`lunar_product_skus` (648 dòng), `sku_variant_map` và `stock_movements` **đã được drop**
+trong migration `2026_09_09_170000_drop_legacy_sku_tables` (2026-09-09).
 
 Migration drop này đã chạy thành công, hai bảng SKU legacy đã được gỡ khỏi DB.
 Không còn dòng code nào đọc hai bảng này sau migration drop. Ánh xạ SKU → variant
@@ -309,8 +312,9 @@ ban đầu (648 SKU ↔ 648 map ↔ 648 variant) đã được giữ nguyên tro
 migration, không mồ côi hai chiều — việc migrate data sang `product_variants`
 đã hoàn tất trước khi drop.
 
-Migration drop đã được bổ sung vào `database/migrations/` và đã chạy. Hai bảng
-SKU không còn trong schema hiện tại.
+Migration drop đã được bổ sung vào `modules/Catalog/database/migrations/` (migration
+của module, không phải `database/migrations/` của app) và đã chạy. Ba bảng của thời
+trước 2.0 không còn trong schema hiện tại.
 
 Kiểm chứng 2026-09-22: `migrate:status` báo `2026_09_09_170000_drop_legacy_sku_tables`
 là `Ran`. Hai bảng SKU legacy không còn tồn tại trong DB. Không còn bước drop nào

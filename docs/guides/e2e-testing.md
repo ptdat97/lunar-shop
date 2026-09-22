@@ -1,13 +1,13 @@
 # Test E2E — khi PHPUnit không nhìn thấy lỗi
 
 > Laravel Dusk lái Chrome thật. Đây là công cụ **chẩn đoán**, không phải tầng test
-> chính — 722 test PHPUnit vẫn là lưới an toàn hằng ngày.
+> chính — 940 test PHPUnit vẫn là lưới an toàn hằng ngày.
 > Dựng ra sau đợt truy một bug mất nhiều vòng vì thiếu đúng công cụ này.
 > Cập nhật: **2026-09-22**.
 >
-> **Từ 2026-09-10 nó cũng chạy trong CI** (job `dusk`, xem
-> [deployment.md](deployment.md) §9) và hiện vẫn xanh như lúc cắm (xem note
-> [ci.md](ci.md)).
+> **Từ 2026-09-10 nó cũng chạy trong CI** (job `dusk` trong
+> [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml); bảng job đầy đủ ở
+> [deployment.md §9](deployment.md)) và hiện vẫn xanh như lúc cắm.
 
 ---
 
@@ -279,7 +279,7 @@ cảnh báo preload:
 $browser->driver->manage()->getLog('browser');
 ```
 
-Xem `consoleErrors()` trong `tests/Browser/VariantMediaPickerTest.php`. Nhớ **xả
+Xem `consoleErrors()` trong `tests/Browser/PanelFormsTest.php`. Nhớ **xả
 log** sau bước tải trang, để assert sau đó chỉ nói về thao tác đang xét.
 
 ---
@@ -358,25 +358,29 @@ nào. (`keys('body', …)` thì hỏng vì lý do khác — xem §3.2: Dusk tự
 ## 4. Khuôn một test đáng tin
 
 ```php
-$browser->loginAs(Staff::findOrFail(1), 'staff')   // route _dusk/login, không cần mật khẩu
-    ->visit('/lunar/products/1/variants')
-    ->waitForText('SKU', 15)
-    ->pause(1500);                                  // để x-load init xong
+$browser->loginAs($this->staffId(), 'staff')       // route _dusk/login, không cần mật khẩu
+    ->visit('/panel/shop/banners/create')
+    ->waitFor('[data-media-picker]', 10)
+    ->click('[data-media-picker]')
+    ->waitFor('.shop-fm-overlay iframe', 10)
+    ->withinFrame('.shop-fm-overlay iframe', function (Browser $frame): void {
+        $frame->waitFor('[data-fm-asset]', 15)->doubleClick('[data-fm-asset]');
+    })
+    ->waitUntilMissing('.shop-fm-overlay', 5);
 
-$before = $this->rowImageKeys($browser, $rowKey);   // trạng thái NHÌN THẤY, trước
-// … thao tác …
-$after = $this->rowImageKeys($browser, $rowKey);    // và sau
+$before = count($browser->elements('[data-media-picker] img'));   // 0 ở form create
+// … chọn ĐÚNG một ảnh trong file manager …
+$after = count($browser->elements('[data-media-picker] img'));
 
-$this->assertSame($before, array_values(array_intersect($after, $before)));
-$this->assertCount(count($before) + 1, $after);
+$this->assertSame($before + 1, $after);            // thêm đúng một ảnh
 ```
 
 Ba điểm khiến nó đáng tin:
 
 1. **So trước/sau** trên cùng một đối tượng — không phụ thuộc dữ liệu seed.
 2. **Assert cụ thể**: "thêm đúng một, giữ nguyên cái cũ", chứ không phải "có thay
-   đổi gì đó". Bản đầu của tôi chỉ assert `before !== after` và vẫn xanh trong khi
-   picker đang **xoá sạch** ảnh cũ.
+   đổi gì đó". Bản đầu của khuôn này chỉ assert `before !== after` và vẫn xanh trong
+   khi picker đang **xoá sạch** ảnh cũ.
 3. **Không đọc state nội bộ** — chỉ đọc DOM.
 
 ---
@@ -399,7 +403,7 @@ trả về cả dòng SKU chứ không phải field. Nhớ gỡ ra sau khi xong.
 
 | File | Test | Canh cái gì |
 | --- | --- | --- |
-| `PanelFormsTest` | 5 | Bundle add-on nạp và render; đổi loại section thì nhánh hiển thị đổi theo; repeater thêm/xoá dòng; slug bám theo tiêu đề; trường ảnh mở được thư viện |
+| `PanelFormsTest` | 8 | Bundle add-on nạp và render; đổi loại section thì nhánh hiển thị đổi theo; repeater thêm/xoá dòng; slug bám theo tiêu đề; trường ảnh mở được thư viện |
 | `StorefrontSmokeTest` | 3 | 12 trang chính tải được **và console sạch** — trang chủ, collection, tìm kiếm, sản phẩm, nội dung, lookbook, khuyến mãi, giỏ, wishlist, đăng nhập, đăng ký |
 | `StorefrontI18nSmokeTest` | 2 | Khối i18n tới được trình duyệt và parse được; lời nhắc freeship ghép đúng từ mẫu đã dịch + thay `:amount` |
 | `FreeShippingProgressTest` | 1 | Enhancer vẽ thanh tiến độ freeship thật vào mini-cart **và** trang giỏ |
@@ -411,6 +415,9 @@ trả về cả dòng SKU chứ không phải field. Nhớ gỡ ra sau khi xong.
 
 Chạy trong CI từ 2026-09-10 (job `dusk`), đỏ thì upload ảnh chụp + console log —
 đó là toàn bộ bằng chứng còn lại khi lỗi nằm ở trình duyệt.
+
+Tổng: **24 test trong 9 file** (`tests/Browser/*Test.php`). Cố ý nhỏ — xem §1
+nguyên tắc 1.
 
 ### Cố ý KHÔNG viết E2E cho
 

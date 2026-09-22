@@ -70,7 +70,8 @@ View → Database                  ❌
 
 Mỗi module ở `modules/<Name>`, namespace `Modules\<Name>` → `modules/<Name>/app`,
 đăng ký qua `<Name>ServiceProvider` khai trong `module.json` — **nwidart nạp**, không
-phải `ModulesServiceProvider` (provider đó nay chỉ dựng Lunar panel). Cấu trúc thực tế:
+qua provider trung gian nào (thời Filament có `ModulesServiceProvider`; panel Inertia
+2.0 có `Panel::section()` chính thức nên file đó đã bị xoá). Cấu trúc thực tế:
 
 ```text
 modules/<Name>/

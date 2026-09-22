@@ -3,12 +3,26 @@
 > Tìm ra trong đợt nâng Lunar 1.3 → 1.5
 > ([../guides/upgrade-lunar-1.5.md](../guides/upgrade-lunar-1.5.md)). Cả hai là lỗi
 > của **upstream**, không phải của dự án.
-> Cập nhật: **2026-08-27**, đối chiếu `lunarphp/lunar` nhánh `1.x` tại `77bd9c5`.
+> Cập nhật: **2026-09-22** — kiểm lại trên `lunarphp/core` **2.0.0-alpha.6** (bản đang
+> chạy; `lunarphp/lunar` thời Filament đã gỡ). Bản mô tả gốc đối chiếu nhánh `1.x`
+> tại `77bd9c5`.
 
 **Quyết định: không fork Lunar.** Cả hai lỗi được xử lý ngay trong repo này, bằng
-điểm mở rộng chính chủ, tương thích nguyên vẹn với `"lunarphp/lunar": "^1.5"`.
-Hai file `.patch` kèm đây giữ lại làm **bằng chứng kỹ thuật** — đủ để mở issue
-upstream mà không cần fork, và để đối chiếu nếu bản vá chính thức xuất hiện.
+điểm mở rộng chính chủ. Hai file `.patch` kèm đây giữ lại làm **bằng chứng kỹ thuật**
+— đủ để mở issue upstream mà không cần fork, và để đối chiếu nếu bản vá chính thức
+xuất hiện.
+
+> ⚠️ **Trạng thái trên 2.0.0-alpha.6 (kiểm 2026-09-22):** lỗi 1 **vẫn còn**.
+> `translate()` vẫn kết ở `return $value ?: Arr::get($values, app()->getLocale(), Arr::first($values))`
+> (`vendor/lunarphp/core/src/Models/Concerns/HasTranslations.php`): khi locale đang
+> dùng **chính là** locale có key rỗng thì `Arr::get()` trả `''` thay vì default, nên
+> chuỗi rỗng vẫn thắng — `Modules\Core\Casts\FilledTranslations` là thứ đang chặn nó.
+> Lỗi 2 vẫn đúng nguyên về hình dạng (đọc cùng cột, cùng cast), chỉ đổi bên đọc từ
+> Filament sang `Lunar\Panel\Auth\AppAuthentication`.
+> Hai file patch viết theo **đường dẫn của 1.x** (`packages/core/src/Base/Traits/…`,
+> `packages/admin/database/migrations/…`); trên 2.0 file tương ứng đã dời sang
+> `src/Models/Concerns/HasTranslations.php`, nên `git am` thẳng lên 2.0 sẽ không áp
+> được — vẫn dùng được cho clone `1.x` như bảng dưới ghi.
 
 ---
 

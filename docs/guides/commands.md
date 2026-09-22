@@ -95,15 +95,20 @@ Task đang lên lịch trong dự án:
 | Mỗi phút | `lunar:stock:release-expired` ⟵ *Lunar tự đăng ký* |
 | Mỗi 5 phút | `horizon:snapshot` |
 | Mỗi 10 phút | `orders:expire-abandoned` |
+| Mỗi 10 phút | `carts:remind-abandoned` |
 | Mỗi giờ | `schedule:heartbeat --quiet-ok` |
 | Hằng ngày 0h | `sanctum:prune-expired --hours=24` |
 | Hằng ngày 0h | `lunar:prune:carts` ⟵ *Lunar tự đăng ký* |
+| Hằng ngày 0h | `model:prune --model='Lunar\Panel\Models\EditDraft'` ⟵ *panel tự đăng ký* |
 | Hằng ngày 3h30 | `lunar:stock:reconcile` |
+| Hằng ngày 9h | `orders:request-reviews` |
+| Hằng ngày 9h30 | `referrals:release` |
+| Hằng ngày 9h45 | `loyalty:expire` |
 | Chủ nhật 0h | `queue:prune-failed --hours=168` |
 
-⚠️ Ba dòng đánh dấu *Lunar tự đăng ký* **không** nằm trong `routes/console.php`.
-`LunarServiceProvider` tự thêm chúng vào scheduler; `lunar:prune:carts` chỉ được
-thêm khi `lunar.cart.prune_tables.enabled` bật (đã bật ở
+⚠️ Bốn dòng đánh dấu *Lunar tự đăng ký* / *panel tự đăng ký* **không** nằm trong
+`routes/console.php`. `LunarServiceProvider` và panel tự thêm chúng vào scheduler;
+`lunar:prune:carts` chỉ được thêm khi `lunar.cart.prune_tables.enabled` bật (đã bật ở
 `config/lunar/cart.php`). Viết lại chúng trong `routes/console.php` sẽ khiến
 lệnh chạy hai lần — luôn `php artisan schedule:list` để xem lịch THẬT trước khi
 thêm gì.
@@ -157,6 +162,7 @@ php artisan lunar:panel:install # publish lại asset biên dịch sẵn của p
 | `media-library:clean` | Dọn conversion/file mồ côi |
 | `assets:adopt-galleries --dry-run` | Xem trước việc chuyển ảnh gallery cũ (sản phẩm, bộ sưu tập, thương hiệu, loại SP, swatch) vào thư viện media — không ghi gì |
 | `assets:adopt-galleries` | Chuyển thật: file gốc vào thư viện (trùng nội dung thì dùng lại), dòng media của gallery thành liên kết, **giữ nguyên id**. Chạy lại bao nhiêu lần cũng được. Xem [panel-addon.md](../architecture/panel-addon.md#gallery-của-lunar--một-nguồn-sự-thật-là-thư-viện) |
+| `assets:migrate-legacy-images` | Đưa **đường dẫn ảnh tải trực tiếp thời trước** (cột `images`/`image` dạng path) vào Media Library Assets (`--dry-run` để xem trước) |
 
 ## 🧰 Khác
 
@@ -262,7 +268,8 @@ php artisan dusk                       # cần Chrome + site sống ở APP_URL
 php artisan dusk --filter=<TestName>
 ```
 
-Chạy tay, **không có trong CI**. Khi nào nên dùng, bốn cái bẫy hay sập, và cách
+Chạy trong CI từ 2026-09-10 (job `dusk`, song song với job `test`) — `tests/Browser`
+hiện có **24 test trong 9 file**. Khi nào nên dùng, bốn cái bẫy hay sập, và cách
 viết assert không bị false green: [e2e-testing.md](e2e-testing.md).
 
 ## Dựng lại DB dev
