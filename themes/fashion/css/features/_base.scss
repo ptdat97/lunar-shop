@@ -238,10 +238,3 @@ html {
     visibility: hidden;
     transition: opacity .25s ease, visibility .25s ease;
 }
-
-// ── Hero slider fallback ───────────────────────────────────────────────────────
-.hero-slider .swiper-slide {
-    min-height: 420px;
-    background-size: cover;
-    background-position: center;
-}

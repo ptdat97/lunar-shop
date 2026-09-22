@@ -85,7 +85,7 @@
         padding: .2rem;
         border: 2px solid v.$border-color;
         border-radius: 50%;
-        background: v.$bg-primary;
+        background-color: v.$bg-primary;
         overflow: hidden;
         transition: border-color v.$transition-base;
 
@@ -99,7 +99,9 @@
         }
 
         &:hover { border-color: v.$accent; }
-
+        &:active{
+            background-color: v.$bg-primary;
+        }
         &.btn-dark {
             border-color: v.$accent;
             background: v.$bg-primary;
