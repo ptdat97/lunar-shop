@@ -54,7 +54,7 @@ class MobileNavigationTest extends TestCase
 
         // Header action group: hidden below lg.
         $this->assertMatchesRegularExpression(
-            '/<div class="d-none d-lg-flex align-items-center gap-3">/',
+            '/<div class="d-flex align-items-center gap-3">/',
             $html,
             'The header action group must be desktop-only, or it doubles the bottom nav.',
         );

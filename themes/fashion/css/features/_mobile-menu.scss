@@ -24,6 +24,7 @@ $tap-target: 44px;
         padding: v.$spacing-md v.$spacing-lg;
         border-bottom: v.$border-width solid v.$border-color;
         background: v.$bg-primary;
+        justify-content: space-between;
     }
 
     .offcanvas-title {

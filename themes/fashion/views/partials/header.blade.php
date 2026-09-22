@@ -33,20 +33,22 @@
                  cart) live in the bottom nav, and the language switcher in the
                  menu drawer — the header used to carry six tap targets in one
                  phone-width bar. --}}
-            <div class="d-none d-lg-flex align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-none d-lg-block">
                 @include('theme::partials.language-switcher')
+                </div>
                 {{-- Search: a real link with no JS; the enhancer upgrades it to open
                      the search panel (autocomplete) instead of navigating. --}}
-                <a href="{{ route('storefront.search') }}" class="text-dark fs-5" aria-label="{{ __('storefront.nav.search') }}"
+                <a href="{{ route('storefront.search') }}" class="d-none d-lg-block text-dark fs-5" aria-label="{{ __('storefront.nav.search') }}"
                    data-search-toggle aria-expanded="false" aria-controls="searchPanel">
                     <i class="bi bi-search"></i>
                 </a>
-                <a href="{{ route('storefront.wishlist') }}" class="text-dark fs-5 position-relative" aria-label="{{ __('storefront.nav.wishlist') }}">
+                <a href="{{ route('storefront.wishlist') }}" class="d-none d-lg-block text-dark fs-5 position-relative" aria-label="{{ __('storefront.nav.wishlist') }}">
                     <i class="bi bi-heart"></i>
                     <span class="badge rounded-pill bg-dark position-absolute top-0 start-100 translate-middle"
                           data-wishlist-count hidden>0</span>
                 </a>
-                <a href="{{ route('storefront.account') }}" class="text-dark fs-5" aria-label="{{ __('storefront.nav.account') }}">
+                <a href="{{ route('storefront.account') }}" class="d-none d-lg-block text-dark fs-5" aria-label="{{ __('storefront.nav.account') }}">
                     <i class="bi bi-person"></i>
                 </a>
                 {{-- Opens the mini-cart drawer; falls back to the cart page with no JS. --}}

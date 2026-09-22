@@ -70,6 +70,7 @@ html {
 
 // Codepoints verified against the shipped bootstrap-icons.woff2 (1.x). Only
 // glyphs declared here render — any bi-* class used in a view must be listed.
+.bi-house::before { content: '\F425'; }
 .bi-search::before { content: '\F52A'; }
 .bi-heart::before { content: '\F417'; }
 .bi-heart-fill::before { content: '\F415'; }

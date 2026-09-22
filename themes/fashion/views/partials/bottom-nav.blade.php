@@ -19,7 +19,7 @@
             ['route' => 'storefront.home', 'icon' => 'house', 'label' => __('storefront.nav.home')],
             ['route' => 'storefront.search', 'icon' => 'search', 'label' => __('storefront.nav.search'), 'search' => true],
             ['route' => 'storefront.wishlist', 'icon' => 'heart', 'label' => __('storefront.nav.wishlist'), 'count' => 'wishlist'],
-            ['route' => 'storefront.cart', 'icon' => 'bag', 'label' => __('storefront.nav.cart'), 'count' => 'cart'],
+            //['route' => 'storefront.cart', 'icon' => 'bag', 'label' => __('storefront.nav.cart'), 'count' => 'cart'],
             ['route' => 'storefront.account', 'icon' => 'person', 'label' => __('storefront.nav.account')],
         ];
     @endphp

@@ -258,7 +258,9 @@
         &:hover {
             transform: scale(1.1);
         }
-
+        &:focus{
+            box-shadow: none;
+        }
         &:focus-visible { 
             outline: 2px solid v.$accent; 
             outline-offset: 2px; 
