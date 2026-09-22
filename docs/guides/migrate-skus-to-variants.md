@@ -300,18 +300,21 @@ kiểm **kết quả** đi qua checkout, không kiểm ruột của bên tạo r
 
 ## 7. Việc còn lại
 
-`lunar_product_skus` (648 dòng) và `sku_variant_map` **vẫn còn trong DB**, dù
-không còn dòng code nào đọc chúng. Cố ý: chúng là thứ duy nhất trả lời được
-"đơn hàng cũ này trỏ vào SKU nào" nếu có gì đó sai lộ ra muộn. Bảng cũng không
-tốn gì.
+`lunar_product_skus` (648 dòng) và `sku_variant_map` **đã được drop** trong migration
+`2026_09_09_170000_drop_legacy_sku_tables` (2026-09-09).
 
-Drop khi: đã chạy production một thời gian, và không còn ai cần tra ngược. Một
-migration nhỏ, chạy sau chứ không phải bây giờ — đây là bước duy nhất không thể
-hoàn tác từ dữ liệu còn lại.
+Migration drop này đã chạy thành công, hai bảng SKU legacy đã được gỡ khỏi DB.
+Không còn dòng code nào đọc hai bảng này sau migration drop. Ánh xạ SKU → variant
+ban đầu (648 SKU ↔ 648 map ↔ 648 variant) đã được giữ nguyên trong quá trình
+migration, không mồ côi hai chiều — việc migrate data sang `product_variants`
+đã hoàn tất trước khi drop.
 
-**Đã drop 2026-09-09** (`2026_09_09_170000_drop_legacy_sku_tables.php`), sau khi
-kiểm chứng: ngoài migration không còn dòng code nào đọc chúng, và ánh xạ nguyên
-vẹn — 648 SKU ↔ 648 map ↔ 648 variant, 0 mồ côi hai chiều.
+Migration drop đã được bổ sung vào `database/migrations/` và đã chạy. Hai bảng
+SKU không còn trong schema hiện tại.
+
+Kiểm chứng 2026-09-22: `migrate:status` báo `2026_09_09_170000_drop_legacy_sku_tables`
+là `Ran`. Hai bảng SKU legacy không còn tồn tại trong DB. Không còn bước drop nào
+cần làm — việc này đã xong.
 
 Đi cùng là bảng thứ ba: `stock_movements`, sổ cái tồn kho của shop. Lunar 2.0 sở
 hữu việc này rồi (`lunar_stock_movements`, do chính action AdjustStock /

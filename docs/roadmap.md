@@ -3,7 +3,7 @@
 > **Chỉ ghi việc CHƯA làm.** Hiện trạng ở
 > [architecture/overview.md](architecture/overview.md); lịch sử bug đã sửa ở
 > [history/2026-07-platform-audit.md](history/2026-07-platform-audit.md).
-> Xếp theo ROI giảm dần. Cập nhật: **2026-09-18** (mục 16 điểm thưởng + phần ảnh còn lại của mục 17 xong).
+> Xếp theo ROI giảm dần. Cập nhật: **2026-09-22** (mục 16 điểm thưởng + phần ảnh còn lại của mục 17 xong; số liệu thống kê cập nhật).
 >
 > **Thứ tự ưu tiên đã đảo lại (2026-07-13).** Trước đây danh sách này mở đầu bằng
 > tính năng chuyển đổi (size intelligence, search engine). Rà lại code cho

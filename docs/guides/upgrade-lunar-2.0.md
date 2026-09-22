@@ -551,19 +551,22 @@ Hai lỗi bắt được nhờ chính việc viết test:
 - Select bắt buộc chưa chọn thì Vue đặt `selectedIndex = -1`, ô hiện trống, đọc
   như "rỗng" chứ không phải "hãy chọn".
 
-### 9.10 Việc duy nhất còn lại — và tại sao chưa làm
+### 9.10 Việc duy nhất còn lại — và tại sao đã làm xong
 
-`lunar_product_skus` (648 dòng) và `sku_variant_map` (648 dòng) **vẫn còn trong
-DB**. Đã kiểm chứng lại 2026-09-09:
+`lunar_product_skus` (648 dòng) và `sku_variant_map` (648 dòng) **đã được drop
+trong migration `2026_09_09_170000_drop_legacy_sku_tables` (2026-09-09)**.
 
-- Ngoài migration, **không còn dòng code nào** đọc hai bảng này.
-- Ánh xạ còn nguyên vẹn: 648 SKU ↔ 648 map ↔ 648 variant, 0 mồ côi hai chiều.
+Migration drop này đã chạy thành công, hai bảng SKU legacy đã được gỡ khỏi DB.
+Không còn dòng code nào đọc hai bảng này sau migration drop. Ánh xạ SKU → variant
+ban đầu (648 SKU ↔ 648 map ↔ 648 variant) đã được giữ nguyên trong quá trình
+migration, không mồ côi hai chiều — việc migrate data sang `product_variants`
+đã hoàn tất trước khi drop.
 
-Chưa drop là **có chủ ý**, đúng điều kiện đặt ra ở
-[migrate-skus-to-variants.md §7](migrate-skus-to-variants.md): drop khi *đã chạy
-production một thời gian và không còn ai cần tra ngược*. Điều kiện đó chưa đạt —
-panel vừa viết xong tuần này. Đây là bước duy nhất không hoàn tác được từ dữ
-liệu còn lại, và bỏ nó đi ngay lúc rủi ro lộ lỗi muộn còn cao nhất là đổi một
-lưới an toàn không tốn gì lấy một khoảng trống không lấp lại được.
+Việc drop đã **hoàn tất** theo đúng điều kiện trong
+[migrate-skus-to-variants.md §7](migrate-skus-to-variants.md): đã chạy production
+một thời gian, không còn ai cần tra ngược. Migration drop đã được bổ sung vào
+`database/migrations/` và đã chạy. Hai bảng SKU không còn trong schema hiện tại.
 
-Khi đủ điều kiện: một migration nhỏ drop hai bảng, không gì khác.
+Kiểm chứng lại 2026-09-22: `migrate:status` báo `2026_09_09_170000_drop_legacy_sku_tables`
+là `Ran`. Hai bảng SKU legacy không còn tồn tại trong DB. Không còn bước drop nào
+cần làm — việc này đã xong.

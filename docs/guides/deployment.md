@@ -2,8 +2,9 @@
 
 > Quy trình đưa **Laravel 12 + LunarPHP** lên production và vận hành. Đọc kèm
 > [../architecture/overview.md](../architecture/overview.md).
-> Cập nhật lần cuối: **2026-08-27** (sửa §3: Lunar là composer package, bản fork
-> trong repo đã gỡ từ 2026-07-20).
+> Cập nhật lần cuối: **2026-09-22** (§10 rotate khoá: `.env.example` đã trống,
+> nhưng khoá hiện tại vẫn nằm trong `compromised_app_keys` → deploy production vẫn
+> bị chặn; xem §10).
 
 ---
 
@@ -378,8 +379,7 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
   | **PHPUnit** | Toàn bộ suite trên MySQL 8 thật (không phải SQLite — app dùng JSON function cho attribute + facet) |
   | **Dusk** | Smoke trình duyệt thật. Đỏ thì upload ảnh chụp + console log, vì lỗi trình duyệt không để lại dấu vết phía server |
   | **Bảo mật dependency** | `composer audit` + `npm audit --omit=dev`. `composer.lock` ghim version nên CVE mới không tự xuất hiện |
-  | **Pint** | Format |
-
+  | **Pint** | Format, chạy `vendor/bin/pint --dirty` (chỉ file đã sửa, tương tự CI).
   ⚠️ Cả job PHPUnit lẫn Dusk đều **bắt buộc** chạy `npm run build`: `public/build`
   và bundle add-on của panel đều gitignore, thiếu là mọi trang `@vite` trả 500 và
   trang panel render rỗng mà không có lỗi phía server nào để lần.
@@ -388,9 +388,11 @@ on-demand qua PHP lần đầu, các lần sau nginx serve file tĩnh.
 
 ## 10. Rotate `APP_KEY`
 
-**Trạng thái: CHƯA LÀM.** `shop:preflight` chặn deploy production cho tới khi
-xong. Khoá đang chạy là khoá nằm trong git history — bất kỳ ai đọc được repo đều
-giả mạo được session và giải được mọi giá trị mã hoá.
+**Trạng thái: CHƯA LÀM — khoá đang chạy vẫn là khoá trong git history.** `shop:preflight`
+chặn deploy production cho tới khi xong. `.env.example` đã được trống khoá (2026-09-18),
+không còn file tracked nào mang khoá đó — nhưng khoá hiện tại vẫn là khoá đã từng leak,
+vẫn nằm trong `config/security.php` → `compromised_app_keys`, nên deploy sản phẩm vẫn bị
+chặn bởi `shop:preflight`.
 
 ### Vì sao không chỉ là `php artisan key:generate`
 

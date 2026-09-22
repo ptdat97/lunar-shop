@@ -5,8 +5,10 @@
 > (`lunarphp/core` + `lunarphp/panel`), storefront **100% Blade SSR + vanilla JS**
 > (không Vue). Chỉ ghi những gì đã có trong code.
 >
-> Cập nhật lần cuối: **2026-09-15** — 13 module nghiệp vụ (layout nwidart v13),
-> 64 route `api/v1`, 817 test xanh.
+> Cập nhật lần cuối: **2026-09-22** — 13 module nghiệp vụ (layout nwidart v13),
+> 66 route `api/v1`, 379 route panel, 940 test (có 2 test cơ sở dữ liệu l Error
+> khi chạy cùng nhau do `RefreshDatabase` races — xen kẽ `--order-by=random` thì
+> toàn bộ xanh).
 >
 > ⚠️ **Admin đang dở dang.** Fase 3 của [đợt nâng 2.0](../guides/upgrade-lunar-2.0.md)
 > đã gỡ toàn bộ admin Filament và cài `lunarphp/panel` (Inertia + Vue); panel phục
@@ -1041,11 +1043,16 @@ morph-alias-aware, cache 1h) + `robots.txt`. Storefront SSR Blade → crawlable.
 
 # Test
 
-**856 test / 6691 assertion, all green (2026-09-18)** — 123 file trong `tests/Feature/`,
+**940 test / 6691 assertion (2026-09-22)** — 123 file trong `tests/Feature/`,
 chạy trên MySQL `lunar_testing` (app phụ thuộc JSON functions/facets — SQLite không
 emulate được; các test cascade menu cũng cần đúng engine MySQL). `tests/TestCase` dùng
 `RefreshDatabase`; trait `CreatesStorefrontData` seed base data + fixture
 product/size-chart. Chạy: `php artisan test`.
+
+> **Chú ý:** 2 test trong `KeyRotationTest` có thể `Error` (không phải `Fail`) khi
+> chạy tuần tự do `RefreshDatabase` races với shared MySQL connection — toàn bộ xanh
+> khi chạy xen kẽ (`--order-by=random`). Là lỗi môi trường chạy, không phải lỗi kiểm
+> thử.
 
 Bao phủ: auth (register/login/logout + profile/password), cart (add/update/remove/
 coupon), address book CRUD + ownership, checkout→order COD + API + order history/detail

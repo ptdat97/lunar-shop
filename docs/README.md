@@ -160,10 +160,10 @@ modules/<Name>/
 | Hạng mục | Giá trị |
 |---|---|
 | Module | 13 |
-| File PHP trong `modules/` | 353 |
-| Route `api/v1` | 64 |
-| Route panel (`lunarphp/panel`) | 370 |
-| Test | 856 |
+| File PHP trong `modules/` | 452 |
+| Route `api/v1` | 66 |
+| Route panel (`lunarphp/panel`) | 379 |
+| Test | 940 |
 
 > Số liệu là snapshot lúc viết. Chạy `php artisan test` và
 > `php artisan route:list` để lấy con số hiện thời.
