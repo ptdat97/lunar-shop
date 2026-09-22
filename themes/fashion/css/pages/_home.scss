@@ -11,10 +11,6 @@
     // greying the whole photo, and a large serif headline.
     .hero-slider {
         position: relative;
-        min-height: 78vh;
-        @include m.up(lg) {
-            min-height: 92dvh;
-        }
 
         .swiper,
         .swiper-wrapper {
@@ -27,7 +23,10 @@
             background-position: center;
             display: flex;
             align-items: flex-end;
-
+            min-height: 78vh;
+            @include m.up(lg) {
+                min-height: 92dvh;
+            }
             // Directional scrim — anchors text bottom-left, keeps art breathing.
             &::before {
                 content: "";
