@@ -105,20 +105,30 @@ class PricingService
         return $variant ? (string) $this->matchedPrice($variant)?->unitFormat('price') : null;
     }
 
-    /**
-     * A product's enabled variants, ordered by position. Uses the eager-loaded
-     * relation when present (filtering out any disabled rows a broad eager-load
-     * may have pulled in), else queries.
+        /**
+     * A product's enabled ("published") variants. Uses the eager-loaded relation
+     * when present (filtering out any disabled rows a broad eager-load may have
+     * pulled in), else queries.
+     *
+     * Lunar 2.0 consolidated the old SKU-era `status` ('published'|'disabled')
+     * column into the variant `enabled` boolean — see
+     * `2026_09_09_100000_migrate_product_skus_to_variants` (`'enabled' =>
+     * $sku->status === 'published'`) and `drop_sku_era_variant_columns`, which
+     * removed both `status` and `position` from `lunar_product_variants`. The
+     * published state is therefore `enabled`, the same column cardRelations()
+     * eager-loads with. `position` is gone, so ordering falls back to the
+     * clustered PK (`id`), which matches the eager-loaded path (no explicit
+     * order → InnoDB row/id order).
      *
      * @return Collection<int, ProductVariant>
      */
     protected function publishedSkus(Product $product): Collection
     {
         if ($product->relationLoaded('variants')) {
-            return $product->variants->where('status', 'published')->sortBy('position')->values();
+            return $product->variants->where('enabled', true)->sortBy('id')->values();
         }
 
-        return $product->variants()->where('status', 'published')->orderBy('position')->get();
+        return $product->variants()->where('enabled', true)->orderBy('id')->get();
     }
 
     /**
