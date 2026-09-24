@@ -3,7 +3,7 @@
 > **Chỉ ghi việc CHƯA làm.** Hiện trạng ở
 > [architecture/overview.md](architecture/overview.md); lịch sử bug đã sửa ở
 > [history/2026-07-platform-audit.md](history/2026-07-platform-audit.md).
-> Xếp theo ROI giảm dần. Cập nhật: **2026-09-22** (mục 16 điểm thưởng + phần ảnh còn lại của mục 17 xong; rà lại số liệu hiện trạng: 131 file test, 24 test Dusk, admin trên panel đã xong Fase 4+5).
+> Xếp theo ROI giảm dần. Cập nhật: **2026-09-24** (thêm §18–24 + rà soát năng lực lần 2; trước đó 2026-09-22: mục 16 điểm thưởng + phần ảnh còn lại của mục 17 xong; rà lại số liệu hiện trạng: 131 file test, 24 test Dusk, admin trên panel đã xong Fase 4+5).
 >
 > **Thứ tự ưu tiên đã đảo lại (2026-07-13).** Trước đây danh sách này mở đầu bằng
 > tính năng chuyển đổi (size intelligence, search engine). Rà lại code cho
@@ -510,6 +510,141 @@ sai mật khẩu · GA + Facebook pixel.
 | Hộp thư hợp kênh | Chỉ có nghĩa khi bán trên nhiều kênh cùng lúc. Shop một cửa hàng, một storefront |
 | Boosting sản phẩm, gói đăng ký người bán, hoa hồng | Chỉ tồn tại khi có nhiều người bán |
 | Marketplace nhiều gian hàng, sản phẩm số, trợ lý bán hàng AI | Ngoài phạm vi SME một cửa hàng |
+| Workflow engine tổng quát | Hook/workflow engine nằm trong [Nguyên tắc phạm vi](#nguyên-tắc-phạm-vi-nhắc-lại). Cross-module gọi service trực tiếp |
+| Ví số dư của khách | Module Wallet rỗng đã bị loại; điểm thưởng (§16) đã phủ nhu cầu "số dư của khách" |
+| API tích hợp ERP, kho đa điểm | Chưa có hệ thống ERP thật để nối. Ngưỡng: có hệ thống thật → `Integrations/<System>` + queued job nghe domain event |
+
+---
+
+## Rà soát năng lực lần 2 (2026-09-24)
+
+Đối chiếu thêm một lượt các năng lực thường gặp ở shop thời trang Việt Nam với hiện
+trạng repo, kiểm **bằng grep trên `modules/`, `themes/`, `config/`**, không phỏng đoán.
+Kết quả: 7 việc làm được ngay (§18–24), 6 năng lực mới có một phần, 4 việc bị chặn
+ngoài code, và 3 năng lực cố ý không làm (đã thêm vào bảng [Cố ý KHÔNG làm](#cố-ý-không-làm)).
+
+> **Kiểm Lunar đã có chưa** (Nguyên tắc #1) trước mỗi mục — vài mục dưới đây phần lớn
+> là bật một cờ sẵn có của Lunar chứ không phải dựng mới.
+
+Thứ tự §18–24 là thứ tự ROI, tính theo hạ tầng đã có như mục 13–16.
+
+### 18. ⚠️ Hoàn kho khi phiếu đổi/trả hoàn tất — *Order + Inventory* · **nghi là lỗi**
+
+Phiếu đổi/trả hoàn tất thì hàng khách gửi về phải được cộng lại vào tồn kho để bán
+tiếp, và khách được báo ở từng bước.
+
+- ⬜ **Hiện trạng đo được:** `ReturnService` không có dòng nào chạm tồn kho (grep
+  `stock|restock|AdjustStock` rỗng), và `modules/Inventory` không nghe sự kiện RMA nào.
+  Lunar 2.0 trả hàng về kho qua fulfilment khi **huỷ đơn**, nhưng RMA của shop là bảng
+  riêng (`return_requests`) — Lunar không biết nó tồn tại. Nếu đúng: hàng trả về nằm
+  trong kho thật mà `stock_on_hand` không tăng → vô hình cho tới khi sửa tay, kiểm kê
+  lệch.
+- **Việc đầu tiên là xác nhận** bằng một test feature (đơn → RMA → refund → đọc
+  `stock_available`), chưa sửa gì trước khi test đỏ.
+- **Cách làm nếu đúng:** listener nghe RMA chuyển sang `refunded`/`completed` → action
+  `AdjustStock` của Lunar (ghi `lunar_stock_movements`, đối soát được). Cần cờ "còn bán
+  được không" trên từng dòng — hàng lỗi không được quay lại kệ. Kèm email báo khách ở
+  từng bước RMA (mẫu: `SendOrderStatusEmail`).
+
+### 19. Hỏi đáp sản phẩm — *Catalog + theme* · **công: trung bình**
+
+Khách hỏi ngay trên trang sản phẩm, shop trả lời, duyệt xong thì hiển thị công khai.
+Hiện không có (grep `question|qna` rỗng).
+
+Đánh giá là **sau** mua, hỏi đáp là **trước** mua. "1m65 55kg mặc size nào", "vải có
+nóng không" là rào cản thật; trả lời một lần là gỡ cho mọi khách sau, và thành nội dung
+SEO dài hạn.
+
+- ⬜ Đi đúng khuôn `Review`: bảng `product_questions` (hỏi + trả lời của staff), hàng đợi
+  duyệt trên panel như `ReviewResource`, khối SSR trên trang sản phẩm (đọc không phụ
+  thuộc JS), form gửi trong popup như `#reviewForm` (kèm `<noscript>`).
+- ⬜ JSON-LD `QAPage` chỉ khi đã có câu trả lời được duyệt. Rate-limit riêng cho form gửi.
+
+### 20. Tín hiệu khan hiếm — *Inventory + theme* · **công: thấp**
+
+Hai con số trên trang sản phẩm: còn bao nhiêu cái của **đúng size đang chọn**, và đã
+bán bao nhiêu gần đây. Hiện trang sản phẩm in `storefront.product.in_stock` với số tồn
+của biến thể đang chọn — **luôn luôn**, kể cả khi còn 500 cái: không tạo cảm giác khan
+hiếm, lại lộ số tồn cho đối thủ.
+
+- ⬜ Chỉ hiện "chỉ còn N" khi `N ≤` ngưỡng hàng sắp hết (đã có trong Settings).
+- ⬜ "Đã bán N trong 7 ngày" — gộp dòng đơn của `OrderStatus::paid()`, cache theo sản phẩm.
+- **Không có chế độ bịa số** — ràng buộc thiết kế, không phải lời hứa: không hệ số,
+  không sàn, không làm tròn cho đẹp. Đọc `sellable` (`getTotalInventory()`), không đọc
+  `stock_on_hand`.
+
+### 21. Đặt trước / bán khi hết hàng — *Catalog + Inventory* · **công: trung bình**
+
+Cho khách đặt món đang hết hàng (hoặc chưa về), kèm nhãn và ngày dự kiến có hàng. Hiện
+nút thêm giỏ `@disabled` khi `$selectedStock <= 0`; hết hàng chỉ có "báo khi có hàng".
+
+- **Kiểm Lunar trước:** `ProductVariant::purchasable` có `always` / `in_stock` /
+  `backorder`, và `canBeFulfilledAtQuantity()` đọc nó — phần lớn logic là **bật cờ**.
+- ⬜ Việc của shop: nhãn "Đặt trước" + ngày dự kiến có hàng trên trang sản phẩm, cho
+  biến thể `backorder` đi qua `CartStockAtOrderCreation`, email khi hàng về (tái dùng
+  `BackInStockObserver`).
+
+### 22. Báo cáo khuyến mãi theo đơn — *Promotion + panel* · **công: thấp**
+
+Chưa có màn hình nào trả lời "đơn này được giảm bởi những gì".
+
+- ⬜ Màn hình **chỉ đọc** trên panel: mỗi đơn có những discount nào tham gia (tự động,
+  coupon, hạng thành viên) — điểm thưởng là **thanh toán** (§16) nên hiện tách riêng.
+  Không bảng mới, không ghi gì. Đáng giá nhất khi flash sale + combo + hạng chồng nhau.
+
+### 23. Đánh giá: bình chọn "hữu ích" — *Catalog* · **công: thấp**
+
+Phần còn lại của đánh giá **đã có** (ảnh, kiểm duyệt, nhãn đã mua hàng, JSON-LD).
+
+- ⬜ Nút "hữu ích" + sắp xếp theo độ hữu ích. Một khách một phiếu (theo `user_id`,
+  khách vãng lai thì vân tay thiết bị như §15).
+
+### 24. Đăng nhập nhanh — *Customer* · **công: trung bình**
+
+Hiện chỉ có email + mật khẩu.
+
+- ⬜ **OTP qua SMS bằng số điện thoại.** Ở VN khách để lại số điện thoại chứ không để
+  email → hợp hơn social login. Contract `SmsSender` đã có
+  (`modules/Notification/app/Contracts`) → driver OTP đi theo mẫu sẵn. Cân nhắc chi phí
+  SMS mỗi lượt; rate-limit theo số điện thoại.
+- ⬜ **Google / Facebook login** (Socialite) rẻ hơn nhưng ít người dùng ở phân khúc SME
+  fashion — làm sau.
+
+### Có một phần — thiếu đúng mảnh ghi ở cột phải
+
+| Năng lực | Đã có | Còn thiếu |
+|---|---|---|
+| Marketing tự động qua email | Cứu giỏ bỏ quên, xin đánh giá, báo hàng về | Đăng ký bản tin + chiến dịch email hàng loạt theo phân khúc. **Chưa nên dựng trong shop** — đẩy danh sách khách sang dịch vụ email ngoài rẻ hơn tự làm hàng đợi gửi + huỷ đăng ký |
+| Chiến dịch giá | Flash sale có đếm ngược, giá theo hạng (CustomerGroup), trang `/promotions` | Lịch lặp (ví dụ sale cuối tuần tự bật T7–CN). Tạo tay vẫn được — chỉ làm khi chủ shop kêu |
+| Khối trang chủ | Sản phẩm đã xem, sắp xếp `newest` | Section video hero trang chủ; trang "hàng mới về" riêng (có thể là một Collection tự động) |
+| Chống lạm dụng storefront | Limiter `api` cho mọi `api/v1/*` (`ThrottleApiV1`), `checkout`, `auth`; `suggest` kẹp `limit ≤ 20` | Upload ảnh đánh giá chỉ chịu limiter chung `api` — thêm limiter riêng cùng lúc làm §19 |
+| Pixel quảng cáo | GA (gtag) + Facebook Pixel: `view_item`, `add_to_cart`, `purchase` | GTM container, `begin_checkout`, Conversions API phía server (pixel trình duyệt mất dữ liệu vì chặn quảng cáo / iOS) |
+| Đánh giá sản phẩm | Ảnh, kiểm duyệt, đã mua hàng, JSON-LD | Bình chọn hữu ích → §23 |
+
+### Thiếu nhưng chặn ngoài code ⏸
+
+Cùng nhóm với P0.5 (vận chuyển) và P0 §3 (HĐĐT): **không code trước theo tài liệu**. Ghi
+lại để lúc mở khoá không phải khảo sát lại.
+
+| Năng lực | Việc | Chặn bởi | Ghi chú khi làm |
+|---|---|---|---|
+| Phí ship theo hãng | Phí ship thật theo phường/xã qua API hãng | Hợp đồng GHN/GHTK | Nên làm **GHTK trước** vì API nhận **tên** tỉnh/phường — dùng ngay được với địa giới 2 cấp đã có (`Province`/`Ward`); GHN cần lớp ánh xạ mã. Bắt buộc có **phí dự phòng** khi API lỗi — checkout không được chết theo hãng. Cắm vào `ShippingService` |
+| Hành trình vận đơn | Hỏi hãng theo lịch, quy mã trạng thái từng hãng về một tập chung, hiện dòng thời gian trên trang đơn của khách | Như trên | `lunar_fulfilment_trackings` đã có chỗ lưu mã; thiếu lớp hỏi hãng + bảng sự kiện. Phát qua `OrderStatusUpdated` đã có |
+| Đối soát COD | Sổ theo dõi tiền COD hãng thu hộ: nhập file đối soát, khớp mã vận đơn, báo đơn chưa về tiền / về thiếu | Như trên (cần file đối soát thật) | **Quan trọng hơn vẻ ngoài**: gần 100% đơn là COD, và giữa "khách nhận hàng" với "tiền về tài khoản" hiện không có gì theo dõi. Có thể làm bản nhập CSV tay trước khi có API |
+| Tin Zalo ZNS | Xác nhận đơn, trạng thái, nhắc giỏ qua Zalo | OA đã xác thực doanh nghiệp | Đã ghi ở "Cân nhắc rồi CỐ Ý chưa làm". Theo khuôn `OrderSmsNotifier`; cần **danh sách từ chối theo số điện thoại** + nhật ký giao tin |
+
+### Đã có sẵn — *đừng đề xuất lại*
+
+Bổ sung cho danh sách của lượt rà 2026-08-27:
+khối hàng bán chạy · mua X tặng Y (type `BuyXGetY` gốc của Lunar + `QuantityPercentageOff`) ·
+mã giảm giá · phí ship cố định theo vùng (`ShippingZone`) · COD + chuyển khoản (driver
+`offline`) · VNPay + MoMo · phối đồ trọn bộ (hotspot lookbook + `ComboPercentageOff` + gợi ý
+mua kèm `CoPurchaseStrategy`) · điểm thưởng (§16) · bảng size · ô màu biến thể
+(`display_type` color/image) · tỉnh/phường VN · slug SEO (URL của Lunar) · ảnh WebP +
+`<picture>` · thư viện media trên panel · tìm kiếm Meilisearch (đã có chỗ cắm — P3 §9) ·
+trang/section/banner nội dung (chèn HTML/script tuỳ ý thì cố ý không — đụng CSP).
+Xoá cache từ panel: là việc của deploy, không phải nút bấm. PayPal/Stripe: không áp dụng —
+thị trường VN, VNPay chỉ nhận VND.
 
 ---
 
